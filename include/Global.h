@@ -240,19 +240,25 @@ extern double                SF_CREATE_STAR_MAX_STAR_MFRAC;
 #if ( MODEL == HYDRO )
 extern double EoS_AuxArray_Flt[EOS_NAUX_MAX];
 extern int    EoS_AuxArray_Int[EOS_NAUX_MAX];
-extern EoS_DE2P_t EoS_DensEint2Pres_CPUPtr;
-extern EoS_DP2E_t EoS_DensPres2Eint_CPUPtr;
-extern EoS_DP2C_t EoS_DensPres2CSqr_CPUPtr;
-extern EoS_DE2T_t EoS_DensEint2Temp_CPUPtr;
-extern EoS_DT2P_t EoS_DensTemp2Pres_CPUPtr;
-extern EoS_GENE_t EoS_General_CPUPtr;
+extern EoS_DE2P_t    EoS_DensEint2Pres_CPUPtr;
+extern EoS_DP2E_t    EoS_DensPres2Eint_CPUPtr;
+extern EoS_DP2C_t    EoS_DensPres2CSqr_CPUPtr;
+extern EoS_DE2T_t    EoS_DensEint2Temp_CPUPtr;
+extern EoS_DT2P_t    EoS_DensTemp2Pres_CPUPtr;
+extern EoS_GENE_t    EoS_General_CPUPtr;
+#ifdef COSMIC_RAY
+extern EoS_CRE2CRP_t EoS_CREint2CRPres_CPUPtr;
+#endif
 #ifdef GPU
-extern EoS_DE2P_t EoS_DensEint2Pres_GPUPtr;
-extern EoS_DP2E_t EoS_DensPres2Eint_GPUPtr;
-extern EoS_DP2C_t EoS_DensPres2CSqr_GPUPtr;
-extern EoS_DE2T_t EoS_DensEint2Temp_GPUPtr;
-extern EoS_DT2P_t EoS_DensTemp2Pres_GPUPtr;
-extern EoS_GENE_t EoS_General_GPUPtr;
+extern EoS_DE2P_t    EoS_DensEint2Pres_GPUPtr;
+extern EoS_DP2E_t    EoS_DensPres2Eint_GPUPtr;
+extern EoS_DP2C_t    EoS_DensPres2CSqr_GPUPtr;
+extern EoS_DE2T_t    EoS_DensEint2Temp_GPUPtr;
+extern EoS_DT2P_t    EoS_DensTemp2Pres_GPUPtr;
+extern EoS_GENE_t    EoS_General_GPUPtr;
+#ifdef COSMIC_RAY
+extern EoS_CRE2CRP_t EoS_CREint2CRPres_GPUPtr;
+#endif
 #endif
 extern EoS_t EoS;
 #endif // HYDRO
@@ -287,6 +293,17 @@ extern void (*Flu_DerivedField_User_Ptr)( real Out[], const real FluIn[], const 
 extern int  FB_LEVEL, FB_RSEED;
 extern bool FB_SNE, FB_USER;
 extern bool FB_Any;
+#endif
+
+
+// (2-13) cosmic ray
+// =======================================================================================================
+#ifdef COSMIC_RAY
+extern double GAMMA_CR;
+extern bool   CR_DIFFUSION;
+extern bool   CR_ISOTROPIC;
+extern double CR_DIFF_PARA;
+extern double CR_DIFF_PERP;
 #endif
 
 

@@ -630,7 +630,7 @@ void Aux_Check_Parameter()
 #  endif
 
 #   if ( DUAL_ENERGY == DE_ENPY  &&  defined COSMIC_RAY )
-#     error : COSMIC_RAY does NOT support DUAL_ENERGY=DE_ENPY !!
+//#     error : COSMIC_RAY does NOT support DUAL_ENERGY=DE_ENPY !!
 #   endif
 #  endif // #ifdef DUAL_ENERGY
 
