@@ -273,11 +273,11 @@ bool FB_Any;
 
 // (2-13) cosmic ray
 #ifdef COSMIC_RAY
-double GAMMA_CR;
-bool   CR_DIFFUSION;
-bool   CR_ISOTROPIC;
-double CR_DIFF_PARA;
-double CR_DIFF_PERP;
+//double GAMMA_CR;
+//bool   CR_DIFFUSION;
+//bool   CR_ISOTROPIC;
+//double CR_DIFF_PARA;
+//double CR_DIFF_PERP;
 #endif
 
 

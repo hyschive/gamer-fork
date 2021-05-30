@@ -299,11 +299,11 @@ extern bool FB_Any;
 // (2-13) cosmic ray
 // =======================================================================================================
 #ifdef COSMIC_RAY
-extern double GAMMA_CR;
-extern bool   CR_DIFFUSION;
-extern bool   CR_ISOTROPIC;
-extern double CR_DIFF_PARA;
-extern double CR_DIFF_PERP;
+//extern double GAMMA_CR;
+//extern bool   CR_DIFFUSION;
+//extern bool   CR_ISOTROPIC;
+//extern double CR_DIFF_PARA;
+//extern double CR_DIFF_PERP;
 #endif
 
 
