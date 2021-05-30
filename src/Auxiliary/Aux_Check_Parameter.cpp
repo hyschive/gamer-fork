@@ -630,7 +630,7 @@ void Aux_Check_Parameter()
 #  endif
 
 #   if ( DUAL_ENERGY == DE_ENPY  &&  defined COSMIC_RAY )
-//#     error : COSMIC_RAY does NOT support DUAL_ENERGY=DE_ENPY !!
+#     error : COSMIC_RAY does NOT support DUAL_ENERGY=DE_ENPY !!
 #   endif
 #  endif // #ifdef DUAL_ENERGY
 
@@ -646,15 +646,15 @@ void Aux_Check_Parameter()
 #  endif // MHD
 
 #  ifdef COSMIC_RAY
-#     error : ERROR : COSMIC_RAY is NOT supported yet !!
+//#     error : ERROR : COSMIC_RAY is NOT supported yet !!
 #  endif
 
 #  if ( defined LR_EINT  &&  FLU_SCHEME == CTU )
 #     error : ERROR : CTU does NOT support LR_EINT in CUFLU.h !!
 #  endif
 
-#  if ( EOS != EOS_GAMMA  &&  EOS != EOS_ISOTHERMAL  &&  EOS != EOS_NUCLEAR  &&  EOS != EOS_TABULAR  &&  EOS != EOS_USER )
-#     error : ERROR : unsupported equation of state (EOS_GAMMA/EOS_ISOTHERMAL/EOS_NUCLEAR/EOS_TABULAR/EOS_USER) !!
+#  if ( EOS != EOS_GAMMA  &&  EOS != EOS_ISOTHERMAL  &&  EOS != EOS_NUCLEAR  &&  EOS != EOS_TABULAR  &&  EOS != EOS_COSMIC_RAY  &&  EOS != EOS_USER )
+#     error : ERROR : unsupported equation of state (EOS_GAMMA/EOS_ISOTHERMAL/EOS_NUCLEAR/EOS_TABULAR/EOS_COSMIC_RAY/EOS_USER) !!
 #  endif
 
 #  if ( EOS != EOS_GAMMA )
