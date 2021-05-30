@@ -491,6 +491,7 @@ struct InputPara_t
    double MinPres;
    double MinEint;
    double MinTemp;
+   int    Opt__CheckPresAfterFlu;
    int    Opt__LastResortFloor;
    int    JeansMinPres;
    int    JeansMinPres_Level;
@@ -574,11 +575,13 @@ struct InputPara_t
    int    RestartLoadNRank;
    int    Opt__RestartReset;
    int    Opt__UM_IC_Level;
+   int    Opt__UM_IC_NLevel;
    int    Opt__UM_IC_NVar;
    int    Opt__UM_IC_Format;
    int    Opt__UM_IC_Downgrade;
    int    Opt__UM_IC_Refine;
    int    Opt__UM_IC_LoadNRank;
+   int    UM_IC_RefineRegion[NLEVEL-1][6];
    int    Opt__InitRestrict;
    int    Opt__InitGridWithOMP;
    int    Opt__GPUID_Select;
