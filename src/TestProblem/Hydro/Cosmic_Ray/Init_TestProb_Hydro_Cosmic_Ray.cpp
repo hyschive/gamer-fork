@@ -231,8 +231,8 @@ void SetGridIC( real fluid[], const double x, const double y, const double z, co
 
       Dens = ( 1.0 + delta_cs * wave ) * CR_Acoustic_Rho0;
       MomX = Dens * ( CR_Acoustic_Sign * CR_Acoustic_Delta * wave + CR_Acoustic_V0) / SQRT(3.0);
-      MomY = MOMX;
-      MomZ = MOMX;
+      MomY = MomX;
+      MomZ = MomX;
       Pres = ( 1.0 + delta_cs * wave * GAMMA    ) * CR_Acoustic_Pres0;
       P_cr = ( 1.0 + delta_cs * wave * GAMMA_CR ) * CR_Acoustic_Pres_CR0;
       Pres = Pres + P_cr;
@@ -308,7 +308,7 @@ void OutputError()
    const char Prefix[100]     = "CosmicRay_Acousticwave";
    if ( CR_Acoustic_Dir == 0 ){
       const OptOutputPart_t Part = OUTPUT_X;
-      Output_L1Error( SetGridIC, SetBFieldIC, Prefix, Part, NULL_REAL, NULL_REAL, NULL_REAL );
+      Output_L1Error( SetGridIC, SetBFieldIC, Prefix, Part, OUTPUT_PART_X, OUTPUT_PART_Y, OUTPUT_PART_Z );
    } else if ( CR_Acoustic_Dir == 1 ){
       const OptOutputPart_t Part = OUTPUT_DIAG;
       Output_L1Error( SetGridIC, SetBFieldIC, Prefix, Part, NULL_REAL, NULL_REAL, NULL_REAL );

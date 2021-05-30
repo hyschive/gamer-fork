@@ -427,7 +427,9 @@ static void EoS_General_GammaCR( const int Mode, real Out[], const real In[], co
 // Return      :  Cosmic ray pressure
 //-------------------------------------------------------------------------------------------------------
 GPU_DEVICE_NOINLINE
-static real EoS_CREint2CRPres_GammaCR( const real Passive[], const double AuxArray_Flt[] )
+static real EoS_CREint2CRPres_GammaCR( const real Passive[],
+                                       const double AuxArray_Flt[], const int AuxArray_Int[],
+                                       const real *const Table[EOS_NTABLE_MAX], real ExtraInOut[] )
 {
 
 // check

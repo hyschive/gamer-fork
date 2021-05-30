@@ -58,13 +58,15 @@
 #ifndef __CUDACC__
 void EoS_SetAuxArray_GammaCR( double AuxArray_Flt[], int AuxArray_Int[] )
 {
-
+   
    AuxArray_Flt[0] = GAMMA;
    AuxArray_Flt[1] = GAMMA - 1.0;
    AuxArray_Flt[2] = 1.0 / ( GAMMA - 1.0);
    AuxArray_Flt[3] = 1.0 / GAMMA;
-   AuxArray_Flt[4] = GAMMA_CR;
-   AuxArray_Flt[5] = GAMMA_CR - 1.0;
+   AuxArray_Flt[4] = 4.0 / 3.0;
+   AuxArray_Flt[5] = 4.0 / 3.0 - 1.0;
+   //AuxArray_Flt[4] = GAMMA_CR;
+   //AuxArray_Flt[5] = GAMMA_CR - 1.0;
    AuxArray_Flt[6] = MIN_PRES;
    AuxArray_Flt[7] = ( OPT__UNIT ) ? MOLECULAR_WEIGHT * Const_amu / Const_kB * (UNIT_E/UNIT_M)
                                    : MOLECULAR_WEIGHT;

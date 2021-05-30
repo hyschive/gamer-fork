@@ -728,7 +728,7 @@ void Hydro_RiemannPredict( const real g_ConVar_In[][ CUBE(FLU_NXT) ],
       // 1. store the cosmic ray and calculate the pressure 
       // ==============================
       Input_1Cell[CRAY]  = g_ConVar_In[CRAY][idx_in];
-      real pCR_old = EoS_CREint2CRPres( Input_1Cell+NCOMP_FLUID,  EoS_AuxArray_Flt );
+      real pCR_old = EoS_CREint2CRPres( Input_1Cell+NCOMP_FLUID,  EoS_AuxArray_Flt, NULL, NULL, NULL );
      
 
       // ==============================
