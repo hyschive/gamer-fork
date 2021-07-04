@@ -41,6 +41,13 @@ extern real *d_EoS_Table[EOS_NTABLE_MAX];
 void EoS_Init()
 {
 
+// check if EoS has been initialized already
+// --> necessary since some test problem initializers may also call EoS_Init()
+   static bool EoS_Initialized = false;
+
+   if ( EoS_Initialized )  return;
+
+
    if ( MPI_Rank == 0 )    Aux_Message( stdout, "%s ...\n", __FUNCTION__ );
 
 
@@ -103,6 +110,9 @@ void EoS_Init()
    EoS.AuxArrayDevPtr_Int    = EoS_AuxArray_Int;
    EoS.Table                 = h_EoS_Table;
 #  endif // #ifdef GPU ... else ...
+
+
+   EoS_Initialized = true;
 
 
    if ( MPI_Rank == 0 )    Aux_Message( stdout, "%s ... done\n", __FUNCTION__ );
