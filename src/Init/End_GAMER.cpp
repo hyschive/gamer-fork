@@ -45,10 +45,6 @@ void End_GAMER()
 
    Src_End();
 
-#  ifdef FEEDBACK
-   FB_End();
-#  endif
-
 #  ifdef GRAVITY
    End_ExtAccPot();
 #  endif

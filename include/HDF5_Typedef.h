@@ -151,7 +151,6 @@ struct Makefile_t
 #  ifdef PARTICLE
    int StoreParAcc;
    int StarFormation;
-   int Feedback;
    int Par_NAttUser;
 #  endif
 
@@ -567,14 +566,6 @@ struct InputPara_t
    double SF_CreateStar_MassEff;
    double SF_CreateStar_MinStarMass;
    double SF_CreateStar_MaxStarMFrac;
-#  endif
-
-// feedback
-#  ifdef FEEDBACK
-   int   FB_Level;
-   int   FB_RSeed;
-   int   FB_SNe;
-   int   FB_User;
 #  endif
 
 // initialization
