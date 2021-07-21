@@ -256,6 +256,17 @@ void SetParameter()
             else
                for ( int i; i < Merger_NBin1; i++ ) Table_M1[i] = 0.0;
 
+			// truncate gas density 
+		    for (int b=0; b<Merger_NBin1; b++) {
+               if (Table_R1[b]<Merger_Coll_ColorRad1){
+                  Table_D1[b] = (200.0/3.0*pow(4.5,3)*1.842e-27/(log(1+Table_R1[b]/Merger_Coll_ColorRad1*4.5)-Table_R1[b]/Merger_Coll_ColorRad1*4.5/(1+Table_R1[b]/Merger_Coll_ColorRad1*4.5)))/(Table_R1[b]/Merger_Coll_ColorRad1*4.5*pow(1+Table_R1[b]/Merger_Coll_ColorRad1*4.5,2));
+               }
+               else{
+                  Table_D1[b] = (200.0/3.0*pow(4.5,3)*1.842e-27/(log(1+Table_R1[b]/Merger_Coll_ColorRad1*4.5)-Table_R1[b]/Merger_Coll_ColorRad1*4.5/(1+Table_R1[b]/Merger_Coll_ColorRad1*4.5)))/(4.5*(1+4.5)*(1+4.5))*Table_R1[b]/Merger_Coll_ColorRad1*exp(-(Table_R1[b]-Merger_Coll_ColorRad1)/(0.1*Merger_Coll_ColorRad1));
+               }
+            }
+
+
             // convert to code units (assuming the input units are cgs)
             for ( int b=0; b<Merger_NBin1; b++ ) {
                Table_R1[b] /= UNIT_L;
@@ -349,17 +360,6 @@ void SetParameter()
          MPI_Bcast(Table_M3, Merger_NBin3, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 
       } // if ( Merger_Coll_NumHalos > 2 && Merger_Coll_IsGas3 )
-
-      // truncate gas density
-      for (int b=0; b<Merger_NBin1; b++) {
-	     if (Table_R1[b]<Merger_Coll_ColorRad1){
-		    Table_D1[b] = (200.0/3.0*pow(4.5,3)*1.842e-27/(log(1+Table_R1[b]/Merger_Coll_ColorRad1*4.5)-Table_R1[b]/Merger_Coll_ColorRad1*4.5/(1+Table_R1[b]/Merger_Coll_ColorRad1*4.5)))/(Table_R1[b]/Merger_Coll_ColorRad1*4.5*pow(1+Table_R1[b]/Merger_Coll_ColorRad1*4.5,2));
-		 }
-		 else{
-			Table_D1[b] = (200.0/3.0*pow(4.5,3)*1.842e-27/(log(1+Table_R1[b]/Merger_Coll_ColorRad1*4.5)-Table_R1[b]/Merger_Coll_ColorRad1*4.5/(1+Table_R1[b]/Merger_Coll_ColorRad1*4.5)))/(4.5*(1+4.5)*(1+4.5))*Table_R1[b]/Merger_Coll_ColorRad1*exp(-(Table_R1[b]-Merger_Coll_ColorRad1)/(0.1*Merger_Coll_ColorRad1));
-		 }
-	  }
-
 
    } // if ( OPT__INIT != INIT_BY_RESTART )
 
