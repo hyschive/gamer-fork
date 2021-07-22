@@ -290,6 +290,15 @@ void Par_Init_ByFunction_ClusterMerger( const long NPar_ThisRank, const long NPa
          ParPos[d][p] += ClusterCenter2[d];
    }
 
+   // set particle mass to zero outside the virial radius
+   for (long p=NPar_ThisRank_EachCluster[0]; p<NPar_ThisRank_EachCluster[0]+NPar_ThisRank_EachCluster[1]; p++) {
+      if (pow(pow(ParPos[0][p]-ClusterCenter2[0],2.0)+pow(ParPos[1][p]-ClusterCenter2[1],2.0)+pow(ParPos[2][p]-ClusterCenter2[2],2.0),0.5)>1194.326442*Const_kpc/UNIT_L){
+	     ParMass[p]=real(0.0);
+      }
+   }
+
+
+
    for (long p=NPar_ThisRank_EachCluster[0]+NPar_ThisRank_EachCluster[1]; p<NPar_ThisRank; p++) {
       ParVelX[p] += Merger_Coll_VelX3;
       ParVelY[p] += Merger_Coll_VelY3;

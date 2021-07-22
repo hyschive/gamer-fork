@@ -308,9 +308,18 @@ void SetParameter()
                Read_Profile_ClusterMerger(filename2, "/fields/metallicity", Table_M2);
             else
                for ( int i; i < Merger_NBin2; i++ ) Table_M2[i] = 0.0;
+
+			// truncate gas density 
+			for (int b=0; b<Merger_NBin2; b++) {
+			   Table_R2[b] /= UNIT_L;
+			   if (Table_R2[b]>Merger_Coll_ColorRad2){
+                  Table_D2[b] *= exp(-(Table_R2[b]-Merger_Coll_ColorRad2)/(0.1*Merger_Coll_ColorRad2)); 
+                  Table_P2[b] *= exp(-(Table_R2[b]-Merger_Coll_ColorRad2)/(0.1*Merger_Coll_ColorRad2));
+			   }
+			}
+
             // convert to code units (assuming the input units are cgs)
             for ( int b=0; b<Merger_NBin2; b++ ) {
-               Table_R2[b] /= UNIT_L;
                Table_D2[b] /= UNIT_D;
                Table_P2[b] /= UNIT_P;
             }
