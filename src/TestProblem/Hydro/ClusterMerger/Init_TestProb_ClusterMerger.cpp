@@ -259,11 +259,13 @@ void SetParameter()
 			// truncate gas density 
 		    for (int b=0; b<Merger_NBin1; b++) {
 			   Table_R1[b] /= UNIT_L;
-               if (Table_R1[b]<Merger_Coll_ColorRad1){
-                  Table_D1[b] = (200.0/3.0*pow(4.5,3)*1.842e-27/(log(1+Table_R1[b]/Merger_Coll_ColorRad1*4.5)-Table_R1[b]/Merger_Coll_ColorRad1*4.5/(1+Table_R1[b]/Merger_Coll_ColorRad1*4.5)))/(Table_R1[b]/Merger_Coll_ColorRad1*4.5*pow(1+Table_R1[b]/Merger_Coll_ColorRad1*4.5,2));
-               }
-               else{
-                  Table_D1[b] = (200.0/3.0*pow(4.5,3)*1.842e-27/(log(1+Table_R1[b]/Merger_Coll_ColorRad1*4.5)-Table_R1[b]/Merger_Coll_ColorRad1*4.5/(1+Table_R1[b]/Merger_Coll_ColorRad1*4.5)))/(4.5*(1+4.5)*(1+4.5))*Table_R1[b]/Merger_Coll_ColorRad1*exp(-(Table_R1[b]-Merger_Coll_ColorRad1)/(0.1*Merger_Coll_ColorRad1));
+               // Table_D1[b] = (200.0/3.0*pow(4.5,3)*1.842e-27/(log(1+Table_R1[b]/Merger_Coll_ColorRad1*4.5)-Table_R1[b]/Merger_Coll_ColorRad1*4.5/(1+Table_R1[b]/Merger_Coll_ColorRad1*4.5)))/(Table_R1[b]/Merger_Coll_ColorRad1*4.5*pow(1+Table_R1[b]/Merger_Coll_ColorRad1*4.5,2));
+               
+               if (Table_R1[b]>Merger_Coll_ColorRad1){
+                  Table_D1[b] *= exp(-(Table_R1[b]-Merger_Coll_ColorRad1)/(0.1*Merger_Coll_ColorRad1)); 
+				  Table_P1[b] *= exp(-(Table_R1[b]-Merger_Coll_ColorRad1)/(0.1*Merger_Coll_ColorRad1));
+
+//(200.0/3.0*pow(4.5,3)*1.842e-27/(log(1+Table_R1[b]/Merger_Coll_ColorRad1*4.5)-Table_R1[b]/Merger_Coll_ColorRad1*4.5/(1+Table_R1[b]/Merger_Coll_ColorRad1*4.5)))/(4.5*(1+4.5)*(1+4.5))*Table_R1[b]/Merger_Coll_ColorRad1*exp(-(Table_R1[b]-Merger_Coll_ColorRad1)/(0.1*Merger_Coll_ColorRad1));
                }
             }
 
