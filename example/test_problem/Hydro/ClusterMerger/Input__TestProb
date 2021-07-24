@@ -32,4 +32,5 @@ Merger_Coll_ColorRad3   -1.0 # radius within which cluster 3 color field is set 
 Merger_Coll_IsGas3      0 # If cluster 3 should have gas and not have DM only
 
 # other	parameters
-Merger_Coll_UseMetals   0 # look for a metal field in the profile files
+Merger_Coll_UseMetals   0 # look for a metal field in the profile files [1]
+Merger_Coll_LabelCenter 1 # label the particle closest to the center of each cluster [1]

@@ -6,6 +6,9 @@
 
 #include <string>
 
+#define PTYPE_CEN    100   // particle type for Merger_Coll_LabelCenter
+                           // --> the particle closest to the center of x-th cluster is labeled as "PTYPE_CEN + x"
+
 // floating-point type in the input particle file
 typedef double real_par_in;
 //typedef float  real_par_in;
@@ -26,6 +29,7 @@ extern double  Merger_Coll_VelX2;
 extern double  Merger_Coll_VelY2;
 extern double  Merger_Coll_VelX3;
 extern double  Merger_Coll_VelY3;
+extern bool    Merger_Coll_LabelCenter;
 
 extern FieldIdx_t ParTypeIdx;
 
@@ -308,6 +312,57 @@ void Par_Init_ByFunction_ClusterMerger( const long NPar_ThisRank, const long NPa
 
    if ( MPI_Rank == 0 )    Aux_Message( stdout, "done\n" );
 
+
+   // label cluster centers
+   if ( Merger_Coll_LabelCenter ) {
+      if ( MPI_Rank == 0 )    Aux_Message( stdout, "   Labeling cluster centers ... " );
+
+      const double Centers[3][3] = {  { ClusterCenter1[0], ClusterCenter1[1], ClusterCenter1[2] },
+                                      { ClusterCenter2[0], ClusterCenter2[1], ClusterCenter2[2] },
+                                      { ClusterCenter3[0], ClusterCenter3[1], ClusterCenter3[2] }  };
+      long pidx_offset = 0;
+
+      for (int c=0; c<NCluster; c++) {
+         long   min_pidx   = -1;
+         real   min_pos[3] = { NULL_REAL, NULL_REAL, NULL_REAL };
+         double min_r      = __DBL_MAX__;
+
+         // get the particle in this rank closest to the cluster center
+         for (long p=pidx_offset; p<pidx_offset+NPar_ThisRank_EachCluster[c]; p++) {
+            const double r = SQR( ParPos[0][p] - Centers[c][0] ) +
+                             SQR( ParPos[1][p] - Centers[c][1] ) +
+                             SQR( ParPos[2][p] - Centers[c][2] );
+            if ( r < min_r ) {
+               min_pidx   = p;
+               min_r      = r;
+               min_pos[0] = ParPos[0][p];
+               min_pos[1] = ParPos[1][p];
+               min_pos[2] = ParPos[2][p];
+            }
+         }
+
+         // collect data among all ranks
+         double min_r_allrank;
+         int    NFound_ThisRank=0, NFound_AllRank;
+         MPI_Allreduce( &min_r, &min_r_allrank, 1, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD );
+         if ( min_r == min_r_allrank ) {
+            AllAttribute[ParTypeIdx][min_pidx] = PTYPE_CEN + c;
+            NFound_ThisRank = 1;
+         }
+
+         // check if one and only one particle is labeled
+         MPI_Allreduce( &NFound_ThisRank, &NFound_AllRank, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD );
+         if ( NFound_AllRank != 1 )
+            Aux_Error( ERROR_INFO, "NFound_AllRank (%d) != 1 for cluster %d !!\n", NFound_AllRank, c );
+
+         // update the particle index offset for the next cluster
+         pidx_offset += NPar_ThisRank_EachCluster[c];
+      } // for (int c=0; c<NCluster; c++)
+
+      if ( MPI_Rank == 0 )    Aux_Message( stdout, "done\n" );
+   } // if ( Merger_Coll_LabelCenter )
+
+
    if ( MPI_Rank == 0 )    Aux_Message( stdout, "%s ... done\n", __FUNCTION__ );
 
 #endif // #ifdef SUPPORT_HDF5
@@ -546,9 +601,79 @@ void Read_Particles_ClusterMerger( std::string filename, long offset, long num,
 } // FUNCTION : Read_Particles_ClusterMerger
 
 #endif // #ifdef SUPPORT_HDF5
+
+
+//-------------------------------------------------------------------------------------------------------
+// Function    :  Aux_Record_ClusterMerger
+// Description :  Record the cluster centers
+//
+// Note        :  1. Invoked by main() using the function pointer "Aux_Record_User_Ptr",
+//                   which must be set by a test problem initializer
+//                2. Enabled by the runtime option "OPT__RECORD_USER"
+//                3. This function will be called both during the program initialization and after each full update
+//                4. Must enable Merger_Coll_LabelCenter
+//
+// Parameter   :  None
+//-------------------------------------------------------------------------------------------------------
+void Aux_Record_ClusterMerger()
+{
+
+   const char FileName[] = "Record__Center";
+   static bool FirstTime = true;
+
+   // header
+   if ( FirstTime )
+   {
+      if ( MPI_Rank == 0 )
+      {
+         if ( ! Merger_Coll_LabelCenter )
+            Aux_Message( stderr, "WARNING : Merger_Coll_LabelCenter is disabled in %s !!\n", __FUNCTION__ );
+
+         if ( Aux_CheckFileExist(FileName) )
+            Aux_Message( stderr, "WARNING : file \"%s\" already exists !!\n", FileName );
+
+         FILE *File_User = fopen( FileName, "a" );
+         fprintf( File_User, "#%13s%14s",  "Time", "Step" );
+         for (int c=0; c<Merger_Coll_NumHalos; c++)
+            fprintf( File_User, " %13s%1d %13s%1d %13s%1d", "x", c, "y", c, "z", c );
+         fprintf( File_User, "\n" );
+         fclose( File_User );
+      }
+
+      FirstTime = false;
+   } // if ( FirstTime )
+
+
+   // collect data from all ranks
+   const real *ParPos[3] = { amr->Par->PosX, amr->Par->PosY, amr->Par->PosZ };
+   double Cen[3][3] = {  { NULL_REAL, NULL_REAL, NULL_REAL },
+                         { NULL_REAL, NULL_REAL, NULL_REAL },
+                         { NULL_REAL, NULL_REAL, NULL_REAL }  };
+
+   for (int c=0; c<Merger_Coll_NumHalos; c++) {
+      double Cen_Tmp[3] = { -__FLT_MAX__, -__FLT_MAX__, -__FLT_MAX__ };   // set to -inf
+      for (long p=0; p<amr->Par->NPar_AcPlusInac; p++) {
+         if ( amr->Par->Attribute[ParTypeIdx][p] == real(PTYPE_CEN+c) ) {
+            for (int d=0; d<3; d++) Cen_Tmp[d] = ParPos[d][p];
+            break;
+         }
+      }
+      // use MPI_MAX since Cen_Tmp[] is initialized as -inf
+      MPI_Reduce( Cen_Tmp, Cen[c], 3, MPI_DOUBLE, MPI_MAX, 0, MPI_COMM_WORLD );
+   }
+
+
+   // output cluster centers
+   if ( MPI_Rank == 0 )
+   {
+      FILE *File_User = fopen( FileName, "a" );
+      fprintf( File_User, "%14.7e%14ld", Time[0], Step );
+      for (int c=0; c<Merger_Coll_NumHalos; c++)
+         fprintf( File_User, " %14.7e %14.7e %14.7e", Cen[c][0], Cen[c][1], Cen[c][2] );
+      fprintf( File_User, "\n" );
+      fclose( File_User );
+   }
+
+} // FUNCTION : Aux_Record_ClusterMerger
+
 #endif // #ifdef PARTICLE
-
-
-
-
-
