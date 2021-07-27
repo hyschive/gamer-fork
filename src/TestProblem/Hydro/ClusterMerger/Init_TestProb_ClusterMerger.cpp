@@ -264,8 +264,8 @@ void SetParameter()
                // Table_D1[b] = (200.0/3.0*pow(4.5,3)*1.842e-27/(log(1+Table_R1[b]/Merger_Coll_ColorRad1*4.5)-Table_R1[b]/Merger_Coll_ColorRad1*4.5/(1+Table_R1[b]/Merger_Coll_ColorRad1*4.5)))/(Table_R1[b]/Merger_Coll_ColorRad1*4.5*pow(1+Table_R1[b]/Merger_Coll_ColorRad1*4.5,2));
                
                if (Table_R1[b]>Merger_Coll_ColorRad1){
-                  Table_D1[b] *= exp(-(Table_R1[b]-Merger_Coll_ColorRad1)/(0.1*Merger_Coll_ColorRad1)); 
-				  Table_P1[b] *= exp(-(Table_R1[b]-Merger_Coll_ColorRad1)/(0.1*Merger_Coll_ColorRad1));
+                  Table_D1[b] *= Table_R1[b]/Merger_Coll_ColorRad1*exp(-(Table_R1[b]-Merger_Coll_ColorRad1)/(0.2*Merger_Coll_ColorRad1)); 
+				  Table_P1[b] *= Table_R1[b]/Merger_Coll_ColorRad1*exp(-(Table_R1[b]-Merger_Coll_ColorRad1)/(0.2*Merger_Coll_ColorRad1));
 
 //(200.0/3.0*pow(4.5,3)*1.842e-27/(log(1+Table_R1[b]/Merger_Coll_ColorRad1*4.5)-Table_R1[b]/Merger_Coll_ColorRad1*4.5/(1+Table_R1[b]/Merger_Coll_ColorRad1*4.5)))/(4.5*(1+4.5)*(1+4.5))*Table_R1[b]/Merger_Coll_ColorRad1*exp(-(Table_R1[b]-Merger_Coll_ColorRad1)/(0.1*Merger_Coll_ColorRad1));
                }
@@ -315,8 +315,8 @@ void SetParameter()
 			for (int b=0; b<Merger_NBin2; b++) {
 			   Table_R2[b] /= UNIT_L;
 			   if (Table_R2[b]>Merger_Coll_ColorRad2){
-                  Table_D2[b] *= exp(-(Table_R2[b]-Merger_Coll_ColorRad2)/(0.1*Merger_Coll_ColorRad2)); 
-                  Table_P2[b] *= exp(-(Table_R2[b]-Merger_Coll_ColorRad2)/(0.1*Merger_Coll_ColorRad2));
+                  Table_D2[b] *= Table_R2[b]/Merger_Coll_ColorRad2*exp(-(Table_R2[b]-Merger_Coll_ColorRad2)/(0.2*Merger_Coll_ColorRad2)); 
+                  Table_P2[b] *= Table_R2[b]/Merger_Coll_ColorRad2*exp(-(Table_R2[b]-Merger_Coll_ColorRad2)/(0.2*Merger_Coll_ColorRad2));
 			   }
 			}
 
@@ -380,7 +380,7 @@ void SetParameter()
 // (3) reset other general-purpose parameters
 //     --> a helper macro PRINT_WARNING is defined in TestProb.h
    const long   End_Step_Default = __INT_MAX__;
-   const double End_T_Default    = 2.0*Const_Gyr/UNIT_T;
+   const double End_T_Default    = 10.0*Const_Gyr/UNIT_T;
 
    if ( END_STEP < 0 ) {
       END_STEP = End_Step_Default;
