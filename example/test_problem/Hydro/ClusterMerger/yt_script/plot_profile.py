@@ -28,9 +28,9 @@ FileOut = 'fig__profile_merging-cluster.png'
 f, ax = plt.subplots( 2, 2 )
 #f.subplots_adjust( hspace=0.0, wspace=0.0 )
 f.subplots_adjust( wspace=0.5 )
-[ f.axes[t].set_xscale( 'log', nonposy='clip' ) for t in range(0,4,1) ]
+[ f.axes[t].set_xscale( 'log', nonposx='clip' ) for t in range(0,4,1) ]
 [ f.axes[t].set_yscale( 'log', nonposy='clip' ) for t in range(0,4,1) ]
-[ f.axes[t].set_xlim( 5.0e+0, 2.0e+3 ) for t in range(0,4,1) ]
+[ f.axes[t].set_xlim( 5.0e+0, 1.0e+4 ) for t in range(0,4,1) ]
 ax[1][0].set_xlabel( '$r\ [\mathrm{kpc}]$', fontsize=16 )
 ax[1][1].set_xlabel( '$r\ [\mathrm{kpc}]$', fontsize=16 )
 for i in range(0,2):
@@ -40,13 +40,13 @@ for i in range(0,2):
 
 
 # load data
-ds_gamer = yt.load( "../Data_000008" )
+ds_gamer = yt.load( "../Data_000000" )
 #ds_gamer = yt.load( "gamer/Data_000100" )
 #ds_flash = yt.load( "flash/fiducial_1to1_b0_hdf5_plt_cnt_0100" )
 
 
 # create a sphere on the max density location
-sp_gamer = ds_gamer.sphere( "max", (2.5e3, "kpc") )
+sp_gamer = ds_gamer.sphere( "max", (1.0e4, "kpc") )
 #sp_flash = ds_flash.sphere( "max", (2.5e3, "kpc") )
 
 
@@ -144,4 +144,4 @@ ax[0][0].legend( loc='lower left', numpoints=1, labelspacing=0.2, fontsize=13, h
 
 # show/save figure
 plt.savefig( FileOut, bbox_inches='tight', pad_inches=0.05 )
-plt.show()
+#plt.show()
