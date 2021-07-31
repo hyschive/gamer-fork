@@ -263,12 +263,12 @@ void SetParameter()
 			   Table_R1[b] /= UNIT_L;
                // Table_D1[b] = (200.0/3.0*pow(4.5,3)*1.842e-27/(log(1+Table_R1[b]/Merger_Coll_ColorRad1*4.5)-Table_R1[b]/Merger_Coll_ColorRad1*4.5/(1+Table_R1[b]/Merger_Coll_ColorRad1*4.5)))/(Table_R1[b]/Merger_Coll_ColorRad1*4.5*pow(1+Table_R1[b]/Merger_Coll_ColorRad1*4.5,2));
                
-               if (Table_R1[b]>Merger_Coll_ColorRad1){
-                  Table_D1[b] *= pow(Table_R1[b]/Merger_Coll_ColorRad1,2)*exp(-(Table_R1[b]-Merger_Coll_ColorRad1)/(0.2*Merger_Coll_ColorRad1)); 
-				  Table_P1[b] *= pow(Table_R1[b]/Merger_Coll_ColorRad1,2)*exp(-(Table_R1[b]-Merger_Coll_ColorRad1)/(0.2*Merger_Coll_ColorRad1));
+              // if (Table_R1[b]>Merger_Coll_ColorRad1){
+               Table_D1[b] *= pow(Table_R1[b]/Merger_Coll_ColorRad1,2)*exp(-pow((Table_R1[b]/(3.0*Merger_Coll_ColorRad1)),2)); 
+			   Table_P1[b] *= pow(Table_R1[b]/Merger_Coll_ColorRad1,2)*exp(-pow((Table_R1[b]/(3.0*Merger_Coll_ColorRad1)),2));
 
 //(200.0/3.0*pow(4.5,3)*1.842e-27/(log(1+Table_R1[b]/Merger_Coll_ColorRad1*4.5)-Table_R1[b]/Merger_Coll_ColorRad1*4.5/(1+Table_R1[b]/Merger_Coll_ColorRad1*4.5)))/(4.5*(1+4.5)*(1+4.5))*Table_R1[b]/Merger_Coll_ColorRad1*exp(-(Table_R1[b]-Merger_Coll_ColorRad1)/(0.1*Merger_Coll_ColorRad1));
-               }
+               //}
             }
 
 
