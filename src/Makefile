@@ -69,12 +69,12 @@ SIMU_OPTION += -DRSOLVER=ROE
 
 # dual energy formalism: DE_ENPY/DE_EINT (evolve entropy or internal energy)
 # --> DE_EINT is not supported yet; useless for RTVD
-#SIMU_OPTION += -DDUAL_ENERGY=DE_ENPY
+SIMU_OPTION += -DDUAL_ENERGY=DE_ENPY
 
 # number of user-defined passively advected scalars
 # --> set it to 0 or comment it out if none is required
 # --> useless for RTVD
-SIMU_OPTION += -DNCOMP_PASSIVE_USER=1
+SIMU_OPTION += -DNCOMP_PASSIVE_USER=2
 
 # magnetohydrodynamics
 #SIMU_OPTION += -DMHD

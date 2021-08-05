@@ -261,14 +261,16 @@ void SetParameter()
 			// truncate gas density 
 		    for (int b=0; b<Merger_NBin1; b++) {
 			   Table_R1[b] /= UNIT_L;
-               // Table_D1[b] = (200.0/3.0*pow(4.5,3)*1.842e-27/(log(1+Table_R1[b]/Merger_Coll_ColorRad1*4.5)-Table_R1[b]/Merger_Coll_ColorRad1*4.5/(1+Table_R1[b]/Merger_Coll_ColorRad1*4.5)))/(Table_R1[b]/Merger_Coll_ColorRad1*4.5*pow(1+Table_R1[b]/Merger_Coll_ColorRad1*4.5,2));
                
-               if (Table_R1[b]>Merger_Coll_ColorRad1){
-                  Table_D1[b] *= pow(Table_R1[b]/Merger_Coll_ColorRad1,3.0)*exp(-(Table_R1[b]-Merger_Coll_ColorRad1)/(0.2*Merger_Coll_ColorRad1)); 
-				  Table_P1[b] *= pow(Table_R1[b]/Merger_Coll_ColorRad1,3.0)*exp(-(Table_R1[b]-Merger_Coll_ColorRad1)/(0.2*Merger_Coll_ColorRad1));
+               Table_D1[b] *= exp(-pow((Table_R1[b]/(1.5*Merger_Coll_ColorRad1)),3.0)); 
+			   Table_P1[b] *= exp(-pow((Table_R1[b]/(1.5*Merger_Coll_ColorRad1)),3.0));
 
-//(200.0/3.0*pow(4.5,3)*1.842e-27/(log(1+Table_R1[b]/Merger_Coll_ColorRad1*4.5)-Table_R1[b]/Merger_Coll_ColorRad1*4.5/(1+Table_R1[b]/Merger_Coll_ColorRad1*4.5)))/(4.5*(1+4.5)*(1+4.5))*Table_R1[b]/Merger_Coll_ColorRad1*exp(-(Table_R1[b]-Merger_Coll_ColorRad1)/(0.1*Merger_Coll_ColorRad1));
-               }
+               if (Table_D1[b]<1.0e-15*UNIT_D){
+			      Table_D1[b]=1.0e-15*UNIT_D;
+			   }
+			   if (Table_P1[b]<1.0e-16*UNIT_P){
+			      Table_P1[b]=1.0e-16*UNIT_P;
+			   }
             }
 
 
@@ -314,10 +316,14 @@ void SetParameter()
 			// truncate gas density 
 			for (int b=0; b<Merger_NBin2; b++) {
 			   Table_R2[b] /= UNIT_L;
-			   if (Table_R2[b]>Merger_Coll_ColorRad2){
-                  Table_D2[b] *= Table_R2[b]/Merger_Coll_ColorRad2*exp(-(Table_R2[b]-Merger_Coll_ColorRad2)/(0.2*Merger_Coll_ColorRad2)); 
-                  Table_P2[b] *= Table_R2[b]/Merger_Coll_ColorRad2*exp(-(Table_R2[b]-Merger_Coll_ColorRad2)/(0.2*Merger_Coll_ColorRad2));
-			   }
+			   Table_D2[b] *= exp(-pow((Table_R2[b]/(1.5*Merger_Coll_ColorRad2)),3.0)); 
+               Table_P2[b] *= exp(-pow((Table_R2[b]/(1.5*Merger_Coll_ColorRad2)),3.0));
+               if (Table_D2[b]<1.0e-15*UNIT_D){
+                  Table_D2[b]=1.0e-15*UNIT_D;
+               }   
+               if (Table_P2[b]<1.0e-16*UNIT_P){
+                  Table_P2[b]=1.0e-16*UNIT_P;
+               }   
 			}
 
             // convert to code units (assuming the input units are cgs)
