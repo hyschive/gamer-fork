@@ -680,7 +680,6 @@ endif # STAR_FORMATION
 ifeq "$(filter -DCOSMIC_RAY, $(SIMU_OPTION))" "-DCOSMIC_RAY"
 CPU_FILE    += 
 
-vpath %.cpp    
 endif # COSMIC_RAY
 
 # test problem source files

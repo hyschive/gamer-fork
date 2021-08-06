@@ -8,18 +8,15 @@ static void OutputError();
 
 // problem-specific global variables
 // =======================================================================================
-static double GAMMA_CR;
-static double CR_Acoustic_Delta;
-static double CR_Acoustic_Rho0;
-static double CR_Acoustic_Pres0;
-static double CR_Acoustic_Pres_CR0;
-static double CR_Acoustic_V0;
-static double CR_Acoustic_Sign;
-static double CR_Acoustic_Phase;
-static int    CR_Acoustic_Dir;
-
-//static double diff_cr_para;
-//static double diff_cr_perp;
+static double GAMMA_CR;                 // adiabatic index of cosmic rays
+static double CR_Acoustic_Delta;        // amplitude of the velocity perturbation
+static double CR_Acoustic_Rho0;         // background density
+static double CR_Acoustic_Pres0;        // background pressure
+static double CR_Acoustic_Pres_CR0;     // background pressure of cosmic rays
+static double CR_Acoustic_V0;           // background velocity
+static double CR_Acoustic_Sign;         // (+1/-1) --> (right/left-moving wave)
+static double CR_Acoustic_Phase;        // initial phase shift
+static int    CR_Acoustic_Dir;          // wave direction (0/1) --> (x/diagonal)
 // =======================================================================================
 
 
@@ -50,7 +47,9 @@ void Validate()
    Aux_Error( ERROR_INFO, "MHD must be enabled !!\n" );
 #  endif
 
-// @@@ EOS GAMMA_CR
+#  if ( EOS != EOS_GAMMA_CR )
+   Aux_Error( ERROR_INFO, "EOS != EOS_GAMMA_CR !!\n" );
+#  endif
 
 // warnings
    if ( MPI_Rank == 0 )
@@ -113,22 +112,20 @@ void SetParameter()
    ReadPara->Add( "CR_Acoustic_Sign",     &CR_Acoustic_Sign,          0.0,           0.0,              NoMax_double);
    ReadPara->Add( "CR_Acoustic_Phase",    &CR_Acoustic_Phase,         0.0,           0.0,              NoMax_double);
    ReadPara->Add( "CR_Acoustic_Dir",      &CR_Acoustic_Dir,             0,             0,                 NoMax_int);
-//   ReadPara->Add( "diff_cr_para",         &&diff_cr_para,         0.0,           0.0,              NoMax_double);
-//   ReadPara->Add( "diff_cr_perp",         &&diff_cr_perp,         0.0,           0.0,              NoMax_double);
 
    ReadPara->Read( FileName );
 
    delete ReadPara;
 
 // (1-2) set the default values
-// force Acoustic_Sign to be +1.0/-1.0                                                                                                                                                                  
+// force Acoustic_Sign to be +1.0/-1.0 
    if ( CR_Acoustic_Sign >= 0.0 )   CR_Acoustic_Sign = +1.0;
    else                             CR_Acoustic_Sign = -1.0;
+
 // (1-3) check the runtime parameters
 
 
 // (2) set the problem-specific derived parameters
-//   Linear_Wavelength = amr->BoxSize[0] / 2.0;  // 2 wavelength along the x-axix
 
 // (3) reset other general-purpose parameters
 //     --> a helper macro PRINT_WARNING is defined in TestProb.h
@@ -288,6 +285,7 @@ void SetBFieldIC( real magnetic[], const double x, const double y, const double 
    magnetic[MAGZ] = 0.0;   
 
 } // FUNCTION : SetBFieldIC
+#endif // #ifdef MHD
 
 
 
@@ -315,13 +313,12 @@ void OutputError()
    }
 
 } // FUNCTION : OutputError
-#endif // #ifdef MHD
 #endif // #if ( MODEL == HYDRO )
 
 
 
 //-------------------------------------------------------------------------------------------------------
-// Function    :  Init_TestProb_Hydro_Cosmic_Ray
+// Function    :  Init_TestProb_Hydro_Cosmic_Ray_SoundWave
 // Description :  Test problem initializer
 //
 // Note        :  None
@@ -330,7 +327,7 @@ void OutputError()
 //
 // Return      :  None
 //-------------------------------------------------------------------------------------------------------
-void Init_TestProb_Hydro_Cosmic_Ray()
+void Init_TestProb_Hydro_Cosmic_Ray_SoundWave()
 {
 
    if ( MPI_Rank == 0 )    Aux_Message( stdout, "%s ...\n", __FUNCTION__ );
@@ -340,47 +337,22 @@ void Init_TestProb_Hydro_Cosmic_Ray()
    Validate();
 
 
-// replace HYDRO by the target model (e.g., MHD/ELBDM) and also check other compilation flags if necessary (e.g., GRAVITY/PARTICLE)
 #  if ( MODEL == HYDRO )
 // set the problem-specific runtime parameters
    SetParameter();
 
 
-// procedure to enable a problem-specific function:
-// 1. define a user-specified function (example functions are given below)
-// 2. declare its function prototype on the top of this file
-// 3. set the corresponding function pointer below to the new problem-specific function
-// 4. enable the corresponding runtime option in "Input__Parameter"
-//    --> for instance, enable OPT__OUTPUT_USER for Output_User_Ptr
+// set the function pointers of various problem-specific routines
    Init_Function_User_Ptr         = SetGridIC;
 
 #  ifdef MHD
    Init_Function_BField_User_Ptr  = SetBFieldIC;
 #  endif
 
-// comment out Init_ByFile_User_Ptr to use the default
-// Init_ByFile_User_Ptr           = NULL; // option: OPT__INIT=3;             example: Init/Init_ByFile.cpp -> Init_ByFile_Default()
-   Init_Field_User_Ptr            = NULL; // set NCOMP_PASSIVE_USER;          example: TestProblem/Hydro/Plummer/Init_TestProb_Hydro_Plummer.cpp --> AddNewField()
-   Flag_User_Ptr                  = NULL; // option: OPT__FLAG_USER;          example: Refine/Flag_User.cpp
-   Mis_GetTimeStep_User_Ptr       = NULL; // option: OPT__DT_USER;            example: Miscellaneous/Mis_GetTimeStep_User.cpp
-   BC_User_Ptr                    = NULL; // option: OPT__BC_FLU_*=4;         example: TestProblem/ELBDM/ExtPot/Init_TestProb_ELBDM_ExtPot.cpp --> BC()
-
-#  ifdef MHD
-   BC_BField_User_Ptr             = NULL; // option: OPT__BC_FLU_*=4;
-#  endif
-
-   Flu_ResetByUser_Func_Ptr       = NULL; // option: OPT__RESET_FLUID;        example: Fluid/Flu_ResetByUser.cpp
-   Output_User_Ptr                = OutputError; // option: OPT__OUTPUT_USER; example: TestProblem/Hydro/AcousticWave/Init_TestProb_Hydro_AcousticWave.cpp --> OutputError()
-   Aux_Record_User_Ptr            = NULL; // option: OPT__RECORD_USER;        example: Auxiliary/Aux_Record_User.cpp
-   Init_User_Ptr                  = NULL; // option: none;                    example: none
-   End_User_Ptr                   = NULL; // option: none;                    example: TestProblem/Hydro/ClusterMerger_vs_Flash/Init_TestProb_ClusterMerger_vs_Flash.cpp --> End_ClusterMerger()
-
-#  if ( EOS == EOS_COSMIC_RAY )
-   EoS_Init_Ptr                   = NULL; // option: EOS in the Makefile;     example: EoS/User_Template/CPU_EoS_User_Template.cpp
-#  endif
+   Output_User_Ptr                = OutputError;
 
 #  endif // #if ( MODEL == HYDRO )
 
    if ( MPI_Rank == 0 )    Aux_Message( stdout, "%s ... done\n", __FUNCTION__ );
 
-} // FUNCTION : Init_TestProb_Hydro_Cosmic_Ray
+} // FUNCTION : Init_TestProb_Hydro_Cosmic_Ray_SoundWave
