@@ -40,6 +40,7 @@ void Read_Particles_ClusterMerger(std::string filename, long offset, long num,
                                   real_par_in zpos[], real_par_in xvel[],
                                   real_par_in yvel[], real_par_in zvel[],
                                   real_par_in mass[], real_par_in ptype[]);
+void GetClusterCenter( double Cen[][3] );
 
 //-------------------------------------------------------------------------------------------------------
 // Function    :  Par_Init_ByFunction_ClusterMerger
@@ -603,6 +604,7 @@ void Read_Particles_ClusterMerger( std::string filename, long offset, long num,
 #endif // #ifdef SUPPORT_HDF5
 
 
+
 //-------------------------------------------------------------------------------------------------------
 // Function    :  Aux_Record_ClusterMerger
 // Description :  Record the cluster centers
@@ -626,9 +628,6 @@ void Aux_Record_ClusterMerger()
    {
       if ( MPI_Rank == 0 )
       {
-         if ( ! Merger_Coll_LabelCenter )
-            Aux_Message( stderr, "WARNING : Merger_Coll_LabelCenter is disabled in %s !!\n", __FUNCTION__ );
-
          if ( Aux_CheckFileExist(FileName) )
             Aux_Message( stderr, "WARNING : file \"%s\" already exists !!\n", FileName );
 
@@ -644,23 +643,11 @@ void Aux_Record_ClusterMerger()
    } // if ( FirstTime )
 
 
-   // collect data from all ranks
-   const real *ParPos[3] = { amr->Par->PosX, amr->Par->PosY, amr->Par->PosZ };
+   // get cluster centers
    double Cen[3][3] = {  { NULL_REAL, NULL_REAL, NULL_REAL },
                          { NULL_REAL, NULL_REAL, NULL_REAL },
                          { NULL_REAL, NULL_REAL, NULL_REAL }  };
-
-   for (int c=0; c<Merger_Coll_NumHalos; c++) {
-      double Cen_Tmp[3] = { -__FLT_MAX__, -__FLT_MAX__, -__FLT_MAX__ };   // set to -inf
-      for (long p=0; p<amr->Par->NPar_AcPlusInac; p++) {
-         if ( amr->Par->Attribute[ParTypeIdx][p] == real(PTYPE_CEN+c) ) {
-            for (int d=0; d<3; d++) Cen_Tmp[d] = ParPos[d][p];
-            break;
-         }
-      }
-      // use MPI_MAX since Cen_Tmp[] is initialized as -inf
-      MPI_Reduce( Cen_Tmp, Cen[c], 3, MPI_DOUBLE, MPI_MAX, 0, MPI_COMM_WORLD );
-   }
+   GetClusterCenter( Cen );
 
 
    // output cluster centers
@@ -675,5 +662,40 @@ void Aux_Record_ClusterMerger()
    }
 
 } // FUNCTION : Aux_Record_ClusterMerger
+
+
+
+//-------------------------------------------------------------------------------------------------------
+// Function    :  GetClusterCenter
+// Description :  Get the cluster centers
+//
+// Note        :  1. Must enable Merger_Coll_LabelCenter
+//
+// Parameter   :  Cen : Cluster centers
+//
+// Return      :  Cen[]
+//-------------------------------------------------------------------------------------------------------
+void GetClusterCenter( double Cen[][3] )
+{
+
+   if ( ! Merger_Coll_LabelCenter  &&  MPI_Rank == 0 )
+      Aux_Message( stderr, "WARNING : Merger_Coll_LabelCenter is disabled in %s !!\n", __FUNCTION__ );
+
+
+   const real *ParPos[3] = { amr->Par->PosX, amr->Par->PosY, amr->Par->PosZ };
+
+   for (int c=0; c<Merger_Coll_NumHalos; c++) {
+      double Cen_Tmp[3] = { -__FLT_MAX__, -__FLT_MAX__, -__FLT_MAX__ };   // set to -inf
+      for (long p=0; p<amr->Par->NPar_AcPlusInac; p++) {
+         if ( amr->Par->Attribute[ParTypeIdx][p] == real(PTYPE_CEN+c) ) {
+            for (int d=0; d<3; d++) Cen_Tmp[d] = ParPos[d][p];
+            break;
+         }
+      }
+      // use MPI_MAX since Cen_Tmp[] is initialized as -inf
+      MPI_Reduce( Cen_Tmp, Cen[c], 3, MPI_DOUBLE, MPI_MAX, 0, MPI_COMM_WORLD );
+   }
+
+} // FUNCTION : GetClusterCenter
 
 #endif // #ifdef PARTICLE
