@@ -186,11 +186,11 @@ SIMU_OPTION += -DFLOAT8
 
 # serial mode (in which no MPI libraries are required)
 # --> must disable LOAD_BALANCE
-SIMU_OPTION += -DSERIAL
+#SIMU_OPTION += -DSERIAL
 
 # load-balance parallelization: HILBERT
 # --> must disable SERIAL
-#SIMU_OPTION += -DLOAD_BALANCE=HILBERT
+SIMU_OPTION += -DLOAD_BALANCE=HILBERT
 
 # overlap MPI communication with computation
 # --> NOT supported yet; must enable LOAD_BALANCE
@@ -249,8 +249,8 @@ SIMU_OPTION += -DRANDOM_NUMBER=RNG_GNU_EXT
 
 # gnu
 # -------------------------------------------------------------------------------
- CXX         = g++                                       # serial compiler
-#CXX         = $(MPI_PATH)/bin/mpicxx                    # MPI compiler
+#CXX         = g++                                       # serial compiler
+CXX         = $(MPI_PATH)/bin/mpicxx                    # MPI compiler
 #CXX         = CC                                        # cray wrapper script
  CXXFLAG     = -g -O3                                    # general flags
 #CXXFLAG     = -g -O3 -std=c++11
@@ -680,7 +680,7 @@ endif # STAR_FORMATION
 ifeq "$(filter -DCOSMIC_RAY, $(SIMU_OPTION))" "-DCOSMIC_RAY"
 CPU_FILE    += 
 
-vpath %.cpp    Microphysics  Microphysics/CosmicRay  Microphysics/CosmicRay/CPU_CosmicRay
+vpath %.cpp    
 endif # COSMIC_RAY
 
 # test problem source files
@@ -987,4 +987,5 @@ clean :
 	@rm -f $(OBJ_PATH)/*
 	@rm -f $(EXECUTABLE)
 	@rm -f ./*.linkinfo
+
 

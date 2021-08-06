@@ -458,8 +458,8 @@ void CPU_FluidSolver_MHM(
                                g_FC_Flux_1PG, dt, dh, MinDens, MinEint, DualEnergySwitch,
                                NormPassive, NNorm, c_NormIdx, &EoS );
          
-         // Cosmic ray work done part
 #        ifdef COSMIC_RAY
+         // Cosmic ray full-step update
          CosmicRay_Update( g_PriVar_Half_1PG, g_Flu_Array_Out[P], g_FC_Flux_1PG, g_FC_Var_1PG,
                            dt, dh, &EoS);
 #        endif
@@ -716,8 +716,7 @@ void Hydro_RiemannPredict( const real g_ConVar_In[][ CUBE(FLU_NXT) ],
          out_con[v] = g_ConVar_In[v][idx_in] - dt_dh2*( dflux[0][v] + dflux[1][v] + dflux[2][v] );
 
 
-
-//    Cosmic ray half step update
+//    Cosmic ray half-step update
 #     ifdef COSMIC_RAY
       const EoS_CRE2CRP_t EoS_CREint2CRPres = EoS->CREint2CRPres_FuncPtr;
       const double *EoS_AuxArray_Flt  = EoS->AuxArrayDevPtr_Flt;
@@ -735,15 +734,8 @@ void Hydro_RiemannPredict( const real g_ConVar_In[][ CUBE(FLU_NXT) ],
       // 2. \div V term
       // ==============================
       // Reference: "Simple Method to Track Pressure Accurately", S. Li, Astronum Proceeding, 2007
-      // There is no face center value in the half step, so the algrithom might be a little bit weird.
       for (int d=0; d<3; d++)
       {
-//--------------------------------------------------------------------
-//|            idx_flux-didx_flux[d]    idx_flux                     |
-//|                         |              |                         |
-//|    idx_fc-didx_fc[d]    |    idx_fc    |    idx_fc+didx_fc[d]    |
-//|                         |              |                         |
-//--------------------------------------------------------------------
          div_V[d]  = ( g_Flux_Half[d][DENS][ idx_flux                ] > 0 ) ? 
                      ( g_Flux_Half[d][DENS][ idx_flux                ] / g_ConVar_In[DENS][ idx_fc              ] ) : 
                      ( g_Flux_Half[d][DENS][ idx_flux                ] / g_ConVar_In[DENS][ idx_fc + didx_fc[d] ] );
@@ -758,7 +750,6 @@ void Hydro_RiemannPredict( const real g_ConVar_In[][ CUBE(FLU_NXT) ],
       // ==============================
       // 3. Update the cosmic ray
       // ==============================
-      // TODO: Might need to check negative problem
       out_con[CRAY] = out_con[CRAY] - pCR_old * dt_dh2 * ( div_V[0] + div_V[1] + div_V[2] );
 
 #     endif // # ifdef COSMIC_RAY
@@ -813,7 +804,7 @@ void Hydro_RiemannPredict( const real g_ConVar_In[][ CUBE(FLU_NXT) ],
 //#ifdef COSMIC_RAY
 //-------------------------------------------------------------------------------------------------------
 // Function    :  CosmicRay_Update
-// Description :  
+// Description :  Evolve the full-step solution of cosmic rays
 // Note        :  
 // Parameter   :  g_PriVar_Half : Array to store the output primitive variables
 //                                --> Accessed with the stride N_HF_VAR
@@ -883,14 +874,6 @@ void CosmicRay_Update( const real g_PriVar_Half[][ CUBE(FLU_NXT) ],
          const int faceL = 2*d;
          const int faceR = faceL+1;
 
-      //--------------------------------------------------------------------
-      //|            idx_flux-didx_flux[d]    idx_flux                     |
-      //|                         |              |                         |
-      //|    idx_fc-didx_fc[d]    |    idx_fc    |    idx_fc+didx_fc[d]    |
-      //|                         |              |                         |
-      //|                    faceR|faceL    faceR|faceL                    |
-      //--------------------------------------------------------------------
-
          div_V[d]  = ( g_Flux[d][DENS][ idx_flux                ] > 0 ) ? 
                      ( g_Flux[d][DENS][ idx_flux                ] / g_FC_Var[faceR][DENS][ idx_fc              ] ) : 
                      ( g_Flux[d][DENS][ idx_flux                ] / g_FC_Var[faceL][DENS][ idx_fc + didx_fc[d] ] );
@@ -905,7 +888,6 @@ void CosmicRay_Update( const real g_PriVar_Half[][ CUBE(FLU_NXT) ],
       // ==============================
       // 3. Update the cosmic ray
       // ==============================
-      // TODO: Might need to check negative problem
       Output_1Cell[CRAY] = Output_1Cell[CRAY] - pCR_half * dt_dh * ( div_V[0] + div_V[1] + div_V[2] );
       g_Output[CRAY][idx_out] = Output_1Cell[CRAY];
 
