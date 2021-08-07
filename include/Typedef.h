@@ -50,6 +50,8 @@ const TestProbID_t
    TESTPROB_HYDRO_MHD_ORSZAG_TANG_VORTEX       =   14,
    TESTPROB_HYDRO_MHD_LINEAR_WAVE              =   15,
    TESTPROB_HYDRO_JEANS_INSTABILITY            =   16,
+   TESTPROB_HYDRO_COSMIC_RAY_SOUNDWAVE         =   20,
+   TESTPROB_HYDRO_COSMIC_RAY_SHOCKTUBE         =   21,
    TESTPROB_HYDRO_BARRED_POT                   =   51,
 
    TESTPROB_ELBDM_EXTPOT                       = 1000;
@@ -418,6 +420,11 @@ typedef real (*EoS_DE2T_t)( const real Dens, const real Eint, const real Passive
 typedef real (*EoS_DT2P_t)( const real Dens, const real Temp, const real Passive[],
                             const double AuxArray_Flt[], const int AuxArray_Int[],
                             const real *const Table[EOS_NTABLE_MAX], real ExtraInOut[] );
+#ifdef COSMIC_RAY
+typedef real (*EoS_CRE2CRP_t)( const real Passive[], 
+                               const double AuxArray_Flt[], const int AuxArray_Int[],
+                               const real *const Table[EOS_NTABLE_MAX], real ExtraInOut[]);
+#endif
 typedef void (*ExtAcc_t)( real Acc[], const double x, const double y, const double z, const double Time,
                           const double UserArray[] );
 typedef real (*ExtPot_t)( const double x, const double y, const double z, const double Time,

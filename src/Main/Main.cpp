@@ -225,19 +225,25 @@ double EoS_AuxArray_Flt[EOS_NAUX_MAX];
 int    EoS_AuxArray_Int[EOS_NAUX_MAX];
 
 // b. function pointers
-EoS_DE2P_t EoS_DensEint2Pres_CPUPtr = NULL;
-EoS_DP2E_t EoS_DensPres2Eint_CPUPtr = NULL;
-EoS_DP2C_t EoS_DensPres2CSqr_CPUPtr = NULL;
-EoS_DE2T_t EoS_DensEint2Temp_CPUPtr = NULL;
-EoS_DT2P_t EoS_DensTemp2Pres_CPUPtr = NULL;
-EoS_GENE_t EoS_General_CPUPtr       = NULL;
+EoS_DE2P_t    EoS_DensEint2Pres_CPUPtr = NULL;
+EoS_DP2E_t    EoS_DensPres2Eint_CPUPtr = NULL;
+EoS_DP2C_t    EoS_DensPres2CSqr_CPUPtr = NULL;
+EoS_DE2T_t    EoS_DensEint2Temp_CPUPtr = NULL;
+EoS_DT2P_t    EoS_DensTemp2Pres_CPUPtr = NULL;
+EoS_GENE_t    EoS_General_CPUPtr       = NULL;
+#ifdef COSMIC_RAY
+EoS_CRE2CRP_t EoS_CREint2CRPres_CPUPtr = NULL;
+#endif
 #ifdef GPU
-EoS_DE2P_t EoS_DensEint2Pres_GPUPtr = NULL;
-EoS_DP2E_t EoS_DensPres2Eint_GPUPtr = NULL;
-EoS_DP2C_t EoS_DensPres2CSqr_GPUPtr = NULL;
-EoS_DE2T_t EoS_DensEint2Temp_GPUPtr = NULL;
-EoS_DT2P_t EoS_DensTemp2Pres_GPUPtr = NULL;
-EoS_GENE_t EoS_General_GPUPtr       = NULL;
+EoS_DE2P_t    EoS_DensEint2Pres_GPUPtr = NULL;
+EoS_DP2E_t    EoS_DensPres2Eint_GPUPtr = NULL;
+EoS_DP2C_t    EoS_DensPres2CSqr_GPUPtr = NULL;
+EoS_DE2T_t    EoS_DensEint2Temp_GPUPtr = NULL;
+EoS_DT2P_t    EoS_DensTemp2Pres_GPUPtr = NULL;
+EoS_GENE_t    EoS_General_GPUPtr       = NULL;
+#ifdef COSMIC_RAY
+EoS_CRE2CRP_t EoS_CREint2CRPres_GPUPtr = NULL;
+#endif
 #endif
 
 // c. data structure for the CPU/GPU solvers
@@ -258,6 +264,15 @@ bool OPT__OUTPUT_USER_FIELD;
 int  UserDerField_Num                  = -1;    // must be negative for Output_DumpData_Total_HDF5()
 char (*UserDerField_Label)[MAX_STRING] = NULL;
 char (*UserDerField_Unit )[MAX_STRING] = NULL;
+
+// (2-13) cosmic ray
+#ifdef COSMIC_RAY
+//double GAMMA_CR;
+//bool   CR_DIFFUSION;
+//bool   CR_ISOTROPIC;
+//double CR_DIFF_PARA;
+//double CR_DIFF_PERP;
+#endif
 
 
 // 3. CPU (host) arrays for transferring data between CPU and GPU
