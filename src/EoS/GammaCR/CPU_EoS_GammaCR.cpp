@@ -10,7 +10,7 @@
 
 
 /********************************************************
-1. Ideal gas Eos with cosmic ray component (gammacr)
+1. Ideal gas Eos with cosmic ray component (GAMMA_CR)
 
 2. This file is shared by both CPU and GPU
 
@@ -51,9 +51,9 @@
 //                2. AuxArray_Flt have the size of EOS_NAUX_MAX defined in Macro.h (default = 20)
 //                3. Add "#ifndef __CUDACC__" since this routine is only useful on CPU
 //
-// Parameter   :  AuxArray_Flt : Floating-point arrays to be filled up
+// Parameter   :  AuxArray_Flt/Int : Floating-point/Integer arrays to be filled up
 //
-// Return      :  AuxArray_Flt[]
+// Return      :  AuxArray_Flt[]/Int[]
 //-------------------------------------------------------------------------------------------------------
 #ifndef __CUDACC__
 void EoS_SetAuxArray_GammaCR( double AuxArray_Flt[], int AuxArray_Int[] )
@@ -131,7 +131,6 @@ static real EoS_DensEint2Pres_GammaCR( const real Dens, const real Eint, const r
    const real small_val  = (real)AuxArray_Flt[6];
    real Pres;
    
-   // pres = (gamma_gas - 1) * (e_tot - e_cr) + (gamma_cr - 1) * e_cr
    Pres = Gamma_m1*MAX( Eint - Passive[CRAY-NCOMP_FLUID], small_val ) + GammaCR_m1*Passive[CRAY-NCOMP_FLUID];
    
 // check
@@ -196,7 +195,6 @@ static real EoS_DensPres2Eint_GammaCR( const real Dens, const real Pres, const r
    const real small_val    = (real)AuxArray_Flt[6];
    real Eint;
 
-   // e_int = (pres - e_cr * (gamma_cr - 1)) / (gamma_gas - 1) + e_cr
    Eint = MAX(Pres - Passive[CRAY-NCOMP_FLUID] * GammaCR_m1, small_val) * Gamma_m1_inv + Passive[CRAY-NCOMP_FLUID];
 
 // check
@@ -264,10 +262,6 @@ static real EoS_DensPres2CSqr_GammaCR( const real Dens, const real Pres, const r
    const real small_val  = (real)AuxArray_Flt[6];
    real Cs2;
 
-   // pres_cr  = encr * (gamma_cr - 1)
-   // pres_gas = pres - pres_cr
-   // Cs2 = (gamma_cr*pres_cr           + gamma_gas*pres_gas) / rho
-   //     = (gamma_cr*encr*(gamma_cr-1) + gamma_gas*(pres-encr*(gamma_cr-1))) / rho
    real P_cr = GammaCR_m1 * Passive[CRAY-NCOMP_FLUID];
    Cs2 = ( GammaCR * P_cr + Gamma * MAX( Pres - P_cr, small_val ) ) / Dens;
    
