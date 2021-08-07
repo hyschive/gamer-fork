@@ -5,14 +5,14 @@
 
 // problem-specific global variables
 // =======================================================================================
-static double GAMMA_CR;
-static double CR_Shocktube_Rho_R;
-static double CR_Shocktube_Rho_L;
-static double CR_Shocktube_Pres_R;
-static double CR_Shocktube_Pres_L;
-static double CR_Shocktube_PresCR_R;
-static double CR_Shocktube_PresCR_L;
-static int    CR_Shocktube_Dir;
+static double GAMMA_CR;                 // index of adiabatic cosmic ray
+static double CR_Shocktube_Rho_R;       // density on the Right state
+static double CR_Shocktube_Rho_L;       // density on the Left state
+static double CR_Shocktube_Pres_R;      // gas pressure on the Right state
+static double CR_Shocktube_Pres_L;      // gas pressure on the Left state
+static double CR_Shocktube_PresCR_R;    // cosmic ray pressure on the Right state
+static double CR_Shocktube_PresCR_L;    // cosmic ray pressure on the Left state
+static int    CR_Shocktube_Dir;         // shock tube direction
 // =======================================================================================
 
 
@@ -43,7 +43,9 @@ void Validate()
    Aux_Error( ERROR_INFO, "MHD must be enabled !!\n" );
 #  endif
 
-// @@@ EOS GAMMA_CR
+#  if ( EOS != EOS_COSMIC_RAY )
+   Aux_Error( ERROR_INFO, "EOS != EOS_COSMIC_RAY !!\n" );
+#  endif
 
 // warnings
    if ( MPI_Rank == 0 )
@@ -104,7 +106,7 @@ void SetParameter()
    ReadPara->Add( "CR_Shocktube_Pres_L",   &CR_Shocktube_Pres_L,       0.0,           0.0,              NoMax_double);
    ReadPara->Add( "CR_Shocktube_PresCR_R", &CR_Shocktube_PresCR_R,     0.0,           0.0,              NoMax_double);
    ReadPara->Add( "CR_Shocktube_PresCR_L", &CR_Shocktube_PresCR_L,     0.0,           0.0,              NoMax_double);
-   ReadPara->Add( "CR_Shocktube_Dir",      &CR_Shocktube_Dir,             0,             0,                 NoMax_int);
+   ReadPara->Add( "CR_Shocktube_Dir",      &CR_Shocktube_Dir,             0,             0,                NoMax_int);
 
    ReadPara->Read( FileName );
 
@@ -116,7 +118,6 @@ void SetParameter()
 
 
 // (2) set the problem-specific derived parameters
-//   Linear_Wavelength = amr->BoxSize[0] / 2.0;  // 2 wavelength along the x-axix
 
 // (3) reset other general-purpose parameters
 //     --> a helper macro PRINT_WARNING is defined in TestProb.h
@@ -221,30 +222,21 @@ void SetGridIC( real fluid[], const double x, const double y, const double z, co
       CRay = GAMMA_CR_m1_inv * P_cr;
       }
    }
-   else if ( CR_Shocktube_Dir == 1)
+   else if ( CR_Shocktube_Dir == 1 )
    {
       
       Aux_Error( ERROR_INFO, "CR_Shocktube_Dir = %d is NOT supported [0] !!\n", CR_Shocktube_Dir );
    }
    else
    {
-      Aux_Error( ERROR_INFO, "CR_Shocktube_Dir = %d is NOT supported [0/1] !!\n", CR_Shocktube_Dir );
+      Aux_Error( ERROR_INFO, "CR_Shocktube_Dir = %d is NOT supported [0] !!\n", CR_Shocktube_Dir );
    }
 
 // set the output array of passive scaler
 #ifdef COSMIC_RAY
    fluid[CRAY] = CRay;
 #endif
-   /*
-   FILE * pFile;
-   pFile = fopen("./soundspeed.txt", "a");
    
-   //real cs = EoS_DensPres2CSqr_CPUPtr(Dens, Pres, fluid+NCOMP_FLUID, EoS_AuxArray);
-
-   fprintf(pFile, "%.3f %.3f %.3f %.8f %.8f %.8f %.8f\n", x, y, z, Dens, MomX, Pres, P_cr);
-
-   fclose(pFile);
-   */
    Eint = EoS_DensPres2Eint_CPUPtr( Dens, Pres, fluid+NCOMP_FLUID, EoS_AuxArray_Flt, EoS_AuxArray_Int, h_EoS_Table, NULL );
    Etot = Hydro_ConEint2Etot( Dens, MomX, MomY, MomZ, Eint, 0.0 );      // do NOT include magnetic energy here
 
@@ -317,11 +309,6 @@ void Init_TestProb_Hydro_Cosmic_Ray_Shocktube()
 
 
 // procedure to enable a problem-specific function:
-// 1. define a user-specified function (example functions are given below)
-// 2. declare its function prototype on the top of this file
-// 3. set the corresponding function pointer below to the new problem-specific function
-// 4. enable the corresponding runtime option in "Input__Parameter"
-//    --> for instance, enable OPT__OUTPUT_USER for Output_User_Ptr
    Init_Function_User_Ptr         = SetGridIC;
 
 #  ifdef MHD
@@ -329,24 +316,9 @@ void Init_TestProb_Hydro_Cosmic_Ray_Shocktube()
 #  endif
 
 // comment out Init_ByFile_User_Ptr to use the default
-// Init_ByFile_User_Ptr           = NULL; // option: OPT__INIT=3;             example: Init/Init_ByFile.cpp -> Init_ByFile_Default()
-   Init_Field_User_Ptr            = NULL; // set NCOMP_PASSIVE_USER;          example: TestProblem/Hydro/Plummer/Init_TestProb_Hydro_Plummer.cpp --> AddNewField()
-   Flag_User_Ptr                  = NULL; // option: OPT__FLAG_USER;          example: Refine/Flag_User.cpp
-   Mis_GetTimeStep_User_Ptr       = NULL; // option: OPT__DT_USER;            example: Miscellaneous/Mis_GetTimeStep_User.cpp
-   BC_User_Ptr                    = NULL; // option: OPT__BC_FLU_*=4;         example: TestProblem/ELBDM/ExtPot/Init_TestProb_ELBDM_ExtPot.cpp --> BC()
 
 #  ifdef MHD
    BC_BField_User_Ptr             = NULL; // option: OPT__BC_FLU_*=4;
-#  endif
-
-   Flu_ResetByUser_Func_Ptr       = NULL; // option: OPT__RESET_FLUID;        example: Fluid/Flu_ResetByUser.cpp
-   Output_User_Ptr                = NULL; // option: OPT__OUTPUT_USER;        example: TestProblem/Hydro/AcousticWave/Init_TestProb_Hydro_AcousticWave.cpp --> OutputError()
-   Aux_Record_User_Ptr            = NULL; // option: OPT__RECORD_USER;        example: Auxiliary/Aux_Record_User.cpp
-   Init_User_Ptr                  = NULL; // option: none;                    example: none
-   End_User_Ptr                   = NULL; // option: none;                    example: TestProblem/Hydro/ClusterMerger_vs_Flash/Init_TestProb_ClusterMerger_vs_Flash.cpp --> End_ClusterMerger()
-
-#  if ( EOS == EOS_COSMIC_RAY )
-   EoS_Init_Ptr                   = NULL; // option: EOS in the Makefile;     example: EoS/User_Template/CPU_EoS_User_Template.cpp
 #  endif
 
 #  endif // #if ( MODEL == HYDRO )

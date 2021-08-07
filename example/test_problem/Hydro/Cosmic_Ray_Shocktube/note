@@ -1,8 +1,0 @@
-# 
-x cell   = 128
-y cell   = 128
-z cell   = 128
-x length = 1.0
-dt cfl   = 0.3
-t max    = 0.00044
-n end    = 100000

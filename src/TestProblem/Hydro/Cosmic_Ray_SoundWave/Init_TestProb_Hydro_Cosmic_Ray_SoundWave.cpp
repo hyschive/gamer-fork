@@ -47,8 +47,8 @@ void Validate()
    Aux_Error( ERROR_INFO, "MHD must be enabled !!\n" );
 #  endif
 
-#  if ( EOS != EOS_GAMMA_CR )
-   Aux_Error( ERROR_INFO, "EOS != EOS_GAMMA_CR !!\n" );
+#  if ( EOS != EOS_COSMIC_RAY )
+   Aux_Error( ERROR_INFO, "EOS != EOS_COSMIC_RAY !!\n" );
 #  endif
 
 // warnings
