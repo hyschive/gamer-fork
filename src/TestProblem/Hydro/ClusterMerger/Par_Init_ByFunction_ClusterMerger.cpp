@@ -280,13 +280,7 @@ void Par_Init_ByFunction_ClusterMerger( const long NPar_ThisRank, const long NPa
          ParPos[d][p] += ClusterCenter1[d];
    }
 
-   // reset particle mass 
-   const double R_200_1 = 1722.516798*Const_kpc/UNIT_L;
-   for (long p=0; p<NPar_ThisRank_EachCluster[0]; p++) {
-      double r_1 = pow(pow(ParPos[0][p]-ClusterCenter1[0],2.0)+pow(ParPos[1][p]-ClusterCenter1[1],2.0)+pow(ParPos[2][p]-ClusterCenter1[2],2.0),0.5);
-      ParMass[p] *= exp(-pow((r_1/(1.5*R_200_1)),3.0));
-   }	
-//1722.516798
+   // NO reset particle mass 
 
    for (long p=NPar_ThisRank_EachCluster[0]; p<NPar_ThisRank_EachCluster[0]+NPar_ThisRank_EachCluster[1]; p++) {
       ParVelX[p] += Merger_Coll_VelX2;
@@ -295,13 +289,7 @@ void Par_Init_ByFunction_ClusterMerger( const long NPar_ThisRank, const long NPa
          ParPos[d][p] += ClusterCenter2[d];
    }
 
-   // reset particle mass
-   const double R_200_2 = 1194.326442*Const_kpc/UNIT_L;
-   for (long p=NPar_ThisRank_EachCluster[0]; p<NPar_ThisRank_EachCluster[0]+NPar_ThisRank_EachCluster[1]; p++) {
-      double r_2 = pow(pow(ParPos[0][p]-ClusterCenter2[0],2.0)+pow(ParPos[1][p]-ClusterCenter2[1],2.0)+pow(ParPos[2][p]-ClusterCenter2[2],2.0),0.5);
-      ParMass[p] *= exp(-pow((r_2/(1.5*R_200_2)),3.0));
-   }
-
+   // NO reset particle mass
 
 
    for (long p=NPar_ThisRank_EachCluster[0]+NPar_ThisRank_EachCluster[1]; p<NPar_ThisRank; p++) {

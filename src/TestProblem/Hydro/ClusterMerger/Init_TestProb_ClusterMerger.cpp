@@ -258,26 +258,13 @@ void SetParameter()
             else
                for ( int i; i < Merger_NBin1; i++ ) Table_M1[i] = 0.0;
 
-			// truncate gas density 
-		    for (int b=0; b<Merger_NBin1; b++) {
-			   Table_R1[b] /= UNIT_L;
-               
-               Table_D1[b] *= exp(-pow((Table_R1[b]/(1.5*Merger_Coll_ColorRad1)),3.0)); 
-			   Table_P1[b] *= exp(-pow((Table_R1[b]/(1.5*Merger_Coll_ColorRad1)),3.0));
-
-               if (Table_D1[b]<1.0e-15*UNIT_D){
-			      Table_D1[b]=1.0e-15*UNIT_D;
-			   }
-			   if (Table_P1[b]<1.0e-16*UNIT_P){
-			      Table_P1[b]=1.0e-16*UNIT_P;
-			   }
-            }
-
+			// NO truncate gas density 
 
             // convert to code units (assuming the input units are cgs)
             for ( int b=0; b<Merger_NBin1; b++ ) {
-               Table_D1[b] /= UNIT_D;
-               Table_P1[b] /= UNIT_P;
+//               Table_R1[b] /= UNIT_L;
+//               Table_D1[b] /= UNIT_D;
+//               Table_P1[b] /= UNIT_P;
             }
 
          }
@@ -313,21 +300,11 @@ void SetParameter()
             else
                for ( int i; i < Merger_NBin2; i++ ) Table_M2[i] = 0.0;
 
-			// truncate gas density 
-			for (int b=0; b<Merger_NBin2; b++) {
-			   Table_R2[b] /= UNIT_L;
-			   Table_D2[b] *= exp(-pow((Table_R2[b]/(1.5*Merger_Coll_ColorRad2)),3.0)); 
-               Table_P2[b] *= exp(-pow((Table_R2[b]/(1.5*Merger_Coll_ColorRad2)),3.0));
-               if (Table_D2[b]<1.0e-15*UNIT_D){
-                  Table_D2[b]=1.0e-15*UNIT_D;
-               }   
-               if (Table_P2[b]<1.0e-16*UNIT_P){
-                  Table_P2[b]=1.0e-16*UNIT_P;
-               }   
-			}
+			// NO truncate gas density 
 
             // convert to code units (assuming the input units are cgs)
             for ( int b=0; b<Merger_NBin2; b++ ) {
+               Table_R2[b] /= UNIT_L;
                Table_D2[b] /= UNIT_D;
                Table_P2[b] /= UNIT_P;
             }
