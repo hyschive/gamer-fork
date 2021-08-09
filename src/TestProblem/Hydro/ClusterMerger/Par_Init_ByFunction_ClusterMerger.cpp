@@ -622,7 +622,7 @@ void Aux_Record_ClusterMerger()
          FILE *File_User = fopen( FileName, "a" );
          fprintf( File_User, "#%13s%14s",  "Time", "Step" );
          for (int c=0; c<Merger_Coll_NumHalos; c++)
-            fprintf( File_User, " %13s%1d %13s%1d %13s%1d", "x", c, "y", c, "z", c );
+            fprintf( File_User, " %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d", "x", c, "y", c, "z", c, "Vel_x", c, "Vel_y", c, "Vel_z", c, "mass_BH", c, "accretion rate", c );
          fprintf( File_User, "\n" );
          fclose( File_User );
       }
@@ -637,6 +637,7 @@ void Aux_Record_ClusterMerger()
                          { NULL_REAL, NULL_REAL, NULL_REAL }  };
    GetClusterCenter( Cen );
 
+   double Bondi_MassBH[3] = { Bondi_MassBH1, Bondi_MassBH2, Bondi_MassBH3 };
 
    // output cluster centers
    if ( MPI_Rank == 0 )
@@ -644,7 +645,7 @@ void Aux_Record_ClusterMerger()
       FILE *File_User = fopen( FileName, "a" );
       fprintf( File_User, "%14.7e%14ld", Time[0], Step );
       for (int c=0; c<Merger_Coll_NumHalos; c++)
-         fprintf( File_User, " %14.7e %14.7e %14.7e", Cen[c][0], Cen[c][1], Cen[c][2] );
+         fprintf( File_User, " %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e", Cen[c][0], Cen[c][1], Cen[c][2], BH_Vel[c][0], BH_Vel[c][1], BH_Vel[c][2], Bondi_MassBH[c] );
       fprintf( File_User, "\n" );
       fclose( File_User );
    }
