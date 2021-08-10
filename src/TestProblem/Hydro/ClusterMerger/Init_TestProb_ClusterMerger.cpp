@@ -77,6 +77,9 @@ static FieldIdx_t ColorField3Idx = Idx_Undefined;
        double Bondi_MassBH3;        // black hole mass of cluster 3
        double R_acc;                // accretion radius: compute the accretion rate
        double R_dep;                // radius to deplete the accreted gas                       
+       double Mdot_BH1;             // the accretion rate of BH 1
+       double Mdot_BH2;             // the accretion rate of BH 2
+       double Mdot_BH3;             // the accretion rate of BH 3
 
 // =======================================================================================
 
@@ -95,6 +98,13 @@ void Read_Profile_ClusterMerger(std::string filename, std::string fieldname,
                                 double field[]);
 void AddNewField_ClusterMerger();
 void AddNewParticleAttribute_ClusterMerger();
+
+bool Flu_ResetByUser_Func_Bondi( real fluid[], const double Mdot, const double dt, const double ClusterCen[], const double GasVel[], const double x, const double y, const double z, const double Time, const int lv, double AuxArray[] );
+void Flu_ResetByUser_API_Bondi( const int lv, const int FluSg, const double TTime );
+
+// NOTE: I comment out line 43 in "../include/TestProb.h"
+//extern void (*Flu_ResetByUser_Func_Ptr)( real fluid[], const double Mdot, const double dt, const double ClusterCen[], const double GasVel[], const double x, const double y, const double z, const double Time, const int lv, double AuxArray[] );
+extern void (*Flu_ResetByUser_API_Ptr)( const int lv, const int FluSg, const double TTime );
 
 //-------------------------------------------------------------------------------------------------------
 // Function    :  Validate
@@ -222,6 +232,9 @@ void SetParameter()
    ReadPara->Add( "Bondi_MassBH3",          &Bondi_MassBH3,          -1.0,             Eps_double,    NoMax_double   );
    ReadPara->Add( "R_acc",                  &R_acc,                  -1.0,             NoMin_double,  NoMax_double   );
    ReadPara->Add( "R_dep",                  &R_dep,                  -1.0,             NoMin_double,  NoMax_double   );
+   ReadPara->Add( "Mdot_BH1",               &Mdot_BH1,               -1.0,             NoMin_double,  NoMax_double   );
+   ReadPara->Add( "Mdot_BH2",               &Mdot_BH2,               -1.0,             NoMin_double,  NoMax_double   );
+   ReadPara->Add( "Mdot_BH3",               &Mdot_BH3,               -1.0,             NoMin_double,  NoMax_double   );
 
    ReadPara->Read( FileName );
 
@@ -248,11 +261,14 @@ void SetParameter()
    Merger_Coll_ColorRad1 *= Const_kpc / UNIT_L;
    Merger_Coll_ColorRad2 *= Const_kpc / UNIT_L;
    Merger_Coll_ColorRad3 *= Const_kpc / UNIT_L;
-   Bondi_MassBH1     *= UnitExt_M/UNIT_M;
-   Bondi_MassBH2     *= UnitExt_M/UNIT_M;
-   Bondi_MassBH3     *= UnitExt_M/UNIT_M;
+   Bondi_MassBH1     *= Const_Msun/UNIT_M;
+   Bondi_MassBH2     *= Const_Msun/UNIT_M;
+   Bondi_MassBH3     *= Const_Msun/UNIT_M;
    R_acc             *= Const_kpc / UNIT_L;
    R_dep             *= Const_kpc / UNIT_L;
+   Mdot_BH1          *= (Const_Msun/Const_yr) / (UNIT_M / UNIT_T);
+   Mdot_BH2          *= (Const_Msun/Const_yr) / (UNIT_M / UNIT_T);
+   Mdot_BH3          *= (Const_Msun/Const_yr) / (UNIT_M / UNIT_T);
 
 // (2) load the radial profiles
    if ( OPT__INIT != INIT_BY_RESTART ) {
@@ -679,6 +695,10 @@ void Init_TestProb_Hydro_ClusterMerger()
    Par_Init_ByFunction_Ptr        = Par_Init_ByFunction_ClusterMerger;
    Init_Field_User_Ptr            = AddNewField_ClusterMerger;
    Par_Init_Attribute_User_Ptr    = AddNewParticleAttribute_ClusterMerger;
+
+   Flu_ResetByUser_Func_Ptr = Flu_ResetByUser_Func_Bondi;
+   Flu_ResetByUser_API_Ptr  = Flu_ResetByUser_API_Bondi;
+
 #  ifdef MHD
    Init_Function_BField_User_Ptr  = SetBFieldIC;
 #  endif

@@ -33,6 +33,13 @@ extern bool    Merger_Coll_LabelCenter;
 
 extern FieldIdx_t ParTypeIdx;
 
+extern double  Bondi_MassBH1;
+extern double  Bondi_MassBH2;
+extern double  Bondi_MassBH3;
+extern double  Mdot_BH1;
+extern double  Mdot_BH2;
+extern double  Mdot_BH3;
+
 #ifdef PARTICLE
 long Read_Particle_Number_ClusterMerger(std::string filename);
 void Read_Particles_ClusterMerger(std::string filename, long offset, long num,
@@ -40,7 +47,7 @@ void Read_Particles_ClusterMerger(std::string filename, long offset, long num,
                                   real_par_in zpos[], real_par_in xvel[],
                                   real_par_in yvel[], real_par_in zvel[],
                                   real_par_in mass[], real_par_in ptype[]);
-void GetClusterCenter( double Cen[][3] );
+void GetClusterCenter( double Cen[][3], double BH_Vel[][3] );
 
 //-------------------------------------------------------------------------------------------------------
 // Function    :  Par_Init_ByFunction_ClusterMerger
@@ -635,17 +642,21 @@ void Aux_Record_ClusterMerger()
    double Cen[3][3] = {  { NULL_REAL, NULL_REAL, NULL_REAL },
                          { NULL_REAL, NULL_REAL, NULL_REAL },
                          { NULL_REAL, NULL_REAL, NULL_REAL }  };
-   GetClusterCenter( Cen );
+   double BH_Vel[3][3] = {  { NULL_REAL, NULL_REAL, NULL_REAL },
+                            { NULL_REAL, NULL_REAL, NULL_REAL },
+                            { NULL_REAL, NULL_REAL, NULL_REAL }  };
+   GetClusterCenter( Cen, BH_Vel );
 
    double Bondi_MassBH[3] = { Bondi_MassBH1, Bondi_MassBH2, Bondi_MassBH3 };
+   double Mdot_BH[3] = { Mdot_BH1, Mdot_BH2, Mdot_BH3 };
 
-   // output cluster centers
+   // output cluster centers' SMBH profiles
    if ( MPI_Rank == 0 )
    {
       FILE *File_User = fopen( FileName, "a" );
       fprintf( File_User, "%14.7e%14ld", Time[0], Step );
       for (int c=0; c<Merger_Coll_NumHalos; c++)
-         fprintf( File_User, " %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e", Cen[c][0], Cen[c][1], Cen[c][2], BH_Vel[c][0], BH_Vel[c][1], BH_Vel[c][2], Bondi_MassBH[c] );
+         fprintf( File_User, " %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e", Cen[c][0], Cen[c][1], Cen[c][2], BH_Vel[c][0], BH_Vel[c][1], BH_Vel[c][2], Bondi_MassBH[c], Mdot_BH[c] );
       fprintf( File_User, "\n" );
       fclose( File_User );
    }
@@ -664,7 +675,7 @@ void Aux_Record_ClusterMerger()
 //
 // Return      :  Cen[]
 //-------------------------------------------------------------------------------------------------------
-void GetClusterCenter( double Cen[][3] )
+void GetClusterCenter( double Cen[][3], double BH_Vel[][3] )
 {
 
    if ( ! Merger_Coll_LabelCenter  &&  MPI_Rank == 0 )
@@ -672,17 +683,21 @@ void GetClusterCenter( double Cen[][3] )
 
 
    const real *ParPos[3] = { amr->Par->PosX, amr->Par->PosY, amr->Par->PosZ };
+   const real *ParVel[3] = { amr->Par->VelX, amr->Par->VelY, amr->Par->VelZ };
 
    for (int c=0; c<Merger_Coll_NumHalos; c++) {
       double Cen_Tmp[3] = { -__FLT_MAX__, -__FLT_MAX__, -__FLT_MAX__ };   // set to -inf
+      double Vel_Tmp[3] = { -__FLT_MAX__, -__FLT_MAX__, -__FLT_MAX__ };
       for (long p=0; p<amr->Par->NPar_AcPlusInac; p++) {
          if ( amr->Par->Attribute[ParTypeIdx][p] == real(PTYPE_CEN+c) ) {
             for (int d=0; d<3; d++) Cen_Tmp[d] = ParPos[d][p];
+            for (int d=0; d<3; d++) Vel_Tmp[d] = ParVel[d][p];
             break;
          }
       }
       // use MPI_MAX since Cen_Tmp[] is initialized as -inf
       MPI_Reduce( Cen_Tmp, Cen[c], 3, MPI_DOUBLE, MPI_MAX, 0, MPI_COMM_WORLD );
+      MPI_Reduce( Vel_Tmp, BH_Vel[c], 3, MPI_DOUBLE, MPI_MAX, 0, MPI_COMM_WORLD );
    }
 
 } // FUNCTION : GetClusterCenter

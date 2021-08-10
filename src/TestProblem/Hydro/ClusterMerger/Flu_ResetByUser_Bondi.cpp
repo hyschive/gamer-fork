@@ -20,6 +20,9 @@ extern double R_dep;  // the radius to deplete the accreted gas
 extern double Bondi_MassBH1;
 extern double Bondi_MassBH2;
 extern double Bondi_MassBH3;
+extern double Mdot_BH1;
+extern double Mdot_BH2;
+extern double Mdot_BH3;
 
 //-------------------------------------------------------------------------------------------------------
 // Function    :  Flu_ResetByUser_Func_Bondi
@@ -98,6 +101,7 @@ bool Flu_ResetByUser_Func_Bondi( real fluid[], const double Mdot, const double d
 void Flu_ResetByUser_API_Bondi( const int lv, const int FluSg, const double TTime )
 {
    double Bondi_MassBH[3] = { Bondi_MassBH1, Bondi_MassBH2, Bondi_MassBH3 }; 
+   double Mdot_BH[3] = { Mdot_BH1, Mdot_BH2, Mdot_BH3 };
    double ClusterCen[3][3] = {  { NULL_REAL, NULL_REAL, NULL_REAL },                                             
                                 { NULL_REAL, NULL_REAL, NULL_REAL },
                                 { NULL_REAL, NULL_REAL, NULL_REAL }  };  
@@ -128,7 +132,6 @@ void Flu_ResetByUser_API_Bondi( const int lv, const int FluSg, const double TTim
       double Cs = 0.0;  // the average sound speed inside accretion radius
       double GasVel[3] = { 0.0, 0.0, 0.0 }  // the average gas velocity inside accretion radius
       double v = 0.0;  // the relative velocity between BH and gas
-      double Mdot;  // the accretion rate
       int num = 0;  // the number of cells inside accretion radius
    
    // reset to 0 since we only want to record the number of void cells **for one sub-step**
@@ -168,7 +171,7 @@ void Flu_ResetByUser_API_Bondi( const int lv, const int FluSg, const double TTim
       for (int d=0; d<3; d++)  v += SQR(BH_Vel[c][d]-GasVel[d]);
 
    // calculate the accretion rate
-      Mdot = 4.0*M_PI*Const_NewtonG*SQR(Bondi_MassBH[c])*rho/pow(Cs*Cs+v,1.5);
+      Mdot_BH[c] = 4.0*M_PI*Const_NewtonG*SQR(Bondi_MassBH[c])*rho/pow(Cs*Cs+v,1.5);
    
    
       for (int PID=0; PID<amr->NPatchComma[lv][1]; PID++)
@@ -190,7 +193,7 @@ void Flu_ResetByUser_API_Bondi( const int lv, const int FluSg, const double TTim
             }   
    //
    //       reset this cell
-            Reset = Flu_ResetByUser_Func_Bondi( fluid, Mdot, dt, ClusterCen[c], GasVel, x, y, z, TTime, lv, NULL );
+            Reset = Flu_ResetByUser_Func_Bondi( fluid, Mdot_BH[c], dt, ClusterCen[c], GasVel, x, y, z, TTime, lv, NULL );
    
    //       operations necessary only when this cell has been reset
             if ( Reset )
@@ -260,9 +263,14 @@ void Flu_ResetByUser_API_Bondi( const int lv, const int FluSg, const double TTim
 
    } // for (int c=0; c<Merger_Coll_NumHalos; c++) {  
 
+// record the BH mass and accretion rate
    Bondi_MassBH1 = Bondi_MassBH[0];
    Bondi_MassBH2 = Bondi_MassBH[1];
    Bondi_MassBH3 = Bondi_MassBH[2];
+
+   Mdot_BH1 = Mdot_BH[0];
+   Mdot_BH2 = Mdot_BH[1];
+   Mdot_BH3 = Mdot_BH[2];
  
 } // FUNCTION : Flu_ResetByUser_API_Bondi
 
