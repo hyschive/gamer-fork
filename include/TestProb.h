@@ -40,8 +40,7 @@ extern void (*BC_User_Ptr)( real fluid[], const double x, const double y, const 
 extern void (*BC_BField_User_Ptr)( real magnetic[], const double x, const double y, const double z, const double Time,
                                    const int lv, double AuxArray[] );
 #endif
-// I modify this pointer for SMBH accretion in cluster merger
-extern bool (*Flu_ResetByUser_Func_Ptr)( real fluid[],const double Mdot, const double dt, const double ClusterCen[], const double GasVel[], const double x, const double y, const double z, const double Time, const int lv, double AuxArray[] );
+extern bool (*Flu_ResetByUser_Func_Ptr)( real fluid[], const double x, const double y, const double z, const double Time, const int lv, double AuxArray[] );
 extern void (*End_User_Ptr)();
 #ifdef GRAVITY
 extern real (*Poi_AddExtraMassForGravity_Ptr)( const double x, const double y, const double z, const double Time,

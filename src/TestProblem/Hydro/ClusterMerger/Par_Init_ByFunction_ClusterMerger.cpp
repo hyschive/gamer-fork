@@ -650,7 +650,7 @@ void Aux_Record_ClusterMerger()
    double Bondi_MassBH[3] = { Bondi_MassBH1, Bondi_MassBH2, Bondi_MassBH3 };
    double Mdot_BH[3] = { Mdot_BH1, Mdot_BH2, Mdot_BH3 };
 
-   // output cluster centers' SMBH profiles
+   // output cluster centers' BH profiles
    if ( MPI_Rank == 0 )
    {
       FILE *File_User = fopen( FileName, "a" );
