@@ -305,8 +305,8 @@ void SetParameter()
             // convert to code units (assuming the input units are cgs)
             for ( int b=0; b<Merger_NBin1; b++ ) {
                  Table_R1[b] *= Const_kpc/UNIT_L;
-                 Table_D1[b] *= 1.0e-14*1.0e+9*6.76821209430561e-27/UNIT_D;
-                 Table_P1[b] *= 1.0e-14/UNIT_P;
+                 Table_D1[b] *= (Const_Msun/pow(Const_kpc,3))/UNIT_D;
+                 Table_P1[b] *= (Const_Msun/Const_kpc/pow(Const_Myr,2))/UNIT_P;
             }
 
          }
