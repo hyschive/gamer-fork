@@ -629,7 +629,7 @@ void Aux_Record_ClusterMerger()
          FILE *File_User = fopen( FileName, "a" );
          fprintf( File_User, "#%13s%14s",  "Time", "Step" );
          for (int c=0; c<Merger_Coll_NumHalos; c++)
-            fprintf( File_User, " %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d", "x", c, "y", c, "z", c, "Vel_x", c, "Vel_y", c, "Vel_z", c, "mass_BH", c, "accretion rate", c );
+            fprintf( File_User, " %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d", "x", c, "y", c, "z", c, "Vel_x", c, "Vel_y", c, "Vel_z", c, "mass_BH", c, "accretion_rate", c );
          fprintf( File_User, "\n" );
          fclose( File_User );
       }
