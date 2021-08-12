@@ -33,12 +33,30 @@ extern bool    Merger_Coll_LabelCenter;
 
 extern FieldIdx_t ParTypeIdx;
 
+// variables that need to be record in Record__Center
+// =======================================================================================
 extern double  Bondi_MassBH1;
 extern double  Bondi_MassBH2;
 extern double  Bondi_MassBH3;
 extern double  Mdot_BH1;
 extern double  Mdot_BH2;
 extern double  Mdot_BH3;
+
+extern double CM_Bondi_SinkMass[3];
+extern double CM_Bondi_SinkMomX[3];
+extern double CM_Bondi_SinkMomY[3];
+extern double CM_Bondi_SinkMomZ[3];
+extern double CM_Bondi_SinkMomXAbs[3];
+extern double CM_Bondi_SinkMomYAbs[3];
+extern double CM_Bondi_SinkMomZAbs[3];
+extern double CM_Bondi_SinkEk[3];
+extern double CM_Bondi_SinkEt[3];
+extern int    CM_Bondi_SinkNCell[3];
+
+extern double GasVel[3][3];  // gas velocity
+extern double SoundSpeed[3];
+extern double GasDens[3];
+// =======================================================================================
 
 #ifdef PARTICLE
 long Read_Particle_Number_ClusterMerger(std::string filename);
@@ -629,7 +647,7 @@ void Aux_Record_ClusterMerger()
          FILE *File_User = fopen( FileName, "a" );
          fprintf( File_User, "#%13s%14s",  "Time", "Step" );
          for (int c=0; c<Merger_Coll_NumHalos; c++)
-            fprintf( File_User, " %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d", "x", c, "y", c, "z", c, "Vel_x", c, "Vel_y", c, "Vel_z", c, "mass_BH", c, "accretion_rate", c );
+            fprintf( File_User, " %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d", "x", c, "y", c, "z", c, "BHVel_x[km/s]", c, "BHVel_y", c, "BHVel_z", c, "GasVel_x", c,"GasVel_y", c,"GasVel_z", c, "SoundSpeed", c, "GasDens", c, "mass_BH[Msun]", c, "Mdot[Msun/yr]", c, "NVoidCell", c, "MomX[g*cm/s]", c, "MomY[g*cm/s]", c,"MomZ[g*cm/s]", c, "MomXAbs", c, "MomYAbs", c, "MomZAbs", c, "Ek[erg]", c, "Et[erg]", c, "SinkMass", c );
          fprintf( File_User, "\n" );
          fclose( File_User );
       }
@@ -650,15 +668,65 @@ void Aux_Record_ClusterMerger()
    double Bondi_MassBH[3] = { Bondi_MassBH1, Bondi_MassBH2, Bondi_MassBH3 };
    double Mdot_BH[3] = { Mdot_BH1, Mdot_BH2, Mdot_BH3 };
 
+   for (int c=0; c<Merger_Coll_NumHalos; c++){
+      for (int d=0; d<3; d++){
+         BH_Vel[c][d] *= UNIT_V/(Const_km/Const_s);
+      }
+   }
+   for (int c=0; c<Merger_Coll_NumHalos; c++)  Bondi_MassBH[c] *= UNIT_M/Const_Msun;
+   for (int c=0; c<Merger_Coll_NumHalos; c++)  Mdot_BH[c] *= (UNIT_M/UNIT_T)/(Const_Msun/Const_yr);
+
+// get the total number of cells within the void region
+   int SinkNCell_Sum[3];
+// get the total amount of sunk variables
+   double Mass_Sum[3], MomX_Sum[3], MomY_Sum[3], MomZ_Sum[3], MomXAbs_Sum[3], MomYAbs_Sum[3], MomZAbs_Sum[3], Ek_Sum[3], Et_Sum[3];
+
+   for (int c=0; c<Merger_Coll_NumHalos; c++){
+      MPI_Reduce( &CM_Bondi_SinkNCell[c], &SinkNCell_Sum[c], 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD );
+      MPI_Reduce( &CM_Bondi_SinkMass[c],    &Mass_Sum[c],    1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD );
+      MPI_Reduce( &CM_Bondi_SinkMomX[c],    &MomX_Sum[c],    1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD );
+      MPI_Reduce( &CM_Bondi_SinkMomY[c],    &MomY_Sum[c],    1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD );
+      MPI_Reduce( &CM_Bondi_SinkMomZ[c],    &MomZ_Sum[c],    1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD );
+      MPI_Reduce( &CM_Bondi_SinkMomXAbs[c], &MomXAbs_Sum[c], 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD );
+      MPI_Reduce( &CM_Bondi_SinkMomYAbs[c], &MomYAbs_Sum[c], 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD );
+      MPI_Reduce( &CM_Bondi_SinkMomZAbs[c], &MomZAbs_Sum[c], 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD );
+      MPI_Reduce( &CM_Bondi_SinkEk[c],      &Ek_Sum[c],      1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD );
+      MPI_Reduce( &CM_Bondi_SinkEt[c],      &Et_Sum[c],      1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD );
+   
+      Mass_Sum[c]    *= UNIT_M/Const_Msun;
+      MomX_Sum[c]    *= UNIT_M*UNIT_L/UNIT_T;
+      MomY_Sum[c]    *= UNIT_M*UNIT_L/UNIT_T;
+      MomZ_Sum[c]    *= UNIT_M*UNIT_L/UNIT_T;
+      MomXAbs_Sum[c] *= UNIT_M*UNIT_L/UNIT_T;
+      MomYAbs_Sum[c] *= UNIT_M*UNIT_L/UNIT_T;
+      MomZAbs_Sum[c] *= UNIT_M*UNIT_L/UNIT_T;
+      Ek_Sum[c]      *= UNIT_E;
+      Et_Sum[c]      *= UNIT_E;
+   }
+
+
    // output cluster centers' BH profiles
    if ( MPI_Rank == 0 )
    {
       FILE *File_User = fopen( FileName, "a" );
       fprintf( File_User, "%14.7e%14ld", Time[0], Step );
       for (int c=0; c<Merger_Coll_NumHalos; c++)
-         fprintf( File_User, " %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e", Cen[c][0], Cen[c][1], Cen[c][2], BH_Vel[c][0], BH_Vel[c][1], BH_Vel[c][2], Bondi_MassBH[c], Mdot_BH[c] );
+         fprintf( File_User, " %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14d %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e", Cen[c][0], Cen[c][1], Cen[c][2], BH_Vel[c][0], BH_Vel[c][1], BH_Vel[c][2], GasVel[c][0]*UNIT_V/(Const_km/Const_s), GasVel[c][1]*UNIT_V/(Const_km/Const_s), GasVel[c][2]*UNIT_V/(Const_km/Const_s), SoundSpeed[c]*UNIT_V/(Const_km/Const_s), GasDens[c]*UNIT_D/(Const_Msun/pow(Const_kpc,3)), Bondi_MassBH[c], Mdot_BH[c], SinkNCell_Sum[c], MomX_Sum[c], MomY_Sum[c], MomZ_Sum[c], MomXAbs_Sum[c], MomYAbs_Sum[c], MomZAbs_Sum[c], Ek_Sum[c], Et_Sum[c], Mass_Sum[c] );
       fprintf( File_User, "\n" );
       fclose( File_User );
+   }
+
+// reset the cumulative variables to zero
+   for (int c=0; c<Merger_Coll_NumHalos; c++){
+      CM_Bondi_SinkMass[c]    = 0.0;
+      CM_Bondi_SinkMomX[c]    = 0.0;
+      CM_Bondi_SinkMomY[c]    = 0.0;
+      CM_Bondi_SinkMomZ[c]    = 0.0;
+      CM_Bondi_SinkMomXAbs[c] = 0.0;
+      CM_Bondi_SinkMomYAbs[c] = 0.0;
+      CM_Bondi_SinkMomZAbs[c] = 0.0;
+      CM_Bondi_SinkEk[c]      = 0.0;
+      CM_Bondi_SinkEt[c]      = 0.0;
    }
 
 } // FUNCTION : Aux_Record_ClusterMerger

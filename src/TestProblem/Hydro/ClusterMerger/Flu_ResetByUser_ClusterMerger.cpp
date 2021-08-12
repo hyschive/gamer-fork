@@ -3,27 +3,16 @@
 #if ( MODEL == HYDRO  &&  defined GRAVITY )
 
 
-extern double Bondi_SinkMass1;
-extern double Bondi_SinkMomX1;
-extern double Bondi_SinkMomY1;
-extern double Bondi_SinkMomZ1;
-extern double Bondi_SinkMomXAbs1;
-extern double Bondi_SinkMomYAbs1;
-extern double Bondi_SinkMomZAbs1;
-extern double Bondi_SinkEk1;
-extern double Bondi_SinkEt1;
-extern int    Bondi_SinkNCell1;
-
-extern double Bondi_SinkMass2; 
-extern double Bondi_SinkMomX2; 
-extern double Bondi_SinkMomY2; 
-extern double Bondi_SinkMomZ2; 
-extern double Bondi_SinkMomXAbs2;
-extern double Bondi_SinkMomYAbs2;
-extern double Bondi_SinkMomZAbs2;
-extern double Bondi_SinkEk2;   
-extern double Bondi_SinkEt2;   
-extern int    Bondi_SinkNCell2;
+extern double CM_Bondi_SinkMass[3];
+extern double CM_Bondi_SinkMomX[3];
+extern double CM_Bondi_SinkMomY[3];
+extern double CM_Bondi_SinkMomZ[3];
+extern double CM_Bondi_SinkMomXAbs[3];
+extern double CM_Bondi_SinkMomYAbs[3];
+extern double CM_Bondi_SinkMomZAbs[3];
+extern double CM_Bondi_SinkEk[3];
+extern double CM_Bondi_SinkEt[3];
+extern int    CM_Bondi_SinkNCell[3];
 
 extern int    Merger_Coll_NumHalos;
 extern double R_acc;  // the radius to compute the accretoin rate
@@ -35,15 +24,27 @@ extern double Mdot_BH1; // the accretion rate
 extern double Mdot_BH2;
 extern double Mdot_BH3;
 
+extern double GasVel[3][3];  // gas velocity
+extern double SoundSpeed[3]; 
+extern double GasDens[3];
+
+double ClusterCen[3][3] = {  { NULL_REAL, NULL_REAL, NULL_REAL }, // cluster center       
+                             { NULL_REAL, NULL_REAL, NULL_REAL },
+                             { NULL_REAL, NULL_REAL, NULL_REAL }  };  
+double BH_Vel[3][3] = {  { NULL_REAL, NULL_REAL, NULL_REAL }, // BH velocity
+                         { NULL_REAL, NULL_REAL, NULL_REAL },
+                         { NULL_REAL, NULL_REAL, NULL_REAL }  }; 
+extern void GetClusterCenter( double Cen[][3], double BH_Vel[][3] );
+
 //-------------------------------------------------------------------------------------------------------
-// Function    :  Flu_ResetByUser_Func_Bondi
+// Function    :  Flu_ResetByUser_Func_ClusterMerger
 // Description :  Function to reset the fluid field in the Bondi accretion problem
 //
-// Note        :  1. Invoked by Flu_ResetByUser_API_Bondi() and Hydro_Init_ByFunction_AssignData() using the
+// Note        :  1. Invoked by Flu_ResetByUser_API_ClusterMerger() and Hydro_Init_ByFunction_AssignData() using the
 //                   function pointer "Flu_ResetByUser_Func_Ptr"
-//                   --> This function pointer is reset by Init_TestProb_Hydro_Bondi()
+//                   --> This function pointer is reset by Init_TestProb_Hydro_ClusterMerger()
 //                   --> Hydro_Init_ByFunction_AssignData(): constructing initial condition
-//                       Flu_ResetByUser_API_Bondi()       : after each update
+//                       Flu_ResetByUser_API_ClusterMerger()       : after each update
 //                2. Input fluid[] stores the original values
 //                3. Even when DUAL_ENERGY is adopted, one does NOT need to set the dual-energy variable here
 //                   --> It will be set automatically
@@ -59,15 +60,15 @@ extern double Mdot_BH3;
 // Return      :  true  : This cell has been reset
 //                false : This cell has not been reset
 //-------------------------------------------------------------------------------------------------------
-bool Flu_ResetByUser_Func_Bondi( real fluid[], const double x, const double y, const double z, const double Time, 
-                                 const int lv, double AuxArray[] )
+bool Flu_ResetByUser_Func_ClusterMerger( real fluid[], const double x, const double y, const double z, const double Time, 
+                                         const int lv, double AuxArray[] )
 {
 
    const double Pos[3]  = { x, y, z };
    double dr2[3][3], r2[3];
    const double V_dep = 4.0/3.0*M_PI*pow(R_dep,3.0); // the region to remove gas
 // the density need to be removed
-   const double D_dep[3] = { Mdot_BH1*dTime_AllLv[lv]/V_dep, Mdot_BH2*dTime_AllLv[lv]/V_dep, Mdot_BH3*dTime_AllLv[lv]/V_dep };
+   double D_dep[3] = { Mdot_BH1*dTime_AllLv[lv]/V_dep, Mdot_BH2*dTime_AllLv[lv]/V_dep, Mdot_BH3*dTime_AllLv[lv]/V_dep };
 
    int iftrue = 0; // mark whether this cell is reset or not [0/1]
 
@@ -87,48 +88,39 @@ bool Flu_ResetByUser_Func_Bondi( real fluid[], const double x, const double y, c
          fluid[MOMZ] -= D_dep[c]*GasVel[c][2];
          fluid[ENGY] -= 0.5*D_dep[c]*( SQR(GasVel[c][0]) + SQR(GasVel[c][1]) + SQR(GasVel[c][2]) );
 
-         return true;
          iftrue = 1;
       }
    }
-
-   if ( iftrue==0 ){
-      return false;
+   if ( iftrue==1 ){
+      return true;
    }
+   else 
+      return false;
 
-} // FUNCTION : Flu_ResetByUser_Func_Bondi
+} // FUNCTION : Flu_ResetByUser_Func_ClusterMerger
 
 
 
 //-------------------------------------------------------------------------------------------------------
-// Function    :  Flu_ResetByUser_API_Bondi
+// Function    :  Flu_ResetByUser_API_ClusterMerger
 // Description :  API for resetting the fluid array in the Bondi accretion problem
 //
 // Note        :  1. Enabled by the runtime option "OPT__RESET_FLUID"
 //                2. Invoked using the function pointer "Flu_ResetByUser_API_Ptr"
-//                   --> This function pointer is reset by Init_TestProb_Hydro_Bondi()
+//                   --> This function pointer is reset by Init_TestProb_Hydro_ClusterMerger()
 //                3. Currently does not work with "OPT__OVERLAP_MPI"
-//                4. Invoke Flu_ResetByUser_Func_Bondi() directly
+//                4. Invoke Flu_ResetByUser_Func_ClusterMerger() directly
 //
 // Parameter   :  lv    : Target refinement level
 //                FluSg : Target fluid sandglass
 //                TTime : Target physical time
 //-------------------------------------------------------------------------------------------------------
-void Flu_ResetByUser_API_Bondi( const int lv, const int FluSg, const double TTime )
+void Flu_ResetByUser_API_ClusterMerger( const int lv, const int FluSg, const double TTime )
 {
    double Bondi_MassBH[3] = { Bondi_MassBH1, Bondi_MassBH2, Bondi_MassBH3 }; 
    double Mdot_BH[3] = { Mdot_BH1, Mdot_BH2, Mdot_BH3 };
-   double ClusterCen[3][3] = {  { NULL_REAL, NULL_REAL, NULL_REAL }, // cluster center                                  
-                                { NULL_REAL, NULL_REAL, NULL_REAL },
-                                { NULL_REAL, NULL_REAL, NULL_REAL }  };  
-   double BH_Vel[3][3] = {  { NULL_REAL, NULL_REAL, NULL_REAL }, // BH velocity
-                            { NULL_REAL, NULL_REAL, NULL_REAL },
-                            { NULL_REAL, NULL_REAL, NULL_REAL }  };  
-   GetClusterCenter( ClusterCen, BH_Vel );
 
-   double GasVel[3][3] = {  { NULL_REAL, NULL_REAL, NULL_REAL }, // gas velocity
-                            { NULL_REAL, NULL_REAL, NULL_REAL },
-                            { NULL_REAL, NULL_REAL, NULL_REAL }  };
+   GetClusterCenter( ClusterCen, BH_Vel );
 
    const double dh       = amr->dh[lv];
    const real   dv       = CUBE(dh);
@@ -141,15 +133,16 @@ void Flu_ResetByUser_API_Bondi( const int lv, const int FluSg, const double TTim
    real   fluid[NCOMP_TOTAL], fluid_bk[NCOMP_TOTAL];
    double x, y, z, x0, y0, z0;
 
-   double SinkMass_OneSubStep_ThisRank1 = 0; // record the mass that will be added to the two BH
-   double SinkMass_OneSubStep_ThisRank2 = 0;
-   double SinkMass_OneSubStep_AllRank1;
-   double SinkMass_OneSubStep_AllRank2;
+   double SinkMass_OneSubStep_ThisRank[3] = { 0.0, 0.0, 0.0 }; // record the mass that will be added to the two BH
+   double SinkMass_OneSubStep_AllRank[3];
 
 // reset to 0 since we only want to record the number of void cells **for one sub-step**
-   Bondi_SinkNCell = 0;
+   for (int c=0; c<Merger_Coll_NumHalos; c++) CM_Bondi_SinkNCell[c] = 0;
 
    for (int c=0; c<Merger_Coll_NumHalos; c++) { 
+
+//    reset gas velocity to zero
+      for (int d=0; d<3; d++)  GasVel[c][d] = 0.0;
 
       double rho = 0.0;  // the average density inside accretion radius
       double Cs = 0.0;  // the average sound speed inside accretion radius
@@ -170,7 +163,7 @@ void Flu_ResetByUser_API_Bondi( const int lv, const int FluSg, const double TTim
                fluid[v] = amr->patch[FluSg][lv][PID]->fluid[v][k][j][i];
             }
    
-   //       calculate the average density, sound speed and gas velocity inside accretion radius
+//          calculate the average density, sound speed and gas velocity inside accretion radius
             if (SQR(x-ClusterCen[c][0])+SQR(y-ClusterCen[c][1])+SQR(z-ClusterCen[c][2]) <= SQR(R_acc)){
                rho += fluid[0];
                Cs += sqrt(GAMMA*((GAMMA-1.0)*(fluid[4]-0.5*(SQR(fluid[1])+SQR(fluid[2])+SQR(fluid[3]))/fluid[0]))/fluid[0]);
@@ -184,20 +177,18 @@ void Flu_ResetByUser_API_Bondi( const int lv, const int FluSg, const double TTim
       Cs /= num;
       for (int d=0; d<3; d++)  v += SQR(BH_Vel[c][d]-GasVel[c][d]);
 
-   // calculate the accretion rate
-      Mdot_BH[c] = 4.0*M_PI*Const_NewtonG*SQR(Bondi_MassBH[c])*rho/pow(Cs*Cs+v,1.5);
+//    calculate the accretion rate
+      Mdot_BH[c] = 4.0*M_PI*Const_NewtonG/(pow(UNIT_L,3)/UNIT_M/pow(UNIT_T,2))*SQR(Bondi_MassBH[c])*rho/pow(Cs*Cs+v,1.5);
+      GasDens[c] = rho;
+      SoundSpeed[c] = Cs;
    } // for (int c=0; c<Merger_Coll_NumHalos; c++)
 
    Mdot_BH1 = Mdot_BH[0];                            
    Mdot_BH2 = Mdot_BH[1];                            
    Mdot_BH3 = Mdot_BH[2];
-  
    
 #  pragma omp parallel for private( Reset, fluid, fluid_bk, x, y, z, x0, y0, z0 ) schedule( runtime ) \
-   reduction(+:Bondi_SinkMass1, Bondi_SinkMomX1, Bondi_SinkMomY1, Bondi_SinkMomZ1, Bondi_SinkMomXAbs1, Bondi_SinkMomYAbs1, \
-               Bondi_SinkMomZAbs1, Bondi_SinkEk1, Bondi_SinkEt1, Bondi_SinkNCell1, SinkMass_OneSubStep_ThisRank1, \
-               Bondi_SinkMass2, Bondi_SinkMomX2, Bondi_SinkMomY2, Bondi_SinkMomZ2, Bondi_SinkMomXAbs2, Bondi_SinkMomYAbs2, \
-               Bondi_SinkMomZAbs2, Bondi_SinkEk2, Bondi_SinkEt2, Bondi_SinkNCell2, SinkMass_OneSubStep_ThisRank2)
+   reduction(+:CM_Bondi_SinkMass[0], CM_Bondi_SinkMomX[0], CM_Bondi_SinkMomY[0], CM_Bondi_SinkMomZ[0], CM_Bondi_SinkMomXAbs[0], CM_Bondi_SinkMomYAbs[0], CM_Bondi_SinkMomZAbs[0], CM_Bondi_SinkEk[0], CM_Bondi_SinkEt[0], CM_Bondi_SinkNCell[0], SinkMass_OneSubStep_ThisRank[0], CM_Bondi_SinkMass[1], CM_Bondi_SinkMomX[1], CM_Bondi_SinkMomY[1], CM_Bondi_SinkMomZ[1], CM_Bondi_SinkMomXAbs[1], CM_Bondi_SinkMomYAbs[1], CM_Bondi_SinkMomZAbs[1], CM_Bondi_SinkEk[1], CM_Bondi_SinkEt[1], CM_Bondi_SinkNCell[1], SinkMass_OneSubStep_ThisRank[1])
 
    for (int PID=0; PID<amr->NPatchComma[lv][1]; PID++)
    {
@@ -216,9 +207,9 @@ void Flu_ResetByUser_API_Bondi( const int lv, const int FluSg, const double TTim
 //          backup the unmodified values since we want to record the amount of sunk variables removed at the maximum level
             fluid_bk[v] = fluid[v];
          }   
-//
+
 //       reset this cell
-         Reset = Flu_ResetByUser_Func_Bondi( fluid, x, y, z, TTime, lv, NULL );
+         Reset = Flu_ResetByUser_Func_ClusterMerger( fluid, x, y, z, TTime, lv, NULL );
 
 //       operations necessary only when this cell has been reset
          if ( Reset )
@@ -259,46 +250,30 @@ void Flu_ResetByUser_API_Bondi( const int lv, const int FluSg, const double TTim
 //          record the amount of sunk variables removed at the maximum level
             if ( lv == MAX_LEVEL )
             {
-               if (SQR(x-ClusterCen[0][0])+SQR(y-ClusterCen[0][1])+SQR(z-ClusterCen[0][2]) < SQR(R_dep))
-               {
-                  real Ek1 = (real)0.5*( SQR(fluid_bk[MOMX]) + SQR(fluid_bk[MOMY]) + SQR(fluid_bk[MOMZ]) ) / fluid_bk[DENS];
-                  real Ek_new1 = (real)0.5*( SQR(fluid[MOMX]) + SQR(fluid[MOMY]) + SQR(fluid[MOMZ]) ) / fluid[DENS];
-                  real Et1 = fluid_bk[ENGY] - Ek1;
-                  real Et_new1 = fluid[ENGY] - Ek_new1;
-   
-                  Bondi_SinkMass1    += dv*(fluid_bk[DENS]-fluid[DENS]);
-                  Bondi_SinkMomX1    += dv*(fluid_bk[MOMX]-fluid[MOMX]);
-                  Bondi_SinkMomY1    += dv*(fluid_bk[MOMY]-fluid[MOMY]);
-                  Bondi_SinkMomZ1    += dv*(fluid_bk[MOMZ]-fluid[MOMZ]);
-                  Bondi_SinkMomXAbs1 += dv*FABS( fluid_bk[MOMX]-fluid[MOMX] );
-                  Bondi_SinkMomYAbs1 += dv*FABS( fluid_bk[MOMY]-fluid[MOMY] );
-                  Bondi_SinkMomZAbs1 += dv*FABS( fluid_bk[MOMZ]-fluid[MOMZ] );
-                  Bondi_SinkEk1      += dv*(Ek1-Ek_new1);
-                  Bondi_SinkEt1      += dv*(Et1-Et_new1);
-                  Bondi_SinkNCell1   ++;
-   
-                  SinkMass_OneSubStep_ThisRank1 += dv*(fluid_bk[DENS]-fluid[DENS]);
-               }
-               else if (SQR(x-ClusterCen[1][0])+SQR(y-ClusterCen[1][1])+SQR(z-ClusterCen[1][2]) < SQR(R_dep))
-               {
-                  real Ek2 = (real)0.5*( SQR(fluid_bk[MOMX]) + SQR(fluid_bk[MOMY]) + SQR(fluid_bk[MOMZ]) ) / fluid_bk[DENS];
-                  real Ek_new2 = (real)0.5*( SQR(fluid[MOMX]) + SQR(fluid[MOMY]) + SQR(fluid[MOMZ]) ) / fluid[DENS];
-                  real Et2 = fluid_bk[ENGY] - Ek2; 
-                  real Et_new2 = fluid[ENGY] - Ek_new2;
-   
-                  Bondi_SinkMass2    += dv*(fluid_bk[DENS]-fluid[DENS]);
-                  Bondi_SinkMomX2    += dv*(fluid_bk[MOMX]-fluid[MOMX]);
-                  Bondi_SinkMomY2    += dv*(fluid_bk[MOMY]-fluid[MOMY]);
-                  Bondi_SinkMomZ2    += dv*(fluid_bk[MOMZ]-fluid[MOMZ]);
-                  Bondi_SinkMomXAbs2 += dv*FABS( fluid_bk[MOMX]-fluid[MOMX] );
-                  Bondi_SinkMomYAbs2 += dv*FABS( fluid_bk[MOMY]-fluid[MOMY] );
-                  Bondi_SinkMomZAbs2 += dv*FABS( fluid_bk[MOMZ]-fluid[MOMZ] );
-                  Bondi_SinkEk2      += dv*(Ek2-Ek_new2);
-                  Bondi_SinkEt2      += dv*(Et2-Et_new2);
-                  Bondi_SinkNCell2   ++; 
-   
-                  SinkMass_OneSubStep_ThisRank2 += dv*(fluid_bk[DENS]-fluid[DENS]);
-               }
+               real Ek[3], Ek_new[3], Et[3], Et_new[3];
+
+               for (int c=0; c<Merger_Coll_NumHalos; c++) { 
+                  if (SQR(x-ClusterCen[c][0])+SQR(y-ClusterCen[c][1])+SQR(z-ClusterCen[c][2]) <= SQR(R_dep))
+                  {
+                     Ek[c] = (real)0.5*( SQR(fluid_bk[MOMX]) + SQR(fluid_bk[MOMY]) + SQR(fluid_bk[MOMZ]) ) / fluid_bk[DENS];
+                     Ek_new[c] = (real)0.5*( SQR(fluid[MOMX]) + SQR(fluid[MOMY]) + SQR(fluid[MOMZ]) ) / fluid[DENS];
+                     Et[c] = fluid_bk[ENGY] - Ek[c];
+                     Et_new[c] = fluid[ENGY] - Ek_new[c];
+      
+                     CM_Bondi_SinkMass[c]    += dv*(fluid_bk[DENS]-fluid[DENS]);
+                     CM_Bondi_SinkMomX[c]    += dv*(fluid_bk[MOMX]-fluid[MOMX]);
+                     CM_Bondi_SinkMomY[c]    += dv*(fluid_bk[MOMY]-fluid[MOMY]);
+                     CM_Bondi_SinkMomZ[c]    += dv*(fluid_bk[MOMZ]-fluid[MOMZ]);
+                     CM_Bondi_SinkMomXAbs[c] += dv*FABS( fluid_bk[MOMX]-fluid[MOMX] );
+                     CM_Bondi_SinkMomYAbs[c] += dv*FABS( fluid_bk[MOMY]-fluid[MOMY] );
+                     CM_Bondi_SinkMomZAbs[c] += dv*FABS( fluid_bk[MOMZ]-fluid[MOMZ] );
+                     CM_Bondi_SinkEk[c]      += dv*(Ek[c]-Ek_new[c]);
+                     CM_Bondi_SinkEt[c]      += dv*(Et[c]-Et_new[c]);
+                     CM_Bondi_SinkNCell[c]   ++;
+      
+                     SinkMass_OneSubStep_ThisRank[c] += dv*(fluid_bk[DENS]-fluid[DENS]);
+                  }
+               } // for (int c=0; c<Merger_Coll_NumHalos; c++)
             }
          } // if ( Reset )
 
@@ -306,13 +281,15 @@ void Flu_ResetByUser_API_Bondi( const int lv, const int FluSg, const double TTim
    } // for (int PID=0; PID<amr->NPatchComma[lv][1]; PID++)
 
 // update BH mass
-   MPI_Allreduce( &SinkMass_OneSubStep_ThisRank1, &SinkMass_OneSubStep_AllRank1, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD );
-   Bondi_MassBH1 += SinkMass_OneSubStep_AllRank1;
-   MPI_Allreduce( &SinkMass_OneSubStep_ThisRank2, &SinkMass_OneSubStep_AllRank2, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD );
-   Bondi_MassBH2 += SinkMass_OneSubStep_AllRank2;
+   for (int c=0; c<Merger_Coll_NumHalos; c++) {
+      MPI_Allreduce( &SinkMass_OneSubStep_ThisRank[c], &SinkMass_OneSubStep_AllRank[c], 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD );
+      Bondi_MassBH[c] += SinkMass_OneSubStep_AllRank[c];
+   }
+   Bondi_MassBH1 = Bondi_MassBH[0];
+   Bondi_MassBH2 = Bondi_MassBH[1];
+   Bondi_MassBH3 = Bondi_MassBH[2];
 
-
-} // FUNCTION : Flu_ResetByUser_API_Bondi
+} // FUNCTION : Flu_ResetByUser_API_ClusterMerger
 
 
 #endif // #if ( MODEL == HYDRO  &&  defined GRAVITY )
