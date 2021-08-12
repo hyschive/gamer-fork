@@ -104,10 +104,10 @@ void AddNewField_ClusterMerger();
 void AddNewParticleAttribute_ClusterMerger();
 
 bool Flu_ResetByUser_Func_ClusterMerger( real fluid[], const double x, const double y, const double z, const double Time, 
-                                         const int lv, double AuxArray[] );
-void Flu_ResetByUser_API_ClusterMerger( const int lv, const int FluSg, const double TTime );
+                                         const double dt, const int lv, double AuxArray[] );
+void Flu_ResetByUser_API_ClusterMerger( const int lv, const int FluSg, const double TimeNew, const double dt );
 
-extern void (*Flu_ResetByUser_API_Ptr)( const int lv, const int FluSg, const double TTime );
+extern void (*Flu_ResetByUser_API_Ptr)( const int lv, const int FluSg, const double TimeNew, const double dt );
 
 //-------------------------------------------------------------------------------------------------------
 // Function    :  Validate

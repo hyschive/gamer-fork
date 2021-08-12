@@ -54,6 +54,7 @@ extern void GetClusterCenter( double Cen[][3], double BH_Vel[][3] );
 //                           --> Including both active and passive variables
 //                x/y/z    : Target physical coordinates
 //                Time     : Target physical time
+//                dt       : Time interval to advance solution
 //                lv       : Target refinement level
 //                AuxArray : Auxiliary array
 //
@@ -61,14 +62,14 @@ extern void GetClusterCenter( double Cen[][3], double BH_Vel[][3] );
 //                false : This cell has not been reset
 //-------------------------------------------------------------------------------------------------------
 bool Flu_ResetByUser_Func_ClusterMerger( real fluid[], const double x, const double y, const double z, const double Time, 
-                                         const int lv, double AuxArray[] )
+                                         const double dt, const int lv, double AuxArray[] )
 {
 
    const double Pos[3]  = { x, y, z };
    double dr2[3][3], r2[3];
    const double V_dep = 4.0/3.0*M_PI*pow(R_dep,3.0); // the region to remove gas
 // the density need to be removed
-   double D_dep[3] = { Mdot_BH1*dTime_AllLv[lv]/V_dep, Mdot_BH2*dTime_AllLv[lv]/V_dep, Mdot_BH3*dTime_AllLv[lv]/V_dep };
+   double D_dep[3] = { Mdot_BH1*dt/V_dep, Mdot_BH2*dt/V_dep, Mdot_BH3*dt/V_dep };
 
    int iftrue = 0; // mark whether this cell is reset or not [0/1]
 
@@ -113,9 +114,10 @@ bool Flu_ResetByUser_Func_ClusterMerger( real fluid[], const double x, const dou
 //
 // Parameter   :  lv    : Target refinement level
 //                FluSg : Target fluid sandglass
-//                TTime : Target physical time
+//                TimeNew : Current physical time (system has been updated from TimeOld to TimeNew in EvolveLevel())
+//                dt      : Time interval to advance solution (can be different from TimeNew-TimeOld in COMOVING)
 //-------------------------------------------------------------------------------------------------------
-void Flu_ResetByUser_API_ClusterMerger( const int lv, const int FluSg, const double TTime )
+void Flu_ResetByUser_API_ClusterMerger( const int lv, const int FluSg, const double TimeNew, const double dt )
 {
    double Bondi_MassBH[3] = { Bondi_MassBH1, Bondi_MassBH2, Bondi_MassBH3 }; 
    double Mdot_BH[3] = { Mdot_BH1, Mdot_BH2, Mdot_BH3 };
@@ -209,7 +211,7 @@ void Flu_ResetByUser_API_ClusterMerger( const int lv, const int FluSg, const dou
          }   
 
 //       reset this cell
-         Reset = Flu_ResetByUser_Func_ClusterMerger( fluid, x, y, z, TTime, lv, NULL );
+         Reset = Flu_ResetByUser_Func_ClusterMerger( fluid, x, y, z, TimeNew, dt, lv, NULL );
 
 //       operations necessary only when this cell has been reset
          if ( Reset )
