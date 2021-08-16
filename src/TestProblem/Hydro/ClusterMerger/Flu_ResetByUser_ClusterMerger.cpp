@@ -27,6 +27,7 @@ extern double Mdot_BH3;
 extern double GasVel[3][3];  // gas velocity
 extern double SoundSpeed[3]; 
 extern double GasDens[3];
+extern double RelativeVel[3]; // the relative velocity between BH and gas
 
 double ClusterCen[3][3] = {  { NULL_REAL, NULL_REAL, NULL_REAL }, // cluster center       
                              { NULL_REAL, NULL_REAL, NULL_REAL },
@@ -83,10 +84,10 @@ bool Flu_ResetByUser_Func_ClusterMerger( real fluid[], const double x, const dou
       r2[c] = dr2[c][0] + dr2[c][1] + dr2[c][2];
       if ( r2[c] <= SQR(R_dep) )
       {
-         fluid[DENS] -= D_dep[c];
-         fluid[MOMX] -= D_dep[c]*GasVel[c][0];
-         fluid[MOMY] -= D_dep[c]*GasVel[c][1];
-         fluid[MOMZ] -= D_dep[c]*GasVel[c][2];
+         fluid[DENS] -= D_dep[c];                                                           
+         fluid[MOMX] -= D_dep[c]*GasVel[c][0];                                              
+         fluid[MOMY] -= D_dep[c]*GasVel[c][1];                                              
+         fluid[MOMZ] -= D_dep[c]*GasVel[c][2];                                              
          fluid[ENGY] -= 0.5*D_dep[c]*( SQR(GasVel[c][0]) + SQR(GasVel[c][1]) + SQR(GasVel[c][2]) );
 
          iftrue = 1;
@@ -119,8 +120,9 @@ bool Flu_ResetByUser_Func_ClusterMerger( real fluid[], const double x, const dou
 //-------------------------------------------------------------------------------------------------------
 void Flu_ResetByUser_API_ClusterMerger( const int lv, const int FluSg, const double TimeNew, const double dt )
 {
-   double Bondi_MassBH[3] = { Bondi_MassBH1, Bondi_MassBH2, Bondi_MassBH3 }; 
+
    double Mdot_BH[3] = { Mdot_BH1, Mdot_BH2, Mdot_BH3 };
+   double Bondi_MassBH[3] = { Bondi_MassBH1, Bondi_MassBH2, Bondi_MassBH3 }; 
 
    GetClusterCenter( ClusterCen, BH_Vel );
 
@@ -146,7 +148,10 @@ void Flu_ResetByUser_API_ClusterMerger( const int lv, const int FluSg, const dou
 //    reset gas velocity to zero
       for (int d=0; d<3; d++)  GasVel[c][d] = 0.0;
 
+      const bool CheckMinPres_No = false;
+
       double rho = 0.0;  // the average density inside accretion radius
+      double Pres; // use for calculation of sound speed
       double Cs = 0.0;  // the average sound speed inside accretion radius
       double v = 0.0;  // the relative velocity between BH and gas
       double num = 0.0;  // the number of cells inside accretion radius
@@ -168,29 +173,53 @@ void Flu_ResetByUser_API_ClusterMerger( const int lv, const int FluSg, const dou
 //          calculate the average density, sound speed and gas velocity inside accretion radius
             if (SQR(x-ClusterCen[c][0])+SQR(y-ClusterCen[c][1])+SQR(z-ClusterCen[c][2]) <= SQR(R_acc)){
                rho += fluid[0];
-               Cs += sqrt(GAMMA*((GAMMA-1.0)*(fluid[4]-0.5*(SQR(fluid[1])+SQR(fluid[2])+SQR(fluid[3]))/fluid[0]))/fluid[0]);
+               Pres = (real) Hydro_Con2Pres( fluid[0], fluid[1], fluid[2], fluid[3],
+                                             fluid[4], fluid+NCOMP_FLUID,
+                                             CheckMinPres_No, NULL_REAL, NULL_REAL,
+                                             EoS_DensEint2Pres_CPUPtr, EoS_AuxArray_Flt,
+                                             EoS_AuxArray_Int, h_EoS_Table, NULL );
+               Cs += sqrt(  EoS_DensPres2CSqr_CPUPtr( fluid[0], Pres, NULL, EoS_AuxArray_Flt, EoS_AuxArray_Int,
+                                                      h_EoS_Table, NULL )  );
                for (int d=0; d<3; d++)  GasVel[c][d] += fluid[d+1];
                num += 1.0;
             }
          }}}
       }
-      for (int d=0; d<3; d++)  GasVel[c][d] /= rho;
-      rho /= num;
-      Cs /= num;
-      for (int d=0; d<3; d++)  v += SQR(BH_Vel[c][d]-GasVel[c][d]);
+      if (num == 0.0){
+         Mdot_BH[c] = 0.0;
+         GasDens[c] = 0.0;
+         SoundSpeed[c] = 0.0;
+         RelativeVel[c] = 0.0;
+      }
+      else{
+         for (int d=0; d<3; d++)  GasVel[c][d] /= rho;
+         rho /= num;
+         Cs /= num;
+         for (int d=0; d<3; d++)  v += SQR(BH_Vel[c][d]-GasVel[c][d]);
 
-//    calculate the accretion rate
-      Mdot_BH[c] = 4.0*M_PI*Const_NewtonG/(pow(UNIT_L,3)/UNIT_M/pow(UNIT_T,2))*SQR(Bondi_MassBH[c])*rho/pow(Cs*Cs+v,1.5);
-      GasDens[c] = rho;
-      SoundSpeed[c] = Cs;
+//       calculate the accretion rate
+         Mdot_BH[c] = 4.0*M_PI*SQR(NEWTON_G)*SQR(Bondi_MassBH[c])*rho/pow(Cs*Cs+v,1.5);
+         GasDens[c] = rho;
+         SoundSpeed[c] = Cs;
+         RelativeVel[c] = sqrt(v);
+      }
    } // for (int c=0; c<Merger_Coll_NumHalos; c++)
+
+   if ( lv == MAX_LEVEL ){
+      Aux_Message( stdout, "=============================================================================\n" );
+      Aux_Message( stdout, "  Time                 = %g\n",           TimeNew );
+      Aux_Message( stdout, "  dt                   = %g\n",           dt );
+      Aux_Message( stdout, "  Bondi_MassBH1        = %14.8e\n",           Bondi_MassBH[0] );
+      Aux_Message( stdout, "  accretion rate       = %14.8e\n",           Mdot_BH[0] );
+      Aux_Message( stdout, "=============================================================================\n" );
+   } 
 
    Mdot_BH1 = Mdot_BH[0];                            
    Mdot_BH2 = Mdot_BH[1];                            
    Mdot_BH3 = Mdot_BH[2];
    
 #  pragma omp parallel for private( Reset, fluid, fluid_bk, x, y, z, x0, y0, z0 ) schedule( runtime ) \
-   reduction(+:CM_Bondi_SinkMass[0], CM_Bondi_SinkMomX[0], CM_Bondi_SinkMomY[0], CM_Bondi_SinkMomZ[0], CM_Bondi_SinkMomXAbs[0], CM_Bondi_SinkMomYAbs[0], CM_Bondi_SinkMomZAbs[0], CM_Bondi_SinkEk[0], CM_Bondi_SinkEt[0], CM_Bondi_SinkNCell[0], SinkMass_OneSubStep_ThisRank[0], CM_Bondi_SinkMass[1], CM_Bondi_SinkMomX[1], CM_Bondi_SinkMomY[1], CM_Bondi_SinkMomZ[1], CM_Bondi_SinkMomXAbs[1], CM_Bondi_SinkMomYAbs[1], CM_Bondi_SinkMomZAbs[1], CM_Bondi_SinkEk[1], CM_Bondi_SinkEt[1], CM_Bondi_SinkNCell[1], SinkMass_OneSubStep_ThisRank[1])
+   reduction(+:CM_Bondi_SinkMass[0], CM_Bondi_SinkMomX[0], CM_Bondi_SinkMomY[0], CM_Bondi_SinkMomZ[0], CM_Bondi_SinkMomXAbs[0], CM_Bondi_SinkMomYAbs[0], CM_Bondi_SinkMomZAbs[0], CM_Bondi_SinkEk[0], CM_Bondi_SinkEt[0], CM_Bondi_SinkNCell[0], CM_Bondi_SinkMass[1], CM_Bondi_SinkMomX[1], CM_Bondi_SinkMomY[1], CM_Bondi_SinkMomZ[1], CM_Bondi_SinkMomXAbs[1], CM_Bondi_SinkMomYAbs[1], CM_Bondi_SinkMomZAbs[1], CM_Bondi_SinkEk[1], CM_Bondi_SinkEt[1], CM_Bondi_SinkNCell[1])
 
    for (int PID=0; PID<amr->NPatchComma[lv][1]; PID++)
    {
@@ -252,7 +281,7 @@ void Flu_ResetByUser_API_ClusterMerger( const int lv, const int FluSg, const dou
 //          record the amount of sunk variables removed at the maximum level
             if ( lv == MAX_LEVEL )
             {
-               real Ek[3], Ek_new[3], Et[3], Et_new[3];
+               double Ek[3], Ek_new[3], Et[3], Et_new[3];
 
                for (int c=0; c<Merger_Coll_NumHalos; c++) { 
                   if (SQR(x-ClusterCen[c][0])+SQR(y-ClusterCen[c][1])+SQR(z-ClusterCen[c][2]) <= SQR(R_dep))
@@ -272,9 +301,9 @@ void Flu_ResetByUser_API_ClusterMerger( const int lv, const int FluSg, const dou
                      CM_Bondi_SinkEk[c]      += dv*(Ek[c]-Ek_new[c]);
                      CM_Bondi_SinkEt[c]      += dv*(Et[c]-Et_new[c]);
                      CM_Bondi_SinkNCell[c]   ++;
-      
-                     SinkMass_OneSubStep_ThisRank[c] += dv*(fluid_bk[DENS]-fluid[DENS]);
-                  }
+                  }     
+                  SinkMass_OneSubStep_ThisRank[c] = Mdot_BH[c]*dt;
+
                } // for (int c=0; c<Merger_Coll_NumHalos; c++)
             }
          } // if ( Reset )
@@ -285,7 +314,7 @@ void Flu_ResetByUser_API_ClusterMerger( const int lv, const int FluSg, const dou
 // update BH mass
    for (int c=0; c<Merger_Coll_NumHalos; c++) {
       MPI_Allreduce( &SinkMass_OneSubStep_ThisRank[c], &SinkMass_OneSubStep_AllRank[c], 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD );
-      Bondi_MassBH[c] += SinkMass_OneSubStep_AllRank[c];
+      if ( lv == MAX_LEVEL )  Bondi_MassBH[c] += SinkMass_OneSubStep_AllRank[c];
    }
    Bondi_MassBH1 = Bondi_MassBH[0];
    Bondi_MassBH2 = Bondi_MassBH[1];

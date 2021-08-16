@@ -84,6 +84,7 @@ static FieldIdx_t ColorField3Idx = Idx_Undefined;
        double GasVel[3][3];         // average gas velocity inside the accretion radius
        double SoundSpeed[3];        // average sound speed inside the accreiton radius
        double GasDens[3];           // average gas density inside the accreiton radius
+       double RelativeVel[3];       
 
 // =======================================================================================
 
