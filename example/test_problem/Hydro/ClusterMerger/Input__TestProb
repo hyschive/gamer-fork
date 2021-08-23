@@ -10,8 +10,10 @@ Merger_Coll_VelX1       305.99049868918786 # X-velocity of cluster 1 in km/s
 Merger_Coll_VelY1       0.0 # Y-velocity of cluster 1 in km/s
 Merger_Coll_ColorRad1   1722.516798 # radius within which cluster 1 color field is set in kpc
 Merger_Coll_IsGas1      1 # If cluster 1 should have gas and not have DM only
-Bondi_MassBH1           3.0e9 # black hole mass (in Msun)
+Bondi_MassBH1           3.4e8 # black hole mass (in Msun)
 Mdot_BH1                0.0 # accretion rate of cluster 1 in Msun/yr
+Jet_HalfHeight1         0.70 # jet 1: half height of the cylinder-shape jet source (in kpc) 
+Jet_Radius1             0.35 # jet 1: radius of the cylinder-shape jet source (in kpc)
 
 # parameters for cluster 2
 Merger_File_Prof2       binary_R3_profile_gamer.h5 # profile table of cluster 2
@@ -22,8 +24,10 @@ Merger_Coll_VelX2       -917.9714960675635 # X-velocity of cluster 2 in km/s
 Merger_Coll_VelY2       0.0 # Y-velocity of cluster 2 in km/s
 Merger_Coll_ColorRad2   1194.326442 # radius within which cluster 2 color field is set in kpc
 Merger_Coll_IsGas2      1 # If cluster 2 should have gas and not have DM only
-Bondi_MassBH2           3.0e9 # black hole mass (in Msun)
+Bondi_MassBH2           3.4e8 # black hole mass (in Msun)
 Mdot_BH2                0.0 # accretion rate of cluster 2 in Msun/yr
+Jet_HalfHeight2         0.70 # jet 2: half height of the cylinder-shape jet source (in kpc) 
+Jet_Radius2             0.35 # jet 2: radius of the cylinder-shape jet source (in kpc) 
 
 # parameters for cluster 3 (disabled for this example)
 Merger_File_Prof3       none # profile table of cluster 3
@@ -34,11 +38,18 @@ Merger_Coll_VelX3       0.0 # X-velocity of cluster 3 in km/s
 Merger_Coll_VelY3       0.0 # Y-velocity of cluster 3 in km/s
 Merger_Coll_ColorRad3   -1.0 # radius within which cluster 3 color field is set in kpc
 Merger_Coll_IsGas3      0 # If cluster 3 should have gas and not have DM only
-Bondi_MassBH3           0.0 # black hole mass (in Msun)
+Bondi_MassBH3           3.4e8 # black hole mass (in Msun)
 Mdot_BH3                0.0 # accretion rate of cluster 3 in Msun/yr
+Jet_HalfHeight3         0.70 # jet 3: half height of the cylinder-shape jet source (in kpc) 
+Jet_Radius3             0.35 # jet 3: radius of the cylinder-shape jet source (in kpc) 
+
+# parameters of jet feedback
+eta                     1.0 # mass loading factor in jet feedback
+eps_f                   0.001 # the radiative efficiency in jet feedback
+eps_m                   0.0 # the fraction of total energy that goes into the thermal energy in jet feedback
 
 # other	parameters
 Merger_Coll_UseMetals   0 # look for a metal field in the profile files [1]
 Merger_Coll_LabelCenter 1 # label the particle closest to the center of each cluster [1]
-R_acc                   10.0 # accretion radius: compute the accretion rate (in kpc)
-R_dep                   10.0 # radius to deplete the accreted gas (in kpc)
+R_acc                   4.0 # accretion radius: compute the accretion rate (in kpc)
+R_dep                   4.0 # radius to deplete the accreted gas (in kpc)

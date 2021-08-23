@@ -3,6 +3,8 @@
 #if ( MODEL == HYDRO  &&  defined GRAVITY )
 
 
+extern double eta, eps_f, eps_m; // parameters of jet feedback
+
 extern double CM_Bondi_SinkMass[3];
 extern double CM_Bondi_SinkMomX[3];
 extern double CM_Bondi_SinkMomY[3];
@@ -10,6 +12,7 @@ extern double CM_Bondi_SinkMomZ[3];
 extern double CM_Bondi_SinkMomXAbs[3];
 extern double CM_Bondi_SinkMomYAbs[3];
 extern double CM_Bondi_SinkMomZAbs[3];
+extern double CM_Bondi_SinkE[3];
 extern double CM_Bondi_SinkEk[3];
 extern double CM_Bondi_SinkEt[3];
 extern int    CM_Bondi_SinkNCell[3];
@@ -24,6 +27,19 @@ extern double Mdot_BH1; // the accretion rate
 extern double Mdot_BH2;
 extern double Mdot_BH3;
 
+extern double Jet_HalfHeight1;
+extern double Jet_HalfHeight2;
+extern double Jet_HalfHeight3;
+extern double Jet_Radius1;
+extern double Jet_Radius2;
+extern double Jet_Radius3;
+
+extern double Jet_Vec[3][3]; // jet direction  
+
+extern double Mdot[3]; // the feedback injection rate
+extern double Pdot[3];
+extern double Edot[3];
+
 extern double GasVel[3][3];  // gas velocity
 extern double SoundSpeed[3]; 
 extern double GasDens[3];
@@ -36,6 +52,22 @@ double BH_Vel[3][3] = {  { NULL_REAL, NULL_REAL, NULL_REAL }, // BH velocity
                          { NULL_REAL, NULL_REAL, NULL_REAL },
                          { NULL_REAL, NULL_REAL, NULL_REAL }  }; 
 extern void GetClusterCenter( double Cen[][3], double BH_Vel[][3] );
+
+static bool FirstTime = true;
+double RandomNumber(RandomNumber_t *RNG, const double Min, const double Max )
+{                   
+// thread-private variables
+#  ifdef OPENMP  
+   const int TID = omp_get_thread_num();
+#  else             
+   const int TID = 0;
+#  endif            
+   return RNG->GetValue( TID, Min, Max );                                               
+}                                               
+static RandomNumber_t *RNG = NULL;
+
+double Jet_WaveK[3];  // jet wavenumber used in the sin() function to have smooth bidirectional jets
+
 
 //-------------------------------------------------------------------------------------------------------
 // Function    :  Flu_ResetByUser_Func_ClusterMerger
@@ -65,8 +97,10 @@ extern void GetClusterCenter( double Cen[][3], double BH_Vel[][3] );
 bool Flu_ResetByUser_Func_ClusterMerger( real fluid[], const double x, const double y, const double z, const double Time, 
                                          const double dt, const int lv, double AuxArray[] )
 {
-
    const double Pos[3]  = { x, y, z };
+
+// (1) SMBH Accretion
+
    double dr2[3][3], r2[3];
    const double V_dep = 4.0/3.0*M_PI*pow(R_dep,3.0); // the region to remove gas
 // the density need to be removed
@@ -84,20 +118,90 @@ bool Flu_ResetByUser_Func_ClusterMerger( real fluid[], const double x, const dou
       r2[c] = dr2[c][0] + dr2[c][1] + dr2[c][2];
       if ( r2[c] <= SQR(R_dep) )
       {
-         fluid[DENS] -= D_dep[c];                                                           
-         fluid[MOMX] -= D_dep[c]*GasVel[c][0];                                              
-         fluid[MOMY] -= D_dep[c]*GasVel[c][1];                                              
-         fluid[MOMZ] -= D_dep[c]*GasVel[c][2];                                              
-         fluid[ENGY] -= 0.5*D_dep[c]*( SQR(GasVel[c][0]) + SQR(GasVel[c][1]) + SQR(GasVel[c][2]) );
+//         fluid[DENS] -= D_dep[c];                                                           
+//         fluid[MOMX] -= D_dep[c]*GasVel[c][0];                                              
+//         fluid[MOMY] -= D_dep[c]*GasVel[c][1];                                              
+//         fluid[MOMZ] -= D_dep[c]*GasVel[c][2];                                              
+//         fluid[ENGY] -= 0.5*D_dep[c]*( SQR(GasVel[c][0]) + SQR(GasVel[c][1]) + SQR(GasVel[c][2]) );
 
          iftrue = 1;
       }
    }
-   if ( iftrue==1 ){
-      return true;
-   }
-   else 
-      return false;
+//   if ( iftrue==1 ){
+//      return true;
+//   }
+//   else 
+//      return false;
+
+
+// (2) Jet Feedback
+
+   const double Jet_HalfHeight[3] = { Jet_HalfHeight1, Jet_HalfHeight2, Jet_HalfHeight3 };
+   const double Jet_Radius[3] = { Jet_Radius1, Jet_Radius2, Jet_Radius3 };
+   double V_cyl[3]; // the volume of jet source
+   double M_inj[3], P_inj[3], E_inj[3]; // the injected density
+
+   for (int c=0; c<Merger_Coll_NumHalos; c++) { 
+      V_cyl[c] = M_PI*SQR(Jet_Radius[c])*2*Jet_HalfHeight[c];
+//    calculate the density that need to be injected
+      M_inj[c] = Mdot[c]*dt/V_cyl[c];
+      P_inj[c] = Pdot[c]*dt/V_cyl[c];
+      E_inj[c] = Edot[c]*dt/V_cyl[c];
+      
+      Jet_WaveK[c] = 0.5*M_PI/Jet_HalfHeight[c];
+   } 
+
+   double Jet_dr, Jet_dh, S, Area;
+   double Dis_c2m, Dis_c2v, Dis_v2m, Vec_c2m[3], Vec_v2m[3];
+   double TempVec[3]; 
+   real   MomSin;
+
+
+   for (int c=0; c<Merger_Coll_NumHalos; c++)
+   {
+//    distance: jet center to mesh
+      for (int d=0; d<3; d++)    Vec_c2m[d] = Pos[d] - ClusterCen[c][d];
+      Dis_c2m = sqrt( SQR(Vec_c2m[0]) + SQR(Vec_c2m[1]) + SQR(Vec_c2m[2]) );
+
+//    vectors for calculating the distance between cells and the jet sources
+      for (int d=0; d<3; d++)    TempVec[d] = ClusterCen[c][d] + Jet_Vec[c][d];
+
+//    distance: temporary vector to mesh
+      for (int d=0; d<3; d++)    Vec_v2m[d] = Pos[d] - TempVec[d];
+      Dis_v2m = sqrt( SQR(Vec_v2m[0]) + SQR(Vec_v2m[1]) + SQR(Vec_v2m[2]) );
+
+//    distance: jet center to temporary vector
+      Dis_c2v = sqrt( SQR(Jet_Vec[c][0]) + SQR(Jet_Vec[c][1]) + SQR(Jet_Vec[c][2]) );
+
+//    check whether or not the target cell is within the jet source
+      S      = 0.5*( Dis_c2m + Dis_v2m + Dis_c2v );
+      Area   = sqrt( S*(S-Dis_c2m)*(S-Dis_v2m)*(S-Dis_c2v) );
+      Jet_dr = 2.0*Area/Dis_c2v;
+      Jet_dh = sqrt( Dis_c2m*Dis_c2m - Jet_dr*Jet_dr );
+
+      if ( Jet_dh <= Jet_HalfHeight[c]  &&  Jet_dr <= Jet_Radius[c] )
+      {
+//       reset the fluid variables within the jet source
+         fluid[DENS] += M_inj[c];
+
+//       use a sine function to make the velocity smooth within the jet from +Jet_Vec to -Jet_Vec
+         MomSin      = P_inj[c]*0.5*M_PI*sin( Jet_WaveK[c]*Jet_dh );
+         MomSin     *= SIGN( Vec_c2m[0]*Jet_Vec[c][0] + Vec_c2m[1]*Jet_Vec[c][1] + Vec_c2m[2]*Jet_Vec[c][2] );
+         fluid[MOMX] += MomSin*Jet_Vec[c][0];
+         fluid[MOMY] += MomSin*Jet_Vec[c][1];
+         fluid[MOMZ] += MomSin*Jet_Vec[c][2];
+
+         fluid[ENGY] += E_inj[c]; 
+
+//       return immediately since we do NOT allow different jet source to overlap
+         return true;
+
+      } // if (  Jet_dh <= Jet_HalfHeight[c]  &&  Jet_dr <= Jet_Radius[c] )
+   } // for (int c=0; c<Merger_Coll_NumHalos; c++) 
+
+
+   return false;
+
 
 } // FUNCTION : Flu_ResetByUser_Func_ClusterMerger
 
@@ -136,9 +240,6 @@ void Flu_ResetByUser_API_ClusterMerger( const int lv, const int FluSg, const dou
    bool   Reset;
    real   fluid[NCOMP_TOTAL], fluid_bk[NCOMP_TOTAL];
    double x, y, z, x0, y0, z0;
-
-   double SinkMass_OneSubStep_ThisRank[3] = { 0.0, 0.0, 0.0 }; // record the mass that will be added to the two BH
-   double SinkMass_OneSubStep_AllRank[3];
 
 // reset to 0 since we only want to record the number of void cells **for one sub-step**
    for (int c=0; c<Merger_Coll_NumHalos; c++) CM_Bondi_SinkNCell[c] = 0;
@@ -217,9 +318,67 @@ void Flu_ResetByUser_API_ClusterMerger( const int lv, const int FluSg, const dou
    Mdot_BH1 = Mdot_BH[0];                            
    Mdot_BH2 = Mdot_BH[1];                            
    Mdot_BH3 = Mdot_BH[2];
-   
+
+// update BH mass    
+   for (int c=0; c<Merger_Coll_NumHalos; c++) {
+      if ( lv == MAX_LEVEL )  Bondi_MassBH[c] += Mdot_BH[c]*dt;
+   }
+   Bondi_MassBH1 = Bondi_MassBH[0];
+   Bondi_MassBH2 = Bondi_MassBH[1];
+   Bondi_MassBH3 = Bondi_MassBH[2];
+
+
+// calculate the injection rate
+   for (int c=0; c<Merger_Coll_NumHalos; c++){
+      Mdot[c] = eta*Mdot_BH[c];
+      Pdot[c] = sqrt(2*eta*eps_f*(1-eps_m))*Mdot_BH[c]*(Const_c/UNIT_V);
+      Edot[c] = eps_f*Mdot_BH[c]*SQR(Const_c/UNIT_V);
+   }
+   if ( lv == MAX_LEVEL ){
+      Aux_Message( stdout, "=============================================================================\n" );
+      Aux_Message( stdout, "  Time                 = %g\n",           TimeNew );
+      Aux_Message( stdout, "  dt                   = %g\n",           dt );
+      Aux_Message( stdout, "  Mdot                 = %14.8e\n",           Mdot[0] );
+      Aux_Message( stdout, "  Pdot                 = %14.8e\n",           Pdot[0] );
+      Aux_Message( stdout, "  Edot                 = %14.8e\n",           Edot[0] );
+      Aux_Message( stdout, "=============================================================================\n" );
+   }   
+
+// get the number of OpenMP threads
+   int NT; 
+#  ifdef OPENMP
+#  pragma omp parallel
+#  pragma omp master
+   {  NT = omp_get_num_threads();  }
+#  else
+   {  NT = 1;                      }   
+#  endif
+ 
+// allocate RNG
+   RNG = new RandomNumber_t( NT );
+// set the random seed of each MPI rank
+   for (int t=0; t<NT; t++) {
+      RNG->SetSeed(t, MPI_Rank*1000+t);
+   }   
+
+   static double phi,theta; // angles which decide the jet direction 
+ 
+// choose the jet direction 
+   if ( FirstTime ){
+      for (int c=0; c<Merger_Coll_NumHalos; c++) {
+         phi = RandomNumber(RNG,0.0,2*M_PI); 
+         theta = RandomNumber(RNG,0.0,M_PI); 
+         Jet_Vec[c][0] = 1.0; //sin(theta)*cos(phi);
+         Jet_Vec[c][1] = 0.0; //sin(theta)*sin(phi);
+         Jet_Vec[c][2] = 0.0; //cos(theta);
+      }
+      FirstTime = false;
+   }
+
+  
+
 #  pragma omp parallel for private( Reset, fluid, fluid_bk, x, y, z, x0, y0, z0 ) schedule( runtime ) \
-   reduction(+:CM_Bondi_SinkMass[0], CM_Bondi_SinkMomX[0], CM_Bondi_SinkMomY[0], CM_Bondi_SinkMomZ[0], CM_Bondi_SinkMomXAbs[0], CM_Bondi_SinkMomYAbs[0], CM_Bondi_SinkMomZAbs[0], CM_Bondi_SinkEk[0], CM_Bondi_SinkEt[0], CM_Bondi_SinkNCell[0], CM_Bondi_SinkMass[1], CM_Bondi_SinkMomX[1], CM_Bondi_SinkMomY[1], CM_Bondi_SinkMomZ[1], CM_Bondi_SinkMomXAbs[1], CM_Bondi_SinkMomYAbs[1], CM_Bondi_SinkMomZAbs[1], CM_Bondi_SinkEk[1], CM_Bondi_SinkEt[1], CM_Bondi_SinkNCell[1])
+   reduction(+:CM_Bondi_SinkMass[0], CM_Bondi_SinkMomX[0], CM_Bondi_SinkMomY[0], CM_Bondi_SinkMomZ[0], CM_Bondi_SinkMomXAbs[0], CM_Bondi_SinkMomYAbs[0], CM_Bondi_SinkMomZAbs[0], CM_Bondi_SinkE[0], CM_Bondi_SinkEk[0], CM_Bondi_SinkEt[0], CM_Bondi_SinkNCell[0], CM_Bondi_SinkMass[1], CM_Bondi_SinkMomX[1], CM_Bondi_SinkMomY[1], CM_Bondi_SinkMomZ[1], CM_Bondi_SinkMomXAbs[1], CM_Bondi_SinkMomYAbs[1], CM_Bondi_SinkMomZAbs[1], CM_Bondi_SinkE[1], CM_Bondi_SinkEk[1], CM_Bondi_SinkEt[1], CM_Bondi_SinkNCell[1])
 
    for (int PID=0; PID<amr->NPatchComma[lv][1]; PID++)
    {
@@ -274,10 +433,6 @@ void Flu_ResetByUser_API_ClusterMerger( const int lv, const int FluSg, const dou
 #           endif
 #           endif // if ( MODEL == HYDRO  ||  MODEL == MHD )
 
-//          store the reset values
-            for (int v=0; v<NCOMP_TOTAL; v++)   amr->patch[FluSg][lv][PID]->fluid[v][k][j][i] = fluid[v];
-
-
 //          record the amount of sunk variables removed at the maximum level
             if ( lv == MAX_LEVEL )
             {
@@ -286,39 +441,34 @@ void Flu_ResetByUser_API_ClusterMerger( const int lv, const int FluSg, const dou
                for (int c=0; c<Merger_Coll_NumHalos; c++) { 
                   if (SQR(x-ClusterCen[c][0])+SQR(y-ClusterCen[c][1])+SQR(z-ClusterCen[c][2]) <= SQR(R_dep))
                   {
-                     Ek[c] = (real)0.5*( SQR(fluid_bk[MOMX]) + SQR(fluid_bk[MOMY]) + SQR(fluid_bk[MOMZ]) ) / fluid_bk[DENS];
+                     Ek[c] = (real)0.5*( SQR(fluid_bk[MOMX]) + SQR(fluid_bk[MOMY]) + SQR(fluid_bk[MOMZ]) ) / (fluid_bk[DENS]);
                      Ek_new[c] = (real)0.5*( SQR(fluid[MOMX]) + SQR(fluid[MOMY]) + SQR(fluid[MOMZ]) ) / fluid[DENS];
                      Et[c] = fluid_bk[ENGY] - Ek[c];
                      Et_new[c] = fluid[ENGY] - Ek_new[c];
       
-                     CM_Bondi_SinkMass[c]    += dv*(fluid_bk[DENS]-fluid[DENS]);
-                     CM_Bondi_SinkMomX[c]    += dv*(fluid_bk[MOMX]-fluid[MOMX]);
-                     CM_Bondi_SinkMomY[c]    += dv*(fluid_bk[MOMY]-fluid[MOMY]);
-                     CM_Bondi_SinkMomZ[c]    += dv*(fluid_bk[MOMZ]-fluid[MOMZ]);
-                     CM_Bondi_SinkMomXAbs[c] += dv*FABS( fluid_bk[MOMX]-fluid[MOMX] );
-                     CM_Bondi_SinkMomYAbs[c] += dv*FABS( fluid_bk[MOMY]-fluid[MOMY] );
-                     CM_Bondi_SinkMomZAbs[c] += dv*FABS( fluid_bk[MOMZ]-fluid[MOMZ] );
+                     CM_Bondi_SinkMass[c]    += dv*(fluid[DENS]-fluid_bk[DENS]);
+                     CM_Bondi_SinkMomX[c]    += dv*(fluid[MOMX]-fluid_bk[MOMX]);
+                     CM_Bondi_SinkMomY[c]    += dv*(fluid[MOMY]-fluid_bk[MOMY]);
+                     CM_Bondi_SinkMomZ[c]    += dv*(fluid[MOMZ]-fluid_bk[MOMZ]);
+                     CM_Bondi_SinkMomXAbs[c] += dv*FABS( fluid[MOMX]-fluid_bk[MOMX] );
+                     CM_Bondi_SinkMomYAbs[c] += dv*FABS( fluid[MOMY]-fluid_bk[MOMY] );
+                     CM_Bondi_SinkMomZAbs[c] += dv*FABS( fluid[MOMZ]-fluid_bk[MOMZ] );
+                     CM_Bondi_SinkE[c]       += dv*(fluid[ENGY]-fluid_bk[ENGY]);
                      CM_Bondi_SinkEk[c]      += dv*(Ek[c]-Ek_new[c]);
                      CM_Bondi_SinkEt[c]      += dv*(Et[c]-Et_new[c]);
                      CM_Bondi_SinkNCell[c]   ++;
                   }     
-                  SinkMass_OneSubStep_ThisRank[c] = Mdot_BH[c]*dt;
-
                } // for (int c=0; c<Merger_Coll_NumHalos; c++)
             }
          } // if ( Reset )
 
+//       store the reset values         
+         for (int v=0; v<NCOMP_TOTAL; v++)   amr->patch[FluSg][lv][PID]->fluid[v][k][j][i] = fluid[v];
+
       }}} // i,j,k
    } // for (int PID=0; PID<amr->NPatchComma[lv][1]; PID++)
 
-// update BH mass
-   for (int c=0; c<Merger_Coll_NumHalos; c++) {
-      MPI_Allreduce( &SinkMass_OneSubStep_ThisRank[c], &SinkMass_OneSubStep_AllRank[c], 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD );
-      if ( lv == MAX_LEVEL )  Bondi_MassBH[c] += SinkMass_OneSubStep_AllRank[c];
-   }
-   Bondi_MassBH1 = Bondi_MassBH[0];
-   Bondi_MassBH2 = Bondi_MassBH[1];
-   Bondi_MassBH3 = Bondi_MassBH[2];
+   delete RNG;
 
 } // FUNCTION : Flu_ResetByUser_API_ClusterMerger
 

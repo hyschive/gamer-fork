@@ -61,6 +61,10 @@ static FieldIdx_t ColorField1Idx = Idx_Undefined;
 static FieldIdx_t ColorField2Idx = Idx_Undefined;
 static FieldIdx_t ColorField3Idx = Idx_Undefined;
 
+       double eta;                  // mass loading factor in jet feedback
+       double eps_f;                // the radiative efficiency in jet feedback
+       double eps_m;                // the fraction of total energy that goes into the thermal energy in jet feedback
+
        double CM_Bondi_SinkMass[3];       // total mass             in the void region removed in one global time-step
        double CM_Bondi_SinkMomX[3];       // total x-momentum       ...
        double CM_Bondi_SinkMomY[3];       // total y-momentum       ...
@@ -68,7 +72,8 @@ static FieldIdx_t ColorField3Idx = Idx_Undefined;
        double CM_Bondi_SinkMomXAbs[3];    // total |x-momentum|     ...
        double CM_Bondi_SinkMomYAbs[3];    // total |y-momentum|     ...
        double CM_Bondi_SinkMomZAbs[3];    // total |z-momentum|     ...
-       double CM_Bondi_SinkEk[3];         // total kinematic energy ...
+       double CM_Bondi_SinkE[3];         // total energy ...
+       double CM_Bondi_SinkEk[3];         // total kinetic energy ...
        double CM_Bondi_SinkEt[3];         // total thermal   energy ...
        int    CM_Bondi_SinkNCell[3];      // total number of finest cells within the void region
 
@@ -80,6 +85,18 @@ static FieldIdx_t ColorField3Idx = Idx_Undefined;
        double Mdot_BH1;             // the accretion rate of BH 1
        double Mdot_BH2;             // the accretion rate of BH 2
        double Mdot_BH3;             // the accretion rate of BH 3
+
+       double Jet_HalfHeight1;      // half height of the cylinder-shape jet source      
+       double Jet_HalfHeight2;             
+       double Jet_HalfHeight3;
+       double Jet_Radius1;          // radius of the cylinder-shape jet source
+       double Jet_Radius2;
+       double Jet_Radius3;
+
+       double Mdot[3];              // the feedback injeciton rate of mass
+       double Pdot[3];              // the feedback injeciton rate of momentum
+       double Edot[3];              // the feedback injeciton rate of total energy
+       double Jet_Vec[3][3];        // jet direction   
 
        double GasVel[3][3];         // average gas velocity inside the accretion radius
        double SoundSpeed[3];        // average sound speed inside the accreiton radius
@@ -239,6 +256,15 @@ void SetParameter()
    ReadPara->Add( "Mdot_BH1",               &Mdot_BH1,               -1.0,             NoMin_double,  NoMax_double   );
    ReadPara->Add( "Mdot_BH2",               &Mdot_BH2,               -1.0,             NoMin_double,  NoMax_double   );
    ReadPara->Add( "Mdot_BH3",               &Mdot_BH3,               -1.0,             NoMin_double,  NoMax_double   );
+   ReadPara->Add( "Jet_HalfHeight1",        &Jet_HalfHeight1,        -1.0,             Eps_double,    NoMax_double   );
+   ReadPara->Add( "Jet_HalfHeight2",        &Jet_HalfHeight2,        -1.0,             Eps_double,    NoMax_double   );
+   ReadPara->Add( "Jet_HalfHeight3",        &Jet_HalfHeight3,        -1.0,             Eps_double,    NoMax_double   );
+   ReadPara->Add( "Jet_Radius1",            &Jet_Radius1,            -1.0,             Eps_double,    NoMax_double   );
+   ReadPara->Add( "Jet_Radius2",            &Jet_Radius2,            -1.0,             Eps_double,    NoMax_double   );
+   ReadPara->Add( "Jet_Radius3",            &Jet_Radius3,            -1.0,             Eps_double,    NoMax_double   );
+   ReadPara->Add( "eta",                    &eta,                    -1.0,             NoMin_double,  NoMax_double   );
+   ReadPara->Add( "eps_f",                  &eps_f,                  -1.0,             NoMin_double,  NoMax_double   );
+   ReadPara->Add( "eps_m",                  &eps_m,                  -1.0,             NoMin_double,  NoMax_double   );
 
    ReadPara->Read( FileName );
 
@@ -273,6 +299,12 @@ void SetParameter()
    Mdot_BH1          *= (Const_Msun/Const_yr) / (UNIT_M / UNIT_T);
    Mdot_BH2          *= (Const_Msun/Const_yr) / (UNIT_M / UNIT_T);
    Mdot_BH3          *= (Const_Msun/Const_yr) / (UNIT_M / UNIT_T);
+   Jet_HalfHeight1   *= Const_kpc / UNIT_L;
+   Jet_HalfHeight2   *= Const_kpc / UNIT_L;
+   Jet_HalfHeight3   *= Const_kpc / UNIT_L;
+   Jet_Radius1       *= Const_kpc / UNIT_L;
+   Jet_Radius2       *= Const_kpc / UNIT_L;
+   Jet_Radius3       *= Const_kpc / UNIT_L;
 
 // (2) load the radial profiles
    if ( OPT__INIT != INIT_BY_RESTART ) {
