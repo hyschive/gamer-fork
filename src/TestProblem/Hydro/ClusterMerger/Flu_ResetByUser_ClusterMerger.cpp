@@ -185,8 +185,8 @@ bool Flu_ResetByUser_Func_ClusterMerger( real fluid[], const double x, const dou
          fluid[DENS] += M_inj[c];
 
 //       use a sine function to make the velocity smooth within the jet from +Jet_Vec to -Jet_Vec
-         MomSin      = P_inj[c]*0.5*M_PI*sin( Jet_WaveK[c]*Jet_dh );
-         MomSin     *= SIGN( Vec_c2m[0]*Jet_Vec[c][0] + Vec_c2m[1]*Jet_Vec[c][1] + Vec_c2m[2]*Jet_Vec[c][2] );
+         MomSin       = P_inj[c]*0.5*M_PI*sin( Jet_WaveK[c]*Jet_dh );
+         MomSin      *= SIGN( Vec_c2m[0]*Jet_Vec[c][0] + Vec_c2m[1]*Jet_Vec[c][1] + Vec_c2m[2]*Jet_Vec[c][2] );
          fluid[MOMX] += MomSin*Jet_Vec[c][0];
          fluid[MOMY] += MomSin*Jet_Vec[c][1];
          fluid[MOMZ] += MomSin*Jet_Vec[c][2];
@@ -439,25 +439,22 @@ void Flu_ResetByUser_API_ClusterMerger( const int lv, const int FluSg, const dou
                double Ek[3], Ek_new[3], Et[3], Et_new[3];
 
                for (int c=0; c<Merger_Coll_NumHalos; c++) { 
-                  if (SQR(x-ClusterCen[c][0])+SQR(y-ClusterCen[c][1])+SQR(z-ClusterCen[c][2]) <= SQR(R_dep))
-                  {
-                     Ek[c] = (real)0.5*( SQR(fluid_bk[MOMX]) + SQR(fluid_bk[MOMY]) + SQR(fluid_bk[MOMZ]) ) / (fluid_bk[DENS]);
-                     Ek_new[c] = (real)0.5*( SQR(fluid[MOMX]) + SQR(fluid[MOMY]) + SQR(fluid[MOMZ]) ) / fluid[DENS];
-                     Et[c] = fluid_bk[ENGY] - Ek[c];
-                     Et_new[c] = fluid[ENGY] - Ek_new[c];
-      
-                     CM_Bondi_SinkMass[c]    += dv*(fluid[DENS]-fluid_bk[DENS]);
-                     CM_Bondi_SinkMomX[c]    += dv*(fluid[MOMX]-fluid_bk[MOMX]);
-                     CM_Bondi_SinkMomY[c]    += dv*(fluid[MOMY]-fluid_bk[MOMY]);
-                     CM_Bondi_SinkMomZ[c]    += dv*(fluid[MOMZ]-fluid_bk[MOMZ]);
-                     CM_Bondi_SinkMomXAbs[c] += dv*FABS( fluid[MOMX]-fluid_bk[MOMX] );
-                     CM_Bondi_SinkMomYAbs[c] += dv*FABS( fluid[MOMY]-fluid_bk[MOMY] );
-                     CM_Bondi_SinkMomZAbs[c] += dv*FABS( fluid[MOMZ]-fluid_bk[MOMZ] );
-                     CM_Bondi_SinkE[c]       += dv*(fluid[ENGY]-fluid_bk[ENGY]);
-                     CM_Bondi_SinkEk[c]      += dv*(Ek[c]-Ek_new[c]);
-                     CM_Bondi_SinkEt[c]      += dv*(Et[c]-Et_new[c]);
-                     CM_Bondi_SinkNCell[c]   ++;
-                  }     
+                  Ek[c] = (real)0.5*( SQR(fluid_bk[MOMX]) + SQR(fluid_bk[MOMY]) + SQR(fluid_bk[MOMZ]) ) / (fluid_bk[DENS]);
+                  Ek_new[c] = (real)0.5*( SQR(fluid[MOMX]) + SQR(fluid[MOMY]) + SQR(fluid[MOMZ]) ) / fluid[DENS];
+                  Et[c] = fluid_bk[ENGY] - Ek[c];
+                  Et_new[c] = fluid[ENGY] - Ek_new[c];
+   
+                  CM_Bondi_SinkMass[c]    += dv*(fluid[DENS]-fluid_bk[DENS]);
+                  CM_Bondi_SinkMomX[c]    += dv*(fluid[MOMX]-fluid_bk[MOMX]);
+                  CM_Bondi_SinkMomY[c]    += dv*(fluid[MOMY]-fluid_bk[MOMY]);
+                  CM_Bondi_SinkMomZ[c]    += dv*(fluid[MOMZ]-fluid_bk[MOMZ]);
+                  CM_Bondi_SinkMomXAbs[c] += dv*FABS( fluid[MOMX]-fluid_bk[MOMX] );
+                  CM_Bondi_SinkMomYAbs[c] += dv*FABS( fluid[MOMY]-fluid_bk[MOMY] );
+                  CM_Bondi_SinkMomZAbs[c] += dv*FABS( fluid[MOMZ]-fluid_bk[MOMZ] );
+                  CM_Bondi_SinkE[c]       += dv*(fluid[ENGY]-fluid_bk[ENGY]);
+                  CM_Bondi_SinkEk[c]      += dv*(Ek_new[c]-Ek[c]);
+                  CM_Bondi_SinkEt[c]      += dv*(Et_new[c]-Et[c]);
+                  CM_Bondi_SinkNCell[c]   ++;
                } // for (int c=0; c<Merger_Coll_NumHalos; c++)
             }
          } // if ( Reset )
