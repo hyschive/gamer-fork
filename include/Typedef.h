@@ -423,7 +423,7 @@ typedef real (*EoS_DT2P_t)( const real Dens, const real Temp, const real Passive
 #ifdef COSMIC_RAY
 typedef real (*EoS_CRE2CRP_t)( const real Passive[], 
                                const double AuxArray_Flt[], const int AuxArray_Int[],
-                               const real *const Table[EOS_NTABLE_MAX], real ExtraInOut[]);
+                               const real *const Table[EOS_NTABLE_MAX] );
 #endif
 typedef void (*ExtAcc_t)( real Acc[], const double x, const double y, const double z, const double Time,
                           const double UserArray[] );
