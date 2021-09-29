@@ -396,15 +396,16 @@ static real EoS_DensTemp2Pres_GammaCR( const real Dens, const real Temp, const r
 //
 // Parameter   :  Mode       : To support multiple modes in this general converter
 //                Out        : Output array
-//                In         : Input array
+//                In*        : Input array
 //                AuxArray_* : Auxiliary arrays (see the Note above)
 //                Table      : EoS tables
 //
 // Return      :  Out[]
 //-------------------------------------------------------------------------------------------------------
 GPU_DEVICE_NOINLINE
-static void EoS_General_GammaCR( const int Mode, real Out[], const real In[], const double AuxArray_Flt[],
-                                 const int AuxArray_Int[], const real *const Table[EOS_NTABLE_MAX] )
+static void EoS_General_GammaCR( const int Mode, real Out[], const real In_Flt[], const int In_Int[],
+                                 const double AuxArray_Flt[], const int AuxArray_Int[],
+                                 const real *const Table[EOS_NTABLE_MAX] )
 {
   // Nothing yet.
 } // FUNCTION : EoS_General_GammaCR
