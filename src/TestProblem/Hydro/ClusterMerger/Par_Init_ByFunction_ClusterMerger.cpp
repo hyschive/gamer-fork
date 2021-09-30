@@ -64,6 +64,8 @@ extern double Mdot[3]; // the feedback injection rate
 extern double Pdot[3];
 extern double Edot[3];
 
+extern double E_inj_exp[3];
+extern double dt_base;
 
 // =======================================================================================
 
@@ -656,7 +658,7 @@ void Aux_Record_ClusterMerger()
          FILE *File_User = fopen( FileName, "a" );
          fprintf( File_User, "#%13s%14s",  "Time", "Step" );
          for (int c=0; c<Merger_Coll_NumHalos; c++)
-            fprintf( File_User, " %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d", "x", c, "y", c, "z", c, "BHVel_x[km/s]", c, "BHVel_y", c, "BHVel_z", c, "GasVel_x", c,"GasVel_y", c,"GasVel_z", c, "RelativeVel", c, "SoundSpeed", c, "GasDens", c, "mass_BH[Msun]", c, "Mdot[Msun/yr]", c, "NVoidCell", c, "MomX[g*cm/s]", c, "MomY[g*cm/s]", c,"MomZ[g*cm/s]", c, "MomXAbs", c, "MomYAbs", c, "MomZAbs", c, "E[erg]", c, "Ek[erg]", c, "Et[erg]", c, "SinkMass", c, "Mdot", c, "Pdot", c, "Edot", c, "Jet_Vec_x", c, "Jet_Vec_y", c, "Jet_Vec_z", c );
+            fprintf( File_User, " %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d", "x", c, "y", c, "z", c, "BHVel_x[km/s]", c, "BHVel_y", c, "BHVel_z", c, "GasVel_x", c,"GasVel_y", c,"GasVel_z", c, "RelativeVel", c, "SoundSpeed", c, "GasDens", c, "mass_BH[Msun]", c, "Mdot[Msun/yr]", c, "NVoidCell", c, "MomX[g*cm/s]", c, "MomY[g*cm/s]", c,"MomZ[g*cm/s]", c, "MomXAbs", c, "MomYAbs", c, "MomZAbs", c,"MomX_err", c, "E_exp[erg]", c, "E[erg]", c, "E_err", c, "Ek[erg]", c, "Et[erg]", c, "SinkMass", c, "Mdot", c, "Pdot", c, "Edot", c, "Jet_Vec_x", c, "Jet_Vec_y", c, "Jet_Vec_z", c );
          fprintf( File_User, "\n" );
          fclose( File_User );
       }
@@ -682,6 +684,9 @@ void Aux_Record_ClusterMerger()
          BH_Vel[c][d] *= UNIT_V/(Const_km/Const_s);
       }
    }
+
+   for (int c=0; c<Merger_Coll_NumHalos; c++) E_inj_exp[c] = Edot[c]*dt_base;
+
    for (int c=0; c<Merger_Coll_NumHalos; c++) {
       Bondi_MassBH[c] *= UNIT_M/Const_Msun;
       Mdot_BH[c] *= (UNIT_M/UNIT_T)/(Const_Msun/Const_yr);
@@ -715,6 +720,7 @@ void Aux_Record_ClusterMerger()
       MomXAbs_Sum[c] *= UNIT_M*UNIT_L/UNIT_T;
       MomYAbs_Sum[c] *= UNIT_M*UNIT_L/UNIT_T;
       MomZAbs_Sum[c] *= UNIT_M*UNIT_L/UNIT_T;
+      E_inj_exp[c]   *= UNIT_E;
       E_Sum[c]      *= UNIT_E;
       Ek_Sum[c]      *= UNIT_E;
       Et_Sum[c]      *= UNIT_E;
@@ -727,7 +733,7 @@ void Aux_Record_ClusterMerger()
       FILE *File_User = fopen( FileName, "a" );
       fprintf( File_User, "%14.7e%14ld", Time[0], Step );
       for (int c=0; c<Merger_Coll_NumHalos; c++)
-         fprintf( File_User, " %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14d %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e", Cen[c][0], Cen[c][1], Cen[c][2], BH_Vel[c][0], BH_Vel[c][1], BH_Vel[c][2], GasVel[c][0]*UNIT_V/(Const_km/Const_s), GasVel[c][1]*UNIT_V/(Const_km/Const_s), GasVel[c][2]*UNIT_V/(Const_km/Const_s), RelativeVel[c]*UNIT_V/(Const_km/Const_s), SoundSpeed[c]*UNIT_V/(Const_km/Const_s), GasDens[c]*UNIT_D/(Const_Msun/pow(Const_kpc,3)), Bondi_MassBH[c], Mdot_BH[c], SinkNCell_Sum[c], MomX_Sum[c], MomY_Sum[c], MomZ_Sum[c], MomXAbs_Sum[c], MomYAbs_Sum[c], MomZAbs_Sum[c], E_Sum[c], Ek_Sum[c], Et_Sum[c], Mass_Sum[c], Mdot[c], Pdot[c], Edot[c], Jet_Vec[c][0], Jet_Vec[c][1], Jet_Vec[c][2] );
+         fprintf( File_User, " %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14d %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e", Cen[c][0], Cen[c][1], Cen[c][2], BH_Vel[c][0], BH_Vel[c][1], BH_Vel[c][2], GasVel[c][0]*UNIT_V/(Const_km/Const_s), GasVel[c][1]*UNIT_V/(Const_km/Const_s), GasVel[c][2]*UNIT_V/(Const_km/Const_s), RelativeVel[c]*UNIT_V/(Const_km/Const_s), SoundSpeed[c]*UNIT_V/(Const_km/Const_s), GasDens[c]*UNIT_D/(Const_Msun/pow(Const_kpc,3)), Bondi_MassBH[c], Mdot_BH[c], SinkNCell_Sum[c], MomX_Sum[c], MomY_Sum[c], MomZ_Sum[c], MomXAbs_Sum[c], MomYAbs_Sum[c], MomZAbs_Sum[c], MomX_Sum[c]/MomXAbs_Sum[c], E_inj_exp[c], E_Sum[c], (E_Sum[c]-E_inj_exp[c])/E_inj_exp[c], Ek_Sum[c], Et_Sum[c], Mass_Sum[c], Mdot[c], Pdot[c], Edot[c], Jet_Vec[c][0], Jet_Vec[c][1], Jet_Vec[c][2] );
       fprintf( File_User, "\n" );
       fclose( File_User );
    }
