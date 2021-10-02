@@ -187,9 +187,9 @@ bool Flu_ResetByUser_Func_ClusterMerger( real fluid[], const double x, const dou
 //         P_inj[c] = sqrt(2*EngSin*fluid[DENS]);
 
 //       use a sine function to make the velocity smooth within the jet from +Jet_Vec to -Jet_Vec
-         MomSin       = P_inj[c]*0.3*sin( Jet_WaveK[c]*Jet_dh );
+//         MomSin       = P_inj[c]*0.3*sin( Jet_WaveK[c]*Jet_dh );
 
-//         MomSin       = P_inj[c]*sqrt(2.0)*sin( Jet_WaveK[c]*Jet_dh ); 
+         MomSin       = P_inj[c]*sqrt(2.0)*sin( Jet_WaveK[c]*Jet_dh ); 
          MomSin      *= SIGN( Vec_c2m[0]*Jet_Vec[c][0] + Vec_c2m[1]*Jet_Vec[c][1] + Vec_c2m[2]*Jet_Vec[c][2] );
          fluid[MOMX] += MomSin*Jet_Vec[c][0];
          fluid[MOMY] += MomSin*Jet_Vec[c][1];
@@ -312,7 +312,7 @@ void Flu_ResetByUser_API_ClusterMerger( const int lv, const int FluSg, const dou
          for (int d=0; d<3; d++)  v += SQR(BH_Vel[c][d]-GasVel[c][d]);
 
 //       calculate the accretion rate
-         Mdot_BH[c] = 4.0*M_PI*SQR(NEWTON_G)*SQR(Bondi_MassBH[c])*rho/pow(Cs*Cs+v,1.5);
+         Mdot_BH[c] = 100.0*4.0*M_PI*SQR(NEWTON_G)*SQR(Bondi_MassBH[c])*rho/pow(Cs*Cs+v,1.5);
          GasDens[c] = rho;
          SoundSpeed[c] = Cs;
          RelativeVel[c] = sqrt(v);
@@ -356,12 +356,12 @@ void Flu_ResetByUser_API_ClusterMerger( const int lv, const int FluSg, const dou
 
    if ( lv == MAX_LEVEL ){
 
-      Aux_Message( stdout, "=============================================================================\n" );
-      Aux_Message( stdout, "  Time                 = %g\n",           TimeNew );
-      Aux_Message( stdout, "  dt                   = %g\n",           dt );
+//      Aux_Message( stdout, "=============================================================================\n" );
+//      Aux_Message( stdout, "  Time                 = %g\n",           TimeNew );
+//      Aux_Message( stdout, "  dt                   = %g\n",           dt );
 //      Aux_Message( stdout, "  Mdot                 = %14.8e\n",           Mdot[0] );
 //      Aux_Message( stdout, "  Pdot                 = %14.8e\n",           Pdot[0] );
-      Aux_Message( stdout, "  Edot                 = %14.8e\n",           Edot[0] );
+//      Aux_Message( stdout, "  Edot                 = %14.8e\n",           Edot[0] );
 //      Aux_Message( stdout, "  V_cyl                 = %14.8e\n",           V_cyl[0] );
 //      Aux_Message( stdout, "  M_inj                 = %14.8e\n",           M_inj[0] );
 //      Aux_Message( stdout, "  P_inj                 = %14.8e\n",           P_inj[0] );
