@@ -421,9 +421,9 @@ void Flu_ResetByUser_API_ClusterMerger( const int lv, const int FluSg, const dou
     
 //          backup the unmodified values since we want to record the amount of sunk variables removed at the maximum level
 
-//            fluid[MOMX] = 5.0e-5;
-//            fluid[MOMY] = 0.0;
-//            fluid[MOMZ] = 0.0;
+//            if (SQR(x-ClusterCen[0][0])+SQR(y-ClusterCen[0][1])+SQR(z-ClusterCen[0][2]) <= SQR(5*R_acc)){
+//               fluid[DENS] = GasDens[0];
+//            }
             fluid_bk[v] = fluid[v];
          }   
 
