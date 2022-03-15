@@ -455,13 +455,6 @@ void CPU_FluidSolver_MHM(
 #        endif // #if ( FLU_SCHEME == MHM_RP ) ... else ...
 
 
-
-//       2-a. Add the another flux (cosmic ray for now)
-//#        ifdef COSMIC_RAY
-//         Hydro_AddExtraFlux( g_FC_Var_1PG, g_FC_Flux_1PG, N_FL_FLUX, NSkip_N, NSkip_T,
-//                             dt, dh, Time, &EoS);
-//#        endif
-
 //          2. evaluate the full-step fluxes
 #           ifdef MHD
             const int NSkip_N = 0;
@@ -475,6 +468,12 @@ void CPU_FluidSolver_MHM(
                                CorrHalfVel, g_Pot_Array_USG[P], g_Corner_Array[P],
                                dt, dh, Time, UsePot, ExtAcc, ExtAcc_Func, c_ExtAcc_AuxArray,
                                MinDens, MinPres, StoreFlux, g_Flux_Array[P], &EoS );
+
+//          2-a. Add the another flux (cosmic ray for now)
+//#         ifdef COSMIC_RAY
+//          Hydro_AddExtraFlux( g_FC_Var_1PG, g_FC_Flux_1PG, N_FL_FLUX, NSkip_N, NSkip_T,
+//                              dt, dh, Time, &EoS);
+//#         endif
 
 
 //          3. evaluate electric field and update B field at the full time-step
@@ -496,22 +495,16 @@ void CPU_FluidSolver_MHM(
                                   g_FC_Flux_1PG, dt, dh, MinDens, MinEint, DualEnergySwitch,
                                   NormPassive, NNorm, c_NormIdx, &EoS, &s_FullStepFailure, Iteration, MinMod_MaxIter );
 
+#           ifdef COSMIC_RAY
+            // Cosmic ray full-step update
+            CosmicRay_Update( g_PriVar_Half_1PG, g_Flu_Array_Out[P], g_FC_Flux_1PG, g_FC_Var_1PG,
+                              dt, dh, &EoS);
+#           endif
 
 //          5. counter increment
             Iteration++;
 
 
-
-//       4. full-step evolution
-         Hydro_FullStepUpdate( g_Flu_Array_In[P], g_Flu_Array_Out[P], g_DE_Array_Out[P], g_Mag_Array_Out[P],
-                               g_FC_Flux_1PG, dt, dh, MinDens, MinEint, DualEnergySwitch,
-                               NormPassive, NNorm, c_NormIdx, &EoS );
-         
-#        ifdef COSMIC_RAY
-         // Cosmic ray full-step update
-         CosmicRay_Update( g_PriVar_Half_1PG, g_Flu_Array_Out[P], g_FC_Flux_1PG, g_FC_Var_1PG,
-                           dt, dh, &EoS);
-#        endif
          } while ( s_FullStepFailure  &&  Iteration <= MinMod_MaxIter );
 
       } // loop over all patch groups
