@@ -471,6 +471,9 @@ typedef real (*EoS_CRE2CRP_t)  ( const real Passive[],
                                  const double AuxArray_Flt[], const int AuxArray_Int[],
                                  const real *const Table[EOS_NTABLE_MAX] );
 #endif
+typedef real (*EoS_DE2S_t)     ( const real Dens, const real Eint, const real Passive[],
+                                 const double AuxArray_Flt[], const int AuxArray_Int[],
+                                 const real *const Table[EOS_NTABLE_MAX] );
 typedef void (*ExtAcc_t)       ( real Acc[], const double x, const double y, const double z, const double Time,
                                  const double UserArray[] );
 typedef real (*ExtPot_t)       ( const double x, const double y, const double z, const double Time,

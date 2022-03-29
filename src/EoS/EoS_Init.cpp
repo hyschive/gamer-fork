@@ -87,6 +87,7 @@ void EoS_Init()
    EoS.DensPres2CSqr_FuncPtr = EoS_DensPres2CSqr_GPUPtr;
    EoS.DensEint2Temp_FuncPtr = EoS_DensEint2Temp_GPUPtr;
    EoS.DensTemp2Pres_FuncPtr = EoS_DensTemp2Pres_GPUPtr;
+   EoS.DensEint2Entr_FuncPtr = EoS_DensEint2Entr_GPUPtr;
    EoS.General_FuncPtr       = EoS_General_GPUPtr;
 #ifdef COSMIC_RAY
    EoS.CREint2CRPres_FuncPtr = EoS_CREint2CRPres_GPUPtr;
@@ -101,6 +102,7 @@ void EoS_Init()
    EoS.DensPres2CSqr_FuncPtr = EoS_DensPres2CSqr_CPUPtr;
    EoS.DensEint2Temp_FuncPtr = EoS_DensEint2Temp_CPUPtr;
    EoS.DensTemp2Pres_FuncPtr = EoS_DensTemp2Pres_CPUPtr;
+   EoS.DensEint2Entr_FuncPtr = EoS_DensEint2Entr_CPUPtr;
    EoS.General_FuncPtr       = EoS_General_CPUPtr;
 #ifdef COSMIC_RAY
    EoS.CREint2CRPres_FuncPtr = EoS_CREint2CRPres_CPUPtr;
