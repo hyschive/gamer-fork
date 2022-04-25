@@ -75,6 +75,7 @@ double M_inj[3], P_inj[3], E_inj[3]; // the injected density
 
 double E_inj_exp[3];
 double dt_base;
+double E_power_inj[3];
 
 //-------------------------------------------------------------------------------------------------------
 // Function    :  Flu_ResetByUser_Func_ClusterMerger
