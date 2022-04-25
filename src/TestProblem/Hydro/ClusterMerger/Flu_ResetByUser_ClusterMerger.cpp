@@ -180,6 +180,7 @@ bool Flu_ResetByUser_Func_ClusterMerger( real fluid[], const double x, const dou
 //         P_inj[c] *= fluid[DENS];
 //         P_inj[c] = sqrt(2*E_inj[c]*fluid[DENS]);
 //         P_inj[c] = sqrt(2*(fluid[ENGY]+E_inj[c])*fluid[DENS])-sqrt(2*fluid[ENGY]*fluid[DENS]);
+         P_inj[c] = -sqrt(SQR(fluid[MOMX])+SQR(fluid[MOMY])+SQR(fluid[MOMZ]))+sqrt((SQR(fluid[MOMX])+SQR(fluid[MOMY])+SQR(fluid[MOMZ]))+2*E_inj[c]*fluid[DENS]);
 
 //         double EngSin;
 //         EngSin = E_inj[c]*0.5*M_PI*sin( Jet_WaveK[c]*Jet_dh );
