@@ -45,6 +45,12 @@ extern double SoundSpeed[3];
 extern double GasDens[3];
 extern double RelativeVel[3]; // the relative velocity between BH and gas
 
+// check the injection
+double DENS_org[3];
+double MOMX_org[3];
+double MOMXabs_org[3];
+double ENGY_org[3];
+
 double ClusterCen[3][3] = {  { NULL_REAL, NULL_REAL, NULL_REAL }, // cluster center       
                              { NULL_REAL, NULL_REAL, NULL_REAL },
                              { NULL_REAL, NULL_REAL, NULL_REAL }  };  
@@ -181,6 +187,8 @@ bool Flu_ResetByUser_Func_ClusterMerger( real fluid[], const double x, const dou
 //         P_inj[c] *= fluid[DENS];
 //         P_inj[c] = sqrt(2*E_inj[c]*fluid[DENS]);
 //         P_inj[c] = sqrt(2*(fluid[ENGY]+E_inj[c])*fluid[DENS])-sqrt(2*fluid[ENGY]*fluid[DENS]);
+
+//       Recipe 3
          P_inj[c] = -sqrt(SQR(fluid[MOMX])+SQR(fluid[MOMY])+SQR(fluid[MOMZ]))+sqrt((SQR(fluid[MOMX])+SQR(fluid[MOMY])+SQR(fluid[MOMZ]))+2*E_inj[c]*fluid[DENS]);
 
 //         double EngSin;
@@ -486,6 +494,11 @@ void Flu_ResetByUser_API_ClusterMerger( const int lv, const int FluSg, const dou
                   CM_Bondi_SinkEk[c]      += dv*(Ek_new[c]-Ek[c]);
                   CM_Bondi_SinkEt[c]      += dv*(Et_new[c]-Et[c]);
                   CM_Bondi_SinkNCell[c]   ++;
+
+                  DENS_org[c] += dv*fluid_bk[DENS];
+                  MOMX_org[c] += dv*fluid_bk[MOMX];
+                  ENGY_org[c] += dv*fluid_bk[ENGY];
+                  MOMXabs_org[c] += dv*FABS(fluid_bk[MOMX]);
                } // for (int c=0; c<Merger_Coll_NumHalos; c++)
             }
          } // if ( Reset )
