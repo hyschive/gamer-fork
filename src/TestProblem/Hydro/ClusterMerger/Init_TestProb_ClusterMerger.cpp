@@ -237,9 +237,6 @@ void SetParameter()
    ReadPara->Add( "Merger_Coll_VelY3",      &Merger_Coll_VelY3,     -1.0,              NoMin_double,  NoMax_double   );
    ReadPara->Add( "Merger_Coll_UseMetals",  &Merger_Coll_UseMetals,  true,             Useless_bool,  Useless_bool   );
    ReadPara->Add( "Merger_Coll_LabelCenter",&Merger_Coll_LabelCenter,true,             Useless_bool,  Useless_bool   );
-   ReadPara->Add( "Merger_Coll_ColorRad1",  &Merger_Coll_ColorRad1,  -1.0,             NoMin_double,  NoMax_double   );
-   ReadPara->Add( "Merger_Coll_ColorRad2",  &Merger_Coll_ColorRad2,  -1.0,             NoMin_double,  NoMax_double   );
-   ReadPara->Add( "Merger_Coll_ColorRad3",  &Merger_Coll_ColorRad3,  -1.0,             NoMin_double,  NoMax_double   );
    ReadPara->Add( "Bondi_MassBH1",          &Bondi_MassBH1,          -1.0,             Eps_double,    NoMax_double   );
    ReadPara->Add( "Bondi_MassBH2",          &Bondi_MassBH2,          -1.0,             Eps_double,    NoMax_double   );
    ReadPara->Add( "Bondi_MassBH3",          &Bondi_MassBH3,          -1.0,             Eps_double,    NoMax_double   );
@@ -280,9 +277,6 @@ void SetParameter()
    Merger_Coll_VelY2 *= (Const_km/Const_s) / UNIT_V;
    Merger_Coll_VelX3 *= (Const_km/Const_s) / UNIT_V;
    Merger_Coll_VelY3 *= (Const_km/Const_s) / UNIT_V;
-   Merger_Coll_ColorRad1 *= Const_kpc / UNIT_L;
-   Merger_Coll_ColorRad2 *= Const_kpc / UNIT_L;
-   Merger_Coll_ColorRad3 *= Const_kpc / UNIT_L;
    Bondi_MassBH1     *= Const_Msun/UNIT_M;
    Bondi_MassBH2     *= Const_Msun/UNIT_M;
    Bondi_MassBH3     *= Const_Msun/UNIT_M;
@@ -738,7 +732,7 @@ void Init_TestProb_Hydro_ClusterMerger()
    Aux_Record_User_Ptr            = Aux_Record_ClusterMerger;
    Par_Init_ByFunction_Ptr        = Par_Init_ByFunction_ClusterMerger;
    Init_Field_User_Ptr            = AddNewField_ClusterMerger;
-   Par_Init_Attribute_User_Ptr    = AddNewParticleAttribute_ClusterMerger;
+   //Par_Init_Attribute_User_Ptr    = AddNewParticleAttribute_ClusterMerger;
 
    Flu_ResetByUser_Func_Ptr       = Flu_ResetByUser_Func_ClusterMerger;
    Flu_ResetByUser_API_Ptr        = Flu_ResetByUser_API_ClusterMerger;

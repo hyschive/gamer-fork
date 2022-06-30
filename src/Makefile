@@ -148,7 +148,7 @@ SIMU_OPTION += -DSTORE_PAR_ACC
 
 # number of user-defined particle attributes
 # --> set it to 0 or comment it out if none is required
-SIMU_OPTION += -DPAR_NATT_USER=1
+SIMU_OPTION += -DPAR_NATT_USER=0
 endif # PARTICLE
 
 

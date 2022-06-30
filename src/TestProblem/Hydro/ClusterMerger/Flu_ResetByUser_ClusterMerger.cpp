@@ -303,7 +303,7 @@ void Flu_ResetByUser_API_ClusterMerger( const int lv, const int FluSg, const dou
                                              EoS_DensEint2Pres_CPUPtr, EoS_AuxArray_Flt,
                                              EoS_AuxArray_Int, h_EoS_Table, NULL );
                Cs += sqrt(  EoS_DensPres2CSqr_CPUPtr( fluid[0], Pres, NULL, EoS_AuxArray_Flt, EoS_AuxArray_Int,
-                                                      h_EoS_Table, NULL )  );
+                                                      h_EoS_Table )  );
                for (int d=0; d<3; d++)  GasVel[c][d] += fluid[d+1];
                num += 1.0;
             }
@@ -455,12 +455,10 @@ void Flu_ResetByUser_API_ClusterMerger( const int lv, const int FluSg, const dou
             fluid[ENGY] = Hydro_CheckMinEintInEngy( fluid[DENS], fluid[MOMX], fluid[MOMY], fluid[MOMZ], fluid[ENGY],
                                                     (real)MIN_EINT, Emag );
 
-//          calculate the dual-energy variable (entropy or internal energy)
-#           if   ( DUAL_ENERGY == DE_ENPY )
-            fluid[ENPY] = Hydro_Con2Entropy( fluid[DENS], fluid[MOMX], fluid[MOMY], fluid[MOMZ], fluid[ENGY], Emag,
-                                             EoS_DensEint2Pres_CPUPtr, EoS_AuxArray_Flt, EoS_AuxArray_Int, h_EoS_Table );
-#           elif ( DUAL_ENERGY == DE_EINT )
-#           error : DE_EINT is NOT supported yet !!
+//          calculate the dual-energy variable
+#           ifdef DUAL_ENERGY
+            fluid[DUAL] = Hydro_Con2Dual( fluid[DENS], fluid[MOMX], fluid[MOMY], fluid[MOMZ], fluid[ENGY], Emag,
+                                          EoS_DensEint2Pres_CPUPtr, EoS_AuxArray_Flt, EoS_AuxArray_Int, h_EoS_Table );
 #           endif
 
 //          floor and normalize passive scalars
