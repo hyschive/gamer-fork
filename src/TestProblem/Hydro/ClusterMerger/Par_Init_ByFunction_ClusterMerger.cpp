@@ -6,8 +6,6 @@
 
 #include <string>
 
-#define PTYPE_CEN    100   // particle type for Merger_Coll_LabelCenter
-                           // --> the particle closest to the center of x-th cluster is labeled as "PTYPE_CEN + x"
 
 // floating-point type in the input particle file
 typedef double real_par_in;
@@ -31,7 +29,6 @@ extern double  Merger_Coll_VelX3;
 extern double  Merger_Coll_VelY3;
 extern bool    Merger_Coll_LabelCenter;
 
-extern FieldIdx_t ParTypeIdx;
 
 // variables that need to be record in Record__Center
 // =======================================================================================
@@ -75,7 +72,7 @@ extern double E_power_inj[3];
 
 // =======================================================================================
 
-#ifdef PARTICLE
+#ifdef MASSIVE_PARTICLES
 long Read_Particle_Number_ClusterMerger(std::string filename);
 void Read_Particles_ClusterMerger(std::string filename, long offset, long num,
                                   real_par_in xpos[], real_par_in ypos[],
@@ -115,18 +112,19 @@ void GetClusterCenter( double Cen[][3], double BH_Vel[][3] );
 //                ParPosX/Y/Z   : Particle position array with the size of NPar_ThisRank
 //                ParVelX/Y/Z   : Particle velocity array with the size of NPar_ThisRank
 //                ParTime       : Particle time     array with the size of NPar_ThisRank
+//                ParType       : Particle type     array with the size of NPar_ThisRank
 //                AllAttribute  : Pointer array for all particle attributes
 //                                --> Dimension = [PAR_NATT_TOTAL][NPar_ThisRank]
 //                                --> Use the attribute indices defined in Field.h (e.g., Idx_ParCreTime)
 //                                    to access the data
 //
-// Return      :  ParMass, ParPosX/Y/Z, ParVelX/Y/Z, ParTime, AllAttribute
+// Return      :  ParMass, ParPosX/Y/Z, ParVelX/Y/Z, ParTime, ParType, AllAttribute
 //-------------------------------------------------------------------------------------------------------
 
 void Par_Init_ByFunction_ClusterMerger( const long NPar_ThisRank, const long NPar_AllRank,
                                         real *ParMass, real *ParPosX, real *ParPosY, real *ParPosZ,
                                         real *ParVelX, real *ParVelY, real *ParVelZ, real *ParTime,
-                                        real *AllAttribute[PAR_NATT_TOTAL] )
+                                        real *ParType, real *AllAttribute[PAR_NATT_TOTAL] )
 {
 
 #ifdef SUPPORT_HDF5
@@ -244,6 +242,15 @@ void Par_Init_ByFunction_ClusterMerger( const long NPar_ThisRank, const long NPa
       Read_Particles_ClusterMerger( filenames[c], Offset[c], NPar_ThisRank_EachCluster[c],
                                     xpos, ypos, zpos, xvel, yvel, zvel, mass, ptype );
 
+#     ifndef TRACER
+      for (long p=0; p<NPar_ThisRank_EachCluster[c]; p++) {
+         if ( ptype[p] == PTYPE_TRACER )
+            Aux_Error( ERROR_INFO,
+"Tracer particles were found in the input data for cluster %d, but TRACER is not defined!\n",
+                       c );
+      }
+#     endif
+
       if ( MPI_Rank == 0 ) Aux_Message( stdout, "done\n" );
 
       // store data to the particle repository
@@ -270,23 +277,35 @@ void Par_Init_ByFunction_ClusterMerger( const long NPar_ThisRank, const long NPa
          // particle index offset
          const long pp = p + coffset;
 
+         // set the particle type
+         ParType[pp] = real( ptype[p] );
+
          // --> convert to code unit before storing to the particle repository to avoid floating-point overflow
          // --> we have assumed that the loaded data are in cgs
-         ParMass[pp] = real( mass[p] / UNIT_M );
 
          ParPosX[pp] = real( xpos[p] / UNIT_L );
          ParPosY[pp] = real( ypos[p] / UNIT_L );
          ParPosZ[pp] = real( zpos[p] / UNIT_L );
 
-         ParVelX[pp] = real( xvel[p] / UNIT_V );
-         ParVelY[pp] = real( yvel[p] / UNIT_V );
-         ParVelZ[pp] = real( zvel[p] / UNIT_V );
+         if ( ptype[p] == PTYPE_TRACER ) {
+            // tracer particles have zero mass
+            // and their velocities will be set by
+            // the grid later
+            ParMass[pp] = 0.0;
+            ParVelX[pp] = 0.0;
+            ParVelY[pp] = 0.0;
+            ParVelX[pp] = 0.0;
+         } else {
+            // For massive particles get their mass
+            // and velocity
+            ParMass[pp] = real( mass[p] / UNIT_M );
+            ParVelX[pp] = real( xvel[p] / UNIT_V );
+            ParVelY[pp] = real( yvel[p] / UNIT_V );
+            ParVelZ[pp] = real( zvel[p] / UNIT_V );
+         }
 
          // synchronize all particles to the physical time at the base level
          ParTime[pp] = Time[0];
-
-         // set the particle type
-         AllAttribute[ParTypeIdx][pp] = real( ptype[p] );
 
       }
 
@@ -316,8 +335,10 @@ void Par_Init_ByFunction_ClusterMerger( const long NPar_ThisRank, const long NPa
       = { Merger_Coll_PosX3, Merger_Coll_PosY3, amr->BoxCenter[2] };
 
    for (long p=0; p<NPar_ThisRank_EachCluster[0]; p++) {
-      ParVelX[p] += Merger_Coll_VelX1;
-      ParVelY[p] += Merger_Coll_VelY1;
+      if ( (int)ParType[p] != PTYPE_TRACER ) {
+         ParVelX[p] += Merger_Coll_VelX1;
+         ParVelY[p] += Merger_Coll_VelY1;
+      }
       for (int d=0; d<3; d++)
          ParPos[d][p] += ClusterCenter1[d];
    }
@@ -325,8 +346,10 @@ void Par_Init_ByFunction_ClusterMerger( const long NPar_ThisRank, const long NPa
    // NO reset particle mass 
 
    for (long p=NPar_ThisRank_EachCluster[0]; p<NPar_ThisRank_EachCluster[0]+NPar_ThisRank_EachCluster[1]; p++) {
-      ParVelX[p] += Merger_Coll_VelX2;
-      ParVelY[p] += Merger_Coll_VelY2;
+      if ( (int)ParType[p] != PTYPE_TRACER ) {
+         ParVelX[p] += Merger_Coll_VelX2;
+         ParVelY[p] += Merger_Coll_VelY2;
+      }
       for (int d=0; d<3; d++)
          ParPos[d][p] += ClusterCenter2[d];
    }
@@ -335,8 +358,10 @@ void Par_Init_ByFunction_ClusterMerger( const long NPar_ThisRank, const long NPa
 
 
    for (long p=NPar_ThisRank_EachCluster[0]+NPar_ThisRank_EachCluster[1]; p<NPar_ThisRank; p++) {
-      ParVelX[p] += Merger_Coll_VelX3;
-      ParVelY[p] += Merger_Coll_VelY3;
+      if ( (int)ParType[p] != PTYPE_TRACER ) {
+         ParVelX[p] += Merger_Coll_VelX3;
+         ParVelY[p] += Merger_Coll_VelY3;
+      }
       for (int d=0; d<3; d++)
          ParPos[d][p] += ClusterCenter3[d];
    }
@@ -377,7 +402,7 @@ void Par_Init_ByFunction_ClusterMerger( const long NPar_ThisRank, const long NPa
          int    NFound_ThisRank=0, NFound_AllRank;
          MPI_Allreduce( &min_r, &min_r_allrank, 1, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD );
          if ( min_r == min_r_allrank ) {
-            AllAttribute[ParTypeIdx][min_pidx] = PTYPE_CEN + c;
+            ParType[min_pidx] = PTYPE_CEN + c;
             NFound_ThisRank = 1;
          }
 
@@ -795,7 +820,7 @@ void GetClusterCenter( double Cen[][3], double BH_Vel[][3] )
       double Cen_Tmp[3] = { -__FLT_MAX__, -__FLT_MAX__, -__FLT_MAX__ };   // set to -inf
       double Vel_Tmp[3] = { -__FLT_MAX__, -__FLT_MAX__, -__FLT_MAX__ };
       for (long p=0; p<amr->Par->NPar_AcPlusInac; p++) {
-         if ( amr->Par->Attribute[ParTypeIdx][p] == real(PTYPE_CEN+c) ) {
+         if ( amr->Par->Type[p] == real(PTYPE_CEN+c) ) {
             for (int d=0; d<3; d++) Cen_Tmp[d] = ParPos[d][p];
             for (int d=0; d<3; d++) Vel_Tmp[d] = ParVel[d][p];
             break;
@@ -808,4 +833,4 @@ void GetClusterCenter( double Cen[][3], double BH_Vel[][3] )
 
 } // FUNCTION : GetClusterCenter
 
-#endif // #ifdef PARTICLE
+#endif // #ifdef MASSIVE_PARTICLES

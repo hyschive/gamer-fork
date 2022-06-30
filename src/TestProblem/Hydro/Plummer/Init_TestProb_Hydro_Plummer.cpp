@@ -27,11 +27,11 @@ static FieldIdx_t Plummer_Idx_Cloud1 = Idx_Undefined;
 // =======================================================================================
 
 // problem-specific function prototypes
-#ifdef PARTICLE
+#ifdef MASSIVE_PARTICLES
 void Par_Init_ByFunction_Plummer( const long NPar_ThisRank, const long NPar_AllRank,
                                   real *ParMass, real *ParPosX, real *ParPosY, real *ParPosZ,
                                   real *ParVelX, real *ParVelY, real *ParVelZ, real *ParTime,
-                                  real *AllAttribute[PAR_NATT_TOTAL] );
+                                  real *ParType, real *AllAttribute[PAR_NATT_TOTAL] );
 #endif
 void Init_ExtAcc_Plummer();
 void Init_ExtPot_Plummer();
@@ -409,8 +409,8 @@ void SetGridIC( real fluid[], const double x, const double y, const double z, co
 
 // compute the total gas energy
    Eint = EoS_DensPres2Eint_CPUPtr( Dens, Pres, NULL, EoS_AuxArray_Flt,
-                                    EoS_AuxArray_Int, h_EoS_Table, NULL ); // assuming EoS requires no passive scalars
-   Etot = Hydro_ConEint2Etot( Dens, MomX, MomY, MomZ, Eint, 0.0 );         // do NOT include magnetic energy here
+                                    EoS_AuxArray_Int, h_EoS_Table );   // assuming EoS requires no passive scalars
+   Etot = Hydro_ConEint2Etot( Dens, MomX, MomY, MomZ, Eint, 0.0 );     // do NOT include magnetic energy here
 
 // set the output array
    fluid[DENS] = Dens;
@@ -478,13 +478,13 @@ void Init_TestProb_Hydro_Plummer()
 
    Init_Function_User_Ptr  = SetGridIC;
    Init_Field_User_Ptr     = AddNewField_Plummer;
-#  ifdef PARTICLE
-   Par_Init_ByFunction_Ptr = Par_Init_ByFunction_Plummer;
-#  endif
 #  ifdef GRAVITY
    Init_ExtAcc_Ptr         = Init_ExtAcc_Plummer;
    if ( OPT__EXT_POT == EXT_POT_FUNC )
    Init_ExtPot_Ptr         = Init_ExtPot_Plummer;
+#  ifdef MASSIVE_PARTICLES
+   Par_Init_ByFunction_Ptr  = Par_Init_ByFunction_Plummer;
+#  endif
 #  endif
 #  endif // #if ( MODEL == HYDRO )
 

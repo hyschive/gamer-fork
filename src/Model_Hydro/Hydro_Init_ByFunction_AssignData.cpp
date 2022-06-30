@@ -85,7 +85,7 @@ void Init_Function_User_Template( real fluid[], const double x, const double y, 
    MomX = Dens*Vx;
    MomY = Dens*Vy;
    MomZ = Dens*Vz;
-   Eint = EoS_DensPres2Eint_CPUPtr( Dens, Pres, Passive, EoS_AuxArray_Flt, EoS_AuxArray_Int, h_EoS_Table, NULL );
+   Eint = EoS_DensPres2Eint_CPUPtr( Dens, Pres, Passive, EoS_AuxArray_Flt, EoS_AuxArray_Int, h_EoS_Table );
    Etot = Hydro_ConEint2Etot( Dens, MomX, MomY, MomZ, Eint, Emag0 );
 
 // store the results
@@ -275,11 +275,9 @@ void Hydro_Init_ByFunction_AssignData( const int lv )
                                                  MIN_EINT, Emag );
 
 //       calculate the dual-energy variable (entropy or internal energy)
-#        if   ( DUAL_ENERGY == DE_ENPY )
-         fluid[ENPY] = Hydro_Con2Entropy( fluid[DENS], fluid[MOMX], fluid[MOMY], fluid[MOMZ], fluid[ENGY], Emag,
-                                          EoS_DensEint2Pres_CPUPtr, EoS_AuxArray_Flt, EoS_AuxArray_Int, h_EoS_Table );
-#        elif ( DUAL_ENERGY == DE_EINT )
-#        error : DE_EINT is NOT supported yet !!
+#        ifdef DUAL_ENERGY
+         fluid[DUAL] = Hydro_Con2Dual( fluid[DENS], fluid[MOMX], fluid[MOMY], fluid[MOMZ], fluid[ENGY], Emag,
+                                       EoS_DensEint2Pres_CPUPtr, EoS_AuxArray_Flt, EoS_AuxArray_Int, h_EoS_Table );
 #        endif
 
 //       floor and normalize passive scalars
