@@ -83,6 +83,10 @@ double E_inj_exp[3];
 double dt_base;
 double E_power_inj[3];
 
+
+// A temporate parameter to choose the feedback recipe
+const int Recipe = 1;
+
 //-------------------------------------------------------------------------------------------------------
 // Function    :  Flu_ResetByUser_Func_ClusterMerger
 // Description :  Function to reset the fluid field in the Bondi accretion problem
@@ -180,16 +184,44 @@ bool Flu_ResetByUser_Func_ClusterMerger( real fluid[], const double x, const dou
       if ( Jet_dh <= Jet_HalfHeight[c]  &&  Jet_dr <= Jet_Radius[c] )
       {
 
-//         P_inj[c] = sqrt(2*E_inj[c]*fluid[DENS]); 
 //       reset the fluid variables within the jet source
          fluid[DENS] += M_inj[c];
 
-//         P_inj[c] *= fluid[DENS];
-//         P_inj[c] = sqrt(2*E_inj[c]*fluid[DENS]);
-//         P_inj[c] = sqrt(2*(fluid[ENGY]+E_inj[c])*fluid[DENS])-sqrt(2*fluid[ENGY]*fluid[DENS]);
+         if ( Recipe == 1 ){
+            MomSin       = P_inj[c]*sqrt(2.0)*sin( Jet_WaveK[c]*Jet_dh );
+            MomSin      *= SIGN( Vec_c2m[0]*Jet_Vec[c][0] + Vec_c2m[1]*Jet_Vec[c][1] + Vec_c2m[2]*Jet_Vec[c][2] );
+            fluid[MOMX] += MomSin*Jet_Vec[c][0];
+            fluid[MOMY] += MomSin*Jet_Vec[c][1];
+            fluid[MOMZ] += MomSin*Jet_Vec[c][2];
 
-//       Recipe 3
-         P_inj[c] = -sqrt(SQR(fluid[MOMX])+SQR(fluid[MOMY])+SQR(fluid[MOMZ]))+sqrt((SQR(fluid[MOMX])+SQR(fluid[MOMY])+SQR(fluid[MOMZ]))+2*E_inj[c]*fluid[DENS]);
+            fluid[ENGY] += E_inj[c];
+         }
+
+         else if ( Recipe == 2 ){
+            P_inj[c] = sqrt(2*E_inj[c]*fluid[DENS]); 
+
+            MomSin       = P_inj[c]*sqrt(2.0)*sin( Jet_WaveK[c]*Jet_dh );
+            MomSin      *= SIGN( Vec_c2m[0]*Jet_Vec[c][0] + Vec_c2m[1]*Jet_Vec[c][1] + Vec_c2m[2]*Jet_Vec[c][2] );
+            fluid[MOMX] += MomSin*Jet_Vec[c][0];
+            fluid[MOMY] += MomSin*Jet_Vec[c][1];
+            fluid[MOMZ] += MomSin*Jet_Vec[c][2];
+
+            fluid[ENGY] += 0.5*((SQR(fluid[MOMX])+SQR(fluid[MOMY])+SQR(fluid[MOMZ]))/fluid[DENS]-(SQR(fluid[MOMX]-MomSin*Jet_Vec[c][0])+SQR(fluid[MOMY]-MomSin*Jet_Vec[c][1])+SQR(fluid[MOMZ]-MomSin*Jet_Vec[c][2]))/(fluid[DENS]-M_inj[c]));
+         }
+
+         else if ( Recipe == 3 ){
+            P_inj[c] = -sqrt(SQR(fluid[MOMX])+SQR(fluid[MOMY])+SQR(fluid[MOMZ]))+sqrt((SQR(fluid[MOMX])+SQR(fluid[MOMY])+SQR(fluid[MOMZ]))+2*E_inj[c]*fluid[DENS]);
+
+            MomSin       = P_inj[c]*sqrt(2.0)*sin( Jet_WaveK[c]*Jet_dh );
+            MomSin      *= SIGN( Vec_c2m[0]*Jet_Vec[c][0] + Vec_c2m[1]*Jet_Vec[c][1] + Vec_c2m[2]*Jet_Vec[c][2] );
+            fluid[MOMX] += MomSin*Jet_Vec[c][0];
+            fluid[MOMY] += MomSin*Jet_Vec[c][1];
+            fluid[MOMZ] += MomSin*Jet_Vec[c][2];
+
+            fluid[ENGY] += 0.5*((SQR(fluid[MOMX])+SQR(fluid[MOMY])+SQR(fluid[MOMZ]))/fluid[DENS]-(SQR(fluid[MOMX]-MomSin*Jet_Vec[c][0])+SQR(fluid[MOMY]-MomSin*Jet_Vec[c][1])+SQR(fluid[MOMZ]-MomSin*Jet_Vec[c][2]))/(fluid[DENS]-M_inj[c]));
+         }
+
+//         P_inj[c] = sqrt(2*(fluid[ENGY]+E_inj[c])*fluid[DENS])-sqrt(2*fluid[ENGY]*fluid[DENS]);
 
 //         double EngSin;
 //         EngSin = E_inj[c]*0.5*M_PI*sin( Jet_WaveK[c]*Jet_dh );
@@ -199,11 +231,6 @@ bool Flu_ResetByUser_Func_ClusterMerger( real fluid[], const double x, const dou
 //       use a sine function to make the velocity smooth within the jet from +Jet_Vec to -Jet_Vec
 //         MomSin       = P_inj[c]*0.3*sin( Jet_WaveK[c]*Jet_dh );
 
-         MomSin       = P_inj[c]*sqrt(2.0)*sin( Jet_WaveK[c]*Jet_dh ); 
-         MomSin      *= SIGN( Vec_c2m[0]*Jet_Vec[c][0] + Vec_c2m[1]*Jet_Vec[c][1] + Vec_c2m[2]*Jet_Vec[c][2] );
-         fluid[MOMX] += MomSin*Jet_Vec[c][0];
-         fluid[MOMY] += MomSin*Jet_Vec[c][1];
-         fluid[MOMZ] += MomSin*Jet_Vec[c][2];
 
 //         double MOMX_old, MOMY_old, MOMZ_old;
 //         MOMX_old = fluid[MOMX];
@@ -215,8 +242,6 @@ bool Flu_ResetByUser_Func_ClusterMerger( real fluid[], const double x, const dou
 //         fluid[MOMZ] = sqrt(2*(fluid[ENGY]+EngSin)*fluid[DENS])*Jet_Vec[c][2]*SIGN( Vec_c2m[0]*Jet_Vec[c][0] + Vec_c2m[1]*Jet_Vec[c][1] + Vec_c2m[2]*Jet_Vec[c][2] );
 //
 //         fluid[ENGY] += 0.5*((SQR(fluid[MOMX])+SQR(fluid[MOMY])+SQR(fluid[MOMZ]))-(SQR(MOMX_old)+SQR(MOMY_old)+SQR(MOMZ_old)))/fluid[DENS];
-         fluid[ENGY] += 0.5*((SQR(fluid[MOMX])+SQR(fluid[MOMY])+SQR(fluid[MOMZ]))-(SQR(fluid[MOMX]-MomSin*Jet_Vec[c][0])+SQR(fluid[MOMY]-MomSin*Jet_Vec[c][1])+SQR(fluid[MOMZ]-MomSin*Jet_Vec[c][2])))/fluid[DENS]; 
-//         fluid[ENGY] += E_inj[c];
 
 //       return immediately since we do NOT allow different jet source to overlap
          return true;
@@ -280,7 +305,7 @@ void Flu_ResetByUser_API_ClusterMerger( const int lv, const int FluSg, const dou
       double Cs = 0.0;  // the average sound speed inside accretion radius
       double v = 0.0;  // the relative velocity between BH and gas
       double num = 0.0;  // the number of cells inside accretion radius
- 
+
       for (int PID=0; PID<amr->NPatchComma[lv][1]; PID++)
       {
          x0 = amr->patch[0][lv][PID]->EdgeL[0] + 0.5*dh;
@@ -296,7 +321,7 @@ void Flu_ResetByUser_API_ClusterMerger( const int lv, const int FluSg, const dou
             }
 //          calculate the average density, sound speed and gas velocity inside accretion radius
             if (SQR(x-ClusterCen[c][0])+SQR(y-ClusterCen[c][1])+SQR(z-ClusterCen[c][2]) <= SQR(R_acc)){
-               rho += fluid[0];
+               rho += fluid[0]*dv;
                Pres = (real) Hydro_Con2Pres( fluid[0], fluid[1], fluid[2], fluid[3],
                                              fluid[4], fluid+NCOMP_FLUID,
                                              CheckMinPres_No, NULL_REAL, NULL_REAL,
@@ -304,7 +329,7 @@ void Flu_ResetByUser_API_ClusterMerger( const int lv, const int FluSg, const dou
                                              EoS_AuxArray_Int, h_EoS_Table, NULL );
                Cs += sqrt(  EoS_DensPres2CSqr_CPUPtr( fluid[0], Pres, NULL, EoS_AuxArray_Flt, EoS_AuxArray_Int,
                                                       h_EoS_Table )  );
-               for (int d=0; d<3; d++)  GasVel[c][d] += fluid[d+1];
+               for (int d=0; d<3; d++)  GasVel[c][d] += fluid[d+1]*dv;
                num += 1.0;
             }
          }}}
@@ -317,7 +342,7 @@ void Flu_ResetByUser_API_ClusterMerger( const int lv, const int FluSg, const dou
       }
       else{
          for (int d=0; d<3; d++)  GasVel[c][d] /= rho;
-         rho /= num;
+         rho /= (4.0/3.0*M_PI*pow(R_acc,3));
          Cs /= num;
          for (int d=0; d<3; d++)  v += SQR(BH_Vel[c][d]-GasVel[c][d]);
 
@@ -327,6 +352,7 @@ void Flu_ResetByUser_API_ClusterMerger( const int lv, const int FluSg, const dou
          SoundSpeed[c] = Cs;
          RelativeVel[c] = sqrt(v);
       }
+
    } // for (int c=0; c<Merger_Coll_NumHalos; c++)
 
    Mdot_BH1 = Mdot_BH[0];                            
@@ -357,12 +383,15 @@ void Flu_ResetByUser_API_ClusterMerger( const int lv, const int FluSg, const dou
 
 //    calculate the density that need to be injected
       M_inj[c] = Mdot[c]*dt/V_cyl[c];
+      P_inj[c] = Pdot[c]*dt/V_cyl[c];
       E_inj[c] = Edot[c]*dt/V_cyl[c];
-      P_inj[c] = sqrt(2*E_inj[c]*GasDens[c]);
+//      P_inj[c] = sqrt(2*E_inj[c]*GasDens[c]);
       Jet_WaveK[c] = 0.5*M_PI/Jet_HalfHeight[c];
    } 
 
    if ( lv == 0 )  dt_base = dt;
+
+   Aux_Message( stdout, "Time = %g, lv = %d, GasDens = %14.8e\n", TimeNew, lv, GasDens[0]*UNIT_D/(Const_Msun/pow(Const_kpc,3)) );
 
    if ( lv == MAX_LEVEL ){
 
