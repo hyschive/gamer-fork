@@ -111,8 +111,11 @@ void Init_Field()
 //    corresponding symbolic constants (e.g., DUAL/CRAY) defined in Macro.h
 //    --> as we still rely on these constants (e.g., DENS, DUAL) in the fluid solvers
 #  if ( EOS == EOS_NUCLEAR )
-   Idx_Ye   = AddField( "Ye",   NORMALIZE_NO, INTERP_FRAC_YES );
+   Idx_Ye      = AddField( "Ye",      NORMALIZE_NO, INTERP_FRAC_YES );
    if ( Idx_Ye   != YE )      Aux_Error( ERROR_INFO, "inconsistent Idx_Ye   (%d != %d) !!\n", Idx_Ye,   YE   );
+   Idx_Temp_IG = AddField( "Temp_IG", NORMALIZE_NO, INTERP_FRAC_NO  );
+   if ( Idx_Temp_IG != TEMP_IG )      Aux_Error( ERROR_INFO, "inconsistent Idx_Temp_IG   (%d != %d) !!\n", Idx_Temp_IG,   TEMP_IG );
+
 #  endif
 
 #  ifdef COSMIC_RAY

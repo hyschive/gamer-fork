@@ -146,6 +146,7 @@ static void Src_Deleptonization( real fluid[], const real B[],
 #  endif
 
    const double Kelvin2MeV      = Const_kB_eV*1.0e-6;
+   const double MeV2Kelvin      = 1.0/Kelvin2MeV;
    const real Delep_minDens_CGS = 1.0e6; // [g/cm^3]
 
    const real Dens2CGS     = AuxArray_Flt[SRC_AUX_DENS2CGS  ];
@@ -172,12 +173,15 @@ static void Src_Deleptonization( real fluid[], const real B[],
 
 
 // Deleptonization
-   const real Dens_Code = fluid[DENS];
-   const real Dens_CGS  = Dens_Code * Dens2CGS;
-   const real Eint_Code = Hydro_Con2Eint( fluid[DENS], fluid[MOMX], fluid[MOMY], fluid[MOMZ], fluid[ENGY], true, MinEint, Emag );
-         real Entr      = NULL_REAL; // entropy in kb/baryon
-         real Ye        = fluid[YE] / fluid[DENS];
-
+   const real Dens_Code   = fluid[DENS];
+   const real Dens_CGS    = Dens_Code * Dens2CGS;
+   const real Eint_Code   = Hydro_Con2Eint( fluid[DENS], fluid[MOMX], fluid[MOMY], fluid[MOMZ], fluid[ENGY], true, MinEint, Emag );
+         real Eint_Update = NULL_REAL;
+         real Entr        = NULL_REAL; // entropy in kb/baryon
+         real Ye          = fluid[YE] / fluid[DENS];
+#  if ( NUC_TABLE_MODE == NUC_TABLE_MODE_TEMP )
+         real Temp        = fluid[TEMP_IG];
+#  endif
    real Eint_Code_0 = Eint_Code;
    real Entr_0      = Entr;
    real Ye_0        = Ye;
@@ -203,11 +207,12 @@ static void Src_Deleptonization( real fluid[], const real B[],
       const int  NTarget1 = 3;
 #     endif
             int  In_Int1[NTarget1+1];
-            real In_Flt1[3], Out1[NTarget1+1];
+            real In_Flt1[4], Out1[NTarget1+1];
 
       In_Flt1[0] = Dens_Code;
       In_Flt1[1] = Eint_Code;
       In_Flt1[2] = Ye;
+      In_Flt1[3] = Temp;
 
       In_Int1[0] = NTarget1;
       In_Int1[1] = NUC_VAR_IDX_ENTR;
@@ -248,11 +253,12 @@ static void Src_Deleptonization( real fluid[], const real B[],
       const int  NTarget2 = 0;
 #     endif
             int  In_Int2[NTarget2+1];
-            real In_Flt2[3], Out2[NTarget2+1];
+            real In_Flt2[4], Out2[NTarget2+1];
 
       In_Flt2[0]  = Dens_Code;
       In_Flt2[1]  = Entr;
       In_Flt2[2]  = Ye;
+      In_Flt2[3]  = Temp_MeV * MeV2Kelvin;
 
       In_Int2[0]  = NTarget2;
 #     if ( NUC_TABLE_MODE == NUC_TABLE_MODE_TEMP )
@@ -261,21 +267,26 @@ static void Src_Deleptonization( real fluid[], const real B[],
 
 //    call Nuclear EoS with entropy mode
       EoS->General_FuncPtr( NUC_MODE_ENTR, Out2, In_Flt2, In_Int2, EoS->AuxArrayDevPtr_Flt, EoS->AuxArrayDevPtr_Int, EoS->Table );
-      const real Eint_Update = Out2[0];
+      Eint_Update = Out2[0];
       fluid[ENGY] = Hydro_ConEint2Etot( fluid[DENS], fluid[MOMX], fluid[MOMY], fluid[MOMZ], Eint_Update, Emag );
+   } else 
+   {
+//    overwrite internal energy with input data
+      Eint_Update = Eint_Code;
+   } // if ( Del_Ye < 0.0 ) ... else ...
 
+// store temperature for IG
+   fluid[TEMP_IG] = EoS->DensEint2Temp_FuncPtr( Dens_Code, Eint_Update, fluid+NCOMP_FLUID,
+                                                EoS->AuxArrayDevPtr_Flt, EoS->AuxArrayDevPtr_Int, EoS->Table );
 
 
 // final check
 #  if GAMER_DEBUG
    if (  Hydro_CheckUnphysical( UNPHY_MODE_SING, &Eint_Update, "output internal energy density", ERROR_INFO, UNPHY_VERBOSE )  )
    {
-      printf( "   Dens=%13.7e code units, Eint=%13.7e code units, Ye=%13.7e\n", Dens_Code, Eint_Code, Ye );
+      printf( "   Dens=%13.7e code units, Eint=%13.7e code units, Ye=%13.7e\n", Dens_Code, Eint_Update, Ye );
    }
 #  endif // GAMER_DEBUG
-
-   } // if ( Del_Ye < 0.0 )
-
 
 
 } // FUNCTION : Src_Deleptonization
@@ -473,7 +484,7 @@ void Src_Init_Deleptonization()
 void Src_End_Deleptonization()
 {
 
-// TBF
+// not used by this source term
 
 } // FUNCTION : Src_End_Deleptonization
 

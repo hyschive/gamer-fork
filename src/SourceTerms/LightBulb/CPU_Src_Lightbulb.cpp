@@ -149,6 +149,11 @@ static void Src_Lightbulb( real fluid[], const real B[],
 #  else
    const real Ye        = NULL_REAL;
 #  endif
+#  ifdef TEMP_IG
+   const real Temp_IG   = fluid[TEMP_IG];
+#  else
+   const real Temp_IG   = NULL_REAL;
+#  endif
 
 
 // 1. call nuclear EoS driver to obtain Xn, Xp, and temperature, using energy mode
@@ -158,11 +163,12 @@ static void Src_Lightbulb( real fluid[], const real B[],
    const int  NTarget = 3;
 #  endif
          int  In_Int[NTarget+1];
-         real In_Flt[3], Out[NTarget+1];
+         real In_Flt[4], Out[NTarget+1];
 
    In_Flt[0] = Dens_Code;
    In_Flt[1] = Eint_Code;
    In_Flt[2] = Ye;
+   In_Flt[3] = Temp_IG;
 
    In_Int[0] = NTarget;
    In_Int[1] = NUC_VAR_IDX_XN;
@@ -189,11 +195,13 @@ static void Src_Lightbulb( real fluid[], const real B[],
    const real rate_Code = ( rate_heating - rate_cooling ) * ( Xn + Xp ) * EXP( -tau );
 
 
-// 3. calculate the change in internal energy and update the input energy density
+// 3. calculate the change in internal energy and update the input energy density and temperature for initial guess
    const real dEint_Code  = rate_Code * dt * Dens_Code;
    const real Eint_Update = Eint_Code + dEint_Code;
 
-   fluid[ENGY] = Hydro_ConEint2Etot( fluid[DENS], fluid[MOMX], fluid[MOMY], fluid[MOMZ], Eint_Update, Emag );
+   fluid[ENGY]    = Hydro_ConEint2Etot( fluid[DENS], fluid[MOMX], fluid[MOMY], fluid[MOMZ], Eint_Update, Emag );
+   fluid[TEMP_IG] = EoS->DensEint2Temp_FuncPtr( Dens_Code, Eint_Update, fluid+NCOMP_FLUID,
+                                                EoS->AuxArrayDevPtr_Flt, EoS->AuxArrayDevPtr_Int, EoS->Table );
 
 
 // final check
