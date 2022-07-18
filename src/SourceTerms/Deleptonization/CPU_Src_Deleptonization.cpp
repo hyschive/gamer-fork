@@ -18,7 +18,7 @@
 #ifdef __CUDACC__
 
 #include "Global.h"
-#include "CUAPI.h"
+#include "PhysicalConstant.h"
 #include "CUDA_CheckError.h"
 #include "CUFLU_Shared_FluUtility.cu"
 #include "CUDA_ConstMemory.h"
