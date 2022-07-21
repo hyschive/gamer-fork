@@ -85,7 +85,7 @@ double E_power_inj[3];
 
 
 // A temporate parameter to choose the feedback recipe
-const int Recipe = 1;
+const int Recipe = 3;
 
 //-------------------------------------------------------------------------------------------------------
 // Function    :  Flu_ResetByUser_Func_ClusterMerger
@@ -157,7 +157,7 @@ bool Flu_ResetByUser_Func_ClusterMerger( real fluid[], const double x, const dou
    double Jet_dr, Jet_dh, S, Area;
    double Dis_c2m, Dis_c2v, Dis_v2m, Vec_c2m[3], Vec_v2m[3];
    double TempVec[3]; 
-   real   MomSin;
+   real   MomSin, EngySin;
 
    for (int c=0; c<Merger_Coll_NumHalos; c++)
    {
@@ -183,9 +183,23 @@ bool Flu_ResetByUser_Func_ClusterMerger( real fluid[], const double x, const dou
 
       if ( Jet_dh <= Jet_HalfHeight[c]  &&  Jet_dr <= Jet_Radius[c] )
       {
+//         fluid[MOMX] -= BH_Vel[c][0]*fluid[DENS];
+//         fluid[MOMY] -= BH_Vel[c][1]*fluid[DENS];
+//         fluid[MOMZ] -= BH_Vel[c][2]*fluid[DENS]; 
+
+//       Record the old momentum
+         double MOMX_old = fluid[MOMX];
+         double MOMY_old = fluid[MOMY];
+         double MOMZ_old = fluid[MOMZ];
 
 //       reset the fluid variables within the jet source
-         fluid[DENS] += M_inj[c];
+         fluid[DENS] += M_inj[c];      
+
+//       Transfer into BH frame
+         fluid[MOMX] -= BH_Vel[c][0]*fluid[DENS];
+         fluid[MOMY] -= BH_Vel[c][1]*fluid[DENS];
+         fluid[MOMZ] -= BH_Vel[c][2]*fluid[DENS]; 
+
 
          if ( Recipe == 1 ){
             MomSin       = P_inj[c]*sqrt(2.0)*sin( Jet_WaveK[c]*Jet_dh );
@@ -210,16 +224,41 @@ bool Flu_ResetByUser_Func_ClusterMerger( real fluid[], const double x, const dou
          }
 
          else if ( Recipe == 3 ){
-            P_inj[c] = -sqrt(SQR(fluid[MOMX])+SQR(fluid[MOMY])+SQR(fluid[MOMZ]))+sqrt((SQR(fluid[MOMX])+SQR(fluid[MOMY])+SQR(fluid[MOMZ]))+2*E_inj[c]*fluid[DENS]);
+//            P_inj[c] = -sqrt(SQR(fluid[MOMX])+SQR(fluid[MOMY])+SQR(fluid[MOMZ]))+sqrt((SQR(fluid[MOMX])+SQR(fluid[MOMY])+SQR(fluid[MOMZ]))+2*E_inj[c]*fluid[DENS]);
+            EngySin = E_inj[c]*0.5*M_PI*sin( Jet_WaveK[c]*Jet_dh );
 
-            MomSin       = P_inj[c]*sqrt(2.0)*sin( Jet_WaveK[c]*Jet_dh );
-            MomSin      *= SIGN( Vec_c2m[0]*Jet_Vec[c][0] + Vec_c2m[1]*Jet_Vec[c][1] + Vec_c2m[2]*Jet_Vec[c][2] );
-            fluid[MOMX] += MomSin*Jet_Vec[c][0];
-            fluid[MOMY] += MomSin*Jet_Vec[c][1];
-            fluid[MOMZ] += MomSin*Jet_Vec[c][2];
+            double P_SQR = SQR(fluid[MOMX])+SQR(fluid[MOMY])+SQR(fluid[MOMZ]);
+            double P_new = sqrt(2*fluid[DENS]*(EngySin+0.5*P_SQR/(fluid[DENS]-M_inj[c])));
 
-            fluid[ENGY] += 0.5*((SQR(fluid[MOMX])+SQR(fluid[MOMY])+SQR(fluid[MOMZ]))/fluid[DENS]-(SQR(fluid[MOMX]-MomSin*Jet_Vec[c][0])+SQR(fluid[MOMY]-MomSin*Jet_Vec[c][1])+SQR(fluid[MOMZ]-MomSin*Jet_Vec[c][2]))/(fluid[DENS]-M_inj[c]));
+//            MomSin       = P_inj[c]; //*0.5*M_PI*sin( Jet_WaveK[c]*Jet_dh ); //sqrt(2)
+//            MomSin      *= SIGN( Vec_c2m[0]*Jet_Vec[c][0] + Vec_c2m[1]*Jet_Vec[c][1] + Vec_c2m[2]*Jet_Vec[c][2] );
+            P_new *= SIGN( Vec_c2m[0]*Jet_Vec[c][0] + Vec_c2m[1]*Jet_Vec[c][1] + Vec_c2m[2]*Jet_Vec[c][2] );
+//            fluid[MOMX] += MomSin*Jet_Vec[c][0];
+//            fluid[MOMY] += MomSin*Jet_Vec[c][1];
+//            fluid[MOMZ] += MomSin*Jet_Vec[c][2];
+            fluid[MOMX] = P_new*Jet_Vec[c][0];
+            fluid[MOMY] = P_new*Jet_Vec[c][1];
+            fluid[MOMZ] = P_new*Jet_Vec[c][2];
+
+//          Transfer back into the rest frame  
+            fluid[MOMX] += BH_Vel[c][0]*fluid[DENS];
+            fluid[MOMY] += BH_Vel[c][1]*fluid[DENS];
+            fluid[MOMZ] += BH_Vel[c][2]*fluid[DENS]; 
+
+//            fluid[ENGY] += 0.5*((SQR(fluid[MOMX])+SQR(fluid[MOMY])+SQR(fluid[MOMZ]))/fluid[DENS]-(SQR(fluid[MOMX]-MomSin*Jet_Vec[c][0])+SQR(fluid[MOMY]-MomSin*Jet_Vec[c][1])+SQR(fluid[MOMZ]-MomSin*Jet_Vec[c][2]))/(fluid[DENS]-M_inj[c]));
+            fluid[ENGY] += 0.5*((SQR(fluid[MOMX])+SQR(fluid[MOMY])+SQR(fluid[MOMZ]))/fluid[DENS]-(SQR(MOMX_old)+SQR(MOMY_old)+SQR(MOMZ_old))/(fluid[DENS]-M_inj[c]));
+//            fluid[ENGY] += E_inj[c];
          }
+
+//            fluid[MOMX] += BH_Vel[c][0]*fluid[DENS];
+//            fluid[MOMY] += BH_Vel[c][1]*fluid[DENS];
+//            fluid[MOMZ] += BH_Vel[c][2]*fluid[DENS]; 
+
+
+////       Transfer back into the rest frame 
+//         fluid[MOMX] += GasVel[c][0]*fluid[DENS];
+//         fluid[MOMY] += GasVel[c][1]*fluid[DENS];
+//         fluid[MOMZ] += GasVel[c][2]*fluid[DENS]; 
 
 //         P_inj[c] = sqrt(2*(fluid[ENGY]+E_inj[c])*fluid[DENS])-sqrt(2*fluid[ENGY]*fluid[DENS]);
 
@@ -342,6 +381,7 @@ void Flu_ResetByUser_API_ClusterMerger( const int lv, const int FluSg, const dou
       }
       else{
          for (int d=0; d<3; d++)  GasVel[c][d] /= rho;
+//         Aux_Message( stdout, "Time = %g, lv = %d, Mass inside R_acc = %14.8e, dv = %14.8e\n", TimeNew, lv, rho*UNIT_M/Const_Msun, dv );
          rho /= (4.0/3.0*M_PI*pow(R_acc,3));
          Cs /= num;
          for (int d=0; d<3; d++)  v += SQR(BH_Vel[c][d]-GasVel[c][d]);
@@ -361,7 +401,10 @@ void Flu_ResetByUser_API_ClusterMerger( const int lv, const int FluSg, const dou
 
 // update BH mass    
    for (int c=0; c<Merger_Coll_NumHalos; c++) {
-      if ( lv == MAX_LEVEL )  Bondi_MassBH[c] += Mdot_BH[c]*dt;
+      if ( lv == MAX_LEVEL ){
+         Bondi_MassBH[c] += Mdot_BH[c]*dt;
+ //        Aux_Message( stdout, "Time = %g, dt = %14.8e, lv = %d, Mdot_BH = %14.8e\n", TimeNew, dt, lv, Mdot_BH[c]*UNIT_M/Const_Msun/UNIT_T*Const_yr);
+      }
    }
    Bondi_MassBH1 = Bondi_MassBH[0];
    Bondi_MassBH2 = Bondi_MassBH[1];
@@ -391,7 +434,7 @@ void Flu_ResetByUser_API_ClusterMerger( const int lv, const int FluSg, const dou
 
    if ( lv == 0 )  dt_base = dt;
 
-   Aux_Message( stdout, "Time = %g, lv = %d, GasDens = %14.8e\n", TimeNew, lv, GasDens[0]*UNIT_D/(Const_Msun/pow(Const_kpc,3)) );
+//   Aux_Message( stdout, "Time = %g, lv = %d, GasDens = %14.8e\n", TimeNew, lv, GasDens[0]*UNIT_D/(Const_Msun/pow(Const_kpc,3)) );
 
    if ( lv == MAX_LEVEL ){
 
@@ -443,6 +486,14 @@ void Flu_ResetByUser_API_ClusterMerger( const int lv, const int FluSg, const dou
 
 #  pragma omp parallel for private( Reset, fluid, fluid_bk, x, y, z, x0, y0, z0 ) schedule( runtime ) \
    reduction(+:CM_Bondi_SinkMass[0], CM_Bondi_SinkMomX[0], CM_Bondi_SinkMomY[0], CM_Bondi_SinkMomZ[0], CM_Bondi_SinkMomXAbs[0], CM_Bondi_SinkMomYAbs[0], CM_Bondi_SinkMomZAbs[0], CM_Bondi_SinkE[0], CM_Bondi_SinkEk[0], CM_Bondi_SinkEt[0], CM_Bondi_SinkNCell[0], CM_Bondi_SinkMass[1], CM_Bondi_SinkMomX[1], CM_Bondi_SinkMomY[1], CM_Bondi_SinkMomZ[1], CM_Bondi_SinkMomXAbs[1], CM_Bondi_SinkMomYAbs[1], CM_Bondi_SinkMomZAbs[1], CM_Bondi_SinkE[1], CM_Bondi_SinkEk[1], CM_Bondi_SinkEt[1], CM_Bondi_SinkNCell[1])
+
+// Reset the background conserved variables to zero
+   for (int c=0; c<Merger_Coll_NumHalos; c++){
+      DENS_org[c] = 0.0;
+      MOMX_org[c] = 0.0;
+      ENGY_org[c] = 0.0;
+      MOMXabs_org[c] = 0.0;
+   }
 
    for (int PID=0; PID<amr->NPatchComma[lv][1]; PID++)
    {
