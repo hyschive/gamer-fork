@@ -1,10 +1,10 @@
 # problem-specific runtime parameters
-CCSN_Prob        0                                 # target CCSN problem
+CCSN_Prob        2                                 # target CCSN problem
                                                    #    0 : GREP migration test
                                                    #    1 : Post bounce test
                                                    #    2 : Core collapse test
 
-CCSN_Prof_File   IC/tovstar_short                  # filename of input profile
+CCSN_Prof_File   IC/s20_W2007                      # filename of input profile
 
 CCSN_Mag         1                                 # target magnetic field profile                     [1]
                                                    # ( 0: Ap = B0* varpi^2 * (1 - rho / rho_max)^np * (P / P_max)
@@ -16,6 +16,11 @@ CCSN_Mag_R0      1.0e8                             # characteristic radius of ma
 CCSN_GW_OUTPUT   0                                 # output GW signal (0=off, 1=on)                    [0]
 CCSN_GW_DT       1.0                               # output interval of GW signal                      [1.0]
 
-CCSN_Eint_Mode   2                                 # Mode of obtaining internal energy in SetGridIC()  [2]
+CCSN_Eint_Mode   1                                 # Mode of obtaining internal energy in SetGridIC()  [2]
                                                    # ( 1=Temp Mode: Eint(dens, temp, [Ye])
                                                    #   2=Pres Mode: Eint(dens, pres, [Ye]) )
+
+CCSN_MaxRefine_RadFac  0.15                        # factor that determines the maximum refinement level based on distance from the box center  [0.15]
+CCSN_LB_TimeFac        0.10                        # factor that scales the dt constrained by lightbulb scheme  [0.1]
+
+CCSN_Is_PostBounce     0                           # boolean that indicates whether core bounce has occurred   [0]

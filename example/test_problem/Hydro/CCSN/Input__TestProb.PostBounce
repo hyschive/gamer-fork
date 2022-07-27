@@ -2,6 +2,7 @@
 CCSN_Prob        1                                 # target CCSN problem
                                                    #    0 : GREP migration test
                                                    #    1 : Post bounce test
+                                                   #    2 : Core collapse test
 
 CCSN_Prof_File   IC/s20GREP_LS220_15ms_none        # filename of input profile
 

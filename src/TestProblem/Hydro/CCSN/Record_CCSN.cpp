@@ -1,7 +1,7 @@
 #include "GAMER.h"
 
 
-static double CCSN_CentralDens;
+       double CCSN_CentralDens;
 
 extern bool   CCSN_Is_PostBounce;
 
