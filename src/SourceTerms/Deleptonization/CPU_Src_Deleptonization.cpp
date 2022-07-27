@@ -149,6 +149,7 @@ static void Src_Deleptonization( real fluid[], const real B[],
    if ( AuxArray_Int == NULL )   printf( "ERROR : AuxArray_Int == NULL in %s !!\n", __FUNCTION__ );
 #  endif
 
+
    const real   Dens2CGS          = AuxArray_Flt[SRC_AUX_DENS2CGS   ];
    const real   DELEP_ENU         = AuxArray_Flt[SRC_AUX_DELEP_ENU  ];
    const real   DELEP_RHO1        = AuxArray_Flt[SRC_AUX_DELEP_RHO1 ];
@@ -158,6 +159,8 @@ static void Src_Deleptonization( real fluid[], const real B[],
    const real   DELEP_YEC         = AuxArray_Flt[SRC_AUX_DELEP_YEC  ];
    const double Kelvin2MeV        = AuxArray_Flt[SRC_AUX_KELVIN2MEV ];
    const real   Delep_minDens_CGS = AuxArray_Flt[SRC_AUX_MINDENS_CGS];
+   
+   const real   MeV2Kelvin        = 1.0/Kelvin2MeV;
 
 #  ifdef MHD
    const real Emag       = (real)0.5*(  SQR( B[MAGX] ) + SQR( B[MAGY] ) + SQR( B[MAGZ] )  );
@@ -184,6 +187,11 @@ static void Src_Deleptonization( real fluid[], const real B[],
          real Ye        = fluid[YE] / fluid[DENS];
 #  else
          real Ye        = NULL_REAL;
+#  endif
+#  ifdef TEMP_IG
+         real Temp      = fluid[TEMP_IG];
+#  else
+         real Temp      = NULL_REAL;
 #  endif
 
    if ( Dens_CGS <= Delep_minDens_CGS )
