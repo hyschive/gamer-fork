@@ -90,15 +90,15 @@ real YeOfRhoFunc( const real DENS_CGS, const real DELEP_RHO1, const real DELEP_R
 void Src_SetAuxArray_Deleptonization( double AuxArray_Flt[], int AuxArray_Int[] )
 {
 
-   AuxArray_Flt[SRC_AUX_DENS2CGS          ] = UNIT_D;
-   AuxArray_Flt[SRC_AUX_DELEP_ENU         ] = SrcTerms.Dlep_Enu;
-   AuxArray_Flt[SRC_AUX_DELEP_RHO1        ] = SrcTerms.Dlep_Rho1;
-   AuxArray_Flt[SRC_AUX_DELEP_RHO2        ] = SrcTerms.Dlep_Rho2;
-   AuxArray_Flt[SRC_AUX_DELEP_YE1         ] = SrcTerms.Dlep_Ye1;
-   AuxArray_Flt[SRC_AUX_DELEP_YE2         ] = SrcTerms.Dlep_Ye2;
-   AuxArray_Flt[SRC_AUX_DELEP_YEC         ] = SrcTerms.Dlep_Yec;
-   AuxArray_Flt[SRC_AUX_KELVIN2MEV        ] = Const_kB_eV*1.0e-6;
-   AuxArray_Flt[SRC_AUX_MINDENS_CGS       ] = 1.0e6; // [g/cm^3];
+   AuxArray_Flt[SRC_AUX_DENS2CGS   ] = UNIT_D;
+   AuxArray_Flt[SRC_AUX_DELEP_ENU  ] = SrcTerms.Dlep_Enu;
+   AuxArray_Flt[SRC_AUX_DELEP_RHO1 ] = SrcTerms.Dlep_Rho1;
+   AuxArray_Flt[SRC_AUX_DELEP_RHO2 ] = SrcTerms.Dlep_Rho2;
+   AuxArray_Flt[SRC_AUX_DELEP_YE1  ] = SrcTerms.Dlep_Ye1;
+   AuxArray_Flt[SRC_AUX_DELEP_YE2  ] = SrcTerms.Dlep_Ye2;
+   AuxArray_Flt[SRC_AUX_DELEP_YEC  ] = SrcTerms.Dlep_Yec;
+   AuxArray_Flt[SRC_AUX_KELVIN2MEV ] = Const_kB_eV*1.0e-6;
+   AuxArray_Flt[SRC_AUX_MINDENS_CGS] = 1.0e6; // [g/cm^3];
 
 } // FUNCTION : Src_SetAuxArray_Deleptonization
 #endif // #ifndef __CUDACC__
@@ -150,17 +150,17 @@ static void Src_Deleptonization( real fluid[], const real B[],
 #  endif
 
 
-   const real   Dens2CGS          = AuxArray_Flt[SRC_AUX_DENS2CGS   ];
-   const real   DELEP_ENU         = AuxArray_Flt[SRC_AUX_DELEP_ENU  ];
-   const real   DELEP_RHO1        = AuxArray_Flt[SRC_AUX_DELEP_RHO1 ];
-   const real   DELEP_RHO2        = AuxArray_Flt[SRC_AUX_DELEP_RHO2 ];
-   const real   DELEP_YE1         = AuxArray_Flt[SRC_AUX_DELEP_YE1  ];
-   const real   DELEP_YE2         = AuxArray_Flt[SRC_AUX_DELEP_YE2  ];
-   const real   DELEP_YEC         = AuxArray_Flt[SRC_AUX_DELEP_YEC  ];
-   const double Kelvin2MeV        = AuxArray_Flt[SRC_AUX_KELVIN2MEV ];
-   const real   Delep_minDens_CGS = AuxArray_Flt[SRC_AUX_MINDENS_CGS];
-   
-   const real   MeV2Kelvin        = 1.0/Kelvin2MeV;
+   const real Dens2CGS          = AuxArray_Flt[SRC_AUX_DENS2CGS   ];
+   const real DELEP_ENU         = AuxArray_Flt[SRC_AUX_DELEP_ENU  ];
+   const real DELEP_RHO1        = AuxArray_Flt[SRC_AUX_DELEP_RHO1 ];
+   const real DELEP_RHO2        = AuxArray_Flt[SRC_AUX_DELEP_RHO2 ];
+   const real DELEP_YE1         = AuxArray_Flt[SRC_AUX_DELEP_YE1  ];
+   const real DELEP_YE2         = AuxArray_Flt[SRC_AUX_DELEP_YE2  ];
+   const real DELEP_YEC         = AuxArray_Flt[SRC_AUX_DELEP_YEC  ];
+   const real Kelvin2MeV        = AuxArray_Flt[SRC_AUX_KELVIN2MEV ];
+   const real Delep_minDens_CGS = AuxArray_Flt[SRC_AUX_MINDENS_CGS];
+
+   const real MeV2Kelvin        = 1.0/Kelvin2MeV;
 
 #  ifdef MHD
    const real Emag       = (real)0.5*(  SQR( B[MAGX] ) + SQR( B[MAGY] ) + SQR( B[MAGZ] )  );
@@ -170,8 +170,8 @@ static void Src_Deleptonization( real fluid[], const real B[],
 
 
 // for entropy updates
-   real Del_Ye;
-   real Del_Entr;
+   real Del_Ye   = NULL_REAL;
+   real Del_Entr = NULL_REAL;
 
 // output Ye
    real Yout;
@@ -182,7 +182,7 @@ static void Src_Deleptonization( real fluid[], const real B[],
    const real Dens_CGS  = Dens_Code * Dens2CGS;
    const real Eint_Code = Hydro_Con2Eint( fluid[DENS], fluid[MOMX], fluid[MOMY], fluid[MOMZ], fluid[ENGY], true, MinEint, Emag );
          real Eint_Update;
-         real Entr;
+         real Entr = NULL_REAL;
 #  ifdef YE
          real Ye        = fluid[YE] / fluid[DENS];
 #  else
@@ -197,7 +197,7 @@ static void Src_Deleptonization( real fluid[], const real B[],
    if ( Dens_CGS <= Delep_minDens_CGS )
    {
       Del_Ye = 0.0;
-   } 
+   }
    else
    {
       Yout   = YeOfRhoFunc( Dens_CGS, DELEP_RHO1, DELEP_RHO2,
@@ -243,7 +243,7 @@ static void Src_Deleptonization( real fluid[], const real B[],
       if (  ( mu_nu_MeV < DELEP_ENU )  ||  ( Dens_CGS >= 2.0e12 )  )
       {
          Del_Entr = 0.0;
-      } 
+      }
       else
       {
          Del_Entr = - Del_Ye * ( mu_nu_MeV - DELEP_ENU ) / Temp_MeV;
@@ -503,12 +503,11 @@ void Src_End_Deleptonization()
 
 //-----------------------------------------------------------------------------------------
 // Function    :  YeOfRhoFunc
-// Description :  Calculate electron fraction Ye from the given density and 
+// Description :  Calculate electron fraction Ye from the given density and
 //                deleptonization parameters
 //
 // Note        :  1. Invoked by Src_Deleptonization()
-//                2. Add "#ifndef __CUDACC__" since this routine is only useful on CPU
-//                3. Ref: M. Liebendoerfer, 2005, ApJ, 603, 1042-1051 (arXiv: astro-ph/0504072)
+//                2. Ref: M. Liebendoerfer, 2005, ApJ, 603, 1042-1051 (arXiv: astro-ph/0504072)
 //
 // Parameter   :  DENS_CGS  : density in CGS from which Ye is caculated
 //             :  DELEP_RHO1: parameter for the parameterized deleptonization fitting formula
