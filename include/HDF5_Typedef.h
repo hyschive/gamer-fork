@@ -560,6 +560,7 @@ struct InputPara_t
    double GREP_LogBinRatio;
    double GREP_MaxRadius;
    double GREP_MinBinSize;
+   int    GREP_Opt_FixUp;
 #  endif // #ifdef GRAVITY
 
 // source terms

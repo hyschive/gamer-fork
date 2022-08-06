@@ -117,12 +117,12 @@ void CPU_ComputeGREP( const Profile_t *DensAve, const Profile_t *EngyAve, const 
             printf("LogBinRatio        : %13.7e\n",               DensAve->LogBinRatio);
             printf("NBin               : %d\n",                   NBin);
             printf("============================================================\n");
-            printf("%5s %9s %10s %10s %10s %10s %10s %10s %10s %10s %10s %10s\n",
+            printf("%5s %9s %22s %22s %22s %22s %22s %22s %22s %22s %22s %22s\n",
                    "Bin", "NCell", "Radius", "Dens", "Engy", "Vr", "Pressure",
                    "Mass_NW", "Mass_TOV", "Mass_TOV_old", "Error_rel", "Gamma_TOV");
 
             for (int i=0; i<NBin; i++)
-               printf("%5d %9ld %10.2e %10.2e %10.2e %10.2e %10.2e %10.2e %10.2e %12.2e %10.2e %10.2e\n",
+               printf("%5d %9ld %22.15e %22.15e %22.15e %22.15e %22.15e %22.15e %22.15e %22.15e %22.15e %22.15e\n",
                       i, DensAve->NCell[i], Radius[i],
                       DensAve->Data[i], EngyAve->Data[i], VrAve->Data[i], PresAve->Data[i],
                       Mass_NW[i], Mass_TOV[i], Mass_TOV_USG[i],
@@ -185,12 +185,12 @@ void CPU_ComputeGREP( const Profile_t *DensAve, const Profile_t *EngyAve, const 
       printf("Num of Iterations  : %d\n",                   GREP_MAXITER - NIter);
       printf("NBin               : %d\n",                   NBin);
       printf("============================================================\n");
-      printf("%5s %9s %10s %10s %10s %10s %10s %10s %10s %10s %10s\n",
+      printf("%5s %9s %22s %22s %22s %22s %22s %22s %22s %22s %23s\n",
              "Bin", "NCell", "Radius", "Dens", "Engy", "Vr", "Pressure",
              "Mass_NW", "Mass_TOV", "Gamma_TOV", "Eff_Pot");
 
       for (int i=0; i<NBin; i++)
-         printf("%5d %9ld %10.2e %10.2e %10.2e %10.2e %10.2e %10.2e %10.2e %10.2e %10.2e\n",
+         printf("%5d %9ld %22.15e %22.15e %22.15e %22.15e %22.15e %22.15e %22.15e %22.15e %23.15e\n",
                 i, DensAve->NCell[i], Radius[i], DensAve->Data[i], EngyAve->Data[i], VrAve->Data[i], PresAve->Data[i],
                 Mass_NW[i], Mass_TOV[i], Gamma_TOV[i], Phi_eff->Data[i]);
    }

@@ -263,6 +263,7 @@ bool   GREP_LOGBIN;
 double GREP_LOGBINRATIO;
 double GREP_MAXRADIUS;
 double GREP_MINBINSIZE;
+bool   GREP_OPT_FIXUP;
 
 // (2-11) source terms
 SrcTerms_t SrcTerms;

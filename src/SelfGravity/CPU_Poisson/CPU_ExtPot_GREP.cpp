@@ -34,7 +34,11 @@ extern Profile_t *Phi_eff [NLEVEL  ][2];
        void Init_GREP_MemAllocate();
        void End_ExtPot_GREP_MemFree();
 extern void (*Poi_UserWorkBeforePoisson_Ptr)( const double Time, const int lv );
+extern void (*Mis_UserWorkBeforeNextLevel_Ptr)( const int lv, const double TimeNew, const double TimeOld, const double dt );
+extern void (*Mis_UserWorkBeforeNextSubstep_Ptr)( const int lv, const double TimeNew, const double TimeOld, const double dt );
 extern void Poi_UserWorkBeforePoisson_GREP( const double Time, const int lv );
+extern void Mis_UserWorkBeforeNextLevel_GREP( const int lv, const double TimeNew, const double TimeOld, const double dt );
+extern void Mis_UserWorkBeforeNextSubstep_GREP( const int lv, const double TimeNew, const double TimeOld, const double dt );
 
 #endif // #ifdef __CUDACC__ ... else ...
 
@@ -371,7 +375,9 @@ void Init_ExtPot_GREP()
 {
 
 // set the function pointer for the built-in GREP
-   Poi_UserWorkBeforePoisson_Ptr = Poi_UserWorkBeforePoisson_GREP;
+   Poi_UserWorkBeforePoisson_Ptr     = Poi_UserWorkBeforePoisson_GREP;
+   Mis_UserWorkBeforeNextLevel_Ptr   = Mis_UserWorkBeforeNextLevel_GREP;
+   Mis_UserWorkBeforeNextSubstep_Ptr = Mis_UserWorkBeforeNextSubstep_GREP;
 
    Init_GREP();
    SetExtPotAuxArray_GREP( ExtPot_AuxArray_Flt, ExtPot_AuxArray_Int, Time[0] );

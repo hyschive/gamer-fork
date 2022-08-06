@@ -180,6 +180,7 @@ GREP_MAXRADIUS               -1.0         # maximum radius in the radial profile
                                           # (<=0=distance of the farthest vertex to the center)
 GREP_MINBINSIZE              -1.0         # minimum bin size                                             [-1.0]
                                           # (<=0=use amr->dh[MAX_LEVEL])
+GREP_OPT_FIXUP                1           # fix up the profiles after grid allocation/deallocation       [1]
 
 
 # initialization

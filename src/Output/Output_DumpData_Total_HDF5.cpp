@@ -2560,6 +2560,7 @@ void FillIn_InputPara( InputPara_t &InputPara, const int NFieldStored, char Fiel
    InputPara.GREP_LogBinRatio        = GREP_LOGBINRATIO;
    InputPara.GREP_MaxRadius          = GREP_MAXRADIUS;
    InputPara.GREP_MinBinSize         = GREP_MINBINSIZE;
+   InputPara.GREP_Opt_FixUp          = GREP_OPT_FIXUP;
 #  endif // #ifdef GRAVITY
 
 // source terms
@@ -3435,6 +3436,7 @@ void GetCompound_InputPara( hid_t &H5_TypeID, const int NFieldStored )
    H5Tinsert( H5_TypeID, "GREP_LogBinRatio",        HOFFSET(InputPara_t,GREP_LogBinRatio       ), H5T_NATIVE_DOUBLE  );
    H5Tinsert( H5_TypeID, "GREP_MaxRadius",          HOFFSET(InputPara_t,GREP_MaxRadius         ), H5T_NATIVE_DOUBLE  );
    H5Tinsert( H5_TypeID, "GREP_MinBinSize",         HOFFSET(InputPara_t,GREP_MinBinSize        ), H5T_NATIVE_DOUBLE  );
+   H5Tinsert( H5_TypeID, "GREP_Opt_FixUp",          HOFFSET(InputPara_t,GREP_Opt_FixUp         ), H5T_NATIVE_INT     );
 #  endif // #ifdef GRAVITY
 
 // source terms

@@ -1145,7 +1145,8 @@ void Aux_TakeNote()
       fprintf( Note, "GREP_LOGBIN                     %d\n",      GREP_LOGBIN             );
       fprintf( Note, "GREP_LOGBINRATIO                %13.7e\n",  GREP_LOGBINRATIO        );
       fprintf( Note, "GREP_MAXRADIUS                  %13.7e\n",  GREP_MAXRADIUS          );
-      fprintf( Note, "GREP_MINBINSIZE                 %13.7e\n",  GREP_MINBINSIZE         ); }
+      fprintf( Note, "GREP_MINBINSIZE                 %13.7e\n",  GREP_MINBINSIZE         );
+      fprintf( Note, "GREP_OPT_FIXUP                  %d\n",      GREP_OPT_FIXUP          ); }
       fprintf( Note, "AveDensity_Init                 %13.7e\n",  AveDensity_Init         );
       fprintf( Note, "***********************************************************************************\n" );
       fprintf( Note, "\n\n");

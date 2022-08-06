@@ -1979,6 +1979,7 @@ void Check_InputPara( const char *FileName, const int FormatVersion )
    LoadField( "GREP_LogBinRatio",        &RS.GREP_LogBinRatio,        SID, TID, NonFatal, &RT.GREP_LogBinRatio,         1, NonFatal );
    LoadField( "GREP_MaxRadius",          &RS.GREP_MaxRadius,          SID, TID, NonFatal, &RT.GREP_MaxRadius,           1, NonFatal );
    LoadField( "GREP_MinBinSize",         &RS.GREP_MinBinSize,         SID, TID, NonFatal, &RT.GREP_MinBinSize,          1, NonFatal );
+   LoadField( "GREP_Opt_FixUp",          &RS.GREP_Opt_FixUp,          SID, TID, NonFatal, &RT.GREP_Opt_FixUp,           1, NonFatal );
 #  endif // #ifdef GRAVITY
 
 // source terms
