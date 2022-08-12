@@ -1,6 +1,6 @@
 #include "CUFLU.h"
 #ifdef __CUDACC__
-#include "CUAPI.h"
+#include "CUDA_CheckError.h"
 #include "CUFLU_Shared_FluUtility.cu"
 #endif
 
@@ -18,7 +18,7 @@
 
 3. Three steps are required to implement an EoS
 
-   I.   Set an EoS auxiliary array
+   I.   Set an EoS auxiliary arrays
    II.  Implement EoS conversion functions
    III. Set EoS initialization functions
 
@@ -33,12 +33,12 @@
 
 
 // =============================================
-// I. Set an EoS auxiliary array
+// I. Set EoS auxiliary arrays
 // =============================================
 
 //-------------------------------------------------------------------------------------------------------
 // Function    :  EoS_SetAuxArray_GammaCR
-// Description :  Set the auxiliary arrays AuxArray_Flt
+// Description :  Set the auxiliary arrays AuxArray_Flt/Int[]
 //
 //                AuxArray_Flt[0] = gamma_gas 
 //                AuxArray_Flt[1] = gamma_gas - 1
@@ -48,17 +48,20 @@
 //                AuxArray_Flt[5] = gamma_cr - 1
 //
 // Note        :  1. Invoked by EoS_Init_GammaCR()
-//                2. AuxArray_Flt have the size of EOS_NAUX_MAX defined in Macro.h (default = 20)
+//                2. AuxArray_Flt/Int[] have the size of EOS_NAUX_MAX defined in Macro.h (default = 20)
 //                3. Add "#ifndef __CUDACC__" since this routine is only useful on CPU
+//                4. Physical constants such as Const_amu/Const_kB should be set to unity when disabling OPT__UNIT
+//                5. Do not change the order of AuxArray_Flt[]
+//                   --> For example, the dual-energy routines assume AuxArray_Flt[0]=GAMMA
 //
 // Parameter   :  AuxArray_Flt/Int : Floating-point/Integer arrays to be filled up
 //
-// Return      :  AuxArray_Flt[]/Int[]
+// Return      :  AuxArray_Flt/Int[]
 //-------------------------------------------------------------------------------------------------------
 #ifndef __CUDACC__
 void EoS_SetAuxArray_GammaCR( double AuxArray_Flt[], int AuxArray_Int[] )
 {
-   
+ 
    AuxArray_Flt[0] = GAMMA;
    AuxArray_Flt[1] = GAMMA - 1.0;
    AuxArray_Flt[2] = 1.0 / ( GAMMA - 1.0);
@@ -84,7 +87,9 @@ void EoS_SetAuxArray_GammaCR( double AuxArray_Flt[], int AuxArray_Int[] )
 //     (3) EoS_DensPres2CSqr_*
 //     (4) EoS_DensEint2Temp_* [OPTIONAL]
 //     (5) EoS_DensTemp2Pres_* [OPTIONAL]
-//     (6) EoS_General_*       [OPTIONAL]
+//     (6) EoS_DensEint2Entr_* [OPTIONAL]
+//     (7) EoS_General_*       [OPTIONAL]
+//     (8) EoS_CREint2CRPres_*
 // =============================================
 
 //-------------------------------------------------------------------------------------------------------
@@ -95,8 +100,8 @@ void EoS_SetAuxArray_GammaCR( double AuxArray_Flt[], int AuxArray_Int[] )
 //                2. See EoS_SetAuxArray_GammaCR() for the values stored in AuxArray_Flt/Int[]
 //
 // Parameter   :  Dens       : Gas mass density
-//                Eint       : Total internal energy density (gas + cosmic ray)
-//                Passive    : Passive scalars
+//                Eint       : Gas internal energy density with cosmic ray energy density
+//                Passive    : Passive scalars (cosmic ray energy density here)
 //                AuxArray_* : Auxiliary arrays (see the Note above)
 //                Table      : EoS tables
 //
@@ -110,19 +115,10 @@ static real EoS_DensEint2Pres_GammaCR( const real Dens, const real Eint, const r
 
 // check
 #  ifdef GAMER_DEBUG
-#  if ( NCOMP_PASSIVE > 0 )
-   if ( Passive == NULL )  printf( "ERROR : Passive == NULL in %s !!\n", __FUNCTION__ );
-#  endif
    if ( AuxArray_Flt == NULL )   printf( "ERROR : AuxArray_Flt == NULL in %s !!\n", __FUNCTION__ );
 
-   if ( Hydro_CheckNegative(Dens) )
-      printf( "ERROR : invalid input density (%14.7e) at file <%s>, line <%d>, function <%s>\n",
-              Dens, __FILE__, __LINE__, __FUNCTION__ );
-
-// note that some EoS may support Eint<0
-   if ( Hydro_CheckNegative(Eint) )
-      printf( "ERROR : invalid input internal energy (%14.7e) at file <%s>, line <%d>, function <%s>\n",
-              Eint, __FILE__, __LINE__, __FUNCTION__ );
+   Hydro_CheckUnphysical( UNPHY_MODE_SING, &Dens, "input density",         ERROR_INFO, UNPHY_VERBOSE );
+   Hydro_CheckUnphysical( UNPHY_MODE_SING, &Eint, "input internal energy", ERROR_INFO, UNPHY_VERBOSE );
 #  endif // GAMER_DEBUG
 
 
@@ -132,21 +128,6 @@ static real EoS_DensEint2Pres_GammaCR( const real Dens, const real Eint, const r
    real Pres;
    
    Pres = Gamma_m1*MAX( Eint - Passive[CRAY-NCOMP_FLUID], small_val ) + GammaCR_m1*Passive[CRAY-NCOMP_FLUID];
-   
-// check
-#  ifdef GAMER_DEBUG
-   if ( Hydro_CheckNegative(Pres) )
-   {
-      printf( "ERROR : invalid output pressure (%13.7e) in %s() !!\n", Pres, __FUNCTION__ );
-      printf( "        Dens=%13.7e, Eint=%13.7e\n", Dens, Eint );
-#     if ( NCOMP_PASSIVE > 0 )
-      printf( "        Passive scalars:" );
-      for (int v=0; v<NCOMP_PASSIVE; v++)    printf( " %d=%13.7e", v, Passive[v] );
-      printf( "\n" );
-#     endif
-   }
-#  endif // GAMER_DEBUG
-
 
    return Pres;
 
@@ -162,11 +143,11 @@ static real EoS_DensEint2Pres_GammaCR( const real Dens, const real Eint, const r
 //
 // Parameter   :  Dens       : Gas mass density
 //                Pres       : Total pressure (gas + coamic ray)
-//                Passive    : Passive scalars
+//                Passive    : Passive scalars (cosmic ray energy density here)
 //                AuxArray_* : Auxiliary arrays (see the Note above)
 //                Table      : EoS tables
 //
-// Return      :  Total internal energy density (gas + cosmic ray)
+// Return      :  Gas internal energy density with cosmic ray energy density
 //-------------------------------------------------------------------------------------------------------
 GPU_DEVICE_NOINLINE
 static real EoS_DensPres2Eint_GammaCR( const real Dens, const real Pres, const real Passive[], 
@@ -176,18 +157,10 @@ static real EoS_DensPres2Eint_GammaCR( const real Dens, const real Pres, const r
 
 // check
 #  ifdef GAMER_DEBUG
-#  if ( NCOMP_PASSIVE > 0 )
-   if ( Passive == NULL )  printf( "ERROR : Passive == NULL in %s !!\n", __FUNCTION__ );
-#  endif
    if ( AuxArray_Flt == NULL )   printf( "ERROR : AuxArray_Flt == NULL in %s !!\n", __FUNCTION__ );
 
-   if ( Hydro_CheckNegative(Dens) )
-      printf( "ERROR : invalid input density (%14.7e) at file <%s>, line <%d>, function <%s>\n",
-              Dens, __FILE__, __LINE__, __FUNCTION__ );
-
-   if ( Hydro_CheckNegative(Pres) )
-      printf( "ERROR : invalid input pressure (%14.7e) at file <%s>, line <%d>, function <%s>\n",
-              Pres, __FILE__, __LINE__, __FUNCTION__ );
+   Hydro_CheckUnphysical( UNPHY_MODE_SING, &Dens, "input density",  ERROR_INFO, UNPHY_VERBOSE );
+   Hydro_CheckUnphysical( UNPHY_MODE_SING, &Pres, "input pressure", ERROR_INFO, UNPHY_VERBOSE );
 #  endif // GAMER_DEBUG
 
    const real Gamma_m1_inv = (real)AuxArray_Flt[2];
@@ -196,22 +169,6 @@ static real EoS_DensPres2Eint_GammaCR( const real Dens, const real Pres, const r
    real Eint;
 
    Eint = MAX(Pres - Passive[CRAY-NCOMP_FLUID] * GammaCR_m1, small_val) * Gamma_m1_inv + Passive[CRAY-NCOMP_FLUID];
-
-// check
-#  ifdef GAMER_DEBUG
-// note that some EoS may support Eint<0
-   if ( Hydro_CheckNegative(Eint) )
-   {
-      printf( "ERROR : invalid output internal energy density (%13.7e) in %s() !!\n", Eint, __FUNCTION__ );
-      printf( "        Dens=%13.7e, Pres=%13.7e\n", Dens, Pres );
-#     if ( NCOMP_PASSIVE > 0 )
-      printf( "        Passive scalars:" );
-      for (int v=0; v<NCOMP_PASSIVE; v++)    printf( " %d=%13.7e", v, Passive[v] );
-      printf( "\n" );
-#     endif
-   }
-#  endif // GAMER_DEBUG
-
 
    return Eint;
 
@@ -227,11 +184,11 @@ static real EoS_DensPres2Eint_GammaCR( const real Dens, const real Pres, const r
 //
 // Parameter   :  Dens       : Gas mass density
 //                Pres       : Total pressure (gas + cosmic ray)
-//                Passive    : Passive scalars
+//                Passive    : Passive scalars (cosmic ray energy density here)
 //                AuxArray_* : Auxiliary arrays (see the Note above)
 //                Table      : EoS tables
 //
-// Return      :  Sound speed square
+// Return      :  Sound speed squared
 //-------------------------------------------------------------------------------------------------------
 GPU_DEVICE_NOINLINE
 static real EoS_DensPres2CSqr_GammaCR( const real Dens, const real Pres, const real Passive[], 
@@ -241,18 +198,10 @@ static real EoS_DensPres2CSqr_GammaCR( const real Dens, const real Pres, const r
 
 // check
 #  ifdef GAMER_DEBUG
-#  if ( NCOMP_PASSIVE > 0 )
-   if ( Passive == NULL )  printf( "ERROR : Passive == NULL in %s !!\n", __FUNCTION__ );
-#  endif
    if ( AuxArray_Flt == NULL )   printf( "ERROR : AuxArray_Flt == NULL in %s !!\n", __FUNCTION__ );
 
-   if ( Hydro_CheckNegative(Dens) )
-      printf( "ERROR : invalid input density (%14.7e) at file <%s>, line <%d>, function <%s>\n",
-              Dens, __FILE__, __LINE__, __FUNCTION__ );
-
-   if ( Hydro_CheckNegative(Pres) )
-      printf( "ERROR : invalid input pressure (%14.7e) at file <%s>, line <%d>, function <%s>\n",
-              Pres, __FILE__, __LINE__, __FUNCTION__ );
+   Hydro_CheckUnphysical( UNPHY_MODE_SING, &Dens, "input density",  ERROR_INFO, UNPHY_VERBOSE );
+   Hydro_CheckUnphysical( UNPHY_MODE_SING, &Pres, "input pressure", ERROR_INFO, UNPHY_VERBOSE );
 #  endif // GAMER_DEBUG
 
 
@@ -261,26 +210,9 @@ static real EoS_DensPres2CSqr_GammaCR( const real Dens, const real Pres, const r
    const real GammaCR_m1 = (real)AuxArray_Flt[5];
    const real small_val  = (real)AuxArray_Flt[6];
    real Cs2;
-
+   
    real P_cr = GammaCR_m1 * Passive[CRAY-NCOMP_FLUID];
    Cs2 = ( GammaCR * P_cr + Gamma * MAX( Pres - P_cr, small_val ) ) / Dens;
-   
-
-
-// check
-#  ifdef GAMER_DEBUG
-   if ( Hydro_CheckNegative(Cs2) )
-   {
-      printf( "ERROR : invalid output sound speed squared (%13.7e) in %s() !!\n", Cs2, __FUNCTION__ );
-      printf( "        Dens=%13.7e, Pres=%13.7e\n", Dens, Pres );
-#     if ( NCOMP_PASSIVE > 0 )
-      printf( "        Passive scalars:" );
-      for (int v=0; v<NCOMP_PASSIVE; v++)    printf( " %d=%13.7e", v, Passive[v] );
-      printf( "\n" );
-#     endif
-   }
-#  endif // GAMER_DEBUG
-
 
    return Cs2;
 
@@ -298,11 +230,9 @@ static real EoS_DensPres2CSqr_GammaCR( const real Dens, const real Pres, const r
 //
 // Parameter   :  Dens       : Gas mass density
 //                Eint       : Gas internal energy density
-//                Passive    : Passive scalars (must not used here)
+//                Passive    : Passive scalars (cosmic ray energy density here)
 //                AuxArray_* : Auxiliary arrays (see the Note above)
 //                Table      : EoS tables
-//                ExtraInOut : Array to store extra input and output variables if required
-//                             --> Optional and only used when it is not NULL
 //
 // Return      :  Gas temperature in kelvin
 //-------------------------------------------------------------------------------------------------------
@@ -316,13 +246,8 @@ static real EoS_DensEint2Temp_GammaCR( const real Dens, const real Eint, const r
 #  ifdef GAMER_DEBUG
    if ( AuxArray_Flt == NULL )   printf( "ERROR : AuxArray_Flt == NULL in %s !!\n", __FUNCTION__ );
 
-   if ( Hydro_CheckNegative(Dens) )
-      printf( "ERROR : invalid input density (%14.7e) at file <%s>, line <%d>, function <%s>\n",
-              Dens, __FILE__, __LINE__, __FUNCTION__ );
-
-   if ( Hydro_CheckNegative(Eint) )
-      printf( "ERROR : invalid input internal energy (%14.7e) at file <%s>, line <%d>, function <%s>\n",
-              Eint, __FILE__, __LINE__, __FUNCTION__ );
+   Hydro_CheckUnphysical( UNPHY_MODE_SING, &Dens, "input density",         ERROR_INFO, UNPHY_VERBOSE );
+   Hydro_CheckUnphysical( UNPHY_MODE_SING, &Eint, "input internal energy", ERROR_INFO, UNPHY_VERBOSE );
 #  endif // GAMER_DEBUG
 
 
@@ -348,31 +273,24 @@ static real EoS_DensEint2Temp_GammaCR( const real Dens, const real Eint, const r
 //
 // Parameter   :  Dens       : Gas mass density
 //                Temp       : Gas temperature in kelvin
-//                Passive    : Passive scalars (must not used here)
+//                Passive    : Passive scalars (cosmic ray energy density here)
 //                AuxArray_* : Auxiliary arrays (see the Note above)
 //                Table      : EoS tables
-//                ExtraInOut : Array to store extra input and output variables if required
-//                             --> Optional and only used when it is not NULL
 //
-// Return      :  Gas pressure
+// Return      :  Total pressure (gas + cosmic ray)
 //-------------------------------------------------------------------------------------------------------
 GPU_DEVICE_NOINLINE
 static real EoS_DensTemp2Pres_GammaCR( const real Dens, const real Temp, const real Passive[],
-                                             const double AuxArray_Flt[], const int AuxArray_Int[],
-                                             const real *const Table[EOS_NTABLE_MAX] )
+                                       const double AuxArray_Flt[], const int AuxArray_Int[],
+                                       const real *const Table[EOS_NTABLE_MAX] )
 {
 
 // check
 #  ifdef GAMER_DEBUG
    if ( AuxArray_Flt == NULL )   printf( "ERROR : AuxArray_Flt == NULL in %s !!\n", __FUNCTION__ );
 
-   if ( Hydro_CheckNegative(Dens) )
-      printf( "ERROR : invalid input density (%14.7e) at file <%s>, line <%d>, function <%s>\n",
-              Dens, __FILE__, __LINE__, __FUNCTION__ );
-
-   if ( Hydro_CheckNegative(Temp) )
-      printf( "ERROR : invalid input temperature (%14.7e) at file <%s>, line <%d>, function <%s>\n",
-              Temp, __FILE__, __LINE__, __FUNCTION__ );
+   Hydro_CheckUnphysical( UNPHY_MODE_SING, &Dens, "input density",     ERROR_INFO, UNPHY_VERBOSE );
+   Hydro_CheckUnphysical( UNPHY_MODE_SING, &Temp, "input temperature", ERROR_INFO, UNPHY_VERBOSE );
 #  endif // GAMER_DEBUG
 
 
@@ -387,16 +305,64 @@ static real EoS_DensTemp2Pres_GammaCR( const real Dens, const real Temp, const r
 } // FUNCTION : EoS_DensTemp2Pres_GammaCR
 
 
+
+//-------------------------------------------------------------------------------------------------------
+// Function    :  EoS_DensEint2Entr_GammaCR
+// Description :  Convert gas mass density and internal energy density to gas entropy
+//                --> Here entropy is defined as "pressure / density^(Gamma-1)" (i.e., entropy per volume)
+//
+// Note        :  1. See EoS_SetAuxArray_Gamma() for the values stored in AuxArray_Flt/Int[]
+//
+// Parameter   :  Dens       : Gas mass density
+//                Eint       : Gas internal energy density
+//                Passive    : Passive scalars (cosmic ray energy density here)
+//                AuxArray_* : Auxiliary arrays (see the Note above)
+//                Table      : EoS tables
+//
+// Return      :  Gas entropy
+//-------------------------------------------------------------------------------------------------------
+GPU_DEVICE_NOINLINE
+static real EoS_DensEint2Entr_GammaCR( const real Dens, const real Eint, const real Passive[],
+                                       const double AuxArray_Flt[], const int AuxArray_Int[],
+                                       const real *const Table[EOS_NTABLE_MAX] )
+{
+
+// check
+#  ifdef GAMER_DEBUG
+   if ( AuxArray_Flt == NULL )   printf( "ERROR : AuxArray_Flt == NULL in %s !!\n", __FUNCTION__ );
+
+   Hydro_CheckUnphysical( UNPHY_MODE_SING, &Dens, "input density",         ERROR_INFO, UNPHY_VERBOSE );
+   Hydro_CheckUnphysical( UNPHY_MODE_SING, &Eint, "input internal energy", ERROR_INFO, UNPHY_VERBOSE );
+   
+#  endif // GAMER_DEBUG
+
+   printf( "EoS_DenEint2Entr_GammaCR is not supported now. \n" );
+
+   const real Gamma_m1   = (real)AuxArray_Flt[1];
+   const real GammaCR_m1 = (real)AuxArray_Flt[5];
+   const real small_val  = (real)AuxArray_Flt[6];
+   real Pres, Entr;
+
+   Pres = Gamma_m1*MAX( Eint - Passive[CRAY-NCOMP_FLUID], small_val ) + GammaCR_m1*Passive[CRAY-NCOMP_FLUID];
+   Entr = Pres * POW( Dens, -Gamma_m1 );
+
+   return Entr;
+
+} // FUNCTION : EoS_DensEint2Entr_GammaCR
+
+
+
 //-------------------------------------------------------------------------------------------------------
 // Function    :  EoS_General_GammaCR
 // Description :  General EoS converter: In[] -> Out[]
 //
 // Note        :  1. See EoS_DensEint2Pres_GammaCR()
-//                2. In[] and Out[] must NOT overlap
+//                2. In_*[] and Out[] must NOT overlap
+//                3. Useless for this EoS
 //
 // Parameter   :  Mode       : To support multiple modes in this general converter
 //                Out        : Output array
-//                In*        : Input array
+//                In_*       : Input array
 //                AuxArray_* : Auxiliary arrays (see the Note above)
 //                Table      : EoS tables
 //
@@ -407,7 +373,9 @@ static void EoS_General_GammaCR( const int Mode, real Out[], const real In_Flt[]
                                  const double AuxArray_Flt[], const int AuxArray_Int[],
                                  const real *const Table[EOS_NTABLE_MAX] )
 {
-  // Nothing yet.
+
+// not used by this EoS
+
 } // FUNCTION : EoS_General_GammaCR
 
 
@@ -418,7 +386,7 @@ static void EoS_General_GammaCR( const int Mode, real Out[], const real In_Flt[]
 // Note        :  1. Internal energy density here is per unit volume instead of per unit mass
 //                2. See EoS_SetAuxArray_GammaCR() for the values stored in AuxArray_Flt/Int[]
 //
-// Parameter   :  Passive    : Passive scalars
+// Parameter   :  Passive    : Passive scalars (cosmic ray energy density here)
 //                AuxArray_* : Auxiliary arrays (see the Note above)
 //
 // Return      :  Cosmic ray pressure
@@ -431,30 +399,13 @@ static real EoS_CREint2CRPres_GammaCR( const real Passive[],
 
 // check
 #  ifdef GAMER_DEBUG
-#  if ( NCOMP_PASSIVE > 0 )
-   if ( Passive == NULL )  printf( "ERROR : Passive == NULL in %s !!\n", __FUNCTION__ );
-#  endif
-   if ( AuxArray_Flt == NULL )   printf( "ERROR : AuxArray_Flt == NULL in %s !!\n", __FUNCTION__ );
+   Hydro_CheckUnphysical( UNPHY_MODE_PASSIVE_ONLY, Passive, "input passive", ERROR_INFO, UNPHY_VERBOSE );
 #  endif // GAMER_DEBUG
 
    const real GammaCR_m1 = (real)AuxArray_Flt[5];
    real Pres_CR;
 
    Pres_CR = GammaCR_m1*Passive[CRAY-NCOMP_FLUID];
-   
-// check
-#  ifdef GAMER_DEBUG
-   if ( Hydro_CheckNegative(Pres_CR) )
-   {
-      printf( "ERROR : invalid output cosmic ray pressure (%13.7e) in %s() !!\n", Pres_CR, __FUNCTION__ );
-      printf( "        CRay=%13.7e\n", Passive[CRAY-NCOMP_FLUID] );
-#     if ( NCOMP_PASSIVE > 0 )
-      printf( "        Passive scalars:" );
-      for (int v=0; v<NCOMP_PASSIVE; v++)    printf( " %d=%13.7e", v, Passive[v] );
-      printf( "\n" );
-#     endif
-   }
-#  endif // GAMER_DEBUG
 
    return Pres_CR;
 
@@ -476,6 +427,7 @@ FUNC_SPACE EoS_DP2E_t    EoS_DensPres2Eint_Ptr = EoS_DensPres2Eint_GammaCR;
 FUNC_SPACE EoS_DP2C_t    EoS_DensPres2CSqr_Ptr = EoS_DensPres2CSqr_GammaCR;
 FUNC_SPACE EoS_DE2T_t    EoS_DensEint2Temp_Ptr = EoS_DensEint2Temp_GammaCR;
 FUNC_SPACE EoS_DT2P_t    EoS_DensTemp2Pres_Ptr = EoS_DensTemp2Pres_GammaCR;
+FUNC_SPACE EoS_DE2S_t    EoS_DensEint2Entr_Ptr = EoS_DensEint2Entr_GammaCR;
 FUNC_SPACE EoS_GENE_t    EoS_General_Ptr       = EoS_General_GammaCR;
 FUNC_SPACE EoS_CRE2CRP_t EoS_CREint2CRPres_Ptr = EoS_CREint2CRPres_GammaCR;
 
@@ -497,11 +449,14 @@ FUNC_SPACE EoS_CRE2CRP_t EoS_CREint2CRPres_Ptr = EoS_CREint2CRPres_GammaCR;
 //                EoS_DensPres2CSqr_CPU/GPUPtr : ...
 //                EoS_DensEint2Temp_CPU/GPUPtr : ...
 //                EoS_DensTemp2Pres_CPU/GPUPtr : ...
+//                EoS_DensEint2Entr_CPU/GPUPtr : ...
 //                EoS_General_CPU/GPUPtr       : ...
+//                EoS_CREint2CRPres_CPU/GPUPtr : ...
 //
-// Return      :  EoS_DensEint2Pres_CPU/GPUPtr, EoS_DensPres2Eint_CPU/GPUPtr, 
+// Return      :  EoS_DensEint2Pres_CPU/GPUPtr, EoS_DensPres2Eint_CPU/GPUPtr,
 //                EoS_DensPres2CSqr_CPU/GPUPtr, EoS_DensEint2Temp_CPU/GPUPtr,
-//                EoS_DensTemp2Pres_CPU/GPUPtr, EoS_General_CPU/GPUPtr
+//                EoS_DensTemp2Pres_CPU/GPUPtr, EoS_DensEint2Entr_CPU/GPUPtr,
+//                EoS_General_CPU/GPUPtr, EoS_CREint2CRPres_CPU/GPUPtr
 //-----------------------------------------------------------------------------------------
 #ifdef __CUDACC__
 __host__
@@ -510,6 +465,7 @@ void EoS_SetGPUFunc_GammaCR( EoS_DE2P_t    &EoS_DensEint2Pres_GPUPtr,
                              EoS_DP2C_t    &EoS_DensPres2CSqr_GPUPtr,
                              EoS_DE2T_t    &EoS_DensEint2Temp_GPUPtr,
                              EoS_DT2P_t    &EoS_DensTemp2Pres_GPUPtr,
+                             EoS_DE2S_t    &EoS_DensEint2Entr_GPUPtr,
                              EoS_GENE_t    &EoS_General_GPUPtr,
                              EoS_CRE2CRP_t &EoS_CREint2CRPres_GPUPtr)
 {
@@ -518,6 +474,7 @@ void EoS_SetGPUFunc_GammaCR( EoS_DE2P_t    &EoS_DensEint2Pres_GPUPtr,
    CUDA_CHECK_ERROR(  cudaMemcpyFromSymbol( &EoS_DensPres2CSqr_GPUPtr, EoS_DensPres2CSqr_Ptr, sizeof(EoS_DP2C_t   ) )  );
    CUDA_CHECK_ERROR(  cudaMemcpyFromSymbol( &EoS_DensEint2Temp_GPUPtr, EoS_DensEint2Temp_Ptr, sizeof(EoS_DE2T_t   ) )  );
    CUDA_CHECK_ERROR(  cudaMemcpyFromSymbol( &EoS_DensTemp2Pres_GPUPtr, EoS_DensTemp2Pres_Ptr, sizeof(EoS_DT2P_t   ) )  );
+   CUDA_CHECK_ERROR(  cudaMemcpyFromSymbol( &EoS_DensEint2Entr_GPUPtr, EoS_DensEint2Entr_Ptr, sizeof(EoS_DE2S_t) )  );
    CUDA_CHECK_ERROR(  cudaMemcpyFromSymbol( &EoS_General_GPUPtr,       EoS_General_Ptr,       sizeof(EoS_GENE_t   ) )  );
    CUDA_CHECK_ERROR(  cudaMemcpyFromSymbol( &EoS_CREint2CRPres_GPUPtr, EoS_CREint2CRPres_Ptr, sizeof(EoS_CRE2CRP_t) )  );
 }
@@ -529,6 +486,7 @@ void EoS_SetCPUFunc_GammaCR( EoS_DE2P_t    &EoS_DensEint2Pres_CPUPtr,
                              EoS_DP2C_t    &EoS_DensPres2CSqr_CPUPtr,
                              EoS_DE2T_t    &EoS_DensEint2Temp_CPUPtr,
                              EoS_DT2P_t    &EoS_DensTemp2Pres_CPUPtr,
+                             EoS_DE2S_t    &EoS_DensEint2Entr_CPUPtr,
                              EoS_GENE_t    &EoS_General_CPUPtr, 
                              EoS_CRE2CRP_t &EoS_CREint2CRPres_CPUPtr )
 {
@@ -537,6 +495,7 @@ void EoS_SetCPUFunc_GammaCR( EoS_DE2P_t    &EoS_DensEint2Pres_CPUPtr,
    EoS_DensPres2CSqr_CPUPtr = EoS_DensPres2CSqr_Ptr;
    EoS_DensEint2Temp_CPUPtr = EoS_DensEint2Temp_Ptr;
    EoS_DensTemp2Pres_CPUPtr = EoS_DensTemp2Pres_Ptr;
+   EoS_DensEint2Entr_CPUPtr = EoS_DensEint2Entr_Ptr;
    EoS_General_CPUPtr       = EoS_General_Ptr;
    EoS_CREint2CRPres_CPUPtr = EoS_CREint2CRPres_Ptr;
 }
@@ -549,16 +508,16 @@ void EoS_SetCPUFunc_GammaCR( EoS_DE2P_t    &EoS_DensEint2Pres_CPUPtr,
 
 // local function prototypes
 void EoS_SetAuxArray_GammaCR( double [] , int []);
-void EoS_SetCPUFunc_GammaCR( EoS_DE2P_t &, EoS_DP2E_t &, EoS_DP2C_t &, EoS_DE2T_t &, EoS_DT2P_t &, EoS_GENE_t &, EoS_CRE2CRP_t & );
+void EoS_SetCPUFunc_GammaCR( EoS_DE2P_t &, EoS_DP2E_t &, EoS_DP2C_t &, EoS_DE2T_t &, EoS_DT2P_t &, EoS_DE2S_t &, EoS_GENE_t &, EoS_CRE2CRP_t & );
 #ifdef GPU
-void EoS_SetGPUFunc_GammaCR( EoS_DE2P_t &, EoS_DP2E_t &, EoS_DP2C_t &, EoS_DE2T_t &, EoS_DT2P_t &, EoS_GENE_t &, EoS_CRE2CRP_t & );
+void EoS_SetGPUFunc_GammaCR( EoS_DE2P_t &, EoS_DP2E_t &, EoS_DP2C_t &, EoS_DE2T_t &, EoS_DT2P_t &, EoS_DE2S_t &, EoS_GENE_t &, EoS_CRE2CRP_t & );
 #endif
 
 //-----------------------------------------------------------------------------------------
 // Function    :  EoS_Init_GammaCR
 // Description :  Initialize EoS
 //
-// Note        :  1. Set an auxiliary array by invoking EoS_SetAuxArray_*()
+// Note        :  1. Set auxiliary arrays by invoking EoS_SetAuxArray_*()
 //                   --> It will be copied to GPU automatically in CUAPI_SetConstMemory()
 //                2. Set the CPU/GPU EoS routines by invoking EoS_SetCPU/GPUFunc_*()
 //                3. Invoked by EoS_Init()
@@ -575,13 +534,13 @@ void EoS_Init_GammaCR()
    EoS_SetAuxArray_GammaCR( EoS_AuxArray_Flt, EoS_AuxArray_Int );
    EoS_SetCPUFunc_GammaCR( EoS_DensEint2Pres_CPUPtr, EoS_DensPres2Eint_CPUPtr, 
                            EoS_DensPres2CSqr_CPUPtr, EoS_DensEint2Temp_CPUPtr,
-                           EoS_DensTemp2Pres_CPUPtr, EoS_General_CPUPtr, 
-                           EoS_CREint2CRPres_CPUPtr);
+                          EoS_DensTemp2Pres_CPUPtr, EoS_DensEint2Entr_CPUPtr,
+                          EoS_General_CPUPtr, EoS_CREint2CRPres_CPUPtr);
 #  ifdef GPU
    EoS_SetGPUFunc_GammaCR( EoS_DensEint2Pres_GPUPtr, EoS_DensPres2Eint_GPUPtr, 
                            EoS_DensPres2CSqr_GPUPtr, EoS_DensEint2Temp_GPUPtr,
-                           EoS_DensTemp2Pres_GPUPtr, EoS_General_GPUPtr, 
-                           EoS_CREint2CRPres_GPUPtr);
+                         EoS_DensTemp2Pres_GPUPtr, EoS_DensEint2Entr_GPUPtr,
+                         EoS_General_GPUPtr, EoS_CREint2CRPres_GPUPtr);
 #  endif
 
 } // FUNCTION : EoS_Init_GammaCR
