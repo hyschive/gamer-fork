@@ -1,6 +1,6 @@
 #include "CUFLU.h"
 #ifdef __CUDACC__
-#include "CUDA_CheckError.h"
+#include "CUAPI.h"
 #include "CUFLU_Shared_FluUtility.cu"
 #endif
 
