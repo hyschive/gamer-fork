@@ -79,7 +79,7 @@ double Jet_Radius[3];
 double V_cyl[3]; // the volume of jet source
 double M_inj[3], P_inj[3], E_inj[3]; // the injected density
 
-double E_inj_exp[3];
+double E_inj_exp[3] = { 0.0, 0.0, 0.0 };
 double dt_base;
 double E_power_inj[3];
 
@@ -431,6 +431,10 @@ void Flu_ResetByUser_API_ClusterMerger( const int lv, const int FluSg, const dou
 //      P_inj[c] = sqrt(2*E_inj[c]*GasDens[c]);
       Jet_WaveK[c] = 0.5*M_PI/Jet_HalfHeight[c];
    } 
+
+   if ( lv == MAX_LEVEL ){
+      for (int c=0; c<Merger_Coll_NumHalos; c++) E_inj_exp[c] += Edot[c]*dt;
+   }
 
    if ( lv == 0 )  dt_base = dt;
 

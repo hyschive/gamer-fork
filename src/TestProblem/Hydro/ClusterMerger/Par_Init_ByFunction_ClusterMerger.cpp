@@ -716,7 +716,7 @@ void Aux_Record_ClusterMerger()
       }
    }
 
-   for (int c=0; c<Merger_Coll_NumHalos; c++) E_inj_exp[c] = Edot[c]*dt_base;
+//   for (int c=0; c<Merger_Coll_NumHalos; c++) E_inj_exp[c] = Edot[c]*dt_base;
 
    for (int c=0; c<Merger_Coll_NumHalos; c++) {
       Bondi_MassBH[c] *= UNIT_M/Const_Msun;
@@ -751,10 +751,10 @@ void Aux_Record_ClusterMerger()
       MomXAbs_Sum[c] *= UNIT_M*UNIT_L/UNIT_T;
       MomYAbs_Sum[c] *= UNIT_M*UNIT_L/UNIT_T;
       MomZAbs_Sum[c] *= UNIT_M*UNIT_L/UNIT_T;
-      E_inj_exp[c]   *= UNIT_E;
       E_Sum[c]      *= UNIT_E;
       Ek_Sum[c]      *= UNIT_E;
       Et_Sum[c]      *= UNIT_E;
+      E_inj_exp[c]   *= UNIT_E; 
       DENS_org[c] *= UNIT_M/Const_Msun;
       MOMX_org[c] *= UNIT_M*UNIT_L/UNIT_T;
       MOMXabs_org[c] *= UNIT_M*UNIT_L/UNIT_T;
@@ -786,6 +786,7 @@ void Aux_Record_ClusterMerger()
       CM_Bondi_SinkE[c]      = 0.0;
       CM_Bondi_SinkEk[c]      = 0.0;
       CM_Bondi_SinkEt[c]      = 0.0;
+      E_inj_exp[c] = 0.0;
       DENS_org[c] = 0.0;
       MOMX_org[c] = 0.0;
       MOMXabs_org[c] = 0.0;
@@ -826,6 +827,10 @@ void GetClusterCenter( double Cen[][3], double BH_Vel[][3] )
             break;
          }
       }
+//    TEMP!!!
+      for (int d=0; d<3; d++) Cen_Tmp[d] = 5.0;
+      for (int d=0; d<3; d++) Vel_Tmp[d] = 0.0;
+
       // use MPI_MAX since Cen_Tmp[] is initialized as -inf
       MPI_Reduce( Cen_Tmp, Cen[c], 3, MPI_DOUBLE, MPI_MAX, 0, MPI_COMM_WORLD );
       MPI_Reduce( Vel_Tmp, BH_Vel[c], 3, MPI_DOUBLE, MPI_MAX, 0, MPI_COMM_WORLD );
