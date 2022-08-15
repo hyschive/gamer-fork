@@ -63,16 +63,28 @@ void Src_Init()
 // initialize all function pointers as NULL
 #  if ( MODEL == HYDRO )
    SrcTerms.Dlep_FuncPtr                 = NULL;
+   SrcTerms.Dlep_CPUPtr                  = NULL;
+#  ifdef GPU
+   SrcTerms.Dlep_GPUPtr                  = NULL;
+#  endif
    SrcTerms.Dlep_AuxArrayDevPtr_Flt      = NULL;
    SrcTerms.Dlep_AuxArrayDevPtr_Int      = NULL;
    SrcTerms.Dlep_Profile_DataDevPtr      = NULL;
    SrcTerms.Dlep_Profile_RadiusDevPtr    = NULL;
 
    SrcTerms.Lightbulb_FuncPtr            = NULL;
+   SrcTerms.Lightbulb_CPUPtr             = NULL;
+#  ifdef GPU
+   SrcTerms.Lightbulb_GPUPtr             = NULL;
+#  endif
    SrcTerms.Lightbulb_AuxArrayDevPtr_Flt = NULL;
    SrcTerms.Lightbulb_AuxArrayDevPtr_Int = NULL;
 #  endif
    SrcTerms.User_FuncPtr                 = NULL;
+   SrcTerms.User_CPUPtr                  = NULL;
+#  ifdef GPU
+   SrcTerms.User_GPUPtr                  = NULL;
+#  endif
    SrcTerms.User_AuxArrayDevPtr_Flt      = NULL;
    SrcTerms.User_AuxArrayDevPtr_Int      = NULL;
 
@@ -85,7 +97,11 @@ void Src_Init()
       Src_Init_Deleptonization();
 
 //    check if the source-term function is set properly
-      if ( SrcTerms.Dlep_FuncPtr == NULL )        Aux_Error( ERROR_INFO, "SrcTerms.Dlep_FuncPtr == NULL !!\n" );
+      if ( SrcTerms.Dlep_FuncPtr == NULL )         Aux_Error( ERROR_INFO, "SrcTerms.Dlep_FuncPtr == NULL !!\n" );
+      if ( SrcTerms.Dlep_CPUPtr  == NULL )         Aux_Error( ERROR_INFO, "SrcTerms.Dlep_CPUPtr  == NULL !!\n" );
+#     ifdef GPU
+      if ( SrcTerms.Dlep_GPUPtr  == NULL )         Aux_Error( ERROR_INFO, "SrcTerms.Dlep_GPUPtr  == NULL !!\n" );
+#     endif
    }
 
 // (2) lightbulb
@@ -94,19 +110,27 @@ void Src_Init()
       Src_Init_Lightbulb();
 
 //    check if the source-term function is set properly
-      if ( SrcTerms.Lightbulb_FuncPtr == NULL )   Aux_Error( ERROR_INFO, "SrcTerms.Lightbulb_FuncPtr == NULL !!\n" );
+      if ( SrcTerms.Lightbulb_FuncPtr == NULL )    Aux_Error( ERROR_INFO, "SrcTerms.Lightbulb_FuncPtr == NULL !!\n" );
+      if ( SrcTerms.Lightbulb_CPUPtr  == NULL )    Aux_Error( ERROR_INFO, "SrcTerms.Lightbulb_CPUPtr  == NULL !!\n" );
+#     ifdef GPU
+      if ( SrcTerms.Lightbulb_GPUPtr  == NULL )    Aux_Error( ERROR_INFO, "SrcTerms.Lightbulb_GPUPtr  == NULL !!\n" );
+#     endif
    }
 #  endif
 
 // (3) user-specified source term
    if ( SrcTerms.User )
    {
-      if ( Src_Init_User_Ptr == NULL )            Aux_Error( ERROR_INFO, "Src_Init_User_Ptr == NULL !!\n" );
+      if ( Src_Init_User_Ptr == NULL )             Aux_Error( ERROR_INFO, "Src_Init_User_Ptr == NULL !!\n" );
 
       Src_Init_User_Ptr();
 
 //    check if the source-term function is set properly
-      if ( SrcTerms.User_FuncPtr == NULL )        Aux_Error( ERROR_INFO, "SrcTerms.User_FuncPtr == NULL !!\n" );
+      if ( SrcTerms.User_FuncPtr == NULL )         Aux_Error( ERROR_INFO, "SrcTerms.User_FuncPtr == NULL !!\n" );
+      if ( SrcTerms.User_CPUPtr  == NULL )         Aux_Error( ERROR_INFO, "SrcTerms.User_CPUPtr  == NULL !!\n" );
+#     ifdef GPU
+      if ( SrcTerms.User_GPUPtr  == NULL )         Aux_Error( ERROR_INFO, "SrcTerms.User_GPUPtr  == NULL !!\n" );
+#     endif
    }
 
 

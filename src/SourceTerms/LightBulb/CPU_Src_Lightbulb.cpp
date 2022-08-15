@@ -22,7 +22,10 @@
 #ifndef __CUDACC__
 
 void Src_SetAuxArray_Lightbulb( double [], int [] );
-void Src_SetFunc_Lightbulb( SrcFunc_t & );
+void Src_SetCPUFunc_Lightbulb( SrcFunc_t & );
+#ifdef GPU
+void Src_SetGPUFunc_Lightbulb( SrcFunc_t & );
+#endif
 void Src_SetConstMemory_Lightbulb( const double AuxArray_Flt[], const int AuxArray_Int[],
                                    double *&DevPtr_Flt, int *&DevPtr_Int );
 void Src_PassData2GPU_Lightbulb();
@@ -290,12 +293,11 @@ void Src_PassData2GPU_Lightbulb()
 FUNC_SPACE SrcFunc_t SrcFunc_Ptr = Src_Lightbulb;
 
 //-----------------------------------------------------------------------------------------
-// Function    :  Src_SetFunc_Lightbulb
+// Function    :  Src_SetCPU/GPUFunc_Lightbulb
 // Description :  Return the function pointer of the CPU/GPU source-term function
 //
 // Note        :  1. Invoked by Src_Init_Lightbulb()
 //                2. Call-by-reference
-//                3. Use either CPU or GPU but not both of them
 //
 // Parameter   :  SrcFunc_CPU/GPUPtr : CPU/GPU function pointer to be set
 //
@@ -303,19 +305,19 @@ FUNC_SPACE SrcFunc_t SrcFunc_Ptr = Src_Lightbulb;
 //-----------------------------------------------------------------------------------------
 #ifdef __CUDACC__
 __host__
-void Src_SetFunc_Lightbulb( SrcFunc_t &SrcFunc_GPUPtr )
+void Src_SetGPUFunc_Lightbulb( SrcFunc_t &SrcFunc_GPUPtr )
 {
    CUDA_CHECK_ERROR(  cudaMemcpyFromSymbol( &SrcFunc_GPUPtr, SrcFunc_Ptr, sizeof(SrcFunc_t) )  );
 }
 
-#elif ( !defined GPU )
+#else
 
-void Src_SetFunc_Lightbulb( SrcFunc_t &SrcFunc_CPUPtr )
+void Src_SetCPUFunc_Lightbulb( SrcFunc_t &SrcFunc_CPUPtr )
 {
    SrcFunc_CPUPtr = SrcFunc_Ptr;
 }
 
-#endif // #ifdef __CUDACC__ ... elif ...
+#endif // #ifdef __CUDACC__ ... else ...
 
 
 
@@ -358,9 +360,7 @@ void Src_SetConstMemory_Lightbulb( const double AuxArray_Flt[], const int AuxArr
 //
 // Note        :  1. Set auxiliary arrays by invoking Src_SetAuxArray_*()
 //                   --> Copy to the GPU constant memory and store the associated addresses
-//                2. Set the source-term function by invoking Src_SetFunc_*()
-//                   --> Unlike other modules (e.g., EoS), here we use either CPU or GPU but not
-//                       both of them
+//                2. Set the source-term function by invoking Src_SetCPU/GPUFunc_*()
 //                3. Invoked by Src_Init()
 //                4. Add "#ifndef __CUDACC__" since this routine is only useful on CPU
 //
@@ -384,7 +384,14 @@ void Src_Init_Lightbulb()
 #  endif
 
 // set the major source-term function
-   Src_SetFunc_Lightbulb( SrcTerms.Lightbulb_FuncPtr );
+   Src_SetCPUFunc_Lightbulb( SrcTerms.Lightbulb_FuncPtr );
+
+#  ifdef GPU
+   Src_SetGPUFunc_Lightbulb( SrcTerms.Lightbulb_GPUPtr );
+   SrcTerms.Lightbulb_FuncPtr = SrcTerms.Lightbulb_GPUPtr;
+#  else
+   SrcTerms.Lightbulb_FuncPtr = SrcTerms.Lightbulb_CPUPtr;
+#  endif
 
 } // FUNCTION : Src_Init_Lightbulb
 

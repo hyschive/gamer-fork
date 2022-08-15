@@ -31,6 +31,7 @@ typedef void (*SrcFunc_t)( real fluid[], const real B[],
 //                BoxCenter                 : Simulation box center
 //                Unit_*                    : Code units
 //                *_FuncPtr                 : Major source-term functions
+//                *_CPUPtr/*_GPUPtr         : CPU/GPU function pointers to the major source-term function
 //                *_AuxArrayDevPtr_*        : Auxiliary array pointers
 //                                            --> For GPU, these pointers store the addresses of constant memory arrays,
 //                                                which should NOT be used by host
@@ -68,6 +69,10 @@ struct SrcTerms_t
 #  if ( MODEL == HYDRO )
 // deleptonization
    SrcFunc_t Dlep_FuncPtr;
+   SrcFunc_t Dlep_CPUPtr;
+#  ifdef GPU
+   SrcFunc_t Dlep_GPUPtr;
+#  endif
    double   *Dlep_AuxArrayDevPtr_Flt;
    int      *Dlep_AuxArrayDevPtr_Int;
    real    (*Dlep_Profile_DataDevPtr)[SRC_DLEP_PROF_NBINMAX];
@@ -82,6 +87,10 @@ struct SrcTerms_t
 
 // lightbulb
    SrcFunc_t Lightbulb_FuncPtr;
+   SrcFunc_t Lightbulb_CPUPtr;
+#  ifdef GPU
+   SrcFunc_t Lightbulb_GPUPtr;
+#  endif
    double   *Lightbulb_AuxArrayDevPtr_Flt;
    int      *Lightbulb_AuxArrayDevPtr_Int;
    double    Lightbulb_Lnue;
@@ -90,6 +99,10 @@ struct SrcTerms_t
 
 // user-specified source term
    SrcFunc_t User_FuncPtr;
+   SrcFunc_t User_CPUPtr;
+#  ifdef GPU
+   SrcFunc_t User_GPUPtr;
+#  endif
    double   *User_AuxArrayDevPtr_Flt;
    int      *User_AuxArrayDevPtr_Int;
 
