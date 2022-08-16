@@ -330,8 +330,12 @@ void SetGridIC( real fluid[], const double x, const double y, const double z, co
 // calculate the internal energy
 #  if ( EOS == EOS_NUCLEAR )
    real *Passive = new real [NCOMP_PASSIVE];
-
+#  ifdef YE
    Passive[ YE - NCOMP_FLUID ] = Ye*Dens;
+#  endif
+#  ifdef TEMP_IG
+   Passive[ TEMP_IG - NCOMP_FLUID ] = Temp;
+#  endif
 #  else
    real *Passive = NULL;
 #  endif
@@ -349,6 +353,7 @@ void SetGridIC( real fluid[], const double x, const double y, const double z, co
       TmpIn_Flt[0] = (real)Dens;
       TmpIn_Flt[1] = (real)Temp;
       TmpIn_Flt[2] = (real)Ye;
+      TmpIn_Flt[3] = (real)Temp;
 
       TmpIn_Int[0] = NTarget;
 #     if ( NUC_TABLE_MODE == NUC_TABLE_MODE_TEMP )

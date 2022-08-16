@@ -159,9 +159,13 @@
 #  define NCOMP_PASSIVE_BUILTIN1    0
 # endif
 
-// electron fraction (Temp_IG, Ye)
+// temperature initial guess and electron fraction (Temp_IG, Ye)
 # if ( EOS == EOS_NUCLEAR )
+# if ( NUC_TABLE_MODE == NUC_TABLE_MODE_TEMP )
 #  define NCOMP_PASSIVE_BUILTIN2    2
+# else
+#  define NCOMP_PASSIVE_BUILTIN2    1
+# endif
 # else
 #  define NCOMP_PASSIVE_BUILTIN2    0
 # endif
@@ -264,10 +268,15 @@
 # endif
 
 # if ( EOS == EOS_NUCLEAR )
+# if ( NUC_TABLE_MODE == NUC_TABLE_MODE_TEMP )
 #  define TEMP_IG             ( PASSIVE_NEXT_IDX2 )
 #  define PASSIVE_NEXT_IDX3   ( TEMP_IG - 1       )
 #  define YE                  ( PASSIVE_NEXT_IDX3 )
 #  define PASSIVE_NEXT_IDX4   ( YE - 1            )
+# else
+#  define YE                  ( PASSIVE_NEXT_IDX2 )
+#  define PASSIVE_NEXT_IDX4   ( YE - 1            )
+# endif
 # else
 #  define PASSIVE_NEXT_IDX4   ( PASSIVE_NEXT_IDX2 )
 # endif
@@ -309,11 +318,15 @@
 # endif
 
 # if ( EOS == EOS_NUCLEAR )
+# if ( NUC_TABLE_MODE == NUC_TABLE_MODE_TEMP )
 #  define FLUX_TEMP_IG     ( FLUX_NEXT_IDX2  )
 #  define FLUX_NEXT_IDX3   ( FLUX_TEMP_IG -1 )
 #  define FLUX_YE          ( FLUX_NEXT_IDX3  )
 #  define FLUX_NEXT_IDX4   ( FLUX_YE - 1     )
-
+# else
+#  define FLUX_YE          ( FLUX_NEXT_IDX2  )
+#  define FLUX_NEXT_IDX4   ( FLUX_YE - 1     )
+# endif
 # else
 #  define FLUX_NEXT_IDX4   ( FLUX_NEXT_IDX2  )
 # endif
@@ -341,8 +354,12 @@
 # endif
 
 # if ( EOS == EOS_NUCLEAR )
+# if ( NUC_TABLE_MODE == NUC_TABLE_MODE_TEMP )
 #  define _YE                 ( 1L << YE      )
 #  define _TEMP_IG            ( 1L << TEMP_IG )
+# else
+#  define _YE                 ( 1L << YE      )
+# endif
 # endif
 
 #endif // #if ( NCOMP_PASSIVE > 0 )
@@ -375,8 +392,12 @@
 # endif
 
 # if ( EOS == EOS_NUCLEAR )
+# if ( NUC_TABLE_MODE == NUC_TABLE_MODE_TEMP )
 #  define _FLUX_YE            ( 1L << FLUX_YE      )
 #  define _FLUX_TEMP_IG       ( 1L << FLUX_TEMP_IG )
+# else
+#  define _FLUX_YE            ( 1L << FLUX_YE      )
+# endif
 # endif
 
 #endif // #if ( NFLUX_PASSIVE > 0 )
