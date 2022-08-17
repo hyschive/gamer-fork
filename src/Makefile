@@ -133,7 +133,6 @@ SIMU_OPTION += -DSTORE_POT_GHOST
 SIMU_OPTION += -DUNSPLIT_GRAVITY
 
 # comoving frame for cosmological simulations
-# --> not supported for PARTICLE
 #SIMU_OPTION += -DCOMOVING
 
 # effective GR potential
@@ -510,7 +509,8 @@ CPU_FILE    += CPU_EoS_Gamma.cpp  CPU_EoS_User_Template.cpp  CPU_EoS_Isothermal.
                findtoreps.cpp  findtemp_NR_bisection.cpp  readtable.cpp
 
 CPU_FILE    += Hydro_Init_ByFunction_AssignData.cpp  Hydro_Aux_Check_Negative.cpp \
-               Hydro_BoundaryCondition_Reflecting.cpp  Hydro_BoundaryCondition_Outflow.cpp
+               Hydro_BoundaryCondition_Reflecting.cpp  Hydro_BoundaryCondition_Outflow.cpp \
+               Hydro_BoundaryCondition_Diode.cpp  EoS_Init.cpp  EoS_End.cpp
 
 vpath %.cu                  Model_Hydro/GPU_Hydro  EoS  EoS/Gamma  EoS/User_Template  EoS/Isothermal  EoS/Nuclear
 vpath %.cpp    Model_Hydro  Model_Hydro/CPU_Hydro  EoS  EoS/Gamma  EoS/User_Template  EoS/Isothermal  EoS/Nuclear
@@ -528,7 +528,7 @@ ifeq "$(filter -DMHD, $(SIMU_OPTION))" "-DMHD"
 CPU_FILE    += MHD_GetCellCenteredBInPatch.cpp  MHD_InterpolateBField.cpp  MHD_AllocateElectricArray.cpp \
                MHD_Aux_Check_InterfaceB.cpp  MHD_FixUp_Electric.cpp  MHD_Aux_Check_DivergenceB.cpp \
                MHD_BoundaryCondition_Outflow.cpp  MHD_BoundaryCondition_Reflecting.cpp  MHD_BoundaryCondition_User.cpp \
-               MHD_CopyPatchInterfaceBField.cpp MHD_Init_BField_ByFile.cpp
+               MHD_BoundaryCondition_Diode.cpp  MHD_CopyPatchInterfaceBField.cpp MHD_Init_BField_ByFile.cpp
 
 CPU_FILE    += CPU_Shared_ConstrainedTransport.cpp  CPU_Shared_RiemannSolver_HLLD.cpp
 
