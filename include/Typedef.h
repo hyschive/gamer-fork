@@ -55,6 +55,7 @@ const TestProbID_t
    TESTPROB_HYDRO_COSMIC_RAY_SOUNDWAVE         =   20,
    TESTPROB_HYDRO_COSMIC_RAY_SHOCKTUBE         =   21,
    TESTPROB_HYDRO_BARRED_POT                   =   51,
+   TESTPROB_HYDRO_CDM_LSS                      =  100,
    TESTPROB_ELBDM_EXTPOT                       = 1000;
 
 
@@ -266,7 +267,8 @@ const OptFluBC_t
    BC_FLU_PERIODIC   = 1,
    BC_FLU_OUTFLOW    = 2,
    BC_FLU_REFLECTING = 3,
-   BC_FLU_USER       = 4;
+   BC_FLU_USER       = 4,
+   BC_FLU_DIODE      = 5;
 
 
 // the gravity boundary conditions
