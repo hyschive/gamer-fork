@@ -111,6 +111,7 @@ void Par_Init_ByFunction_ClusterMerger(const long NPar_ThisRank,
 void Aux_Record_ClusterMerger();
 #endif
 
+bool Flag_ClusterMerger( const int i, const int j, const int k, const int lv, const int PID, const double *Threshold );
 int Read_Num_Points_ClusterMerger(std::string filename);
 void Read_Profile_ClusterMerger(std::string filename, std::string fieldname,
                                 double field[]);
@@ -728,6 +729,7 @@ void Init_TestProb_Hydro_ClusterMerger()
 
 // set the function pointers of various problem-specific routines
    Init_Function_User_Ptr         = SetGridIC;
+   Flag_User_Ptr                  = Flag_ClusterMerger;
    End_User_Ptr                   = End_ClusterMerger;
    Aux_Record_User_Ptr            = Aux_Record_ClusterMerger;
    Par_Init_ByFunction_Ptr        = Par_Init_ByFunction_ClusterMerger;
