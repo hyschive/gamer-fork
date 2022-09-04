@@ -112,20 +112,21 @@ void Init_Field()
 //    --> as we still rely on these constants (e.g., DENS, DUAL) in the fluid solvers
 #  if ( EOS == EOS_NUCLEAR )
    Idx_Ye      = AddField( "Ye",      NORMALIZE_NO, INTERP_FRAC_YES );
-   if ( Idx_Ye   != YE )      Aux_Error( ERROR_INFO, "inconsistent Idx_Ye   (%d != %d) !!\n", Idx_Ye,   YE   );
+   if ( Idx_Ye   != YE )         Aux_Error( ERROR_INFO, "inconsistent Idx_Ye      (%d != %d) !!\n", Idx_Ye,      YE      );
+#  if ( NUC_TABLE_MODE == NUC_TABLE_MODE_TEMP )
    Idx_Temp_IG = AddField( "Temp_IG", NORMALIZE_NO, INTERP_FRAC_NO  );
-   if ( Idx_Temp_IG != TEMP_IG )      Aux_Error( ERROR_INFO, "inconsistent Idx_Temp_IG   (%d != %d) !!\n", Idx_Temp_IG,   TEMP_IG );
-
+   if ( Idx_Temp_IG != TEMP_IG ) Aux_Error( ERROR_INFO, "inconsistent Idx_Temp_IG (%d != %d) !!\n", Idx_Temp_IG, TEMP_IG );
+#  endif
 #  endif
 
 #  ifdef COSMIC_RAY
    Idx_CRay = AddField( "CRay", NORMALIZE_NO, INTERP_FRAC_NO );
-   if ( Idx_CRay != CRAY )    Aux_Error( ERROR_INFO, "inconsistent Idx_CRay (%d != %d) !!\n", Idx_CRay, CRAY );
+   if ( Idx_CRay != CRAY )       Aux_Error( ERROR_INFO, "inconsistent Idx_CRay    (%d != %d) !!\n", Idx_CRay,    CRAY    );
 #  endif
 
 #  ifdef DUAL_ENERGY
    Idx_Dual = AddField( "Dual", NORMALIZE_NO, INTERP_FRAC_NO );
-   if ( Idx_Dual != DUAL )    Aux_Error( ERROR_INFO, "inconsistent Idx_Dual (%d != %d) !!\n", Idx_Dual, DUAL );
+   if ( Idx_Dual != DUAL )       Aux_Error( ERROR_INFO, "inconsistent Idx_Dual    (%d != %d) !!\n", Idx_Dual,    DUAL    );
 #  endif
 
 
