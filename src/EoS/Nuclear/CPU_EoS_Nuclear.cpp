@@ -241,7 +241,7 @@ static real EoS_DensEint2Pres_Nuclear( const real Dens_Code, const real Eint_Cod
    int  Err       = NULL_INT;
 
 // set up the initial guess of temperature for temperature-based table
-#  if ( NUC_TABLE_MODE == NUC_TABLE_MODE_TEMP )
+#  ifdef TEMP_IG
    real Temp_IG   = Passive_Code[ TEMP_IG - NCOMP_FLUID ];
         Temp_IG   = Temp_IG * Kelvin2MeV;
 #  else
@@ -359,7 +359,7 @@ static real EoS_DensPres2Eint_Nuclear( const real Dens_Code, const real Pres_Cod
    int  Err      = NULL_INT;
 
 // set up the initial guess of temperature for temperature-based table
-#  if ( NUC_TABLE_MODE == NUC_TABLE_MODE_TEMP )
+#  ifdef TEMP_IG
    real Temp_IG   = Passive_Code[ TEMP_IG - NCOMP_FLUID ];
         Temp_IG   = Temp_IG * Kelvin2MeV;
 #  else
@@ -484,7 +484,7 @@ static real EoS_DensPres2CSqr_Nuclear( const real Dens_Code, const real Pres_Cod
    int  Err      = NULL_INT;
 
 // set up the initial guess of temperature for temperature-based table
-#  if ( NUC_TABLE_MODE == NUC_TABLE_MODE_TEMP )
+#  ifdef TEMP_IG
    real Temp_IG   = Passive_Code[ TEMP_IG - NCOMP_FLUID ];
         Temp_IG   = Temp_IG * Kelvin2MeV;
 #  else
@@ -568,18 +568,22 @@ static real EoS_DensEint2Temp_Nuclear( const real Dens_Code, const real Eint_Cod
                                        const real *const Table[EOS_NTABLE_MAX] )
 {
 
-#  if ( NUC_TABLE_MODE == NUC_TABLE_MODE_TEMP )
+#  ifdef TEMP_IG
    const int  NTarget = 0;
+         real In_Flt[4];
 #  else
    const int  NTarget = 1;
+         real In_Flt[3];
 #  endif
          int  In_Int[NTarget+1];
-         real In_Flt[4], Out[NTarget+1], Temp_Kelv;
+         real Out[NTarget+1], Temp_Kelv;
 
    In_Flt[0] = Dens_Code;
    In_Flt[1] = Eint_Code;
    In_Flt[2] = Passive_Code[ YE - NCOMP_FLUID ] / Dens_Code;
+#  ifdef TEMP_IG
    In_Flt[3] = Passive_Code[ TEMP_IG - NCOMP_FLUID ];
+#  endif
 
    In_Int[0] = NTarget;
 #  if ( NUC_TABLE_MODE == NUC_TABLE_MODE_ENGY )
@@ -620,12 +624,20 @@ static real EoS_DensTemp2Pres_Nuclear( const real Dens_Code, const real Temp_Kel
 
    const int  NTarget = 1;
          int  In_Int[NTarget+1];
-         real In_Flt[4], Out[NTarget+1], Pres_Code;
+         real Out[NTarget+1], Pres_Code;
+#  ifdef TEMP_IG
+         real In_Flt[4];
+#  else
+         real In_Flt[3];
+#  endif
+
 
    In_Flt[0] = Dens_Code;
    In_Flt[1] = Temp_Kelv;
    In_Flt[2] = Passive_Code[ YE - NCOMP_FLUID ] / Dens_Code;
+#  ifdef TEMP_IG
    In_Flt[3] = Passive_Code[ TEMP_IG - NCOMP_FLUID ];
+#  endif
 
    In_Int[0] = NTarget;
    In_Int[1] = NUC_VAR_IDX_PRES;
@@ -664,12 +676,20 @@ static real EoS_DensEint2Entr_Nuclear( const real Dens_Code, const real Eint_Cod
 
    const int  NTarget = 1;
          int  In_Int[NTarget+1];
-         real In_Flt[4], Out[NTarget+1], Entr;
+
+#  ifdef TEMP_IG
+         real In_Flt[4];
+#  else
+         real In_Flt[3];
+#  endif
+         real Out[NTarget+1], Entr;
 
    In_Flt[0] = Dens_Code;
    In_Flt[1] = Eint_Code;
    In_Flt[2] = Passive_Code[ YE - NCOMP_FLUID ] / Dens_Code;
+#  ifdef TEMP_IG
    In_Flt[3] = Passive_Code[ TEMP_IG - NCOMP_FLUID ];
+#  endif
 
    In_Int[0] = NTarget;
    In_Int[1] = NUC_VAR_IDX_ENTR;
@@ -793,7 +813,7 @@ static void EoS_General_Nuclear( const int Mode, real Out[], const real In_Flt[]
    TmpIn[2] = Ye;
 
 // set up the initial guess of temperature for temperature-based table
-#  if ( NUC_TABLE_MODE == NUC_TABLE_MODE_TEMP )
+#  ifdef TEMP_IG
    real Temp_IG  = In_Flt[3] * Kelvin2MeV;
 #  else
    real Temp_IG  = NULL_REAL;
