@@ -166,12 +166,17 @@ static void Src_Lightbulb( real fluid[], const real B[],
    const int  NTarget = 3;
 #  endif
          int  In_Int[NTarget+1];
-         real In_Flt[4], Out[NTarget+1];
+#  ifdef TEMP_IG
+         real In_Flt[4];
+              In_Flt[3] = Temp_IG;
+#  else
+         real In_Flt[3];
+#  endif
+         real Out[NTarget+1];
 
    In_Flt[0] = Dens_Code;
    In_Flt[1] = Eint_Code;
    In_Flt[2] = Ye;
-   In_Flt[3] = Temp_IG;
 
    In_Int[0] = NTarget;
    In_Int[1] = NUC_VAR_IDX_XN;
@@ -203,9 +208,10 @@ static void Src_Lightbulb( real fluid[], const real B[],
    const real Eint_Update = Eint_Code + dEint_Code;
 
    fluid[ENGY]    = Hydro_ConEint2Etot( fluid[DENS], fluid[MOMX], fluid[MOMY], fluid[MOMZ], Eint_Update, Emag );
+#  ifdef TEMP_IG
    fluid[TEMP_IG] = EoS->DensEint2Temp_FuncPtr( Dens_Code, Eint_Update, fluid+NCOMP_FLUID,
                                                 EoS->AuxArrayDevPtr_Flt, EoS->AuxArrayDevPtr_Int, EoS->Table );
-
+#  endif
 
 // final check
 #  ifdef GAMER_DEBUG

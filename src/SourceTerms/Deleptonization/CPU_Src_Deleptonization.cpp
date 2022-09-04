@@ -218,12 +218,17 @@ static void Src_Deleptonization( real fluid[], const real B[],
       const int  NTarget1 = 3;
 #     endif
             int  In_Int1[NTarget1+1];
-            real In_Flt1[4], Out1[NTarget1+1];
+#     ifdef TEMP_IG
+            real In_Flt1[4];
+                 In_Flt1[3] = Temp;
+#     else
+            real In_Flt1[3];
+#     endif
+            real Out1[NTarget1+1];
 
       In_Flt1[0] = Dens_Code;
       In_Flt1[1] = Eint_Code;
       In_Flt1[2] = Ye;
-      In_Flt1[3] = Temp;
 
       In_Int1[0] = NTarget1;
       In_Int1[1] = NUC_VAR_IDX_ENTR;
@@ -265,12 +270,18 @@ static void Src_Deleptonization( real fluid[], const real B[],
       const int  NTarget2 = 0;
 #     endif
             int  In_Int2[NTarget2+1];
-            real In_Flt2[4], Out2[NTarget2+1];
+#     ifdef TEMP_IG
+            real In_Flt2[4];
+                 In_Flt2[3]  = Temp_MeV * MeV2Kelvin;
+#     else
+            real In_Flt2[3];
+#     endif
+
+            real Out2[NTarget2+1];
 
       In_Flt2[0]  = Dens_Code;
       In_Flt2[1]  = Entr;
       In_Flt2[2]  = Ye;
-      In_Flt2[3]  = Temp_MeV * MeV2Kelvin;
 
       In_Int2[0]  = NTarget2;
 #     if ( NUC_TABLE_MODE == NUC_TABLE_MODE_TEMP )
@@ -287,6 +298,11 @@ static void Src_Deleptonization( real fluid[], const real B[],
 //    overwrite internal energy with input data
       Eint_Update = Eint_Code;
    } // if ( Del_Ye < 0.0 ) ... else ...
+   #  ifdef TEMP_IG
+   fluid[TEMP_IG] = Hydro_Con2Temp( fluid[DENS], fluid[MOMX], fluid[MOMY], fluid[MOMZ], fluid[ENGY], fluid+NCOMP_FLUID,
+                                    false, 0.0, Emag, EoS->DensEint2Temp_FuncPtr,
+                                    EoS->AuxArrayDevPtr_Flt, EoS->AuxArrayDevPtr_Int, EoS->Table );                              
+   #  endif
 
 
 // final check
@@ -297,8 +313,6 @@ static void Src_Deleptonization( real fluid[], const real B[],
       printf( "   Entr=%13.7e kb/baryon, Del_Ye=%13.7e, Del_Entr=%13.7e kb/baryon\n", Entr, Del_Ye, Del_Entr );
    }
 #  endif // GAMER_DEBUG
-
-
 
 } // FUNCTION : Src_Deleptonization
 
