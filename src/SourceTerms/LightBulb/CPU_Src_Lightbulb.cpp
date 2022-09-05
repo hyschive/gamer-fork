@@ -186,7 +186,13 @@ static void Src_Lightbulb( real fluid[], const real B[],
 #  endif
 
 
+// note that EoS->General_FuncPtr binds to the GPU EoS driver when enabling GPU
+// here we call the CPU EoS driver instead if the CPU source term solvers are invoked
+#  ifdef __CUDACC__
    EoS->General_FuncPtr( NUC_MODE_ENGY, Out, In_Flt, In_Int, EoS->AuxArrayDevPtr_Flt, EoS->AuxArrayDevPtr_Int, EoS->Table );
+#  else
+   EoS_General_CPUPtr  ( NUC_MODE_ENGY, Out, In_Flt, In_Int, EoS_AuxArray_Flt,        EoS_AuxArray_Int,        h_EoS_Table );
+#  endif
 
    const real Xn       = Out[0];               // neutron mass fraction
    const real Xp       = Out[1];               // proton  mass fraction
@@ -207,11 +213,15 @@ static void Src_Lightbulb( real fluid[], const real B[],
    const real dEint_Code  = rate_Code * dt * Dens_Code;
    const real Eint_Update = Eint_Code + dEint_Code;
 
-   fluid[ENGY]    = Hydro_ConEint2Etot( fluid[DENS], fluid[MOMX], fluid[MOMY], fluid[MOMZ], Eint_Update, Emag );
+   fluid[ENGY] = Hydro_ConEint2Etot( fluid[DENS], fluid[MOMX], fluid[MOMY], fluid[MOMZ], Eint_Update, Emag );
+#  ifdef DEDT_LB
+   fluid[DEDT_LB] = FABS( rate_Code * Dens_Code );
+#  endif
 #  ifdef TEMP_IG
    fluid[TEMP_IG] = EoS->DensEint2Temp_FuncPtr( Dens_Code, Eint_Update, fluid+NCOMP_FLUID,
                                                 EoS->AuxArrayDevPtr_Flt, EoS->AuxArrayDevPtr_Int, EoS->Table );
 #  endif
+
 
 // final check
 #  ifdef GAMER_DEBUG
@@ -390,7 +400,7 @@ void Src_Init_Lightbulb()
 #  endif
 
 // set the major source-term function
-   Src_SetCPUFunc_Lightbulb( SrcTerms.Lightbulb_FuncPtr );
+   Src_SetCPUFunc_Lightbulb( SrcTerms.Lightbulb_CPUPtr );
 
 #  ifdef GPU
    Src_SetGPUFunc_Lightbulb( SrcTerms.Lightbulb_GPUPtr );

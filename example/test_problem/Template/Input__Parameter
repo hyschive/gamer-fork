@@ -153,6 +153,9 @@ OPT__MINIMIZE_MPI_BARRIER     1           # minimize MPI barriers to improve loa
 
 # source terms
 SRC_DELEPTONIZATION           0           # deleptonization (for simulations of stellar core collapse) [0] ##HYDRO ONLY##
+SRC_LIGHTBULB                 0           # lightbulb scheme for neutrino heating and cooling [0] ##HYDRO ONLY##
+SRC_LIGHTBULB_LNUE            4.0e52      # electron neutrino luminosity in erg/s [1e52] ##HYDRO ONLY##
+SRC_LIGHTBULB_TNUE            4.0         # electron neutrino temperature in MeV [4.0] ##HYDRO ONLY##
 SRC_USER                      0           # user-defined source terms -> edit "Src_User.cpp" [0]
 SRC_GPU_NPGROUP              -1           # number of patch groups sent into the CPU/GPU source-term solver (<=0=auto) [-1]
 
