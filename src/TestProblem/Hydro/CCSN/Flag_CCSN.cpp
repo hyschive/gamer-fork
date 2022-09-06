@@ -42,15 +42,17 @@ bool Flag_CoreCollapse( const int i, const int j, const int k, const int lv, con
    const double dz = Center[2] - Pos[2];
    const double r  = sqrt(  SQR( dx ) + SQR( dy ) + SQR( dz )  );
 
+   const double CentralDens = CCSN_CentralDens * UNIT_D;
+
 // (1) check if the allowed maximum level is reached
-   if ( CCSN_CentralDens < 1e11 )
+   if ( CentralDens < 1e11 * UNIT_D )
    {
-      MaxRefine = lv >= ( MAX_LEVEL - 2 );
+      MaxRefine = dh <= 2e5; // allowed finest resoultion of 2km
    }
 
-   else if ( CCSN_CentralDens < 1e12 )
+   else if ( CentralDens < 1e12 * UNIT_D )
    {
-      MaxRefine = lv >= ( MAX_LEVEL - 1 );
+      MaxRefine = dh <= 1e5; // allowed finest resoultion of 1km
    }
 
 

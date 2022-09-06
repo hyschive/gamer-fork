@@ -3,6 +3,8 @@
 
 
 extern double CCSN_LB_TimeFac;
+extern double CCSN_CC_CentralDensFac;
+extern double CCSN_CC_Red_DT;
 extern double CCSN_CentralDens;
 
 
@@ -153,8 +155,9 @@ double Mis_GetTimeStep_Lightbulb( const int lv, const double dTime_dt )
 
 
 //-------------------------------------------------------------------------------------------------------
-// Function    :  Mis_GetTimeStep_Deleptonization
-// Description :  estimate the evolution time-step constrained by the lightbulb source term
+// Function    :  Mis_GetTimeStep_CoreCollapse
+// Description :  Set the time-step to CCSN_CC_Red_DT during the core collape once the central 
+//                density reaches CCSN_CC_CentralDensFac (g/cm^3) to get a more accurate bounce time
 //
 // Note        :  1. This function should be applied to both physical and comoving coordinates and always
 //                   return the evolution time-step (dt) actually used in various solvers
@@ -171,14 +174,15 @@ double Mis_GetTimeStep_Lightbulb( const int lv, const double dTime_dt )
 //
 // Return      :  dt
 //-------------------------------------------------------------------------------------------------------
-double Mis_GetTimeStep_Deleptonization( const int lv, const double dTime_dt )
+double Mis_GetTimeStep_CoreCollapse( const int lv, const double dTime_dt )
 {
 
-   real dt = HUGE_NUMBER;
-
-   if (  ( lv == 0 )  &&  ( CCSN_CentralDens > 1.0e13 )  )
-      dt = 0.1 * DT__MAX;
+   double dt = HUGE_NUMBER;
+   
+   const double CentralDens = CCSN_CentralDens * UNIT_D;
+   
+   if ( CentralDens  > CCSN_CC_CentralDensFac * UNIT_D ) dt = CCSN_CC_Red_DT / UNIT_T;
 
    return dt;
 
-} // FUNCTION : Mis_GetTimeStep_Deleptonization
+} // FUNCTION : Mis_GetTimeStep_CoreCollapse

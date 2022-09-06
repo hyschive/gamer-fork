@@ -48,6 +48,8 @@ static int        CCSN_Eint_Mode;                  // Mode of obtaining internal
                                                    //   2=Pres Mode: Eint(dens, pres, [Ye]) )
 
        double     CCSN_MaxRefine_RadFac;           // factor that determines the maximum refinement level based on distance from the box center
+       double     CCSN_CC_CentralDensFac;          // factor that reduces the dt constrained by the central density (in cgs) during the core collapse
+       double     CCSN_CC_Red_DT;                  // Reduced time step (in s) when the central density exceeds CCSN_CC_CentralDensFac before bounce
        double     CCSN_LB_TimeFac;                 // factor that scales the dt constrained by lightbulb scheme
 
        bool       CCSN_Is_PostBounce = false;      // boolean that indicates whether core bounce has occurred
@@ -59,7 +61,7 @@ void   Record_CCSN_CentralQuant();
 void   Record_CCSN_GWSignal();
 void   Detect_CoreBounce();
 double Mis_GetTimeStep_Lightbulb( const int lv, const double dTime_dt );
-double Mis_GetTimeStep_Deleptonization( const int lv, const double dTime_dt );
+double Mis_GetTimeStep_CoreCollapse( const int lv, const double dTime_dt );
 bool   Flag_CoreCollapse( const int i, const int j, const int k, const int lv, const int PID, const double *Threshold );
 bool   Flag_Lightbulb( const int i, const int j, const int k, const int lv, const int PID, const double *Threshold );
 
@@ -131,23 +133,24 @@ void SetParameter()
 // --> note that VARIABLE, DEFAULT, MIN, and MAX must have the same data type
 // --> some handy constants (e.g., Useless_bool, Eps_double, NoMin_int, ...) are defined in "include/ReadPara.h"
 // ********************************************************************************************************************************
-// ReadPara->Add( "KEY_IN_THE_FILE",   &VARIABLE,              DEFAULT,       MIN,              MAX               );
+// ReadPara->Add( "KEY_IN_THE_FILE",        &VARIABLE,               DEFAULT,       MIN,              MAX               );
 // ********************************************************************************************************************************
-   ReadPara->Add( "CCSN_Prob",             &CCSN_Prob,             -1,            0,                2                 );
-   ReadPara->Add( "CCSN_Prof_File",         CCSN_Prof_File,        Useless_str,   Useless_str,      Useless_str       );
+   ReadPara->Add( "CCSN_Prob",              &CCSN_Prob,              -1,            0,                2                 );
+   ReadPara->Add( "CCSN_Prof_File",          CCSN_Prof_File,         Useless_str,   Useless_str,      Useless_str       );
 #  ifdef MHD
-   ReadPara->Add( "CCSN_Mag",              &CCSN_Mag,              1,             0,                1                 );
-   ReadPara->Add( "CCSN_Mag_B0",           &CCSN_Mag_B0,           1.0e14,        0.0,              NoMax_double      );
-   ReadPara->Add( "CCSN_Mag_np",           &CCSN_Mag_np,           0.0,           NoMin_double,     NoMax_double      );
-   ReadPara->Add( "CCSN_Mag_R0",           &CCSN_Mag_R0,           1.0e8,         Eps_double,       NoMax_double      );
+   ReadPara->Add( "CCSN_Mag",               &CCSN_Mag,               1,             0,                1                 );
+   ReadPara->Add( "CCSN_Mag_B0",            &CCSN_Mag_B0,            1.0e14,        0.0,              NoMax_double      );
+   ReadPara->Add( "CCSN_Mag_np",            &CCSN_Mag_np,            0.0,           NoMin_double,     NoMax_double      );
+   ReadPara->Add( "CCSN_Mag_R0",            &CCSN_Mag_R0,            1.0e8,         Eps_double,       NoMax_double      );
 #  endif
-   ReadPara->Add( "CCSN_GW_OUTPUT",        &CCSN_GW_OUTPUT,        false,         Useless_bool,     Useless_bool      );
-   ReadPara->Add( "CCSN_GW_DT",            &CCSN_GW_DT,            1.0,           Eps_double,       NoMax_double      );
-   ReadPara->Add( "CCSN_Eint_Mode",        &CCSN_Eint_Mode,        2,             1,                2                 );
-   ReadPara->Add( "CCSN_MaxRefine_RadFac", &CCSN_MaxRefine_RadFac, 0.15,          0.0,              NoMax_double      );
-   ReadPara->Add( "CCSN_LB_TimeFac",       &CCSN_LB_TimeFac,       0.1,           Eps_double,       1.0               );
-   ReadPara->Add( "CCSN_Is_PostBounce",    &CCSN_Is_PostBounce,    false,         Useless_bool,     Useless_bool      );
-
+   ReadPara->Add( "CCSN_GW_OUTPUT",         &CCSN_GW_OUTPUT,         false,         Useless_bool,     Useless_bool      );
+   ReadPara->Add( "CCSN_GW_DT",             &CCSN_GW_DT,             1.0,           Eps_double,       NoMax_double      );
+   ReadPara->Add( "CCSN_Eint_Mode",         &CCSN_Eint_Mode,         2,             1,                2                 );
+   ReadPara->Add( "CCSN_MaxRefine_RadFac",  &CCSN_MaxRefine_RadFac,  0.15,          0.0,              NoMax_double      );
+   ReadPara->Add( "CCSN_CC_CentralDensFac", &CCSN_CC_CentralDensFac, 1.0e13,        Eps_double,       NoMax_double      );
+   ReadPara->Add( "CCSN_CC_Red_DT",         &CCSN_CC_Red_DT,         1.0e-5,        Eps_double,       NoMax_double      );
+   ReadPara->Add( "CCSN_LB_TimeFac",        &CCSN_LB_TimeFac,        0.1,           Eps_double,       1.0               );
+   ReadPara->Add( "CCSN_Is_PostBounce",     &CCSN_Is_PostBounce,     false,         Useless_bool,     Useless_bool      );
 
    ReadPara->Read( FileName );
 
@@ -633,9 +636,6 @@ void Record_CCSN()
 
          Src_Init();
 
-         OUTPUT_DT = 2.0;   // output data every 2.0 unit time
-         DT__MAX = 1.0e-2;  // forced the maximum allowed time-step on all level to be 1.0e-2
-
 //       forced output data at core bounce
          Output_DumpData( 2 );
 
@@ -663,7 +663,7 @@ double Mis_GetTimeStep_CCSN( const int lv, const double dTime_dt )
    }
 
    if ( !CCSN_Is_PostBounce )
-      dt_CCSN = MIN(  dt_CCSN, Mis_GetTimeStep_Deleptonization( lv, dTime_dt )  );
+      dt_CCSN = MIN(  dt_CCSN, Mis_GetTimeStep_CoreCollapse( lv, dTime_dt )  );
 
 
    return dt_CCSN;
