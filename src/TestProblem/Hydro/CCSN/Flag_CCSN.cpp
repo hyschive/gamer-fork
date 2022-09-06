@@ -47,12 +47,12 @@ bool Flag_CoreCollapse( const int i, const int j, const int k, const int lv, con
 // (1) check if the allowed maximum level is reached
    if ( CentralDens < 1e11 * UNIT_D )
    {
-      MaxRefine = dh <= 2e5; // allowed finest resoultion of 2km
+      MaxRefine = dh * UNIT_L <= 2e5; // allowed finest resoultion of 2km
    }
 
    else if ( CentralDens < 1e12 * UNIT_D )
    {
-      MaxRefine = dh <= 1e5; // allowed finest resoultion of 1km
+      MaxRefine = dh * UNIT_L <= 1e5; // allowed finest resoultion of 1km
    }
 
 
