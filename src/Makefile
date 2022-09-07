@@ -128,7 +128,6 @@ SIMU_OPTION += -DSTORE_POT_GHOST
 SIMU_OPTION += -DUNSPLIT_GRAVITY
 
 # comoving frame for cosmological simulations
-# --> not supported for PARTICLE
 #SIMU_OPTION += -DCOMOVING
 endif # GRAVITY
 
@@ -415,7 +414,7 @@ LIBYT_PATH   :=
 #MPI_PATH     := /cluster/intel-2022.1/openmpi-4.1.2
 #HDF5_PATH    := /cluster/intel-2022.1/hdf5-1.10.8_openmpi4
 #GRACKLE_PATH :=
-#GSL_PATH     :=
+#GSL_PATH     := /usr
 #LIBYT_PATH   :=
 
 
@@ -463,7 +462,8 @@ CPU_FILE    += Interpolate.cpp  Int_CQuadratic.cpp  Int_MinMod1D.cpp  Int_MinMod
 CPU_FILE    += Mis_CompareRealValue.cpp  Mis_GetTotalPatchNumber.cpp  Mis_GetTimeStep.cpp  Mis_Heapsort.cpp \
                Mis_BinarySearch.cpp  Mis_1D3DIdx.cpp  Mis_Matching.cpp  Mis_GetTimeStep_User.cpp \
                Mis_dTime2dt.cpp  Mis_CoordinateTransform.cpp  Mis_BinarySearch_Real.cpp  Mis_InterpolateFromTable.cpp \
-               CPU_dtSolver.cpp  dt_Prepare_Flu.cpp  dt_Prepare_Pot.cpp  dt_Close.cpp  dt_InvokeSolver.cpp
+               CPU_dtSolver.cpp  dt_Prepare_Flu.cpp  dt_Prepare_Pot.cpp  dt_Close.cpp  dt_InvokeSolver.cpp \
+               Mis_UserWorkBeforeNextLevel.cpp  Mis_UserWorkBeforeNextSubstep.cpp
 
 CPU_FILE    += Output_DumpData_Total.cpp  Output_DumpData.cpp  Output_DumpManually.cpp  Output_PatchMap.cpp \
                Output_DumpData_Part.cpp  Output_FlagMap.cpp  Output_Patch.cpp  Output_PreparedPatch_Fluid.cpp \
@@ -494,7 +494,7 @@ CPU_FILE    += CPU_FluidSolver_RTVD.cpp  CPU_FluidSolver_MHM.cpp  CPU_FluidSolve
 
 CPU_FILE    += Hydro_Init_ByFunction_AssignData.cpp  Hydro_Aux_Check_Negative.cpp \
                Hydro_BoundaryCondition_Reflecting.cpp  Hydro_BoundaryCondition_Outflow.cpp \
-               EoS_Init.cpp  EoS_End.cpp
+               Hydro_BoundaryCondition_Diode.cpp  EoS_Init.cpp  EoS_End.cpp
 
 vpath %.cu     Model_Hydro/GPU_Hydro  EoS  EoS/Gamma  EoS/User_Template  EoS/Isothermal
 vpath %.cpp    Model_Hydro/CPU_Hydro  Model_Hydro  EoS  EoS/Gamma  EoS/User_Template  EoS/Isothermal
@@ -512,7 +512,7 @@ ifeq "$(filter -DMHD, $(SIMU_OPTION))" "-DMHD"
 CPU_FILE    += MHD_GetCellCenteredBInPatch.cpp  MHD_InterpolateBField.cpp  MHD_AllocateElectricArray.cpp \
                MHD_Aux_Check_InterfaceB.cpp  MHD_FixUp_Electric.cpp  MHD_Aux_Check_DivergenceB.cpp \
                MHD_BoundaryCondition_Outflow.cpp  MHD_BoundaryCondition_Reflecting.cpp  MHD_BoundaryCondition_User.cpp \
-               MHD_CopyPatchInterfaceBField.cpp MHD_Init_BField_ByFile.cpp
+               MHD_BoundaryCondition_Diode.cpp  MHD_CopyPatchInterfaceBField.cpp MHD_Init_BField_ByFile.cpp
 
 CPU_FILE    += CPU_Shared_ConstrainedTransport.cpp  CPU_Shared_RiemannSolver_HLLD.cpp
 
@@ -924,6 +924,13 @@ NVCCFLAG_COM := $(strip $(NVCCFLAG_COM))
 NVCCFLAG_FLU := $(strip $(NVCCFLAG_FLU))
 NVCCFLAG_POT := $(strip $(NVCCFLAG_POT))
 GIT_INFO     := $(strip $(GIT_INFO))
+CUDA_PATH    := $(strip $(CUDA_PATH))
+FFTW_PATH    := $(strip $(FFTW_PATH))
+MPI_PATH     := $(strip $(MPI_PATH))
+HDF5_PATH    := $(strip $(HDF5_PATH))
+GRACKLE_PATH := $(strip $(GRACKLE_PATH))
+GSL_PATH     := $(strip $(GSL_PATH))
+LIBYT_PATH   := $(strip $(LIBYT_PATH))
 
 
 # implicit rules (do NOT modify the order of the following rules)

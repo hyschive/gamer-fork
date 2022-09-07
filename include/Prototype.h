@@ -219,7 +219,8 @@ void Interpolate( real CData[], const int CSize[3], const int CStart[3], const i
                   real FData[], const int FSize[3], const int FStart[3],
                   const int NComp, const IntScheme_t IntScheme, const bool UnwrapPhase,
                   const bool Monotonic[], const bool OppSign0thOrder, const bool AllCons,
-                  const IntPrim_t IntPrim, const ReduceOrFixMonoCoeff_t ReduceMonoCoeff );
+                  const IntPrim_t IntPrim, const ReduceOrFixMonoCoeff_t ReduceMonoCoeff,
+                  const real CMag_IntIter[], const real FMag_IntIter[][NCOMP_MAG] );
 void Int_Table( const IntScheme_t IntScheme, int &NSide, int &NGhost );
 
 
@@ -454,6 +455,10 @@ void Hydro_BoundaryCondition_Reflecting( real *Array, const int BC_Face, const i
                                          const int ArraySizeX, const int ArraySizeY, const int ArraySizeZ,
                                          const int Idx_Start[], const int Idx_End[], const int TFluVarIdxList[],
                                          const int NVar_Der, const long TDerVarList[] );
+void Hydro_BoundaryCondition_Diode( real *Array, const int BC_Face, const int NVar_Flu, const int GhostSize,
+                                    const int ArraySizeX, const int ArraySizeY, const int ArraySizeZ,
+                                    const int Idx_Start[], const int Idx_End[], const int TFluVarIdxList[],
+                                    const int NVar_Der, const long TDerVarList[] );
 void Hydro_Con2Pri( const real In[], real Out[], const real MinPres,
                     const bool FracPassive, const int NFrac, const int FracIdx[],
                     const bool JeansMinPres, const real JeansMinPres_Coeff,
@@ -488,6 +493,9 @@ void MHD_BoundaryCondition_Outflow( real **Array, const int BC_Face, const int N
 void MHD_BoundaryCondition_Reflecting( real **Array, const int BC_Face, const int NVar, const int GhostSize,
                                        const int ArraySizeX, const int ArraySizeY, const int ArraySizeZ,
                                        const int Idx_Start[], const int Idx_End[], const int TVarIdxList[] );
+void MHD_BoundaryCondition_Diode( real **Array, const int BC_Face, const int NVar, const int GhostSize,
+                                  const int ArraySizeX, const int ArraySizeY, const int ArraySizeZ,
+                                  const int Idx_Start[], const int Idx_End[], const int TVarIdxList[] );
 void MHD_BoundaryCondition_User( real **Array, const int BC_Face, const int NVar,
                                  const int ArraySizeX, const int ArraySizeY, const int ArraySizeZ,
                                  const int Idx_Start[], const int Idx_End[], const int TVarIdxList[],

@@ -607,6 +607,9 @@ struct InputPara_t
 
 // interpolation schemes
    int    Opt__Int_Time;
+#  if ( MODEL == HYDRO )
+   int    Opt__Int_Prim;
+#  endif
 #  if ( MODEL == ELBDM )
    int    Opt__Int_Phase;
 #  endif
@@ -657,6 +660,7 @@ struct InputPara_t
 #  endif // #if ( MODEL == HYDRO )
    int    Opt__Output_UserField;
    int    Opt__Output_Mode;
+   int    Opt__Output_Restart;
    int    Opt__Output_Step;
    double Opt__Output_Dt;
    double Output_PartX;
@@ -701,7 +705,7 @@ struct InputPara_t
 // flag tables
    double FlagTable_Rho         [NLEVEL-1];
    double FlagTable_RhoGradient [NLEVEL-1];
-   double FlagTable_Lohner      [NLEVEL-1][4];
+   double FlagTable_Lohner      [NLEVEL-1][5];
    hvl_t  FlagTable_User        [NLEVEL-1];
 #  if   ( MODEL == HYDRO )
    double FlagTable_PresGradient[NLEVEL-1];
