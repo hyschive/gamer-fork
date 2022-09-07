@@ -204,6 +204,11 @@ void SetParameter()
    if (  ( CCSN_Is_PostBounce == 0 )  &&  ( CCSN_Prob == Post_Bounce )  )
       Aux_Error( ERROR_INFO, "Incorrect parameter %s = %d !!\n", "CCSN_Is_PostBounce", CCSN_Is_PostBounce );
 
+// CCSN_CC_Red_DT should be smaller than DT__MAX * UNIT_T
+   if (  ( CCSN_Prob == Core_Collapse )  &&  ( CCSN_CC_Red_DT > DT__MAX * UNIT_T )  )
+      Aux_Error( ERROR_INFO, "%s = %13.7e should be smaller than %s = %13.7e !!\n", "CCSN_CC_Red_DT", 
+                 CCSN_CC_Red_DT, "DT__MAX * UNIT_T", DT__MAX * UNIT_T );
+
 
 // (2) set the problem-specific derived parameters
 
@@ -228,22 +233,25 @@ void SetParameter()
    if ( MPI_Rank == 0 )
    {
       Aux_Message( stdout, "=============================================================================\n" );
-      Aux_Message( stdout, "  test problem ID                         = %d\n",      TESTPROB_ID           );
-      Aux_Message( stdout, "  target CCSN problem                     = %s\n",      CCSN_Name             );
-      Aux_Message( stdout, "  initial profile                         = %s\n",      CCSN_Prof_File        );
+      Aux_Message( stdout, "  test problem ID                         = %d\n",      TESTPROB_ID            );
+      Aux_Message( stdout, "  target CCSN problem                     = %s\n",      CCSN_Name              );
+      Aux_Message( stdout, "  initial profile                         = %s\n",      CCSN_Prof_File         );
 #     ifdef MHD
-      Aux_Message( stdout, "  magnetic field profile                  = %d\n",      CCSN_Mag              );
-      Aux_Message( stdout, "  magnetic field strength                 = %13.7e\n",  CCSN_Mag_B0           );
-      Aux_Message( stdout, "  dependence of magnetic field on density = %13.7e\n",  CCSN_Mag_np           );
-      Aux_Message( stdout, "  characteristic radius of magnetic field = %13.7e\n",  CCSN_Mag_R0           );
+      Aux_Message( stdout, "  magnetic field profile                  = %d\n",      CCSN_Mag               );
+      Aux_Message( stdout, "  magnetic field strength                 = %13.7e\n",  CCSN_Mag_B0            );
+      Aux_Message( stdout, "  dependence of magnetic field on density = %13.7e\n",  CCSN_Mag_np            );
+      Aux_Message( stdout, "  characteristic radius of magnetic field = %13.7e\n",  CCSN_Mag_R0            );
 #     endif
-      Aux_Message( stdout, "  output GW signals                       = %d\n",      CCSN_GW_OUTPUT        );
-      Aux_Message( stdout, "  sampling interval of GW signals         = %13.7e\n",  CCSN_GW_DT            );
-      Aux_Message( stdout, "  mode for obtaining internal energy      = %d\n",      CCSN_Eint_Mode        );
+      Aux_Message( stdout, "  output GW signals                       = %d\n",      CCSN_GW_OUTPUT         );
+      Aux_Message( stdout, "  sampling interval of GW signals         = %13.7e\n",  CCSN_GW_DT             );
+      Aux_Message( stdout, "  mode for obtaining internal energy      = %d\n",      CCSN_Eint_Mode         );
       if ( CCSN_Prob != Migration_Test ) {
-      Aux_Message( stdout, "  radial factor for maximum refine level  = %13.7e\n",  CCSN_MaxRefine_RadFac );
-      Aux_Message( stdout, "  scaling factor for lightbulb dt         = %13.7e\n",  CCSN_LB_TimeFac       );
-      Aux_Message( stdout, "  has core bounce occurred                = %d\n",      CCSN_Is_PostBounce    ); }
+      Aux_Message( stdout, "  radial factor for maximum refine level  = %13.7e\n",  CCSN_MaxRefine_RadFac  );
+      Aux_Message( stdout, "  scaling factor for lightbulb dt         = %13.7e\n",  CCSN_LB_TimeFac        );
+      Aux_Message( stdout, "  has core bounce occurred                = %d\n",      CCSN_Is_PostBounce     ); }
+      if ( CCSN_Prob == Core_Collapse ) {
+      Aux_Message( stdout, "  central density factor for reducing dt  = %13.7e\n",  CCSN_CC_CentralDensFac );
+      Aux_Message( stdout, "  reduced dt near bounce                  = %13.7e\n",  CCSN_CC_Red_DT         ); }
       Aux_Message( stdout, "=============================================================================\n" );
    }
 

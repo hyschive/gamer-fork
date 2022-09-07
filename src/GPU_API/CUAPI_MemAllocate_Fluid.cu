@@ -43,10 +43,6 @@ extern real (*d_FC_Mag_Half)[NCOMP_MAG][ FLU_NXT_P1*SQR(FLU_NXT) ];
 extern real (*d_EC_Ele     )[NCOMP_MAG][ CUBE(N_EC_ELE)          ];
 #endif
 #endif // FLU_SCHEME
-#if ( MODEL == HYDRO )
-extern real (*d_SrcDlepProf_Data)[SRC_DLEP_PROF_NBINMAX];
-extern real  *d_SrcDlepProf_Radius;
-#endif
 
 #if ( MODEL != HYDRO  &&  MODEL != ELBDM )
 #  warning : DO YOU WANT TO ADD SOMETHING HERE FOR THE NEW MODEL ??
@@ -238,18 +234,6 @@ void CUAPI_MemAllocate_Fluid( const int Flu_NPG, const int Pot_NPG, const int Sr
    CUDA_CHECK_ERROR(  cudaMalloc( (void**) &d_Corner_Array_S,        Corner_MemSize_S     )  );
    }
 
-#  if ( MODEL == HYDRO )
-   if ( SrcTerms.Deleptonization )
-   {
-      CUDA_CHECK_ERROR(  cudaMalloc( (void**) &d_SrcDlepProf_Data,   DelProfData_MemSize  )  );
-      CUDA_CHECK_ERROR(  cudaMalloc( (void**) &d_SrcDlepProf_Radius, DelProfRad_MemSize   )  );
-
-//    store the device pointers in SrcTerms when using GPU
-      SrcTerms.Dlep_Profile_DataDevPtr   = d_SrcDlepProf_Data;
-      SrcTerms.Dlep_Profile_RadiusDevPtr = d_SrcDlepProf_Radius;
-   }
-#  endif
-
 #  if ( MODEL != HYDRO  &&  MODEL != ELBDM )
 #     warning : DO YOU WANT TO ADD SOMETHING HERE FOR THE NEW MODEL ??
 #  endif
@@ -297,14 +281,6 @@ void CUAPI_MemAllocate_Fluid( const int Flu_NPG, const int Pot_NPG, const int Sr
       CUDA_CHECK_ERROR(  cudaMallocHost( (void**) &h_Corner_Array_S [t],   Corner_MemSize_S  )  );
       }
    } // for (int t=0; t<2; t++)
-
-#  if ( MODEL == HYDRO )
-   if ( SrcTerms.Deleptonization )
-   {
-      CUDA_CHECK_ERROR(  cudaMallocHost( (void**) &h_SrcDlepProf_Data,   DelProfData_MemSize )  );
-      CUDA_CHECK_ERROR(  cudaMallocHost( (void**) &h_SrcDlepProf_Radius, DelProfRad_MemSize  )  );
-   }
-#  endif
 
 
 // create streams

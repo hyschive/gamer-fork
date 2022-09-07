@@ -179,9 +179,9 @@ double Mis_GetTimeStep_CoreCollapse( const int lv, const double dTime_dt )
 
    double dt = HUGE_NUMBER;
    
-   const double CentralDens = CCSN_CentralDens * UNIT_D;
+   const double CentralDens = CCSN_CentralDens / UNIT_D;
    
-   if ( CentralDens  > CCSN_CC_CentralDensFac * UNIT_D ) dt = CCSN_CC_Red_DT / UNIT_T;
+   if ( CentralDens > CCSN_CC_CentralDensFac / UNIT_D ) dt = CCSN_CC_Red_DT / UNIT_T;
 
    return dt;
 

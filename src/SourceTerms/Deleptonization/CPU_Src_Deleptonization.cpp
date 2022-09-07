@@ -156,7 +156,7 @@ static void Src_Deleptonization( real fluid[], const real B[],
    const real Delep_Yec         = AuxArray_Flt[SRC_AUX_DELEP_YEC  ];
    const real Kelvin2MeV        = AuxArray_Flt[SRC_AUX_KELVIN2MEV ];
 
-   const real Delep_minDens_CGS = 1.0e6; // [g/cm^3]
+   const real Delep_minDens_CGS = (real)1.0e6; // [g/cm^3]
 
 
    const real MeV2Kelvin        = 1.0/Kelvin2MeV;
@@ -244,7 +244,7 @@ static void Src_Deleptonization( real fluid[], const real B[],
       if ( mu_nu_MeV != mu_nu_MeV ) printf( "ERROR : couldn't get chemical potential munu (NaN) !!\n" );
 #     endif // GAMER_DEBUG
 
-      if (  ( mu_nu_MeV < Delep_Enu )  ||  ( Dens_CGS >= 2.0e12 )  )
+      if (  ( mu_nu_MeV < Delep_Enu )  ||  ( Dens_CGS >= (real)2.0e12 )  )
       {
          Del_Entr = (real)0.0;
       }
@@ -256,8 +256,9 @@ static void Src_Deleptonization( real fluid[], const real B[],
 //    update entropy and Ye
       Entr      = Entr + Del_Entr;
       Ye        = Ye + Del_Ye;
+#     ifdef YE
       fluid[YE] = Dens_Code * Ye;
-
+#     endif
 
 //    input and output arrays for Nuclear EoS
 #     if ( NUC_TABLE_MODE == NUC_TABLE_MODE_TEMP )
@@ -515,14 +516,14 @@ real yeofrhofunc( const real Dens_CGS, const real Delep_Rho1, const real Delep_R
           / LOG10( Delep_Rho2 / Delep_Rho1 );
    XofRho = MAX( (real)-1.0, MIN( (real)1.0, XofRho ) );
 
-   Ye = (real)0.5 * ( Delep_Ye2 + Delep_Ye1 ) + 0.5 * XofRho * ( Delep_Ye2 - Delep_Ye1 )
+   Ye = (real)0.5 * ( Delep_Ye2 + Delep_Ye1 ) + (real)0.5 * XofRho * ( Delep_Ye2 - Delep_Ye1 )
       + Delep_Yec * (  (real)1.0 - FABS( XofRho )
       + (real)4.0 * FABS( XofRho ) * ( FABS( XofRho ) - (real)0.5 ) * ( FABS( XofRho ) - (real)1.0 )  );
 
 
    return Ye;
 
-}
+} // FUNCTION : yeofrhofunc
 
 
 
