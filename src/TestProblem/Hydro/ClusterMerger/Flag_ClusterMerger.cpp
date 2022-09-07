@@ -23,6 +23,7 @@ double BH_Vel_Flag[3][3] = {  { NULL_REAL, NULL_REAL, NULL_REAL }, // BH velocit
                               { NULL_REAL, NULL_REAL, NULL_REAL }  };  
 extern void GetClusterCenter( double Cen[][3], double BH_Vel[][3] );
 */
+
 extern double ClusterCen[3][3];
 
 
@@ -56,6 +57,10 @@ bool Flag_ClusterMerger( const int i, const int j, const int k, const int lv, co
    double Jet_HalfHeight[3] = { Jet_HalfHeight1, Jet_HalfHeight2, Jet_HalfHeight3 };
    double Jet_Radius[3] = { Jet_Radius1, Jet_Radius2, Jet_Radius3 }; 
 
+// Temp!!!
+   for (int d=0; d<3; d++)   ClusterCen[0][d] = 5.0;
+   Jet_Vec[0][0] = 1.0;
+   for (int d=1; d<3; d++)   Jet_Vec[0][d] = 0.0;
 
 // flag cells within the target radius
    double Jet_dr, Jet_dh, S, Area;
@@ -84,9 +89,10 @@ bool Flag_ClusterMerger( const int i, const int j, const int k, const int lv, co
       Jet_dr = 2.0*Area/Dis_c2v;
       Jet_dh = sqrt( Dis_c2m*Dis_c2m - Jet_dr*Jet_dr );
  
-      if ( Jet_dh <= Jet_HalfHeight[c]  &&  Jet_dr <= Jet_Radius[c]  &&  lv >= 6 ) {
+      if ( Jet_dh <= Jet_HalfHeight[c]*Threshold[lv]  &&  Jet_dr <= Jet_Radius[c]*Threshold[lv]  &&  lv >= 5 ) {
          Flag = true;
-         Aux_Message( stdout, " Yes=======================================\n" );
+         Aux_Message( stdout, "lv = %d, Threshold = %f\n", lv, Threshold[lv]);
+//         Aux_Message( stdout, " Yes=======================================\n" );
          return Flag;
       }
    }
