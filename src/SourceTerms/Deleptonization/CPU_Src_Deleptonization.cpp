@@ -289,11 +289,6 @@ static void Src_Deleptonization( real fluid[], const real B[],
       EoS->General_FuncPtr( NUC_MODE_ENTR, Out2, In_Flt2, In_Int2, EoS->AuxArrayDevPtr_Flt, EoS->AuxArrayDevPtr_Int, EoS->Table );
       Eint_Update = Out2[0];
       fluid[ENGY] = Hydro_ConEint2Etot( fluid[DENS], fluid[MOMX], fluid[MOMY], fluid[MOMZ], Eint_Update, Emag );
-#     ifdef TEMP_IG
-      fluid[TEMP_IG] = Hydro_Con2Temp( fluid[DENS], fluid[MOMX], fluid[MOMY], fluid[MOMZ], fluid[ENGY], fluid+NCOMP_FLUID,
-                                       false, 0.0, Emag, EoS->DensEint2Temp_FuncPtr,
-                                       EoS->AuxArrayDevPtr_Flt, EoS->AuxArrayDevPtr_Int, EoS->Table );                              
-#     endif
 
 
       // final check
@@ -306,6 +301,14 @@ static void Src_Deleptonization( real fluid[], const real B[],
 #     endif // GAMER_DEBUG
 
    } // if ( Del_Ye < (real)0.0 )
+
+   
+// update temperature initial guess
+#  ifdef TEMP_IG
+   fluid[TEMP_IG] = Hydro_Con2Temp( fluid[DENS], fluid[MOMX], fluid[MOMY], fluid[MOMZ], fluid[ENGY], fluid+NCOMP_FLUID,
+                                    false, 0.0, Emag, EoS->DensEint2Temp_FuncPtr,
+                                    EoS->AuxArrayDevPtr_Flt, EoS->AuxArrayDevPtr_Int, EoS->Table );                              
+#  endif
 
 } // FUNCTION : Src_Deleptonization
 
