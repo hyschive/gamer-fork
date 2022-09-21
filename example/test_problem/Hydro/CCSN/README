@@ -4,7 +4,7 @@ Enable : MODEL=HYDRO, GRAVITY, GREP, [MHD]
 Disable: UNSPLIT_GRAVITY
 
 EOS    : EOS_GAMMA    (GREP migration test)
-         EOS_NUCLEAR  (Post bounce test and Lightbulb test)
+         EOS_NUCLEAR  (Post bounce test, Core collapse test and Lightbulb test)
 
 Default setup:
 ========================================
@@ -23,9 +23,14 @@ Default setup:
 
 3. For Post bounce:
    --> MAX_LEVEL = 8
+   --> OPT__DT_USER = 1
+   --> OPT__FLAG_USER = 1
 
 4. For Lightbulb:
    --> OPT__DT_USER = 1
+
+5. For Core collapse:
+   --> MAX_LEVEL = 9
 
 Note:
 ========================================
@@ -47,6 +52,9 @@ Note:
       s20GREP_LS220_15ms_LB3      : LS220 EoS, w/o neutrino, with lightbulb (Lnue = 4.0e52, Tnue = 4 MeV)
       s20GREP_LS220_15ms_idsa     : LS220 EoS, with IDSA
 
+   (3) Core collapse
+   --> s20_W2007                  : 20 solar mass progenitor model of Woosely & Heger (2007)
+
 3. Reference solutions are put at "ReferenceSolution"
 
 4. Python scripts are put at "python_script":
@@ -55,6 +63,7 @@ Note:
    --> plot_profile.py            : compute and plot the spherically averaged profile
    --> plot_rhoc_migrationtest.py : plot the evolution of central density with FLASH data (for GREP migration)
    --> plot_rhoc_postbounce.py    : plot the evolution of central density with FLASH data (for Post bounce)
+   --> plot_rhoc_corecollapse.py  : plot the evolution of central density with FLASH data (for Core collapse)
    --> plot_slice.py              : slice plot for the specified quantity
 
 5. For MHD simulations, there are two magnetic field profiles supported:
