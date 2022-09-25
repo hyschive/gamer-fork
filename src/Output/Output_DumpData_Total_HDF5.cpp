@@ -224,6 +224,7 @@ Procedure for outputting new variables:
 //                2451 : 2020/10/29 --> output the parameters of external potential table
 //                2452 : 2022/07/08 --> output OPT__OUTPUT_RESTART
 //                2453 : 2022/07/13 --> output OPT__INT_PRIM
+//                2454 : 2022/09/25 --> remove SRC_DLEP_PROF_NVAR and SRC_DLEP_PROF_NBINMAX that no longer exist
 //-------------------------------------------------------------------------------------------------------
 void Output_DumpData_Total_HDF5( const char *FileName )
 {
@@ -2276,8 +2277,6 @@ void FillIn_SymConst( SymConst_t &SymConst )
    SymConst.Src_GhostSize        = SRC_GHOST_SIZE;
    SymConst.Src_Nxt              = SRC_NXT;
    SymConst.Src_NAuxDlep         = SRC_NAUX_DLEP;
-   SymConst.Src_DlepProfNVar     = SRC_DLEP_PROF_NVAR;
-   SymConst.Src_DlepProfNBinMax  = SRC_DLEP_PROF_NBINMAX;
    SymConst.Src_NAuxUser         = SRC_NAUX_USER;
 
    SymConst.Der_GhostSize        = DER_GHOST_SIZE;
@@ -3092,8 +3091,6 @@ void GetCompound_SymConst( hid_t &H5_TypeID )
    H5Tinsert( H5_TypeID, "Src_GhostSize",        HOFFSET(SymConst_t,Src_GhostSize       ), H5T_NATIVE_INT    );
    H5Tinsert( H5_TypeID, "Src_Nxt",              HOFFSET(SymConst_t,Src_Nxt             ), H5T_NATIVE_INT    );
    H5Tinsert( H5_TypeID, "Src_NAuxDlep",         HOFFSET(SymConst_t,Src_NAuxDlep        ), H5T_NATIVE_INT    );
-   H5Tinsert( H5_TypeID, "Src_DlepProfNVar",     HOFFSET(SymConst_t,Src_DlepProfNVar    ), H5T_NATIVE_INT    );
-   H5Tinsert( H5_TypeID, "Src_DlepProfNBinMax",  HOFFSET(SymConst_t,Src_DlepProfNBinMax ), H5T_NATIVE_INT    );
    H5Tinsert( H5_TypeID, "Src_NAuxUser",         HOFFSET(SymConst_t,Src_NAuxUser        ), H5T_NATIVE_INT    );
 
    H5Tinsert( H5_TypeID, "Der_GhostSize",        HOFFSET(SymConst_t,Der_GhostSize       ), H5T_NATIVE_INT    );

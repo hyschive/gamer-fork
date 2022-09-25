@@ -35,11 +35,6 @@ typedef void (*SrcFunc_t)( real fluid[], const real B[],
 //                *_AuxArrayDevPtr_*        : Auxiliary array pointers
 //                                            --> For GPU, these pointers store the addresses of constant memory arrays,
 //                                                which should NOT be used by host
-//                Dlep_Profile_DataDevPtr   : Profile array pointer used by deleptonization
-//                Dlep_Profile_RadiusDevPtr : Radius array pointer associated with Dlep_Profile_DataDevPtr[]
-//                                            --> For GPU, Dlep_Profile_DataDevPtr[]/RadiusDevPtr[] store the
-//                                                addresses of global memory arrays, which should NOT be used by host
-//                Dlep_Profile_NBin         : Number of radial bins in Dlep_Profile_*
 //                Lightbulb_Lnue            : Electron neutrino luminosity in erg/s
 //                Lightbulb_Tnue            : Electron neutrino temperature in MeV
 //
@@ -75,9 +70,6 @@ struct SrcTerms_t
 #  endif
    double   *Dlep_AuxArrayDevPtr_Flt;
    int      *Dlep_AuxArrayDevPtr_Int;
-   real    (*Dlep_Profile_DataDevPtr)[SRC_DLEP_PROF_NBINMAX];
-   real     *Dlep_Profile_RadiusDevPtr;
-   int       Dlep_Profile_NBin;
    double    Dlep_Enu;
    double    Dlep_Rho1;
    double    Dlep_Rho2;

@@ -228,7 +228,7 @@ void SetParameter()
 //       set CCSN_CC_MaxRefine_LV1 to default value
          if ( CCSN_CC_MaxRefine_LV1 < 0 ) {
             CCSN_CC_MaxRefine_LV1 = MAX_LEVEL-2;
-            PRINT_WARNING( "CCSN_CC_MaxRefine_LV1", CCSN_CC_MaxRefine_LV1, FORMAT_LONG );
+            PRINT_WARNING( "CCSN_CC_MaxRefine_LV1", CCSN_CC_MaxRefine_LV1, FORMAT_INT );
          }
       }
 

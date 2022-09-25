@@ -69,8 +69,6 @@ void Src_Init()
 #  endif
    SrcTerms.Dlep_AuxArrayDevPtr_Flt      = NULL;
    SrcTerms.Dlep_AuxArrayDevPtr_Int      = NULL;
-   SrcTerms.Dlep_Profile_DataDevPtr      = NULL;
-   SrcTerms.Dlep_Profile_RadiusDevPtr    = NULL;
 
    SrcTerms.Lightbulb_FuncPtr            = NULL;
    SrcTerms.Lightbulb_CPUPtr             = NULL;

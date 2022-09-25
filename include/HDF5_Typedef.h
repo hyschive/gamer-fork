@@ -301,8 +301,6 @@ struct SymConst_t
    int    Src_GhostSize;
    int    Src_Nxt;
    int    Src_NAuxDlep;
-   int    Src_DlepProfNVar;
-   int    Src_DlepProfNBinMax;
    int    Src_NAuxUser;
 
    int    Der_GhostSize;

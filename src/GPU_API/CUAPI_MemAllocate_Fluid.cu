@@ -96,10 +96,6 @@ void CUAPI_MemAllocate_Fluid( const int Flu_NPG, const int Pot_NPG, const int Sr
    const long Flu_MemSize_S_In    = sizeof(real  )*Src_NP*FLU_NIN_S *CUBE(SRC_NXT);
    const long Flu_MemSize_S_Out   = sizeof(real  )*Src_NP*FLU_NOUT_S*CUBE(PS1);
    const long Corner_MemSize_S    = sizeof(double)*Src_NP*3;
-#  if ( MODEL == HYDRO )
-   const long DelProfData_MemSize = sizeof(real)*SRC_DLEP_PROF_NVAR*SRC_DLEP_PROF_NBINMAX;
-   const long DelProfRad_MemSize  = sizeof(real)*                   SRC_DLEP_PROF_NBINMAX;
-#  endif
 
 // the size of the global memory arrays in different models
 #  if ( FLU_SCHEME == MHM  ||  FLU_SCHEME == MHM_RP  ||  FLU_SCHEME == CTU )
@@ -168,11 +164,6 @@ void CUAPI_MemAllocate_Fluid( const int Flu_NPG, const int Pot_NPG, const int Sr
 #     endif
       TotalSize += Corner_MemSize_S;
    }
-
-#  if ( MODEL == HYDRO )
-   if ( SrcTerms.Deleptonization )
-      TotalSize += DelProfData_MemSize + DelProfRad_MemSize;
-#  endif
 
    if ( MPI_Rank == 0 )
       Aux_Message( stdout, "NOTE : total memory requirement in GPU fluid solver = %ld MB\n", TotalSize/(1<<20) );
