@@ -217,9 +217,17 @@ static void Src_Lightbulb( real fluid[], const real B[],
 #  ifdef DEDT_LB
    fluid[DEDT_LB] = FABS( rate_Code * Dens_Code );
 #  endif
+// calculate temperature for initial guess and store to fluid[TEMP_IG]
 #  ifdef TEMP_IG
-   fluid[TEMP_IG] = EoS->DensEint2Temp_FuncPtr( Dens_Code, Eint_Update, fluid+NCOMP_FLUID,
-                                                EoS->AuxArrayDevPtr_Flt, EoS->AuxArrayDevPtr_Int, EoS->Table );
+#  ifdef __CUDACC__
+   fluid[TEMP_IG] = Hydro_Con2Temp( fluid[DENS], fluid[MOMX], fluid[MOMY], fluid[MOMZ], fluid[ENGY], fluid+NCOMP_FLUID,
+                                    false, 0.0, Emag, EoS->DensEint2Temp_FuncPtr,
+                                    EoS->AuxArrayDevPtr_Flt, EoS->AuxArrayDevPtr_Int, EoS->Table );
+#  else
+   fluid[TEMP_IG] = Hydro_Con2Temp( fluid[DENS], fluid[MOMX], fluid[MOMY], fluid[MOMZ], fluid[ENGY], fluid+NCOMP_FLUID,
+                                    false, 0.0, Emag, EoS_DensEint2Temp_CPUPtr,
+                                    EoS_AuxArray_Flt, EoS_AuxArray_Int, h_EoS_Table );
+#  endif
 #  endif
 
 
