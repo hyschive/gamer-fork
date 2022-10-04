@@ -269,7 +269,7 @@ static void Src_Deleptonization( real fluid[], const real B[],
             int  In_Int2[NTarget2+1];
 #     ifdef TEMP_IG
             real In_Flt2[4];
-                 In_Flt2[3]  = Temp_MeV * MeV2Kelvin;
+                 In_Flt2[3] = Temp_MeV * MeV2Kelvin;
 #     else
             real In_Flt2[3];
 #     endif
@@ -302,12 +302,12 @@ static void Src_Deleptonization( real fluid[], const real B[],
 
    } // if ( Del_Ye < (real)0.0 )
 
-   
+
 // update temperature initial guess
 #  ifdef TEMP_IG
    fluid[TEMP_IG] = Hydro_Con2Temp( fluid[DENS], fluid[MOMX], fluid[MOMY], fluid[MOMZ], fluid[ENGY], fluid+NCOMP_FLUID,
                                     false, 0.0, Emag, EoS->DensEint2Temp_FuncPtr,
-                                    EoS->AuxArrayDevPtr_Flt, EoS->AuxArrayDevPtr_Int, EoS->Table );                              
+                                    EoS->AuxArrayDevPtr_Flt, EoS->AuxArrayDevPtr_Int, EoS->Table );
 #  endif
 
 } // FUNCTION : Src_Deleptonization
