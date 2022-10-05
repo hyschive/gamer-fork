@@ -250,8 +250,8 @@ void Hydro_Init_ByFunction_AssignData( const int lv )
             Init_Function_User_Ptr( fluid_sub, x, y, z, Time[lv], lv, NULL );
 
 //          modify the initial condition if required
-            if ( OPT__RESET_FLUID )
-               Flu_ResetByUser_Func_Ptr( fluid_sub, x, y, z, Time[lv], 0.0, lv, NULL );
+//            if ( OPT__RESET_FLUID )
+//               Flu_ResetByUser_Func_Ptr( fluid_sub, x, y, z, Time[lv], 0.0, lv, NULL );
 
             for (int v=0; v<NCOMP_TOTAL; v++)   fluid[v] += fluid_sub[v];
 
