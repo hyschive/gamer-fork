@@ -183,14 +183,14 @@ static void Src_Deleptonization( real fluid[], const real B[],
          real Eint_Update;
          real Entr = NULL_REAL;
 #  ifdef YE
-         real Ye        = fluid[YE] / fluid[DENS];
+         real Ye           = fluid[YE] / fluid[DENS];
 #  else
-         real Ye        = NULL_REAL;
+         real Ye           = NULL_REAL;
 #  endif
 #  ifdef TEMP_IG
-         real Temp      = fluid[TEMP_IG];
+         real Temp_IG_Kelv = fluid[TEMP_IG];
 #  else
-         real Temp      = NULL_REAL;
+         real Temp_IG_Kelv = NULL_REAL;
 #  endif
 
    if ( Dens_CGS <= Delep_minDens_CGS )
@@ -216,7 +216,7 @@ static void Src_Deleptonization( real fluid[], const real B[],
             int  In_Int1[NTarget1+1];
 #     ifdef TEMP_IG
             real In_Flt1[4];
-                 In_Flt1[3] = Temp;
+                 In_Flt1[3] = Temp_IG_Kelv;
 #     else
             real In_Flt1[3];
 #     endif

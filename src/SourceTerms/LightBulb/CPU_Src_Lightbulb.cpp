@@ -148,14 +148,14 @@ static void Src_Lightbulb( real fluid[], const real B[],
    const real Eint_Code = Hydro_Con2Eint( fluid[DENS], fluid[MOMX], fluid[MOMY], fluid[MOMZ], fluid[ENGY],
                                           true, MinEint, Emag );
 #  ifdef YE
-   const real Ye        = fluid[YE] / fluid[DENS];
+   const real Ye           = fluid[YE] / fluid[DENS];
 #  else
-   const real Ye        = NULL_REAL;
+   const real Ye           = NULL_REAL;
 #  endif
 #  ifdef TEMP_IG
-   const real Temp_IG   = fluid[TEMP_IG];
+   const real Temp_IG_Kelv = fluid[TEMP_IG];
 #  else
-   const real Temp_IG   = NULL_REAL;
+   const real Temp_IG_Kelv = NULL_REAL;
 #  endif
 
 
@@ -168,7 +168,7 @@ static void Src_Lightbulb( real fluid[], const real B[],
          int  In_Int[NTarget+1];
 #  ifdef TEMP_IG
          real In_Flt[4];
-              In_Flt[3] = Temp_IG;
+              In_Flt[3] = Temp_IG_Kelv;
 #  else
          real In_Flt[3];
 #  endif
