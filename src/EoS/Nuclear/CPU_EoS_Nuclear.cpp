@@ -242,10 +242,10 @@ static real EoS_DensEint2Pres_Nuclear( const real Dens_Code, const real Eint_Cod
 
 // set up the initial guess of temperature for temperature-based table
 #  ifdef TEMP_IG
-   real Temp_IG   = Passive_Code[ TEMP_IG - NCOMP_FLUID ];
-        Temp_IG   = Temp_IG * Kelvin2MeV;
+   real Temp_IG_Kelv = Passive_Code[ TEMP_IG - NCOMP_FLUID ];
+   real Temp_IG_MeV  = Temp_IG_Kelv * Kelvin2MeV;
 #  else
-   real Temp_IG   = NULL_REAL;
+   real Temp_IG_MeV  = NULL_REAL;
 #  endif
 
 // check floating-point overflow and Ye
@@ -274,7 +274,7 @@ static real EoS_DensEint2Pres_Nuclear( const real Dens_Code, const real Eint_Cod
 
 // invoke the nuclear EoS driver
    nuc_eos_C_short( Out, In, NTarget, TargetIdx,
-                    EnergyShift, Temp_IG, NRho, NTorE, NYe, NRho_Mode, NMode, NYe_Mode,
+                    EnergyShift, Temp_IG_MeV, NRho, NTorE, NYe, NRho_Mode, NMode, NYe_Mode,
                     Table[NUC_TAB_ALL], Table[NUC_TAB_ALL_MODE], Table[NUC_TAB_RHO], Table[NUC_TAB_TORE], Table[NUC_TAB_YE],
                     Table[NUC_TAB_RHO_MODE], Table[NUC_TAB_EORT_MODE], Table[NUC_TAB_YE_MODE],
                     Int_Aux, Int_Main, Mode, &Err, Tolerance );
@@ -360,10 +360,10 @@ static real EoS_DensPres2Eint_Nuclear( const real Dens_Code, const real Pres_Cod
 
 // set up the initial guess of temperature for temperature-based table
 #  ifdef TEMP_IG
-   real Temp_IG   = Passive_Code[ TEMP_IG - NCOMP_FLUID ];
-        Temp_IG   = Temp_IG * Kelvin2MeV;
+   real Temp_IG_Kelv = Passive_Code[ TEMP_IG - NCOMP_FLUID ];
+   real Temp_IG_MeV  = Temp_IG_Kelv * Kelvin2MeV;
 #  else
-   real Temp_IG  = NULL_REAL;
+   real Temp_IG_MeV  = NULL_REAL;
 #  endif
 
 // check floating-point overflow and Ye
@@ -397,7 +397,7 @@ static real EoS_DensPres2Eint_Nuclear( const real Dens_Code, const real Pres_Cod
 
 // invoke the nuclear EoS driver
    nuc_eos_C_short( Out, In, NTarget, TargetIdx,
-                    EnergyShift, Temp_IG, NRho, NTorE, NYe, NRho_Mode, NMode, NYe_Mode,
+                    EnergyShift, Temp_IG_MeV, NRho, NTorE, NYe, NRho_Mode, NMode, NYe_Mode,
                     Table[NUC_TAB_ALL], Table[NUC_TAB_ALL_MODE], Table[NUC_TAB_RHO], Table[NUC_TAB_TORE], Table[NUC_TAB_YE],
                     Table[NUC_TAB_RHO_MODE], Table[NUC_TAB_PRES_MODE], Table[NUC_TAB_YE_MODE],
                     Int_Aux, Int_Main, Mode, &Err, Tolerance );
@@ -485,10 +485,10 @@ static real EoS_DensPres2CSqr_Nuclear( const real Dens_Code, const real Pres_Cod
 
 // set up the initial guess of temperature for temperature-based table
 #  ifdef TEMP_IG
-   real Temp_IG   = Passive_Code[ TEMP_IG - NCOMP_FLUID ];
-        Temp_IG   = Temp_IG * Kelvin2MeV;
+   real Temp_IG_Kelv = Passive_Code[ TEMP_IG - NCOMP_FLUID ];
+   real Temp_IG_MeV  = Temp_IG_Kelv * Kelvin2MeV;
 #  else
-   real Temp_IG  = NULL_REAL;
+   real Temp_IG_MeV  = NULL_REAL;
 #  endif
 
 // check floating-point overflow and Ye
@@ -517,7 +517,7 @@ static real EoS_DensPres2CSqr_Nuclear( const real Dens_Code, const real Pres_Cod
 
 // invoke the nuclear EoS driver
    nuc_eos_C_short( Out, In, NTarget, TargetIdx,
-                    EnergyShift, Temp_IG, NRho, NTorE, NYe, NRho_Mode, NMode, NYe_Mode,
+                    EnergyShift, Temp_IG_MeV, NRho, NTorE, NYe, NRho_Mode, NMode, NYe_Mode,
                     Table[NUC_TAB_ALL], Table[NUC_TAB_ALL_MODE], Table[NUC_TAB_RHO], Table[NUC_TAB_TORE], Table[NUC_TAB_YE],
                     Table[NUC_TAB_RHO_MODE], Table[NUC_TAB_PRES_MODE], Table[NUC_TAB_YE_MODE],
                     Int_Aux, Int_Main, Mode, &Err, Tolerance );
@@ -814,9 +814,10 @@ static void EoS_General_Nuclear( const int Mode, real Out[], const real In_Flt[]
 
 // set up the initial guess of temperature for temperature-based table
 #  ifdef TEMP_IG
-   real Temp_IG  = In_Flt[3] * Kelvin2MeV;
+   real Temp_IG_Kelv = In_Flt[3];
+   real Temp_IG_MeV  = Temp_IG_Kelv * Kelvin2MeV;
 #  else
-   real Temp_IG  = NULL_REAL;
+   real Temp_IG_MeV  = NULL_REAL;
 #  endif
 
 
@@ -938,7 +939,7 @@ static void EoS_General_Nuclear( const int Mode, real Out[], const real In_Flt[]
 
 // invoke the nuclear EoS driver
    nuc_eos_C_short( Out, TmpIn, NTarget, TargetIdx,
-                    EnergyShift, Temp_IG, NRho, NTorE, NYe, NRho_Mode, NMode, NYe_Mode,
+                    EnergyShift, Temp_IG_MeV, NRho, NTorE, NYe, NRho_Mode, NMode, NYe_Mode,
                     Table[NUC_TAB_ALL], Table[NUC_TAB_ALL_MODE], Table[NUC_TAB_RHO], Table[NUC_TAB_TORE], Table[NUC_TAB_YE],
                     Table[NUC_TAB_RHO_MODE], Table[TableIdx_Aux], Table[NUC_TAB_YE_MODE],
                     Int_Aux, Int_Main, Mode, &Err, Tolerance );
