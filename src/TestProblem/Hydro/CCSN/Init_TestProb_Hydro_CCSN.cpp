@@ -409,7 +409,7 @@ void SetGridIC( real fluid[], const double x, const double y, const double z, co
       const int  NTarget = 0;
 #     endif
             int  TmpIn_Int[NTarget+1];
-            real TmpIn_Flt[3], TmpOut[NTarget+1];
+            real TmpIn_Flt[4], TmpOut[NTarget+1];
 
       TmpIn_Flt[0] = (real)Dens;
       TmpIn_Flt[1] = (real)Temp;
