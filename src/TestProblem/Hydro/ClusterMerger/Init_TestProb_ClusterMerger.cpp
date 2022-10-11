@@ -60,44 +60,42 @@ static FieldIdx_t ColorField3Idx = Idx_Undefined;
        double eta;                  // mass loading factor in jet feedback
        double eps_f;                // the radiative efficiency in jet feedback
        double eps_m;                // the fraction of total energy that goes into the thermal energy in jet feedback
+       double R_acc;                // accretion radius: compute the accretion rate
+       double R_dep;                // radius to deplete the accreted gas 
 
-       double CM_Bondi_SinkMass[3];       // total mass             in the void region removed in one global time-step
-       double CM_Bondi_SinkMomX[3];       // total x-momentum       ...
-       double CM_Bondi_SinkMomY[3];       // total y-momentum       ...
-       double CM_Bondi_SinkMomZ[3];       // total z-momentum       ...
-       double CM_Bondi_SinkMomXAbs[3];    // total |x-momentum|     ...
-       double CM_Bondi_SinkMomYAbs[3];    // total |y-momentum|     ...
-       double CM_Bondi_SinkMomZAbs[3];    // total |z-momentum|     ...
+       double CM_Bondi_SinkMass[3];       // total mass change            in the feedback region in one global time-step
+       double CM_Bondi_SinkMomX[3];       // total x-momentum change      ...
+       double CM_Bondi_SinkMomY[3];       // total y-momentum change      ...
+       double CM_Bondi_SinkMomZ[3];       // total z-momentum change      ...
+       double CM_Bondi_SinkMomXAbs[3];    // total |x-momentum| change    ...
+       double CM_Bondi_SinkMomYAbs[3];    // total |y-momentum| change    ...
+       double CM_Bondi_SinkMomZAbs[3];    // total |z-momentum| change    ...
        double CM_Bondi_SinkE[3];          // total injected energy ...
        double CM_Bondi_SinkEk[3];         // total injected kinetic energy ...
-       double CM_Bondi_SinkEt[3];         // total injected thermal   energy ...
-       int    CM_Bondi_SinkNCell[3];      // total number of finest cells within the void region
+       double CM_Bondi_SinkEt[3];         // total injected thermal energy ...
+       int    CM_Bondi_SinkNCell[3];      // total number of finest cells within the feedback region
 
        double Bondi_MassBH1;        // black hole mass of cluster 1
        double Bondi_MassBH2;        // black hole mass of cluster 2
        double Bondi_MassBH3;        // black hole mass of cluster 3
-       double R_acc;                // accretion radius: compute the accretion rate
-       double R_dep;                // radius to deplete the accreted gas                       
        double Mdot_BH1;             // the accretion rate of BH 1
        double Mdot_BH2;             // the accretion rate of BH 2
        double Mdot_BH3;             // the accretion rate of BH 3
-
-       double Jet_HalfHeight1;      // half height of the cylinder-shape jet source      
-       double Jet_HalfHeight2;             
-       double Jet_HalfHeight3;
-       double Jet_Radius1;          // radius of the cylinder-shape jet source
-       double Jet_Radius2;
-       double Jet_Radius3;
-
+       double Jet_HalfHeight1;      // half height of the cylinder-shape jet source of cluster 1    
+       double Jet_HalfHeight2;      // half height of the cylinder-shape jet source of cluster 2       
+       double Jet_HalfHeight3;      // half height of the cylinder-shape jet source of cluster 3
+       double Jet_Radius1;          // radius of the cylinder-shape jet source of cluster 1
+       double Jet_Radius2;          // radius of the cylinder-shape jet source of cluster 2
+       double Jet_Radius3;          // radius of the cylinder-shape jet source of cluster 3
        double Mdot[3];              // the feedback injeciton rate of mass
        double Pdot[3];              // the feedback injeciton rate of momentum
        double Edot[3];              // the feedback injeciton rate of total energy
        double Jet_Vec[3][3];        // jet direction   
-
        double GasVel[3][3];         // average gas velocity inside the accretion radius
        double SoundSpeed[3];        // average sound speed inside the accreiton radius
        double GasDens[3];           // average gas density inside the accreiton radius
-       double RelativeVel[3];       
+       double RelativeVel[3];       // relative velocity between BH and gas for each cluster
+       double ClusterCen[3][3];     // BH position for each cluster
 
 // =======================================================================================
 
@@ -487,6 +485,18 @@ void SetParameter()
       Aux_Message( stdout, "  use metals             = %s\n",          (Merger_Coll_UseMetals)? "yes":"no" );
       Aux_Message( stdout, "  label cluster centers  = %s\n",          (Merger_Coll_LabelCenter)? "yes":"no" );
       Aux_Message( stdout, "=============================================================================\n" );
+
+//    Check if the accretion region is larger than the jet cylinder
+      if ( R_acc < Jet_HalfHeight1 )  Aux_Message( stderr, "WARNING : R_acc is less than Jet_HalfHeight1!!\n");
+      if ( R_acc < Jet_Radius1 )      Aux_Message( stderr, "WARNING : R_acc is less than Jet_Radius1!!\n");
+      if ( Merger_Coll_NumHalos > 1 ) {
+      if ( R_acc < Jet_HalfHeight2 )  Aux_Message( stderr, "WARNING : R_acc is less than Jet_HalfHeight2!!\n");
+      if ( R_acc < Jet_Radius2 )      Aux_Message( stderr, "WARNING : R_acc is less than Jet_Radius2!!\n");
+      }
+      if ( Merger_Coll_NumHalos > 2 ) {
+      if ( R_acc < Jet_HalfHeight3 )  Aux_Message( stderr, "WARNING : R_acc is less than Jet_HalfHeight3!!\n");
+      if ( R_acc < Jet_Radius3 )      Aux_Message( stderr, "WARNING : R_acc is less than Jet_Radius3!!\n");
+      }
    }
 
    if ( MPI_Rank == 0 )    Aux_Message( stdout, "   Setting runtime parameters ... done\n" );
@@ -526,6 +536,11 @@ void SetGridIC( real fluid[], const double x, const double y, const double z, co
    const double ClusterCenter1[3] = { Merger_Coll_PosX1, Merger_Coll_PosY1, amr->BoxCenter[2] };
    const double ClusterCenter2[3] = { Merger_Coll_PosX2, Merger_Coll_PosY2, amr->BoxCenter[2] };
    const double ClusterCenter3[3] = { Merger_Coll_PosX3, Merger_Coll_PosY3, amr->BoxCenter[2] };
+
+// Set the initial BH position
+   for (int d=0;d<3;d++)   ClusterCen[0][d] = ClusterCenter1[d];
+   for (int d=0;d<3;d++)   ClusterCen[1][d] = ClusterCenter2[d];
+   for (int d=0;d<3;d++)   ClusterCen[2][d] = ClusterCenter3[d];
 
    double r1, r2, r3, Dens1, Dens2, Dens3, Pres1, Pres2, Pres3;
    double Metl1, Metl2, Metl3, rmax1, rmax2, rmax3;

@@ -40,13 +40,13 @@ Mdot_BH3                0.0 # accretion rate of cluster 3 in Msun/yr
 Jet_HalfHeight3         0.70 # jet 3: half height of the cylinder-shape jet source (in kpc) 
 Jet_Radius3             0.35 # jet 3: radius of the cylinder-shape jet source (in kpc) 
 
-# parameters of jet feedback
+# parameters of AGN jet feedback
 eta                     1.0 # mass loading factor in jet feedback
 eps_f                   0.001 # the radiative efficiency in jet feedback
 eps_m                   0.0 # the fraction of total energy that goes into the thermal energy in jet feedback
+R_acc                   4.0 # accretion radius: compute the accretion rate (in kpc)
+R_dep                   4.0 # radius to deplete the accreted gas (in kpc)   
 
 # other	parameters
 Merger_Coll_UseMetals   0 # look for a metal field in the profile files [1]
 Merger_Coll_LabelCenter 1 # label the particle closest to the center of each cluster [1]
-R_acc                   4.0 # accretion radius: compute the accretion rate (in kpc)
-R_dep                   4.0 # radius to deplete the accreted gas (in kpc)
