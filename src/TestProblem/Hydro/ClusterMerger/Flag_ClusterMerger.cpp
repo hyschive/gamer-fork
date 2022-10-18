@@ -8,6 +8,8 @@ extern double R_acc;   // the radius to compute the accretoin rate
 extern double Jet_Vec[3][3];   // jet direction  
 extern double ClusterCen[3][3];
 
+static bool FirstTime = true;
+
 
 //-------------------------------------------------------------------------------------------------------
 // Function    :  Flag_ClusterMerger
@@ -49,6 +51,14 @@ bool Flag_ClusterMerger( const int i, const int j, const int k, const int lv, co
          Flag = true;
          return Flag;
       }
+   }
+
+   if ( FirstTime ){  
+      const double dh_max = amr->dh[MAX_LEVEL];
+      if ( R_acc/dh_max <= Threshold[0] ){
+         Aux_Message( stderr, "WARNING : MAX_LEVEL is less than the desired refinement level set in Input__Flag_User!!\n");
+      }
+      FirstTime = false;
    }
 
    return Flag;

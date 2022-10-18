@@ -229,6 +229,8 @@ bool Flu_ResetByUser_Func_ClusterMerger( real fluid[], const double x, const dou
 void Flu_ResetByUser_API_ClusterMerger( const int lv, const int FluSg, const double TimeNew, const double dt )
 {
 
+   const bool CurrentMaxLv = (  NPatchTotal[lv] > 0  &&  ( lv == MAX_LEVEL || NPatchTotal[lv+1] == 0 )  );
+
    double Mdot_BH[3] = { Mdot_BH1, Mdot_BH2, Mdot_BH3 };
    double Bondi_MassBH[3] = { Bondi_MassBH1, Bondi_MassBH2, Bondi_MassBH3 }; 
 
@@ -295,7 +297,7 @@ void Flu_ResetByUser_API_ClusterMerger( const int lv, const int FluSg, const dou
             }
 
 //          Calculate the exact volume of jet cylinder and normalization
-            if ( lv == MAX_LEVEL ){
+            if ( CurrentMaxLv ){
                double Jet_dr_2, Jet_dh_2, S_2, Area_2;
                double Dis_c2m_2, Dis_c2v_2, Dis_v2m_2, Vec_c2m_2[3], Vec_v2m_2[3];
                double TempVec_2[3]; 
@@ -352,7 +354,7 @@ void Flu_ResetByUser_API_ClusterMerger( const int lv, const int FluSg, const dou
 
 // update BH mass    
    for (int c=0; c<Merger_Coll_NumHalos; c++) {
-      if ( lv == MAX_LEVEL ){
+      if ( CurrentMaxLv ){
          Bondi_MassBH[c] += Mdot_BH[c]*dt;
       }
    }
@@ -375,7 +377,7 @@ void Flu_ResetByUser_API_ClusterMerger( const int lv, const int FluSg, const dou
       V_cyl[c] = M_PI*SQR(Jet_Radius[c])*2*Jet_HalfHeight[c];
 
 //    calculate the density that need to be injected
-      if ( lv == MAX_LEVEL && V_cyl_exacthalf[c] != 0){
+      if ( CurrentMaxLv && V_cyl_exacthalf[c] != 0){
          M_inj[c] = Mdot[c]*dt/(2*V_cyl_exacthalf[c]);
          P_inj[c] = Pdot[c]*dt/(2*V_cyl_exacthalf[c]);
          E_inj[c] = Edot[c]*dt/(2*V_cyl_exacthalf[c]);
@@ -387,7 +389,7 @@ void Flu_ResetByUser_API_ClusterMerger( const int lv, const int FluSg, const dou
       }
    } 
 
-   if ( lv == MAX_LEVEL ){
+   if ( CurrentMaxLv ){
       for (int c=0; c<Merger_Coll_NumHalos; c++) E_inj_exp[c] += Edot[c]*dt;
    }
    if ( lv == 0 )  dt_base = dt;
@@ -482,7 +484,7 @@ void Flu_ResetByUser_API_ClusterMerger( const int lv, const int FluSg, const dou
 #           endif // if ( MODEL == HYDRO  ||  MODEL == MHD )
 
 //          record the amount of sunk variables removed at the maximum level
-            if ( lv == MAX_LEVEL )
+            if ( CurrentMaxLv )
             {
                double Ek[3], Ek_new[3], Et[3], Et_new[3];
 
