@@ -58,6 +58,7 @@ double E_power_inj[3];   // the injection power
 extern void GetClusterCenter( double Cen[][3], double BH_Vel[][3] );
 
 static bool FirstTime = true;
+/*
 double RandomNumber(RandomNumber_t *RNG, const double Min, const double Max )
 {                   
 // thread-private variables
@@ -69,7 +70,7 @@ double RandomNumber(RandomNumber_t *RNG, const double Min, const double Max )
    return RNG->GetValue( TID, Min, Max );                                               
 }                                               
 static RandomNumber_t *RNG = NULL;
-
+*/
 
 //-------------------------------------------------------------------------------------------------------
 // Function    :  Flu_ResetByUser_Func_ClusterMerger
@@ -324,6 +325,7 @@ void Flu_ResetByUser_API_ClusterMerger( const int lv, const int FluSg, const dou
             }
          }}}
       }
+
       if (num == 0.0){
          Mdot_BH[c] = 0.0;
          GasDens[c] = 0.0;
@@ -394,7 +396,7 @@ void Flu_ResetByUser_API_ClusterMerger( const int lv, const int FluSg, const dou
    }
    if ( lv == 0 )  dt_base = dt;
 
-
+/*
 // get the number of OpenMP threads
    int NT; 
 #  ifdef OPENMP
@@ -425,11 +427,11 @@ void Flu_ResetByUser_API_ClusterMerger( const int lv, const int FluSg, const dou
       }
       FirstTime = false;
    }
+*/
 
-  
 
 #  pragma omp parallel for private( Reset, fluid, fluid_bk, x, y, z, x0, y0, z0 ) schedule( runtime ) \
-   reduction(+:CM_Bondi_SinkMass[0], CM_Bondi_SinkMomX[0], CM_Bondi_SinkMomY[0], CM_Bondi_SinkMomZ[0], CM_Bondi_SinkMomXAbs[0], CM_Bondi_SinkMomYAbs[0], CM_Bondi_SinkMomZAbs[0], CM_Bondi_SinkE[0], CM_Bondi_SinkEk[0], CM_Bondi_SinkEt[0], CM_Bondi_SinkNCell[0], CM_Bondi_SinkMass[1], CM_Bondi_SinkMomX[1], CM_Bondi_SinkMomY[1], CM_Bondi_SinkMomZ[1], CM_Bondi_SinkMomXAbs[1], CM_Bondi_SinkMomYAbs[1], CM_Bondi_SinkMomZAbs[1], CM_Bondi_SinkE[1], CM_Bondi_SinkEk[1], CM_Bondi_SinkEt[1], CM_Bondi_SinkNCell[1])
+   reduction(+:CM_Bondi_SinkMass, CM_Bondi_SinkMomX, CM_Bondi_SinkMomY, CM_Bondi_SinkMomZ, CM_Bondi_SinkMomXAbs, CM_Bondi_SinkMomYAbs, CM_Bondi_SinkMomZAbs, CM_Bondi_SinkE, CM_Bondi_SinkEk, CM_Bondi_SinkEt, CM_Bondi_SinkNCell)
 
 
    for (int PID=0; PID<amr->NPatchComma[lv][1]; PID++)
@@ -515,7 +517,7 @@ void Flu_ResetByUser_API_ClusterMerger( const int lv, const int FluSg, const dou
       }}} // i,j,k
    } // for (int PID=0; PID<amr->NPatchComma[lv][1]; PID++)
 
-   delete RNG;
+//   delete RNG;
 
 } // FUNCTION : Flu_ResetByUser_API_ClusterMerger
 

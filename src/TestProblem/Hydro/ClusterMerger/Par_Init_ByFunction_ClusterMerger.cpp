@@ -810,8 +810,8 @@ void GetClusterCenter( double Cen[][3], double BH_Vel[][3] )
          }
       }
 //    TEMP!!!
-      for (int d=0; d<3; d++) Cen_Tmp[d] = 5.0;
-      for (int d=0; d<3; d++) Vel_Tmp[d] = 0.0;
+//      for (int d=0; d<3; d++) Cen_Tmp[d] = 5.0;
+//      for (int d=0; d<3; d++) Vel_Tmp[d] = 0.0;
 
       // use MPI_MAX since Cen_Tmp[] is initialized as -inf
       MPI_Reduce( Cen_Tmp, Cen[c], 3, MPI_DOUBLE, MPI_MAX, 0, MPI_COMM_WORLD );

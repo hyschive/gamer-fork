@@ -309,6 +309,17 @@ void SetParameter()
    Jet_Radius2       *= Const_kpc / UNIT_L;
    Jet_Radius3       *= Const_kpc / UNIT_L;
 
+// Set the initial BH position
+   ClusterCen[0][0] = Merger_Coll_PosX1;
+   ClusterCen[0][1] = Merger_Coll_PosY1;
+   ClusterCen[0][2] = amr->BoxCenter[2];  
+   ClusterCen[1][0] = Merger_Coll_PosX2;
+   ClusterCen[1][1] = Merger_Coll_PosY2;
+   ClusterCen[1][2] = amr->BoxCenter[2]; 
+   ClusterCen[2][0] = Merger_Coll_PosX3;
+   ClusterCen[2][1] = Merger_Coll_PosY3;
+   ClusterCen[2][2] = amr->BoxCenter[2]; 
+
 // (2) load the radial profiles
    if ( OPT__INIT != INIT_BY_RESTART ) {
 
@@ -554,11 +565,6 @@ void SetGridIC( real fluid[], const double x, const double y, const double z, co
    const double ClusterCenter1[3] = { Merger_Coll_PosX1, Merger_Coll_PosY1, amr->BoxCenter[2] };
    const double ClusterCenter2[3] = { Merger_Coll_PosX2, Merger_Coll_PosY2, amr->BoxCenter[2] };
    const double ClusterCenter3[3] = { Merger_Coll_PosX3, Merger_Coll_PosY3, amr->BoxCenter[2] };
-
-// Set the initial BH position
-   for (int d=0;d<3;d++)   ClusterCen[0][d] = ClusterCenter1[d];
-   for (int d=0;d<3;d++)   ClusterCen[1][d] = ClusterCenter2[d];
-   for (int d=0;d<3;d++)   ClusterCen[2][d] = ClusterCenter3[d];
 
    double r1, r2, r3, Dens1, Dens2, Dens3, Pres1, Pres2, Pres3;
    double Metl1, Metl2, Metl3, rmax1, rmax2, rmax3;
