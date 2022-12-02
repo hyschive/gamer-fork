@@ -186,22 +186,22 @@ SIMU_OPTION += -DTIMING
 #SIMU_OPTION += -DTIMING_SOLVER
 
 # double precision
-SIMU_OPTION += -DFLOAT8
+#SIMU_OPTION += -DFLOAT8
 
 # serial mode (in which no MPI libraries are required)
 # --> must disable LOAD_BALANCE
-SIMU_OPTION += -DSERIAL
+#SIMU_OPTION += -DSERIAL
 
 # load-balance parallelization: HILBERT
 # --> must disable SERIAL
-#SIMU_OPTION += -DLOAD_BALANCE=HILBERT
+SIMU_OPTION += -DLOAD_BALANCE=HILBERT
 
 # overlap MPI communication with computation
 # --> NOT supported yet; must enable LOAD_BALANCE
 #SIMU_OPTION += -DOVERLAP_MPI
 
 # enable OpenMP parallelization
-#SIMU_OPTION += -DOPENMP
+SIMU_OPTION += -DOPENMP
 
 # work on the NAOC Laohu GPU cluster
 #SIMU_OPTION += -DLAOHU
@@ -233,8 +233,8 @@ SIMU_OPTION += -DRANDOM_NUMBER=RNG_GNU_EXT
 
 # intel
 # -------------------------------------------------------------------------------
- CXX         = icpc                                      # serial compiler
-#CXX         = $(MPI_PATH)/bin/mpicxx                    # MPI compiler
+#CXX         = icpc                                      # serial compiler
+ CXX         = $(MPI_PATH)/bin/mpicxx                    # MPI compiler
 #CXX         = CC                                        # cray wrapper script
  CXXFLAG     = -g -O3                                    # general flags
 #CXXFLAG     = -g -O3 -std=c++11 #-gxx-name=YOUR_G++

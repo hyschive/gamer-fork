@@ -62,6 +62,7 @@ extern double Edot[3];
 extern double E_inj_exp[3];
 extern double dt_base;
 extern double E_power_inj[3];
+extern double ClusterCen[3][3];
 // =======================================================================================
 
 #ifdef MASSIVE_PARTICLES
@@ -412,6 +413,12 @@ void Par_Init_ByFunction_ClusterMerger( const long NPar_ThisRank, const long NPa
 
 
    if ( MPI_Rank == 0 )    Aux_Message( stdout, "%s ... done\n", __FUNCTION__ );
+
+// Initialize ClusterCen
+   double BH_Vel[3][3] = {  { NULL_REAL, NULL_REAL, NULL_REAL },
+                            { NULL_REAL, NULL_REAL, NULL_REAL },
+                            { NULL_REAL, NULL_REAL, NULL_REAL }  };
+   GetClusterCenter( ClusterCen, BH_Vel);
 
 #endif // #ifdef SUPPORT_HDF5
 
@@ -803,7 +810,7 @@ void GetClusterCenter( double Cen[][3], double BH_Vel[][3] )
       double Cen_Tmp[3] = { -__FLT_MAX__, -__FLT_MAX__, -__FLT_MAX__ };   // set to -inf
       double Vel_Tmp[3] = { -__FLT_MAX__, -__FLT_MAX__, -__FLT_MAX__ };
       for (long p=0; p<amr->Par->NPar_AcPlusInac; p++) {
-         if ( amr->Par->Type[p] == real(PTYPE_CEN+c) ) {
+         if ( amr->Par->Mass[p] >= (real)0.0  &&  amr->Par->Type[p] == real(PTYPE_CEN+c) ){
             for (int d=0; d<3; d++) Cen_Tmp[d] = ParPos[d][p];
             for (int d=0; d<3; d++) Vel_Tmp[d] = ParVel[d][p];
             break;
@@ -814,8 +821,8 @@ void GetClusterCenter( double Cen[][3], double BH_Vel[][3] )
 //      for (int d=0; d<3; d++) Vel_Tmp[d] = 0.0;
 
       // use MPI_MAX since Cen_Tmp[] is initialized as -inf
-      MPI_Reduce( Cen_Tmp, Cen[c], 3, MPI_DOUBLE, MPI_MAX, 0, MPI_COMM_WORLD );
-      MPI_Reduce( Vel_Tmp, BH_Vel[c], 3, MPI_DOUBLE, MPI_MAX, 0, MPI_COMM_WORLD );
+      MPI_Allreduce( Cen_Tmp, Cen[c], 3, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD );
+      MPI_Allreduce( Vel_Tmp, BH_Vel[c], 3, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD );
    }
 
 } // FUNCTION : GetClusterCenter

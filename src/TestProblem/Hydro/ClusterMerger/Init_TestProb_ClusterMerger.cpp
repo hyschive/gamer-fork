@@ -309,17 +309,6 @@ void SetParameter()
    Jet_Radius2       *= Const_kpc / UNIT_L;
    Jet_Radius3       *= Const_kpc / UNIT_L;
 
-// Set the initial BH position
-   ClusterCen[0][0] = Merger_Coll_PosX1;
-   ClusterCen[0][1] = Merger_Coll_PosY1;
-   ClusterCen[0][2] = amr->BoxCenter[2];  
-   ClusterCen[1][0] = Merger_Coll_PosX2;
-   ClusterCen[1][1] = Merger_Coll_PosY2;
-   ClusterCen[1][2] = amr->BoxCenter[2]; 
-   ClusterCen[2][0] = Merger_Coll_PosX3;
-   ClusterCen[2][1] = Merger_Coll_PosY3;
-   ClusterCen[2][2] = amr->BoxCenter[2]; 
-
 // (2) load the radial profiles
    if ( OPT__INIT != INIT_BY_RESTART ) {
 
