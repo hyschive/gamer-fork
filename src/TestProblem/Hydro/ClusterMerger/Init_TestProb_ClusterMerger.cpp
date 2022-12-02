@@ -42,6 +42,8 @@ static char    Merger_File_Prof3[1000];   // profile table of cluster 3
        double  Merger_Coll_VelY2;         // y-velocity of the second cluster
        double  Merger_Coll_VelX3;         // x-velocity of the third cluster
        double  Merger_Coll_VelY3;         // y-velocity of the third cluster
+       long    NPar_EachCluster[3];       // Number of particles in each cluster
+       long    NPar_AllCluster;           // Number of particles in all clusters
 
 static double *Table_R1 = NULL;           // radius of cluster 1
 static double *Table_D1 = NULL;           // density of cluster 1
@@ -110,6 +112,7 @@ static FieldIdx_t ColorField3Idx = Idx_Undefined;
 
 // problem-specific function prototypes
 #ifdef MASSIVE_PARTICLES
+long Read_Particle_Number_ClusterMerger(std::string filename);
 void Par_Init_ByFunction_ClusterMerger(const long NPar_ThisRank,
                                        const long NPar_AllRank,
                                        real *ParMass, real *ParPosX, real *ParPosY, real *ParPosZ,
@@ -124,8 +127,8 @@ void Read_Profile_ClusterMerger(std::string filename, std::string fieldname,
                                 double field[]);
 void AddNewField_ClusterMerger();
 
-bool Flu_ResetByUser_Func_ClusterMerger( real fluid[], const double x, const double y, const double z, const double Time, 
-                                         const double dt, const int lv, double AuxArray[] );
+bool Flu_ResetByUser_Func_ClusterMerger( real fluid[], const double Emag, const double x, const double y, const double z,
+                                         const double Time, const double dt, const int lv, double AuxArray[] );
 void Flu_ResetByUser_API_ClusterMerger( const int lv, const int FluSg, const double TimeNew, const double dt );
 
 extern void (*Flu_ResetByUser_API_Ptr)( const int lv, const int FluSg, const double TimeNew, const double dt );
@@ -169,8 +172,8 @@ void Validate()
       Aux_Error( ERROR_INFO, "OPT__UNIT must be enabled !!\n" );
 
    for (int f=0; f<6; f++)
-   if ( OPT__BC_FLU[f] == BC_FLU_PERIODIC )
-      Aux_Error( ERROR_INFO, "do not use periodic BC (OPT__BC_FLU* = 1) for this test !!\n" );
+     if ( OPT__BC_FLU[f] == BC_FLU_PERIODIC )
+        Aux_Error( ERROR_INFO, "do not use periodic BC (OPT__BC_FLU* = 1) for this test !!\n" );
 
 #  ifdef GRAVITY
    if ( OPT__BC_POT == BC_POT_PERIODIC )
@@ -309,9 +312,9 @@ void SetParameter()
    Jet_Radius2       *= Const_kpc / UNIT_L;
    Jet_Radius3       *= Const_kpc / UNIT_L;
 
-// (2) load the radial profiles
    if ( OPT__INIT != INIT_BY_RESTART ) {
 
+//    (2) load the radial profiles
       const std::string filename1(Merger_File_Prof1);
       const std::string filename2(Merger_File_Prof2);
       const std::string filename3(Merger_File_Prof3);
@@ -439,10 +442,57 @@ void SetParameter()
 
       } // if ( Merger_Coll_NumHalos > 2 && Merger_Coll_IsGas3 )
 
+//    (3) Determine particle number
+
+      // check file existence
+      if ( !Aux_CheckFileExist(Merger_File_Par1) )
+         Aux_Error( ERROR_INFO, "file \"%s\" does not exist !!\n", Merger_File_Par1 );
+
+      if ( Merger_Coll_NumHalos > 1  &&  !Aux_CheckFileExist(Merger_File_Par2) )
+         Aux_Error( ERROR_INFO, "file \"%s\" does not exist !!\n", Merger_File_Par2 );
+
+      if ( Merger_Coll_NumHalos > 2  &&  !Aux_CheckFileExist(Merger_File_Par3) )
+         Aux_Error( ERROR_INFO, "file \"%s\" does not exist !!\n", Merger_File_Par3 );
+
+      const std::string pfilename1(Merger_File_Par1);
+      const std::string pfilename2(Merger_File_Par2);
+      const std::string pfilename3(Merger_File_Par3);
+
+      if ( MPI_Rank == 0 ) {
+
+         NPar_EachCluster[0] = Read_Particle_Number_ClusterMerger(pfilename1);
+
+         Aux_Message( stdout, "   Number of particles in cluster 1 = %ld\n",
+                      NPar_EachCluster[0] );
+
+         if ( Merger_Coll_NumHalos > 1 ) {
+            NPar_EachCluster[1] = Read_Particle_Number_ClusterMerger(pfilename2);
+            Aux_Message( stdout, "   Number of particles in cluster 2 = %ld\n", NPar_EachCluster[1] );
+         } else {
+            NPar_EachCluster[1] = 0;
+         }
+
+         if ( Merger_Coll_NumHalos > 2 ) {
+            NPar_EachCluster[2] = Read_Particle_Number_ClusterMerger(pfilename3);
+            Aux_Message( stdout, "   Number of particles in cluster 3 = %ld\n", NPar_EachCluster[2] );
+         } else {
+            NPar_EachCluster[2] = 0;
+         }
+
+      }
+
+      MPI_Bcast(NPar_EachCluster, 3, MPI_LONG, 0, MPI_COMM_WORLD);
+
+      NPar_AllCluster = NPar_EachCluster[0] + NPar_EachCluster[1] + NPar_EachCluster[2];
+
+      // overwrite the total number of particles
+      amr->Par->NPar_Active_AllRank = NPar_AllCluster;
+      PRINT_WARNING( "PAR_NPAR", amr->Par->NPar_Active_AllRank, FORMAT_LONG );
+
    } // if ( OPT__INIT != INIT_BY_RESTART )
 
 
-// (3) reset other general-purpose parameters
+// (4) reset other general-purpose parameters
 //     --> a helper macro PRINT_WARNING is defined in TestProb.h
    const long   End_Step_Default = __INT_MAX__;
    const double End_T_Default    = 3.0*Const_Gyr/UNIT_T;
@@ -818,6 +868,29 @@ void Read_Profile_ClusterMerger(std::string filename, std::string fieldname,
    return;
 
 } // FUNCTION : Read_Profile_ClusterMerger
+
+long Read_Particle_Number_ClusterMerger(std::string filename)
+{
+
+   hid_t   file_id, dataset, dataspace;
+   herr_t  status;
+   hsize_t dims[1], maxdims[1];
+
+   int rank;
+
+   file_id = H5Fopen(filename.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
+
+   dataset   = H5Dopen(file_id, "particle_mass", H5P_DEFAULT);
+   dataspace = H5Dget_space(dataset);
+   rank      = H5Sget_simple_extent_dims(dataspace, dims, maxdims);
+
+   H5Sclose(dataspace);
+   H5Dclose(dataset);
+   H5Fclose(file_id);
+
+   return (long)dims[0];
+
+} // FUNCTION : Read_Particle_Number_ClusterMerger
 
 #endif // #ifdef SUPPORT_HDF5
 

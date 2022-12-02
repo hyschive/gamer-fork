@@ -97,8 +97,8 @@ static RandomNumber_t *RNG = NULL;
 // Return      :  true  : This cell has been reset
 //                false : This cell has not been reset
 //-------------------------------------------------------------------------------------------------------
-bool Flu_ResetByUser_Func_ClusterMerger( real fluid[], const double x, const double y, const double z, const double Time, 
-                                         const double dt, const int lv, double AuxArray[] )
+bool Flu_ResetByUser_Func_ClusterMerger( real fluid[], const double Emag, const double x, const double y, const double z, 
+                                         const double Time, const double dt, const int lv, double AuxArray[] )
 {
    const double Pos[3]  = { x, y, z };
 
@@ -290,15 +290,19 @@ void Flu_ResetByUser_API_ClusterMerger( const int lv, const int FluSg, const dou
             for (int v=0; v<NCOMP_TOTAL; v++){
                fluid_Bondi[v] = amr->patch[FluSg][lv][PID]->fluid[v][k][j][i];
             }
+
+#           ifdef MHD
+            const real Emag = MHD_GetCellCenteredBEnergyInPatch( lv, PID, i, j, k, amr->MagSg[lv] );
+#           else
+            const real Emag = (real)0.0;
+#           endif
+
 //          calculate the average density, sound speed and gas velocity inside accretion radius
             if (SQR(x2-ClusterCen[c][0])+SQR(y2-ClusterCen[c][1])+SQR(z2-ClusterCen[c][2]) <= SQR(R_acc)){
                rho += fluid_Bondi[0]*dv;
-               Pres = (real) Hydro_Con2Pres( fluid_Bondi[0], fluid_Bondi[1], fluid_Bondi[2], fluid_Bondi[3],
-                                             fluid_Bondi[4], fluid_Bondi+NCOMP_FLUID,
-//        								     CheckMinPres_No, NULL_REAL, NULL_REAL,
-                                             true, MIN_PRES, NULL_REAL,
-                                             EoS_DensEint2Pres_CPUPtr, EoS_AuxArray_Flt,
-                                             EoS_AuxArray_Int, h_EoS_Table, NULL );
+               Pres = (real) Hydro_Con2Pres( fluid_Bondi[0], fluid_Bondi[1], fluid_Bondi[2], fluid_Bondi[3], fluid_Bondi[4], 
+                                             fluid_Bondi+NCOMP_FLUID, true, MIN_PRES, Emag, EoS_DensEint2Pres_CPUPtr, 
+                                             EoS_AuxArray_Flt, EoS_AuxArray_Int, h_EoS_Table, NULL );
                tmp_Cs = sqrt( EoS_DensPres2CSqr_CPUPtr( fluid_Bondi[0], Pres, NULL, EoS_AuxArray_Flt, EoS_AuxArray_Int,
                               h_EoS_Table ) );
                Cs += tmp_Cs;
@@ -464,20 +468,20 @@ void Flu_ResetByUser_API_ClusterMerger( const int lv, const int FluSg, const dou
             fluid_bk[v] = fluid[v];
          }   
 
+#        ifdef MHD
+         const real Emag = MHD_GetCellCenteredBEnergyInPatch( lv, PID, i, j, k, amr->MagSg[lv] );
+#        else
+         const real Emag = (real)0.0;
+#        endif
+
 //       reset this cell
-         Reset = Flu_ResetByUser_Func_ClusterMerger( fluid, x, y, z, TimeNew, dt, lv, NULL );
+         Reset = Flu_ResetByUser_Func_ClusterMerger( fluid, Emag, x, y, z, TimeNew, dt, lv, NULL );
 
 //       operations necessary only when this cell has been reset
          if ( Reset )
          {
 //          apply density and energy floors
 #           if ( MODEL == HYDRO  ||  MODEL == MHD )
-#           ifdef MHD
-            const real Emag = MHD_GetCellCenteredBEnergyInPatch( lv, PID, i, j, k, amr->MagSg[lv] );
-#           else
-            const real Emag = NULL_REAL;
-#           endif
-
             fluid[DENS] = FMAX( fluid[DENS], (real)MIN_DENS );
             fluid[ENGY] = Hydro_CheckMinEintInEngy( fluid[DENS], fluid[MOMX], fluid[MOMY], fluid[MOMZ], fluid[ENGY],
                                                     (real)MIN_EINT, Emag );
@@ -505,8 +509,8 @@ void Flu_ResetByUser_API_ClusterMerger( const int lv, const int FluSg, const dou
                for (int c=0; c<Merger_Coll_NumHalos; c++) { 
                   Ek[c] = (real)0.5*( SQR(fluid_bk[MOMX]) + SQR(fluid_bk[MOMY]) + SQR(fluid_bk[MOMZ]) ) / (fluid_bk[DENS]);
                   Ek_new[c] = (real)0.5*( SQR(fluid[MOMX]) + SQR(fluid[MOMY]) + SQR(fluid[MOMZ]) ) / fluid[DENS];
-                  Et[c] = fluid_bk[ENGY] - Ek[c];
-                  Et_new[c] = fluid[ENGY] - Ek_new[c];
+                  Et[c] = fluid_bk[ENGY] - Ek[c] - Emag;
+                  Et_new[c] = fluid[ENGY] - Ek_new[c] - Emag;
    
                   CM_Bondi_SinkMass[c]    += dv*(fluid[DENS]-fluid_bk[DENS]);
                   CM_Bondi_SinkMomX[c]    += dv*(fluid[MOMX]-fluid_bk[MOMX]);

@@ -266,13 +266,16 @@ endif
 # CXXFLAG    += -Wall -Wextra                             # warning flags
 # CXXFLAG    += -Wno-unused-variable -Wno-unused-parameter \
 #               -Wno-maybe-uninitialized -Wno-unused-but-set-variable \
-#               -Wno-unused-result -Wno-unused-function
+#               -Wno-unused-result -Wno-unused-function \
+#	       -Wno-implicit-fallthrough -Wno-parentheses
 # OPENMPFLAG  = -fopenmp                                  # openmp flag
 # LIB         =                                           # libraries and linker flags
 #
 ## for debug only
 #ifeq "$(filter -DGAMER_DEBUG, $(SIMU_OPTION))" "-DGAMER_DEBUG"
 ##CXXFLAG    += -fstack-protector-all
+##CXXFLAG    += -fsanitize=undefined -fsanitize=address
+##LIB        += -fsanitize=undefined -fsanitize=address
 #endif
 #
 ## suppress warning when OpenMP is disabled
@@ -512,7 +515,8 @@ ifeq "$(filter -DMHD, $(SIMU_OPTION))" "-DMHD"
 CPU_FILE    += MHD_GetCellCenteredBInPatch.cpp  MHD_InterpolateBField.cpp  MHD_AllocateElectricArray.cpp \
                MHD_Aux_Check_InterfaceB.cpp  MHD_FixUp_Electric.cpp  MHD_Aux_Check_DivergenceB.cpp \
                MHD_BoundaryCondition_Outflow.cpp  MHD_BoundaryCondition_Reflecting.cpp  MHD_BoundaryCondition_User.cpp \
-               MHD_BoundaryCondition_Diode.cpp  MHD_CopyPatchInterfaceBField.cpp MHD_Init_BField_ByFile.cpp
+               MHD_BoundaryCondition_Diode.cpp  MHD_CopyPatchInterfaceBField.cpp  MHD_Init_BField_ByFile.cpp \
+               MHD_SameInterfaceB.cpp
 
 CPU_FILE    += CPU_Shared_ConstrainedTransport.cpp  CPU_Shared_RiemannSolver_HLLD.cpp
 
