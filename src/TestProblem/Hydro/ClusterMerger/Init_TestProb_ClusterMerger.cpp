@@ -108,6 +108,11 @@ static FieldIdx_t ColorField3Idx = Idx_Undefined;
        double RelativeVel[3];       // relative velocity between BH and gas for each cluster
        double ClusterCen[3][3];     // BH position for each cluster
 
+       int     JetDirection_NBin;     // number of bins of the jet direction table 
+static double *JetDirection = NULL;   // jet direction[time/theta_1/phi_1/theta_2/phi_2/theta_3/phi_3]
+       double *Time_table;            // the time table of jet direction 
+       double *Theta_table[3];        // the theta table of jet direction for 3 clusters
+       double *Phi_table[3];          // the phi table of jet direction for 3 clusters
 // =======================================================================================
 
 // problem-specific function prototypes
@@ -441,6 +446,20 @@ void SetParameter()
          MPI_Bcast(Table_M3, Merger_NBin3, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 
       } // if ( Merger_Coll_NumHalos > 2 && Merger_Coll_IsGas3 )
+
+//    (2-1) Load the jet direction table  
+      const bool RowMajor_No  = false;    // load data into the column-major order
+      const bool AllocMem_Yes = true;     // allocate memory for JetDirection 
+      const int  NCol         = 7;        // total number of columns to load
+      const int  Col[NCol] = {0, 1, 2, 3, 4, 5, 6};  // target columns: (time, theta_1, phi_1, theta_2, phi_2, theta_3, phi_3)
+
+      JetDirection_NBin = Aux_LoadTable( JetDirection, "JetDirection.txt", NCol, Col, RowMajor_No, AllocMem_Yes );
+      Time_table = JetDirection+0*JetDirection_NBin;
+      for (int d=0; d<3; d++) {
+         Theta_table[d] = JetDirection+(1+2*d)*JetDirection_NBin;
+         Phi_table[d]   = JetDirection+(2+2*d)*JetDirection_NBin;
+      }
+      for (int b=0; b<JetDirection_NBin; b++)   Time_table[b] *= Const_Myr/UNIT_T; 
 
 //    (3) Determine particle number
 

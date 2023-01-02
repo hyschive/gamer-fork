@@ -38,10 +38,10 @@ bool Flag_ClusterMerger( const int i, const int j, const int k, const int lv, co
    bool Flag = false;
 
 // Temporarily fix the jet direction vector!!!
-   for (int c=0; c<Merger_Coll_NumHalos; c++){
-      Jet_Vec[c][0] = 1.0;
-      for (int d=1; d<3; d++)   Jet_Vec[c][d] = 0.0;
-   }
+//   for (int c=0; c<Merger_Coll_NumHalos; c++){
+//      Jet_Vec[c][0] = 1.0;
+//      for (int d=1; d<3; d++)   Jet_Vec[c][d] = 0.0;
+//   }
 
 // Flag cells within the target radius, and if the radius is not resolved with a specific number (Threshold[0]) of cells
    for (int c=0; c<Merger_Coll_NumHalos; c++)

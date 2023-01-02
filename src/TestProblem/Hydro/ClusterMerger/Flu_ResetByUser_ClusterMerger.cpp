@@ -71,6 +71,10 @@ double RandomNumber(RandomNumber_t *RNG, const double Min, const double Max )
 }                                               
 static RandomNumber_t *RNG = NULL;
 */
+extern int     JetDirection_NBin;     // number of bins of the jet direction table 
+extern double *Time_table;            // the time table of jet direction 
+extern double *Theta_table[3];        // the theta table of jet direction for 3 clusters
+extern double *Phi_table[3];          // the phi table of jet direction for 3 clusters
 
 //-------------------------------------------------------------------------------------------------------
 // Function    :  Flu_ResetByUser_Func_ClusterMerger
@@ -243,6 +247,19 @@ void Flu_ResetByUser_API_ClusterMerger( const int lv, const int FluSg, const dou
    Jet_Radius[0] = Jet_Radius1;
    Jet_Radius[1] = Jet_Radius2;
    Jet_Radius[2] = Jet_Radius3;
+
+// Set the jet direction vector
+   double Time_period = Time_table[JetDirection_NBin-1];
+   double Time_interpolate = fmod(TimeNew, Time_period);
+   for (int c=0; c<Merger_Coll_NumHalos; c++) {
+      double theta = Mis_InterpolateFromTable( JetDirection_NBin, Time_table, Theta_table[c], Time_interpolate );
+      double phi   = Mis_InterpolateFromTable( JetDirection_NBin, Time_table, Phi_table[c], Time_interpolate );
+//      double theta = 10.0*M_PI/180.0;
+//      double phi = 2*M_PI*Time_interpolate/Time_period;
+      Jet_Vec[c][0] = cos(theta);   //sin(theta)*cos(phi);
+      Jet_Vec[c][1] = sin(theta)*cos(phi);   //sin(theta)*sin(phi);
+      Jet_Vec[c][2] = sin(theta)*sin(phi);   //cos(theta);
+   }
 
    const double dh       = amr->dh[lv];
    const real   dv       = CUBE(dh);
