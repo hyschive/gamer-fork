@@ -256,9 +256,9 @@ void Flu_ResetByUser_API_ClusterMerger( const int lv, const int FluSg, const dou
       double phi   = Mis_InterpolateFromTable( JetDirection_NBin, Time_table, Phi_table[c], Time_interpolate );
 //      double theta = 10.0*M_PI/180.0;
 //      double phi = 2*M_PI*Time_interpolate/Time_period;
-      Jet_Vec[c][0] = cos(theta);   //sin(theta)*cos(phi);
-      Jet_Vec[c][1] = sin(theta)*cos(phi);   //sin(theta)*sin(phi);
-      Jet_Vec[c][2] = sin(theta)*sin(phi);   //cos(theta);
+      Jet_Vec[c][0] = 1.0;   //cos(theta);   //sin(theta)*cos(phi);
+      Jet_Vec[c][1] = 0.0;   //sin(theta)*cos(phi);   //sin(theta)*sin(phi);
+      Jet_Vec[c][2] = 0.0;   //sin(theta)*sin(phi);   //cos(theta);
    }
 
    const double dh       = amr->dh[lv];
@@ -287,12 +287,14 @@ void Flu_ResetByUser_API_ClusterMerger( const int lv, const int FluSg, const dou
 
       const bool CheckMinPres_No = false;
 
-      double rho = 0.0;  // the average density inside accretion radius
+      double rho = 0.0;  // the average density inside the accretion radius
       double Pres, tmp_Cs; // use for calculation of sound speed
-      double Cs = 0.0;  // the average sound speed inside accretion radius
+      double Cs = 0.0;  // the average sound speed inside the accretion radius
       double gas_vel[3] = { 0.0, 0.0, 0.0 }; // average gas velocity
       double v = 0.0;  // the relative velocity between BH and gas
-      int num = 0;  // the number of cells inside accretion radius
+      int num = 0;  // the number of cells inside the accretion radius
+      double ang_mom[3] = { 0.0, 0.0, 0.0 }; // total angular momentum inside the accretion radius
+
 
       for (int PID=0; PID<amr->NPatchComma[lv][1]; PID++)
       {
@@ -324,7 +326,13 @@ void Flu_ResetByUser_API_ClusterMerger( const int lv, const int FluSg, const dou
                               h_EoS_Table ) );
                Cs += tmp_Cs;
                for (int d=0; d<3; d++)  gas_vel[d] += fluid_Bondi[d+1]*dv;
-               num += 1;
+               num += 1;            
+            }
+            if (SQR(x2-ClusterCen[c][0])+SQR(y2-ClusterCen[c][1])+SQR(z2-ClusterCen[c][2]) <= SQR(R_acc)){
+               double dr[3] = {x2-ClusterCen[c][0], y2-ClusterCen[c][1], z2-ClusterCen[c][2]};
+               ang_mom[0] += dv*(dr[1]*fluid_Bondi[3]-dr[2]*fluid_Bondi[2]);
+               ang_mom[1] += dv*(dr[2]*fluid_Bondi[1]-dr[0]*fluid_Bondi[3]);
+               ang_mom[2] += dv*(dr[0]*fluid_Bondi[2]-dr[1]*fluid_Bondi[1]);
             }
 
 //          Calculate the exact volume of jet cylinder and normalization
@@ -356,12 +364,13 @@ void Flu_ResetByUser_API_ClusterMerger( const int lv, const int FluSg, const dou
          }}}
       } // for (int PID=0; PID<amr->NPatchComma[lv][1]; PID++)
 
-      double rho_sum, Cs_sum, gas_vel_sum[3];
+      double rho_sum, Cs_sum, gas_vel_sum[3], ang_mom_sum[3];
       int num_sum;
       MPI_Allreduce( &num,     &num_sum,     1, MPI_INT, MPI_SUM, MPI_COMM_WORLD );
       MPI_Allreduce( &rho,     &rho_sum,     1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD );
       MPI_Allreduce( &Cs,      &Cs_sum,      1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD );
       MPI_Allreduce( gas_vel,  gas_vel_sum,  3, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD );
+      MPI_Allreduce( ang_mom,  ang_mom_sum,  3, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD );
       MPI_Allreduce( &V_cyl_exacthalf[c], &V_cyl_exacthalf_sum[c], 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD );      
       MPI_Allreduce( &normalize[c],       &normalize_sum[c],       1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD );
 
@@ -383,6 +392,10 @@ void Flu_ResetByUser_API_ClusterMerger( const int lv, const int FluSg, const dou
          SoundSpeed[c] = Cs_sum;
          for (int d=0; d<3; d++)  GasVel[c][d] = gas_vel_sum[d];
          RelativeVel[c] = sqrt(v);
+
+//       decide the jet direction by angular momentum
+         double ang_mom_norm = sqrt(SQR(ang_mom_sum[0])+SQR(ang_mom_sum[1])+SQR(ang_mom_sum[2]));
+         for (int d=0; d<3; d++)  Jet_Vec[c][d] = ang_mom_sum[d]/ang_mom_norm;
       }
 
       if (V_cyl_exacthalf_sum[c] != 0)   normalize_const[c] = V_cyl_exacthalf_sum[c]/normalize_sum[c];
