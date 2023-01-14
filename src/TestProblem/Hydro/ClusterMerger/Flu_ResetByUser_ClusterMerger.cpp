@@ -101,8 +101,8 @@ extern double *Phi_table[3];          // the phi table of jet direction for 3 cl
 // Return      :  true  : This cell has been reset
 //                false : This cell has not been reset
 //-------------------------------------------------------------------------------------------------------
-bool Flu_ResetByUser_Func_ClusterMerger( real fluid[], const double Emag, const double x, const double y, const double z, 
-                                         const double Time, const double dt, const int lv, double AuxArray[] )
+int Flu_ResetByUser_Func_ClusterMerger( real fluid[], const double Emag, const double x, const double y, const double z, 
+                                        const double Time, const double dt, const int lv, double AuxArray[] )
 {
    const double Pos[3]  = { x, y, z };
 
@@ -204,12 +204,12 @@ bool Flu_ResetByUser_Func_ClusterMerger( real fluid[], const double Emag, const 
          fluid[ENGY] += 0.5*((SQR(fluid[MOMX])+SQR(fluid[MOMY])+SQR(fluid[MOMZ]))/fluid[DENS]-(SQR(MOMX_old)+SQR(MOMY_old)+SQR(MOMZ_old))/tmp_dens);
 
 //       return immediately since we do NOT allow different jet source to overlap
-         return true;
+         return 1;
       } // if (  Jet_dh <= Jet_HalfHeight[c]  &&  Jet_dr <= Jet_Radius[c] )
    } // for (int c=0; c<Merger_Coll_NumHalos; c++) 
 
 
-   return false;
+   return 0;   // no injection
 
 
 } // FUNCTION : Flu_ResetByUser_Func_ClusterMerger
@@ -268,7 +268,7 @@ void Flu_ResetByUser_API_ClusterMerger( const int lv, const int FluSg, const dou
    const real  _Gamma_m1 = (real)1.0 / Gamma_m1;
 #  endif   
 
-   bool   Reset;
+   int    Reset;
    real   fluid[NCOMP_TOTAL], fluid_bk[NCOMP_TOTAL], fluid_Bondi[NCOMP_TOTAL];
    double x, y, z, x0, y0, z0, x2, y2, z2, x02, y02, z02;
    double V_cyl_exacthalf[3] = { 0.0, 0.0, 0.0 };   // The exact volume of jet cylinder 
@@ -508,7 +508,7 @@ void Flu_ResetByUser_API_ClusterMerger( const int lv, const int FluSg, const dou
          Reset = Flu_ResetByUser_Func_ClusterMerger( fluid, Emag, x, y, z, TimeNew, dt, lv, NULL );
 
 //       operations necessary only when this cell has been reset
-         if ( Reset )
+         if ( Reset!=0 )
          {
 //          apply density and energy floors
 #           if ( MODEL == HYDRO  ||  MODEL == MHD )
