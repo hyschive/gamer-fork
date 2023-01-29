@@ -65,6 +65,8 @@ extern double E_inj_exp[3];
 extern double dt_base;
 extern double E_power_inj[3];
 extern double ClusterCen[3][3];
+extern double BH_Vel[3][3];
+extern double R_acc;
 // =======================================================================================
 
 #ifdef MASSIVE_PARTICLES
@@ -73,7 +75,7 @@ void Read_Particles_ClusterMerger(std::string filename, long offset, long num,
                                   real_par_in zpos[], real_par_in xvel[],
                                   real_par_in yvel[], real_par_in zvel[],
                                   real_par_in mass[], real_par_in ptype[]);
-void GetClusterCenter( double Cen[][3], double BH_Vel[][3] );
+void GetClusterCenter( double Cen_old[][3], double Cen_new[][3] );
 
 //-------------------------------------------------------------------------------------------------------
 // Function    :  Par_Init_ByFunction_ClusterMerger
@@ -370,10 +372,10 @@ void Par_Init_ByFunction_ClusterMerger( const long NPar_ThisRank, const long NPa
    if ( MPI_Rank == 0 )    Aux_Message( stdout, "%s ... done\n", __FUNCTION__ );
 
 // Initialize ClusterCen
-   double BH_Vel[3][3] = {  { NULL_REAL, NULL_REAL, NULL_REAL },
-                            { NULL_REAL, NULL_REAL, NULL_REAL },
-                            { NULL_REAL, NULL_REAL, NULL_REAL }  };
-   GetClusterCenter( ClusterCen, BH_Vel);
+//   double BH_Vel[3][3] = {  { NULL_REAL, NULL_REAL, NULL_REAL },
+//                            { NULL_REAL, NULL_REAL, NULL_REAL },
+//                            { NULL_REAL, NULL_REAL, NULL_REAL }  };
+//   GetClusterCenter( ClusterCen, BH_Vel);
 
 #endif // #ifdef SUPPORT_HDF5
 
@@ -630,13 +632,13 @@ void Aux_Record_ClusterMerger()
 
 
    // get cluster centers
-   double Cen[3][3] = {  { NULL_REAL, NULL_REAL, NULL_REAL },
-                         { NULL_REAL, NULL_REAL, NULL_REAL },
-                         { NULL_REAL, NULL_REAL, NULL_REAL }  };
-   double BH_Vel[3][3] = {  { NULL_REAL, NULL_REAL, NULL_REAL },
-                            { NULL_REAL, NULL_REAL, NULL_REAL },
-                            { NULL_REAL, NULL_REAL, NULL_REAL }  };
-   GetClusterCenter( Cen, BH_Vel );
+//   double Cen[3][3] = {  { NULL_REAL, NULL_REAL, NULL_REAL },
+//                         { NULL_REAL, NULL_REAL, NULL_REAL },
+//                         { NULL_REAL, NULL_REAL, NULL_REAL }  };
+//   double BH_Vel[3][3] = {  { NULL_REAL, NULL_REAL, NULL_REAL },
+//                            { NULL_REAL, NULL_REAL, NULL_REAL },
+//                            { NULL_REAL, NULL_REAL, NULL_REAL }  };
+//   GetClusterCenter( Cen, BH_Vel );
 
    double Bondi_MassBH[3] = { Bondi_MassBH1, Bondi_MassBH2, Bondi_MassBH3 };
    double Mdot_BH[3] = { Mdot_BH1, Mdot_BH2, Mdot_BH3 };
@@ -694,7 +696,7 @@ void Aux_Record_ClusterMerger()
       FILE *File_User = fopen( FileName, "a" );
       fprintf( File_User, "%14.7e%14ld", Time[0], Step );
       for (int c=0; c<Merger_Coll_NumHalos; c++)
-         fprintf( File_User, " %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14d %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e", Cen[c][0], Cen[c][1], Cen[c][2], BH_Vel[c][0], BH_Vel[c][1], BH_Vel[c][2], GasVel[c][0]*UNIT_V/(Const_km/Const_s), GasVel[c][1]*UNIT_V/(Const_km/Const_s), GasVel[c][2]*UNIT_V/(Const_km/Const_s), RelativeVel[c]*UNIT_V/(Const_km/Const_s), SoundSpeed[c]*UNIT_V/(Const_km/Const_s), GasDens[c]*UNIT_D/(Const_Msun/pow(Const_kpc,3)), Bondi_MassBH[c], Mdot_BH[c], SinkNCell_Sum[c], MomX_Sum[c], MomY_Sum[c], MomZ_Sum[c], MomXAbs_Sum[c], MomYAbs_Sum[c], MomZAbs_Sum[c], MomX_Sum[c]/MomXAbs_Sum[c], E_inj_exp[c], E_Sum[c], (E_Sum[c]-E_inj_exp[c])/E_inj_exp[c], Ek_Sum[c], Et_Sum[c], E_power_inj[c], Mass_Sum[c], Mdot[c], Pdot[c], Edot[c], Jet_Vec[c][0], Jet_Vec[c][1], Jet_Vec[c][2] );
+         fprintf( File_User, " %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14d %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e", ClusterCen[c][0], ClusterCen[c][1], ClusterCen[c][2], BH_Vel[c][0], BH_Vel[c][1], BH_Vel[c][2], GasVel[c][0]*UNIT_V/(Const_km/Const_s), GasVel[c][1]*UNIT_V/(Const_km/Const_s), GasVel[c][2]*UNIT_V/(Const_km/Const_s), RelativeVel[c]*UNIT_V/(Const_km/Const_s), SoundSpeed[c]*UNIT_V/(Const_km/Const_s), GasDens[c]*UNIT_D/(Const_Msun/pow(Const_kpc,3)), Bondi_MassBH[c], Mdot_BH[c], SinkNCell_Sum[c], MomX_Sum[c], MomY_Sum[c], MomZ_Sum[c], MomXAbs_Sum[c], MomYAbs_Sum[c], MomZAbs_Sum[c], MomX_Sum[c]/MomXAbs_Sum[c], E_inj_exp[c], E_Sum[c], (E_Sum[c]-E_inj_exp[c])/E_inj_exp[c], Ek_Sum[c], Et_Sum[c], E_power_inj[c], Mass_Sum[c], Mdot[c], Pdot[c], Edot[c], Jet_Vec[c][0], Jet_Vec[c][1], Jet_Vec[c][2] );
       fprintf( File_User, "\n" );
       fclose( File_User );
    }
@@ -728,13 +730,22 @@ void Aux_Record_ClusterMerger()
 //
 // Return      :  Cen[]
 //-------------------------------------------------------------------------------------------------------
-void GetClusterCenter( double Cen[][3], double BH_Vel[][3] )
+void GetClusterCenter( double Cen_old[][3], double Cen_new[][3] )
 {
 
-   if ( ! Merger_Coll_LabelCenter  &&  MPI_Rank == 0 )
-      Aux_Message( stderr, "WARNING : Merger_Coll_LabelCenter is disabled in %s !!\n", __FUNCTION__ );
+// Find the potential minimum 
+   for (int c=0; c<Merger_Coll_NumHalos; c++) {
+      Extrema_t Extrema;           
+      Extrema.Field = _POTE;        
+      Extrema.Radius = 2*R_acc;  
+      for (int d=0; d<3; d++)   Extrema.Center[d] = Cen_old[c][d]; 
+      Aux_FindExtrema( &Extrema, EXTREMA_MIN, 0, TOP_LEVEL, PATCH_LEAF );
 
+      for (int d=0; d<3; d++)   Cen_new[c][d] = Extrema.Coord[d];
+//      Aux_Message( stdout, "In rank %d, Cen_idx = %d,  Extrema.Coord = %14.8e, %14.8e, %14.8e, Extrema.Value = %14.8e, Extrema.Level = %d.\n", MPI_Rank, Cen_idx, Extrema.Coord[0], Extrema.Coord[1], Extrema.Coord[2], Extrema.Value, Extrema.Level);
+   }       
 
+/*
    const real *ParPos[3] = { amr->Par->PosX, amr->Par->PosY, amr->Par->PosZ };
    const real *ParVel[3] = { amr->Par->VelX, amr->Par->VelY, amr->Par->VelZ };
 
@@ -756,7 +767,7 @@ void GetClusterCenter( double Cen[][3], double BH_Vel[][3] )
       MPI_Allreduce( Cen_Tmp, Cen[c], 3, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD );
       MPI_Allreduce( Vel_Tmp, BH_Vel[c], 3, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD );
    }
-
+*/
 } // FUNCTION : GetClusterCenter
 
 #endif // #ifdef MASSIVE_PARTICLES

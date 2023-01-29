@@ -39,10 +39,9 @@ extern double SoundSpeed[3];
 extern double GasDens[3];
 extern double RelativeVel[3]; // the relative velocity between BH and gas
 extern double ClusterCen[3][3];
+extern double BH_Pos[3][3]; // BH position (for updating ClusterCen)
+extern double BH_Vel[3][3]; // BH velocity
 
-double BH_Vel_jet[3][3] = {  { NULL_REAL, NULL_REAL, NULL_REAL }, // BH velocity
-                             { NULL_REAL, NULL_REAL, NULL_REAL },
-                             { NULL_REAL, NULL_REAL, NULL_REAL }  }; 
 double Jet_WaveK[3];  // jet wavenumber used in the sin() function to have smooth bidirectional jets
 double Jet_HalfHeight[3];
 double Jet_Radius[3];
@@ -55,7 +54,7 @@ double E_inj_exp[3] = { 0.0, 0.0, 0.0 };   // the expected amount of injected en
 double dt_base; 
 double E_power_inj[3];   // the injection power
 
-extern void GetClusterCenter( double Cen[][3], double BH_Vel[][3] );
+extern void GetClusterCenter( double Cen_old[][3], double Cen_new[][3] );
 
 static bool FirstTime = true;
 /*
@@ -189,9 +188,9 @@ int Flu_ResetByUser_Func_ClusterMerger( real fluid[], const double Emag, const d
       fluid[DENS] += M_inj[status-1];      
 
 //    Transfer into BH frame
-      fluid[MOMX] -= BH_Vel_jet[status-1][0]*fluid[DENS];
-      fluid[MOMY] -= BH_Vel_jet[status-1][1]*fluid[DENS];
-      fluid[MOMZ] -= BH_Vel_jet[status-1][2]*fluid[DENS]; 
+      fluid[MOMX] -= BH_Vel[status-1][0]*fluid[DENS];
+      fluid[MOMY] -= BH_Vel[status-1][1]*fluid[DENS];
+      fluid[MOMZ] -= BH_Vel[status-1][2]*fluid[DENS]; 
 
 //    use a sine function to make the velocity smooth within the jet from +Jet_Vec to -Jet_Vec
       EngySin = E_inj[status-1]*normalize_const[status-1]*sin( Jet_WaveK[status-1]*Jet_dh[status-1] );
@@ -205,9 +204,9 @@ int Flu_ResetByUser_Func_ClusterMerger( real fluid[], const double Emag, const d
       fluid[MOMZ] = P_new*Jet_Vec[status-1][2];
 
 //    Transfer back into the rest frame  
-      fluid[MOMX] += BH_Vel_jet[status-1][0]*fluid[DENS];
-      fluid[MOMY] += BH_Vel_jet[status-1][1]*fluid[DENS];
-      fluid[MOMZ] += BH_Vel_jet[status-1][2]*fluid[DENS]; 
+      fluid[MOMX] += BH_Vel[status-1][0]*fluid[DENS];
+      fluid[MOMY] += BH_Vel[status-1][1]*fluid[DENS];
+      fluid[MOMZ] += BH_Vel[status-1][2]*fluid[DENS]; 
 
       fluid[ENGY] += 0.5*((SQR(fluid[MOMX])+SQR(fluid[MOMY])+SQR(fluid[MOMZ]))/fluid[DENS]-(SQR(MOMX_old)+SQR(MOMY_old)+SQR(MOMZ_old))/tmp_dens);
 
@@ -243,7 +242,7 @@ void Flu_ResetByUser_API_ClusterMerger( const int lv, const int FluSg, const dou
    double Mdot_BH[3] = { Mdot_BH1, Mdot_BH2, Mdot_BH3 };
    double Bondi_MassBH[3] = { Bondi_MassBH1, Bondi_MassBH2, Bondi_MassBH3 }; 
 
-   GetClusterCenter( ClusterCen, BH_Vel_jet );
+   GetClusterCenter( BH_Pos, ClusterCen );
 
    Jet_HalfHeight[0] = Jet_HalfHeight1;
    Jet_HalfHeight[1] = Jet_HalfHeight2;
@@ -388,7 +387,9 @@ void Flu_ResetByUser_API_ClusterMerger( const int lv, const int FluSg, const dou
          for (int d=0; d<3; d++)  gas_vel_sum[d] /= rho_sum;
          rho_sum /= (4.0/3.0*M_PI*pow(R_acc,3));
          Cs_sum /= (double)num_sum;
-         for (int d=0; d<3; d++)  v += SQR(BH_Vel_jet[c][d]-gas_vel_sum[d]);
+         for (int d=0; d<3; d++)  BH_Pos[c][d] = ClusterCen[c][d];
+         for (int d=0; d<3; d++)  BH_Vel[c][d] = gas_vel_sum[d];
+         for (int d=0; d<3; d++)  v += SQR(BH_Vel[c][d]-gas_vel_sum[d]);
 
 //       calculate the accretion rate
          Mdot_BH[c] = 100.0*4.0*M_PI*SQR(NEWTON_G)*SQR(Bondi_MassBH[c])*rho_sum/pow(Cs_sum*Cs_sum+v,1.5);
@@ -567,6 +568,31 @@ void Flu_ResetByUser_API_ClusterMerger( const int lv, const int FluSg, const dou
    } // for (int PID=0; PID<amr->NPatchComma[lv][1]; PID++)
 
 //   delete RNG;
+
+
+// Find the potential minimum and reposition the BH particle
+//   real *ParPos[3] = { amr->Par->PosX, amr->Par->PosY, amr->Par->PosZ };
+//   for (int c=0; c<Merger_Coll_NumHalos; c++) {
+//      Extrema_t Extrema;  
+//      Extrema.Field = _POTE;                  
+//      Extrema.Radius = 2*R_acc;  
+//      int Cen_idx_Tmp = -1000000;
+//      int Cen_idx;
+//      for (long p=0; p<amr->Par->NPar_AcPlusInac; p++) {
+//         if ( amr->Par->Mass[p] >= (real)0.0  &&  amr->Par->Type[p] == real(PTYPE_CEN+c) ){
+//            Cen_idx_Tmp = p;
+//         }
+//      }
+//      MPI_Allreduce( &Cen_idx_Tmp, &Cen_idx, 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD );
+//      for (int d=0; d<3; d++)   Extrema.Center[d] = ParPos[d][Cen_idx];
+//      Aux_Message( stdout, "In rank %d, Cen_idx = %d.\n", MPI_Rank, Cen_idx);
+//      Aux_FindExtrema( &Extrema, EXTREMA_MIN, 0, TOP_LEVEL, PATCH_LEAF );
+////      Aux_Message( stdout, "Potential minimum is found." );
+//      amr->Par->PosX[Cen_idx] = Extrema.Coord[0];
+//      amr->Par->PosY[Cen_idx] = Extrema.Coord[1];
+//      amr->Par->PosZ[Cen_idx] = Extrema.Coord[2];
+//   }
+
 
 } // FUNCTION : Flu_ResetByUser_API_ClusterMerger
 

@@ -106,7 +106,9 @@ static FieldIdx_t ColorField3Idx = Idx_Undefined;
        double SoundSpeed[3];        // average sound speed inside the accreiton radius
        double GasDens[3];           // average gas density inside the accreiton radius
        double RelativeVel[3];       // relative velocity between BH and gas for each cluster
-       double ClusterCen[3][3];     // BH position for each cluster
+       double ClusterCen[3][3];     // the center of each cluster
+       double BH_Pos[3][3];         // BH position of each cluster
+       double BH_Vel[3][3];         // BH velocity of each cluster
 
        int     JetDirection_NBin;     // number of bins of the jet direction table 
 static double *JetDirection = NULL;   // jet direction[time/theta_1/phi_1/theta_2/phi_2/theta_3/phi_3]
@@ -137,6 +139,7 @@ int Flu_ResetByUser_Func_ClusterMerger( real fluid[], const double Emag, const d
 void Flu_ResetByUser_API_ClusterMerger( const int lv, const int FluSg, const double TimeNew, const double dt );
 
 extern void (*Flu_ResetByUser_API_Ptr)( const int lv, const int FluSg, const double TimeNew, const double dt );
+extern void GetClusterCenter( double Cen_old[][3], double Cen_new[][3] ); 
 
 //-------------------------------------------------------------------------------------------------------
 // Function    :  Validate
@@ -460,6 +463,17 @@ void SetParameter()
          Phi_table[d]   = JetDirection+(2+2*d)*JetDirection_NBin;
       }
       for (int b=0; b<JetDirection_NBin; b++)   Time_table[b] *= Const_Myr/UNIT_T; 
+
+//    (2-2) Initialize ClusterCen
+      double ClusterCenter[3][3] = {{ Merger_Coll_PosX1, Merger_Coll_PosY1, amr->BoxCenter[2] },
+                                    { Merger_Coll_PosX2, Merger_Coll_PosY2, amr->BoxCenter[2] },
+                                    { Merger_Coll_PosX3, Merger_Coll_PosY3, amr->BoxCenter[2] }};
+//      GetClusterCenter( ClusterCenter, ClusterCen );
+      for (int c=0; c<Merger_Coll_NumHalos; c++) {
+         for (int d=0; d<3; d++)   ClusterCen[c][d] = ClusterCenter[c][d];
+         for (int d=0; d<3; d++)   BH_Pos[c][d] = ClusterCen[c][d];
+      }
+
 
 //    (3) Determine particle number
 
