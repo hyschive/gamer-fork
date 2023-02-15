@@ -464,14 +464,18 @@ void SetParameter()
       }
       for (int b=0; b<JetDirection_NBin; b++)   Time_table[b] *= Const_Myr/UNIT_T; 
 
-//    (2-2) Initialize ClusterCen
+//    (2-2) Initialize the BH position and velocity
       double ClusterCenter[3][3] = {{ Merger_Coll_PosX1, Merger_Coll_PosY1, amr->BoxCenter[2] },
                                     { Merger_Coll_PosX2, Merger_Coll_PosY2, amr->BoxCenter[2] },
                                     { Merger_Coll_PosX3, Merger_Coll_PosY3, amr->BoxCenter[2] }};
-//      GetClusterCenter( ClusterCenter, ClusterCen );
+      double CenterVel[3][3]     = {{ Merger_Coll_VelX1, Merger_Coll_VelY1, 0.0 },
+                                    { Merger_Coll_VelX2, Merger_Coll_VelY2, 0.0 },
+                                    { Merger_Coll_VelX3, Merger_Coll_VelY3, 0.0 }}; 
+
       for (int c=0; c<Merger_Coll_NumHalos; c++) {
          for (int d=0; d<3; d++)   ClusterCen[c][d] = ClusterCenter[c][d];
          for (int d=0; d<3; d++)   BH_Pos[c][d] = ClusterCen[c][d];
+         for (int d=0; d<3; d++)   BH_Vel[c][d] = CenterVel[c][d];
       }
 
 
@@ -528,7 +532,7 @@ void SetParameter()
 // (4) reset other general-purpose parameters
 //     --> a helper macro PRINT_WARNING is defined in TestProb.h
    const long   End_Step_Default = __INT_MAX__;
-   const double End_T_Default    = 3.0*Const_Gyr/UNIT_T;
+   const double End_T_Default    = 10.0*Const_Gyr/UNIT_T;
 
    if ( END_STEP < 0 ) {
       END_STEP = End_Step_Default;
