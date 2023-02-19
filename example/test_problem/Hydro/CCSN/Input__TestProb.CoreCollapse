@@ -29,7 +29,7 @@ CCSN_CC_MaxRefine_Dens2   1.0e12                   # central density threshold t
 CCSN_MaxRefine_RadFac     0.15                     # factor that determines the maximum refinement level based on distance from the box center  [0.15]
 CCSN_CC_CentralDensFac    1.0e13                   # factor that reduces the dt constrained by the central density (in cgs) during the core collapse  [1.0e13]
 CCSN_CC_Red_DT            1.0e-5                   # reduced time step (in s) when the central density exceeds CCSN_CC_CentralDensFac before bounce  [1e-5]
-CCSN_LB_TimeFac           0.10                     # factor that scales the dt constrained by lightbulb scheme  [0.1]
+CCSN_NuHeat_TimeFac           0.10                 # factor that scales the dt constrained by the lightbulb/leakage scheme  [0.1]
 
 CCSN_CC_Rot               2                        # mode for rotational profile (0:off, 1:analytical, 2:table)                         [2]
                                                    # --> analytical formula: Omega(r)=Omega_0*[R_0^2/(r^2+R_0^2)], where r is the spherical radius

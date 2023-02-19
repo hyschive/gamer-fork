@@ -27,6 +27,7 @@ typedef void (*SrcFunc_t)( real fluid[], const real B[],
 // Data Member :  Any                       : True if at least one of the source terms is activated
 //                Deleptonization           : SRC_DELEPTONIZATION
 //                Lightbulb                 : SRC_LIGHTBULB
+//                Leakage                   : SRC_LEAKAGE
 //                User                      : SRC_USER
 //                BoxCenter                 : Simulation box center
 //                Unit_*                    : Code units
@@ -35,8 +36,6 @@ typedef void (*SrcFunc_t)( real fluid[], const real B[],
 //                *_AuxArrayDevPtr_*        : Auxiliary array pointers
 //                                            --> For GPU, these pointers store the addresses of constant memory arrays,
 //                                                which should NOT be used by host
-//                Lightbulb_Lnue            : Electron neutrino luminosity in erg/s
-//                Lightbulb_Tnue            : Electron neutrino temperature in MeV
 //
 // Method      :  None --> It seems that CUDA does not support functions in a struct
 //-------------------------------------------------------------------------------------------------------
@@ -46,6 +45,7 @@ struct SrcTerms_t
    bool   Any;
    bool   Deleptonization;
    bool   Lightbulb;
+   bool   Leakage;
    bool   User;
 
    double BoxCenter[3];
@@ -87,7 +87,30 @@ struct SrcTerms_t
    int      *Lightbulb_AuxArrayDevPtr_Int;
    double    Lightbulb_Lnue;
    double    Lightbulb_Tnue;
+
+// leakage
+   SrcFunc_t Leakage_FuncPtr;
+   SrcFunc_t Leakage_CPUPtr;
+#  ifdef GPU
+   SrcFunc_t Leakage_GPUPtr;
 #  endif
+   double   *Leakage_AuxArrayDevPtr_Flt;
+   int      *Leakage_AuxArrayDevPtr_Int;
+   int       Leakage_NRadius;
+   int       Leakage_NTheta;
+   int       Leakage_NPhi;
+   double    Leakage_BinSize_Radius;
+   double    Leakage_RadiusMax;
+   double    Leakage_RadiusMin_Log;
+   bool      Leakage_NuHeat;
+   double    Leakage_NuHeat_Fac;
+   real     *Leakage_Radius_DevPtr;
+   real     *Leakage_tau_DevPtr;
+   real     *Leakage_chi_DevPtr;
+   real     *Leakage_Heat_Flux_DevPtr;
+   real     *Leakage_HeatE_Rms_DevPtr;
+   real     *Leakage_HeatE_Ave_DevPtr;
+#  endif // if ( MODEL == HYDRO )
 
 // user-specified source term
    SrcFunc_t User_FuncPtr;

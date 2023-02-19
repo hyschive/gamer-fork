@@ -21,6 +21,6 @@ CCSN_Eint_Mode   1                                 # Mode of obtaining internal 
                                                    #   2=Pres Mode: Eint(dens, pres, [Ye]) )
 
 CCSN_MaxRefine_RadFac  0.15                        # factor that determines the maximum refinement level based on distance from the box center  [0.15]
-CCSN_LB_TimeFac        0.10                        # factor that scales the dt constrained by lightbulb scheme  [0.1]
+CCSN_NuHeat_TimeFac           0.10                 # factor that scales the dt constrained by the lightbulb/leakage scheme  [0.1]
 
 CCSN_Is_PostBounce     1                           # boolean that indicates whether core bounce has occurred   [0]

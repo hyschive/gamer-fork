@@ -6,6 +6,7 @@
 #if ( MODEL == HYDRO )
 void Src_Init_Deleptonization();
 void Src_Init_Lightbulb();
+void Src_Init_Leakage();
 #endif
 
 // this function pointer can be set by a test problem initializer for a user-specified source term
@@ -37,6 +38,7 @@ void Src_Init()
 #       if ( MODEL == HYDRO )
         SrcTerms.Deleptonization  ||
         SrcTerms.Lightbulb        ||
+        SrcTerms.Leakage          ||
 #       endif
         SrcTerms.User
       )
@@ -77,7 +79,16 @@ void Src_Init()
 #  endif
    SrcTerms.Lightbulb_AuxArrayDevPtr_Flt = NULL;
    SrcTerms.Lightbulb_AuxArrayDevPtr_Int = NULL;
+
+   SrcTerms.Leakage_FuncPtr              = NULL;
+   SrcTerms.Leakage_CPUPtr               = NULL;
+#  ifdef GPU
+   SrcTerms.Leakage_GPUPtr               = NULL;
 #  endif
+   SrcTerms.Leakage_AuxArrayDevPtr_Flt   = NULL;
+   SrcTerms.Leakage_AuxArrayDevPtr_Int   = NULL;
+#  endif // #if ( MODEL == HYDRO )
+
    SrcTerms.User_FuncPtr                 = NULL;
    SrcTerms.User_CPUPtr                  = NULL;
 #  ifdef GPU
@@ -114,9 +125,22 @@ void Src_Init()
       if ( SrcTerms.Lightbulb_GPUPtr  == NULL )    Aux_Error( ERROR_INFO, "SrcTerms.Lightbulb_GPUPtr  == NULL !!\n" );
 #     endif
    }
-#  endif
 
-// (3) user-specified source term
+// (3) leakage
+   if ( SrcTerms.Leakage )
+   {
+      Src_Init_Leakage();
+
+//    check if the source-term function is set properly
+      if ( SrcTerms.Leakage_FuncPtr == NULL )    Aux_Error( ERROR_INFO, "SrcTerms.Leakage_FuncPtr == NULL !!\n" );
+      if ( SrcTerms.Leakage_CPUPtr  == NULL )    Aux_Error( ERROR_INFO, "SrcTerms.Leakage_CPUPtr  == NULL !!\n" );
+#     ifdef GPU
+      if ( SrcTerms.Leakage_GPUPtr  == NULL )    Aux_Error( ERROR_INFO, "SrcTerms.Leakage_GPUPtr  == NULL !!\n" );
+#     endif
+   }
+#  endif // if ( MODEL == HYDRO )
+
+// (4) user-specified source term
    if ( SrcTerms.User )
    {
       if ( Src_Init_User_Ptr == NULL )             Aux_Error( ERROR_INFO, "Src_Init_User_Ptr == NULL !!\n" );

@@ -199,6 +199,15 @@ void Init_Load_Parameter()
    ReadPara->Add( "SRC_LIGHTBULB",              &SrcTerms.Lightbulb,              false,           Useless_bool,  Useless_bool   );
    ReadPara->Add( "SRC_LIGHTBULB_LNUE",         &SrcTerms.Lightbulb_Lnue,         1.0e52,          0.0,           NoMax_double   );
    ReadPara->Add( "SRC_LIGHTBULB_TNUE",         &SrcTerms.Lightbulb_Tnue,         4.0,             0.0,           NoMax_double   );
+   ReadPara->Add( "SRC_LEAKAGE",                &SrcTerms.Leakage,                false,           Useless_bool,  Useless_bool   );
+   ReadPara->Add( "SRC_LEAKAGE_NRADIUS",        &SrcTerms.Leakage_NRadius,        768,             1,             NoMax_int      );
+   ReadPara->Add( "SRC_LEAKAGE_NTHETA",         &SrcTerms.Leakage_NTheta,         1,               1,             NoMax_int      );
+   ReadPara->Add( "SRC_LEAKAGE_NPHI",           &SrcTerms.Leakage_NPhi,           1,               1,             NoMax_int      );
+   ReadPara->Add( "SRC_LEAKAGE_BINSIZE_RADIUS", &SrcTerms.Leakage_BinSize_Radius, 1.0,             Eps_double,    NoMax_double   );
+   ReadPara->Add( "SRC_LEAKAGE_RADIUSMAX",      &SrcTerms.Leakage_RadiusMax,      3.0e3,           Eps_double,    NoMax_double   );
+   ReadPara->Add( "SRC_LEAKAGE_RADIUSMIN_LOG",  &SrcTerms.Leakage_RadiusMin_Log,  3.0e2,           Eps_double,    NoMax_double   );
+   ReadPara->Add( "SRC_LEAKAGE_NUHEAT",         &SrcTerms.Leakage_NuHeat,         true,            Useless_bool,  Useless_bool   );
+   ReadPara->Add( "SRC_LEAKAGE_NUHEAT_FAC",     &SrcTerms.Leakage_NuHeat_Fac,     1.0,             0.0,           NoMax_double   );
    ReadPara->Add( "SRC_USER",                   &SrcTerms.User,                   false,           Useless_bool,  Useless_bool   );
 // do not check SRC_GPU_NPGROUP since it may be reset by either Init_ResetDefaultParameter() or CUAPI_SetMemSize()
    ReadPara->Add( "SRC_GPU_NPGROUP",            &SRC_GPU_NPGROUP,                -1,               NoMin_int,     NoMax_int      );

@@ -273,6 +273,8 @@ double     Src_Dlep_AuxArray_Flt     [SRC_NAUX_DLEP     ];
 int        Src_Dlep_AuxArray_Int     [SRC_NAUX_DLEP     ];
 double     Src_Lightbulb_AuxArray_Flt[SRC_NAUX_LIGHTBULB];
 int        Src_Lightbulb_AuxArray_Int[SRC_NAUX_LIGHTBULB];
+double     Src_Leakage_AuxArray_Flt  [SRC_NAUX_LEAKAGE  ];
+int        Src_Leakage_AuxArray_Int  [SRC_NAUX_LEAKAGE  ];
 #endif
 double     Src_User_AuxArray_Flt     [SRC_NAUX_USER     ];
 int        Src_User_AuxArray_Int     [SRC_NAUX_USER     ];
@@ -363,6 +365,14 @@ real (*h_Flu_Array_S_Out[2])[FLU_NOUT_S][ CUBE(PS1)      ]         = { NULL, NUL
 real (*h_Mag_Array_S_In [2])[NCOMP_MAG][ SRC_NXT_P1*SQR(SRC_NXT) ] = { NULL, NULL };
 #endif
 double (*h_Corner_Array_S[2])[3]                                   = { NULL, NULL };
+#if ( MODEL == HYDRO )
+real  *h_SrcLeakage_Radius                                         = NULL;
+real  *h_SrcLeakage_tau                                            = NULL;
+real  *h_SrcLeakage_chi                                            = NULL;
+real  *h_SrcLeakage_HeatFlux                                       = NULL;
+real  *h_SrcLeakage_HeatERms                                       = NULL;
+real  *h_SrcLeakage_HeatEAve                                       = NULL;
+#endif
 
 
 // 4. GPU (device) global memory arrays
@@ -440,6 +450,14 @@ real (*d_Flu_Array_S_Out)[FLU_NOUT_S][ CUBE(PS1)      ]            = NULL;
 real (*d_Mag_Array_S_In)[NCOMP_MAG  ][ SRC_NXT_P1*SQR(SRC_NXT) ]   = NULL;
 #endif
 double (*d_Corner_Array_S)[3]                                      = NULL;
+#if ( MODEL == HYDRO )
+real  *d_SrcLeakage_Radius                                         = NULL;
+real  *d_SrcLeakage_tau                                            = NULL;
+real  *d_SrcLeakage_chi                                            = NULL;
+real  *d_SrcLeakage_HeatFlux                                       = NULL;
+real  *d_SrcLeakage_HeatERms                                       = NULL;
+real  *d_SrcLeakage_HeatEAve                                       = NULL;
+#endif
 
 #endif // #ifdef GPU
 

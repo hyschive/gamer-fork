@@ -40,6 +40,10 @@ void Aux_ComputeProfile( Profile_t *Prof[], const double Center[], const double 
                          const double PrepTime );
 void Aux_FindExtrema( Extrema_t *Extrema, const ExtremaMode_t Mode, const int MinLv, const int MaxLv,
                       const PatchType_t PatchType );
+void Aux_ComputeRay( Profile_t *Ray[], const double Center[], const double Edge[],
+                     const int NRadius_Linear, const int NRadius, const int NTheta, const int NPhi,
+                     const double BinSize_Linear, const double MaxRad_Linear, const double MaxRad,
+                     const long TVarBitIdx[], const int NProf, const double PrepTime );
 #ifndef SERIAL
 void Aux_Record_BoundaryPatch( const int lv, int *NList, int **IDList, int **PosList );
 #endif

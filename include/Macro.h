@@ -802,9 +802,11 @@
 #if ( MODEL == HYDRO )
 #  define SRC_NAUX_DLEP          8     // SrcTerms.Dlep_AuxArray_Flt/Int[]
 #  define SRC_NAUX_LIGHTBULB     2     // SrcTerms.Lightbulb_AuxArray_Flt/Int[]
+#  define SRC_NAUX_LEAKAGE      11     // SrcTerms.Leakage_AuxArray_Flt/Int[]
 #else
 #  define SRC_NAUX_DLEP          0
 #  define SRC_NAUX_LIGHTBULB     0
+#  define SRC_NAUX_LEAKAGE       0
 #endif
 #  define SRC_NAUX_USER          10    // SrcTerms.User_AuxArray_Flt/Int[]
 

@@ -289,6 +289,8 @@ extern double     Src_Dlep_AuxArray_Flt     [SRC_NAUX_DLEP     ];
 extern int        Src_Dlep_AuxArray_Int     [SRC_NAUX_DLEP     ];
 extern double     Src_Lightbulb_AuxArray_Flt[SRC_NAUX_LIGHTBULB];
 extern int        Src_Lightbulb_AuxArray_Int[SRC_NAUX_LIGHTBULB];
+extern double     Src_Leakage_AuxArray_Flt  [SRC_NAUX_LEAKAGE  ];
+extern int        Src_Leakage_AuxArray_Int  [SRC_NAUX_LEAKAGE  ];
 #endif
 extern double     Src_User_AuxArray_Flt     [SRC_NAUX_USER     ];
 extern int        Src_User_AuxArray_Int     [SRC_NAUX_USER     ];
@@ -372,6 +374,15 @@ extern real       (*h_Flu_Array_S_Out[2])[FLU_NOUT_S][ CUBE(PS1)               ]
 extern real       (*h_Mag_Array_S_In [2])[NCOMP_MAG ][ SRC_NXT_P1*SQR(SRC_NXT) ];
 #endif
 extern double     (*h_Corner_Array_S[2])[3];
+
+#if ( MODEL == HYDRO )
+extern real        *h_SrcLeakage_Radius;
+extern real        *h_SrcLeakage_tau;
+extern real        *h_SrcLeakage_chi;
+extern real        *h_SrcLeakage_HeatFlux;
+extern real        *h_SrcLeakage_HeatERms;
+extern real        *h_SrcLeakage_HeatEAve;
+#endif
 
 
 

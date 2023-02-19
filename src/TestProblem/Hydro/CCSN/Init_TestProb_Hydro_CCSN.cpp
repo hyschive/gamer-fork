@@ -56,7 +56,7 @@ static int        CCSN_Eint_Mode;                  // Mode of obtaining internal
        double     CCSN_CC_CentralDensFac;          // factor that reduces the dt constrained by the central density (in cgs) during the core collapse
        double     CCSN_CC_Red_DT;                  // reduced time step (in s) when the central density exceeds CCSN_CC_CentralDensFac before bounce
        double     CCSN_MaxRefine_RadFac;           // factor that determines the maximum refinement level based on distance from the box center
-       double     CCSN_LB_TimeFac;                 // factor that scales the dt constrained by lightbulb scheme
+       double     CCSN_NuHeat_TimeFac;             // factor that scales the dt constrained by the lightbulb/leakage scheme
        int        CCSN_CC_Rot;                     // mode for rotational profile (0:off, 1:analytical, 2:table)
                                                    // --> analytical formula: Omega(r)=Omega_0*[R_0^2/(r^2+R_0^2)], where r is the spherical radius
        double     CCSN_CC_Rot_R0;                  // characteristic radius R_0 (in cm) in the analytical rotational profile
@@ -73,6 +73,7 @@ void   Record_CCSN_GWSignal();
 void   Detect_CoreBounce();
 void   Detect_Shock();
 double Mis_GetTimeStep_Lightbulb( const int lv, const double dTime_dt );
+double Mis_GetTimeStep_Leakage( const int lv, const double dTime_dt );
 double Mis_GetTimeStep_CoreCollapse( const int lv, const double dTime_dt );
 bool   Flag_CoreCollapse( const int i, const int j, const int k, const int lv, const int PID, const double *Threshold );
 bool   Flag_Lightbulb( const int i, const int j, const int k, const int lv, const int PID, const double *Threshold );
@@ -167,7 +168,7 @@ void SetParameter()
    ReadPara->Add( "CCSN_CC_CentralDensFac",   &CCSN_CC_CentralDensFac,   1.0e13,        Eps_double,       NoMax_double      );
    ReadPara->Add( "CCSN_CC_Red_DT",           &CCSN_CC_Red_DT,           1.0e-5,        Eps_double,       NoMax_double      );
    ReadPara->Add( "CCSN_MaxRefine_RadFac",    &CCSN_MaxRefine_RadFac,    0.15,          0.0,              NoMax_double      );
-   ReadPara->Add( "CCSN_LB_TimeFac",          &CCSN_LB_TimeFac,          0.1,           Eps_double,       1.0               );
+   ReadPara->Add( "CCSN_NuHeat_TimeFac",      &CCSN_NuHeat_TimeFac,      0.1,           Eps_double,       1.0               );
    ReadPara->Add( "CCSN_CC_Rot",              &CCSN_CC_Rot,              2,             0,                2                 );
    ReadPara->Add( "CCSN_CC_Rot_R0",           &CCSN_CC_Rot_R0,           2.0e8,         Eps_double,       NoMax_double      );
    ReadPara->Add( "CCSN_CC_Rot_Omega0",       &CCSN_CC_Rot_Omega0,       0.5,           0.0,              NoMax_double      );
@@ -305,7 +306,7 @@ void SetParameter()
       Aux_Message( stdout, "  mode for obtaining internal energy                  = %d\n",     CCSN_Eint_Mode           );
       if ( CCSN_Prob != Migration_Test ) {
       Aux_Message( stdout, "  radial factor for maximum refine level              = %13.7e\n", CCSN_MaxRefine_RadFac    );
-      Aux_Message( stdout, "  scaling factor for lightbulb dt                     = %13.7e\n", CCSN_LB_TimeFac          );
+      Aux_Message( stdout, "  scaling factor for lightbulb/leakage dt             = %13.7e\n", CCSN_NuHeat_TimeFac      );
       Aux_Message( stdout, "  has core bounce occurred                            = %d\n",     CCSN_Is_PostBounce       );   }
       if ( CCSN_Prob == Core_Collapse ) {
       if ( CCSN_CC_MaxRefine_Flag1 ) {
@@ -440,14 +441,17 @@ void SetGridIC( real fluid[], const double x, const double y, const double z, co
 #  if ( EOS == EOS_NUCLEAR )
    real *Passive = new real [NCOMP_PASSIVE];
 
-   Passive[ YE      - NCOMP_FLUID ] = Ye*Dens;
-   Passive[ DEDT_NU - NCOMP_FLUID ] = TINY_NUMBER;
+   Passive[ YE       - NCOMP_FLUID ] = Ye*Dens;
+   Passive[ DEDT_NU  - NCOMP_FLUID ] = TINY_NUMBER;
+#  ifdef DYEDT_NU
+   Passive[ DYEDT_NU - NCOMP_FLUID ] = TINY_NUMBER;
+#  endif
 #  ifdef TEMP_IG
-   Passive[ TEMP_IG - NCOMP_FLUID ] = Temp;
+   Passive[ TEMP_IG  - NCOMP_FLUID ] = Temp;
 #  endif
 #  else
    real *Passive = NULL;
-#  endif
+#  endif // #if ( EOS == EOS_NUCLEAR ) ... else
 
    if ( CCSN_Eint_Mode == 1 )   // Temperature Mode
    {
@@ -786,7 +790,18 @@ void Record_CCSN()
 
 //       disable the deleptonization scheme, and enable the lightbulb scheme
          SrcTerms.Deleptonization = false;
-         SrcTerms.Lightbulb       = true;
+
+#        ifdef NEUTRINO_SCHEME
+#           if   ( NEUTRINO_SCHEME == LIGHTBULB )
+               SrcTerms.Lightbulb = true;
+               if ( MPI_Rank == 0 )   Aux_Message( stdout, "Enable the lightbulb scheme !!\n" );
+#           elif ( NEUTRINO_SCHEME == LEAKAGE )
+               SrcTerms.Leakage   = true;
+               if ( MPI_Rank == 0 )   Aux_Message( stdout, "Enable the leakage scheme !!\n" );
+#           else
+               if ( MPI_Rank == 0 )   Aux_Message( stdout, "No NEUTRINO_SCHEME specified !!\n" );
+#           endif
+#        endif
 
          Src_Init();
 
@@ -814,6 +829,13 @@ double Mis_GetTimeStep_CCSN( const int lv, const double dTime_dt )
       const double dt_LB = Mis_GetTimeStep_Lightbulb( lv, dTime_dt );
 
       dt_CCSN = fmin( dt_CCSN, dt_LB );
+   }
+
+   if ( SrcTerms.Leakage )
+   {
+      const double dt_NuHeat = Mis_GetTimeStep_Leakage( lv, dTime_dt );
+
+      dt_CCSN = fmin( dt_CCSN, dt_NuHeat );
    }
 
    if ( !CCSN_Is_PostBounce  &&  SrcTerms.Deleptonization )
@@ -856,7 +878,7 @@ bool Flag_CCSN( const int i, const int j, const int k, const int lv, const int P
       if ( Flag )    return Flag;
    }
 
-   if (  ( CCSN_Prob == Post_Bounce )  ||  SrcTerms.Lightbulb  )
+   if (  ( CCSN_Prob == Post_Bounce )  ||  SrcTerms.Lightbulb  ||  SrcTerms.Leakage  )
    {
       Flag |= Flag_Lightbulb( i, j, k, lv, PID, Threshold );
       if ( Flag )    return Flag;

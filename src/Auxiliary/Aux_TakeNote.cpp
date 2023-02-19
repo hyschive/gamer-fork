@@ -647,6 +647,7 @@ void Aux_TakeNote()
 #     endif
       fprintf( Note, "#define SRC_NAUX_DLEP           %d\n",      SRC_NAUX_DLEP         );
       fprintf( Note, "#define SRC_NAUX_LIGHTBULB      %d\n",      SRC_NAUX_LIGHTBULB    );
+      fprintf( Note, "#define SRC_NAUX_LEAKAGE        %d\n",      SRC_NAUX_LEAKAGE      );
       fprintf( Note, "#define SRC_NAUX_USER           %d\n",      SRC_NAUX_USER         );
 #     ifdef GPU
       fprintf( Note, "#define FLU_BLOCK_SIZE_X        %d\n",      FLU_BLOCK_SIZE_X      );
@@ -934,21 +935,31 @@ void Aux_TakeNote()
 //    record the parameters of source terms
       fprintf( Note, "Parameters of Source Terms\n" );
       fprintf( Note, "***********************************************************************************\n" );
-      fprintf( Note, "SRC_ANY                         %d\n",      SrcTerms.Any              );
-      fprintf( Note, "SRC_DELEPTONIZATION             %d\n",      SrcTerms.Deleptonization  );
-      fprintf( Note, "SRC_LIGHTBULB                   %d\n",      SrcTerms.Lightbulb        );
+      fprintf( Note, "SRC_ANY                         %d\n",      SrcTerms.Any                    );
+      fprintf( Note, "SRC_DELEPTONIZATION             %d\n",      SrcTerms.Deleptonization        );
+      fprintf( Note, "SRC_LIGHTBULB                   %d\n",      SrcTerms.Lightbulb              );
+      fprintf( Note, "SRC_LEAKAGE                     %d\n",      SrcTerms.Leakage                );
       if ( SrcTerms.Deleptonization ) {
-      fprintf( Note, "SRC_DELEP_ENU                   %13.7e\n",  SrcTerms.Dlep_Enu         );
-      fprintf( Note, "SRC_DELEP_RHO1                  %13.7e\n",  SrcTerms.Dlep_Rho1        );
-      fprintf( Note, "SRC_DELEP_RHO2                  %13.7e\n",  SrcTerms.Dlep_Rho2        );
-      fprintf( Note, "SRC_DELEP_YE1                   %13.7e\n",  SrcTerms.Dlep_Ye1         );
-      fprintf( Note, "SRC_DELEP_YE2                   %13.7e\n",  SrcTerms.Dlep_Ye2         );
-      fprintf( Note, "SRC_DELEP_YEC                   %13.7e\n",  SrcTerms.Dlep_Yec         ); }
+      fprintf( Note, "SRC_DELEP_ENU                   %13.7e\n",  SrcTerms.Dlep_Enu               );
+      fprintf( Note, "SRC_DELEP_RHO1                  %13.7e\n",  SrcTerms.Dlep_Rho1              );
+      fprintf( Note, "SRC_DELEP_RHO2                  %13.7e\n",  SrcTerms.Dlep_Rho2              );
+      fprintf( Note, "SRC_DELEP_YE1                   %13.7e\n",  SrcTerms.Dlep_Ye1               );
+      fprintf( Note, "SRC_DELEP_YE2                   %13.7e\n",  SrcTerms.Dlep_Ye2               );
+      fprintf( Note, "SRC_DELEP_YEC                   %13.7e\n",  SrcTerms.Dlep_Yec               ); }
       if ( SrcTerms.Lightbulb ) {
-      fprintf( Note, "SRC_LIGHTBULB_LNUE              %13.7e\n",  SrcTerms.Lightbulb_Lnue   );
-      fprintf( Note, "SRC_LIGHTBULB_TNUE              %13.7e\n",  SrcTerms.Lightbulb_Tnue   ); }
-      fprintf( Note, "SRC_USER                        %d\n",      SrcTerms.User             );
-      fprintf( Note, "SRC_GPU_NPGROUP                 %d\n",      SRC_GPU_NPGROUP           );
+      fprintf( Note, "SRC_LIGHTBULB_LNUE              %13.7e\n",  SrcTerms.Lightbulb_Lnue         );
+      fprintf( Note, "SRC_LIGHTBULB_TNUE              %13.7e\n",  SrcTerms.Lightbulb_Tnue         ); }
+      if ( SrcTerms.Leakage ) {
+      fprintf( Note, "SRC_LEAKAGE_NRADIUS             %d\n",      SrcTerms.Leakage_NRadius        );
+      fprintf( Note, "SRC_LEAKAGE_NTHETA              %d\n",      SrcTerms.Leakage_NTheta         );
+      fprintf( Note, "SRC_LEAKAGE_NPHI                %d\n",      SrcTerms.Leakage_NPhi           );
+      fprintf( Note, "SRC_LEAKAGE_BINSIZE_RADIUS      %13.7e\n",  SrcTerms.Leakage_BinSize_Radius );
+      fprintf( Note, "SRC_LEAKAGE_RADIUSMAX           %13.7e\n",  SrcTerms.Leakage_RadiusMax      );
+      fprintf( Note, "SRC_LEAKAGE_RADIUSMIN_LOG       %13.7e\n",  SrcTerms.Leakage_RadiusMin_Log  );
+      fprintf( Note, "SRC_LEAKAGE_NUHEAT              %d\n",      SrcTerms.Leakage_NuHeat         );
+      fprintf( Note, "SRC_LEAKAGE_NUHEAT_FAC          %13.7e\n",  SrcTerms.Leakage_NuHeat_Fac     ); }
+      fprintf( Note, "SRC_USER                        %d\n",      SrcTerms.User                   );
+      fprintf( Note, "SRC_GPU_NPGROUP                 %d\n",      SRC_GPU_NPGROUP                 );
       fprintf( Note, "***********************************************************************************\n" );
       fprintf( Note, "\n\n");
 
