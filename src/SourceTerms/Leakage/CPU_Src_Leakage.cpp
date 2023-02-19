@@ -240,7 +240,8 @@ static void Src_Leakage( real fluid[], const real B[],
            ? MIN(  MAX( int( rad / dRad - (real)0.5 ), 0 ), NRadius-2  )
            : Src_Leakage_BinarySearch( Radius, NRad_Lin-1, NRadius-2, rad );
 
-   xs[2] = { Radius[idx_rad], Radius[idx_rad+1] };
+   xs[0] = Radius[idx_rad];
+   xs[1] = Radius[idx_rad+1];
 
 // (1-2) theta:
 //       --> for cells close to the pole (theta < 0.5 * dTheta or theta > PI - 0.5 * dTheta)
@@ -399,7 +400,7 @@ static void Src_Leakage( real fluid[], const real B[],
 
                for (int i=idx_rad; i<idx_rad+2; i++, iv2++)
                {
-                  const int idx2 =  idx + i * Stride;
+                  const int idx2 =  idx1 + i * Stride;
 
                   tau_tmp [iv2] = Ray_tau [idx2];
                   chi_tmp [iv2] = Ray_chi [idx2];
