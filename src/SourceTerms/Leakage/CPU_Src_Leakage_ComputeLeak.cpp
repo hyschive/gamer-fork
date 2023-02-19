@@ -6,7 +6,7 @@
 
 #ifndef __CUDACC__
 
-extern bool IsInit_dEdt_Nu;
+extern bool IsInit_dEdt_Nu[NLEVEL];
 
 #endif
 
@@ -68,7 +68,7 @@ void Src_Leakage_ComputeTau( Profile_t *Ray[], double *Edge,
    #endif
    const bool   NuHeat       = SrcTerms.Leakage_NuHeat;
    const real   NuHeat_Fac   = SrcTerms.Leakage_NuHeat_Fac;
-         bool   Have_tau_USG = IsInit_dEdt_Nu;
+         bool   Have_tau_USG = IsInit_dEdt_Nu[lv];
 
 
 // prepare the line element, area, and bin volume for better performance

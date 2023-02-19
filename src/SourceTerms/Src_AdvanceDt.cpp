@@ -3,7 +3,7 @@
 
 
 // flag for checking whether the dEdt_Nu field is initialized
-bool IsInit_dEdt_Nu = false;
+bool IsInit_dEdt_Nu[NLEVEL] = { false };
 
 
 
@@ -46,6 +46,6 @@ void Src_AdvanceDt( const int lv, const double TimeNew, const double TimeOld, co
                  OverlapMPI, Overlap_Sync );
 
 
-   if ( SrcTerms.Lightbulb  ||  SrcTerms.Leakage )   IsInit_dEdt_Nu = true;
+   if ( SrcTerms.Lightbulb  ||  SrcTerms.Leakage )   IsInit_dEdt_Nu[lv] = true;
 
 } // FUNCTION : Src_AdvanceDt

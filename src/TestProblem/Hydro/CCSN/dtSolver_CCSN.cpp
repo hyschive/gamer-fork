@@ -2,7 +2,7 @@
 #include "NuclearEoS.h"
 
 
-extern bool   IsInit_dEdt_Nu;
+extern bool   IsInit_dEdt_Nu[NLEVEL];
 extern double CCSN_NuHeat_TimeFac;
 extern double CCSN_CC_CentralDensFac;
 extern double CCSN_CC_Red_DT;
@@ -91,7 +91,7 @@ double Mis_GetTimeStep_Lightbulb( const int lv, const double dTime_dt )
                   real dEint_Code = NULL_REAL;
 
 
-            if ( IsInit_dEdt_Nu )
+            if ( IsInit_dEdt_Nu[lv] )
             {
 //             use the stored neutrino heating/cooling rate
 #              ifdef DEDT_NU
@@ -119,7 +119,7 @@ double Mis_GetTimeStep_Lightbulb( const int lv, const double dTime_dt )
 #              ifdef DEDT_NU
                dEint_Code = fluid[DEDT_NU];
 #              endif
-            } // if ( IsInit_dEdt_Nu ) ... else ...
+            } // if ( IsInit_dEdt_Nu[lv] ) ... else ...
 
 
             const double dt_LB_Inv_ThisCell = FABS( dEint_Code / Eint_Code );
@@ -178,7 +178,7 @@ double Mis_GetTimeStep_Leakage( const int lv, const double dTime_dt )
    if ( !SrcTerms.Leakage )   return HUGE_NUMBER;
 
 // prepare leakage data at TimeNew on lv=0
-   if ( !IsInit_dEdt_Nu  &&  lv == 0 )
+   if ( !IsInit_dEdt_Nu[lv]  &&  lv == 0 )
    {
       const double TimeNew = amr->FluSgTime[lv][ amr->FluSg[lv] ];
 
@@ -241,7 +241,7 @@ double Mis_GetTimeStep_Leakage( const int lv, const double dTime_dt )
                   real dYedt      = NULL_REAL;
 
 
-            if ( IsInit_dEdt_Nu )
+            if ( IsInit_dEdt_Nu[lv] )
             {
 #              ifdef DYEDT_NU
                dEint_Code = amr->patch[ amr->FluSg[lv] ][lv][PID]->fluid[DEDT_NU ][k][j][i];
@@ -270,7 +270,7 @@ double Mis_GetTimeStep_Leakage( const int lv, const double dTime_dt )
                dEint_Code = fluid[DEDT_NU];
                dYedt = fluid[DYEDT_NU];
 #              endif
-            } // if ( IsInit_dEdt_Nu ) ... else ...
+            } // if ( IsInit_dEdt_Nu[lv] ) ... else ...
 
 
             const double dt_NuHeat_Inv_ThisCell = FMAX( FABS( dEint_Code / Eint_Code ),
