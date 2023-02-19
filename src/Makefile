@@ -98,7 +98,8 @@ SIMU_OPTION += -DEOS=EOS_GAMMA
 # --> NUC_TABLE_MODE_ENGY only supports NUC_EOS_SOLVER_LUT
 #SIMU_OPTION += -DNUC_EOS_SOLVER=NUC_EOS_SOLVER_DIRECT
 
-# neutrino updating scheme: LIGHTBULB/IDSA/M1
+# neutrino updating scheme: LIGHTBULB/IDSA/M1/LEAKAGE
+# --> IDSA and M1 are not supported yet
 #SIMU_OPTION += -DNEUTRINO_SCHEME=LIGHTBULB
 
 

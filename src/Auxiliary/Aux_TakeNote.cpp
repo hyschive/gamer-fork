@@ -223,6 +223,8 @@ void Aux_TakeNote()
       fprintf( Note, "NEUTRINO_SCHEME                 IDSA\n" );
 #     elif ( NEUTRINO_SCHEME == M1 )
       fprintf( Note, "NEUTRINO_SCHEME                 M1\n" );
+#     elif ( NEUTRINO_SCHEME == LEAKAGE )
+      fprintf( Note, "NEUTRINO_SCHEME                 LEAKAGE\n" );
 #     else
       fprintf( Note, "NEUTRINO_SCHEME                 UNKNOWN\n" );
 #     endif

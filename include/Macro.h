@@ -94,6 +94,7 @@
 #define LIGHTBULB    1
 #define IDSA         2
 #define M1           3
+#define LEAKAGE      4
 
 
 // Poisson solvers

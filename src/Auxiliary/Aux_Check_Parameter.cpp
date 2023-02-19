@@ -765,8 +765,8 @@ void Aux_Check_Parameter()
 #     endif
 #  endif // #ifdef BAROTROPIC_EOS ... else ...
 
-#  if ( defined NEUTRINO_SCHEME  &&  NEUTRINO_SCHEME != LIGHTBULB  &&  NEUTRINO_SCHEME != IDSA  &&  NEUTRINO_SCHEME != M1 )
-#     error : ERROR : unsupported neutrino updating scheme (LIGHTBULB/IDSA/M1) !!
+#  if ( defined NEUTRINO_SCHEME  &&  NEUTRINO_SCHEME != LIGHTBULB  &&  NEUTRINO_SCHEME != IDSA  &&  NEUTRINO_SCHEME != M1  &&  NEUTRINO_SCHEME != LEAKAGE )
+#     error : ERROR : unsupported neutrino updating scheme (LIGHTBULB/IDSA/M1/LEAKAGE) !!
 #  endif
 
    if ( OPT__1ST_FLUX_CORR != FIRST_FLUX_CORR_NONE )
@@ -1509,6 +1509,20 @@ void Aux_Check_Parameter()
    if ( SrcTerms.Lightbulb )
       Aux_Error( ERROR_INFO, "SRC_LIGHTBULB is only supported in HYDRO and must work with EOS_NUCLEAR !!\n" );
 #  endif
+
+   if ( SrcTerms.Lightbulb )
+   {
+#     if ( !defined NEUTRINO_SCHEME  ||  NEUTRINO_SCHEME != LIGHTBULB )
+         Aux_Error( ERROR_INFO, "NEUTRINO_SCHEME != LIGHTBULB for the lightbulb scheme !!\n" );
+#     endif
+   }
+
+   if ( SrcTerms.Leakage )
+   {
+#     if ( !defined NEUTRINO_SCHEME  ||  NEUTRINO_SCHEME != LEAKAGE )
+         Aux_Error( ERROR_INFO, "NEUTRINO_SCHEME != LEAKAGE for the leakage scheme !!\n" );
+#     endif
+   }
 
    if ( SRC_GPU_NPGROUP % GPU_NSTREAM != 0 )
       Aux_Error( ERROR_INFO, "SRC_GPU_NPGROUP (%d) %% GPU_NSTREAM (%d) != 0 !!\n",
