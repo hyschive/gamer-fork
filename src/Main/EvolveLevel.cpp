@@ -692,7 +692,11 @@ void EvolveLevel( const int lv, const double dTime_FaLv )
          if ( OPT__FIXUP_RESTRICT )
          {
 #           ifdef DEDT_NU
+#           ifdef DYEDE_NU
+            const long ResVar = _TOTAL - _DEDT_NU - _DYEDT_NU;
+#           else
             const long ResVar = _TOTAL - _DEDT_NU;
+#           endif
 #           else
             const long ResVar = _TOTAL;
 #           endif
