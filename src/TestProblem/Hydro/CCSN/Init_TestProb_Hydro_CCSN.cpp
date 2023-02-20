@@ -75,6 +75,7 @@ void   Detect_Shock();
 double Mis_GetTimeStep_Lightbulb( const int lv, const double dTime_dt );
 double Mis_GetTimeStep_Leakage( const int lv, const double dTime_dt );
 double Mis_GetTimeStep_CoreCollapse( const int lv, const double dTime_dt );
+bool   Flag_Region_CCSN( const int i, const int j, const int k, const int lv, const int PID );
 bool   Flag_CoreCollapse( const int i, const int j, const int k, const int lv, const int PID, const double *Threshold );
 bool   Flag_Lightbulb( const int i, const int j, const int k, const int lv, const int PID, const double *Threshold );
 
@@ -944,6 +945,9 @@ void Init_TestProb_Hydro_CCSN()
 #  if ( EOS == EOS_NUCLEAR  &&  NUC_TABLE_MODE == NUC_TABLE_MODE_TEMP )
    Flu_ResetByUser_Func_Ptr = Flu_ResetByUser_CCSN;
 #  endif
+
+   if ( CCSN_Prob != 0 )
+      Flag_Region_Ptr = Flag_Region_CCSN;
 
 #  ifdef MHD
    switch ( CCSN_Mag )
