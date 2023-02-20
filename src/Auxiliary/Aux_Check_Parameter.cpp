@@ -542,17 +542,6 @@ void Aux_Check_Parameter()
    if ( Flu_ParaBuf > PATCH_SIZE )
       Aux_Error( ERROR_INFO, "Flu_ParaBuf (%d) > PATCH_SIZE (%d) !!\n", Flu_ParaBuf, PATCH_SIZE );
 
-   if ( GPU_NSTREAM < 1 )  Aux_Error( ERROR_INFO, "GPU_NSTREAM (%d) < 1 !!\n", GPU_NSTREAM );
-
-   if ( FLU_GPU_NPGROUP % GPU_NSTREAM != 0 )
-      Aux_Error( ERROR_INFO, "FLU_GPU_NPGROUP (%d) %% GPU_NSTREAM (%d) != 0 !!\n",
-                 FLU_GPU_NPGROUP, GPU_NSTREAM );
-
-#  ifdef OPENMP
-   if ( FLU_GPU_NPGROUP < OMP_NTHREAD )
-      Aux_Error( ERROR_INFO, "FLU_GPU_NPGROUP (%d) < OMP_NTHREAD (%d) !!\n", FLU_GPU_NPGROUP, OMP_NTHREAD );
-#  endif
-
    if ( OPT__FIXUP_FLUX  &&  !amr->WithFlux )
       Aux_Error( ERROR_INFO, "%s is enabled but amr->WithFlux is off !!\n", "OPT__FIXUP_FLUX" );
 
@@ -1225,15 +1214,6 @@ void Aux_Check_Parameter()
    if ( MG_TOLERATED_ERROR < 0.0 )     Aux_Error( ERROR_INFO, "MG_TOLERATED_ERROR (%14.7e) < 0.0 !!\n", MG_TOLERATED_ERROR );
 #  endif
 
-   if ( POT_GPU_NPGROUP % GPU_NSTREAM != 0 )
-      Aux_Error( ERROR_INFO, "POT_GPU_NPGROUP (%d) %% GPU_NSTREAM (%d) != 0 !!\n",
-                 POT_GPU_NPGROUP, GPU_NSTREAM );
-
-#  ifdef OPENMP
-   if ( POT_GPU_NPGROUP < OMP_NTHREAD )
-      Aux_Error( ERROR_INFO, "POT_GPU_NPGROUP (%d) < OMP_NTHREAD (%d) !!\n", POT_GPU_NPGROUP, OMP_NTHREAD );
-#  endif
-
 #  if ( NLEVEL > 1 )
    int Trash_RefPot, NGhost_RefPot;
    Int_Table( OPT__REF_POT_INT_SCHEME, Trash_RefPot, NGhost_RefPot );
@@ -1462,19 +1442,8 @@ void Aux_Check_Parameter()
 
 // errors
 // ------------------------------
-   /*
-   if ( CHE_GPU_NPGROUP % GPU_NSTREAM != 0 )
-      Aux_Error( ERROR_INFO, "CHE_GPU_NPGROUP (%d) %% GPU_NSTREAM (%d) != 0 !!\n",
-                 CHE_GPU_NPGROUP, GPU_NSTREAM );
-                 */
-
 #  if ( EOS != EOS_GAMMA )
 #     error : ERROR : SUPPORT_GRACKLE must work with EOS_GAMMA !!
-#  endif
-
-#  ifdef OPENMP
-   if ( CHE_GPU_NPGROUP < OMP_NTHREAD )
-      Aux_Error( ERROR_INFO, "CHE_GPU_NPGROUP (%d) < OMP_NTHREAD (%d) !!\n", CHE_GPU_NPGROUP, OMP_NTHREAD );
 #  endif
 
 // warning
@@ -1516,44 +1485,6 @@ void Aux_Check_Parameter()
       Aux_Error( ERROR_INFO, "SRC_LIGHTBULB and SRC_LEAKAGE cannot be enabled simultaneously !!\n" );
 #  endif
 
-   if ( SrcTerms.Lightbulb )
-   {
-#     if ( !defined NEUTRINO_SCHEME  ||  NEUTRINO_SCHEME != LIGHTBULB )
-         Aux_Error( ERROR_INFO, "NEUTRINO_SCHEME != LIGHTBULB for the lightbulb scheme !!\n" );
-#     endif
-   }
-
-   if ( SrcTerms.Leakage )
-   {
-#     if ( !defined NEUTRINO_SCHEME  ||  NEUTRINO_SCHEME != LEAKAGE )
-         Aux_Error( ERROR_INFO, "NEUTRINO_SCHEME != LEAKAGE for the leakage scheme !!\n" );
-#     endif
-
-      if ( SrcTerms.Leakage_RadiusMax < SrcTerms.Leakage_BinSize_Radius )
-         Aux_Error( ERROR_INFO, "%s (%14.7e) <= %s (%14.7e) !!\n",
-                    "SRC_LEAKAGE_RADIUSMAX", SrcTerms.Leakage_RadiusMax, "SRC_LEAKAGE_BINSIZE_RADIUS", SrcTerms.Leakage_BinSize_Radius );
-
-      if ( SrcTerms.Leakage_RadiusMax < SrcTerms.Leakage_RadiusMin_Log  )
-         Aux_Error( ERROR_INFO, "%s (%14.7e) <= %s (%14.7e) !!\n",
-                    "SRC_LEAKAGE_RADIUSMAX", SrcTerms.Leakage_RadiusMax, "SRC_LEAKAGE_RADIUSMIN_LOG", SrcTerms.Leakage_RadiusMin_Log );
-
-      if ( SrcTerms.Leakage_NPhi > 1  &&  SrcTerms.Leakage_NPhi % 2 )
-         Aux_Error( ERROR_INFO, "For %s != 1, the value (%d) must be a multiple of 2 !!\n",
-                    "SRC_LEAKAGE_NPHI", SrcTerms.Leakage_NPhi );
-
-      if ( int( SrcTerms.Leakage_RadiusMin_Log / SrcTerms.Leakage_BinSize_Radius ) > SrcTerms.Leakage_NRadius )
-         Aux_Error( ERROR_INFO, "SRC_LEAKAGE_RADIUSMIN_LOG (%d) / SRC_LEAKAGE_BINSIZE_RADIUS (%d) > SRC_LEAKAGE_NRADIUS (%d) !!\n",
-                    SrcTerms.Leakage_RadiusMin_Log, SrcTerms.Leakage_BinSize_Radius, SrcTerms.Leakage_NRadius );
-   }
-
-   if ( SRC_GPU_NPGROUP % GPU_NSTREAM != 0 )
-      Aux_Error( ERROR_INFO, "SRC_GPU_NPGROUP (%d) %% GPU_NSTREAM (%d) != 0 !!\n",
-                 SRC_GPU_NPGROUP, GPU_NSTREAM );
-
-#  ifdef OPENMP
-   if ( SRC_GPU_NPGROUP < OMP_NTHREAD )
-      Aux_Error( ERROR_INFO, "SRC_GPU_NPGROUP (%d) < OMP_NTHREAD (%d) !!\n", SRC_GPU_NPGROUP, OMP_NTHREAD );
-#  endif
 
 // warning
 // ------------------------------
