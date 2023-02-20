@@ -6,7 +6,9 @@
 
 #ifndef __CUDACC__
 
-extern bool IsInit_dEdt_Nu[NLEVEL];
+extern bool   IsInit_dEdt_Nu     [NLEVEL];
+extern double CCSN_Leakage_EAve  [NType_Neutrino];
+extern double CCSN_Leakage_RadNS [NType_Neutrino];
 
 #endif
 
@@ -14,7 +16,7 @@ extern bool IsInit_dEdt_Nu[NLEVEL];
 GPU_DEVICE
 void Src_Leakage_ComputeLeak( const real Dens_Code, const real Temp_Kelv, const real Ye, const real chi[], const real tau[],
                               const real Heat_Flux[], const real *HeatE_Rms, const real *HeatE_Ave,
-                              real *dEdt, real *dYedt, real *Lum,
+                              real *dEdt, real *dYedt, real *Lum, real *Heat, real *NetHeat,
                               const bool NuHeat, const real NuHeat_Fac, const real UNIT_D, const EoS_t *EoS );
 
 GPU_DEVICE static
@@ -91,6 +93,8 @@ void Src_Leakage_ComputeTau( Profile_t *Ray[], double *Edge,
    const int NT = 1;
 #  endif
 
+   double EAve[NType_Neutrino], RadNS[NType_Neutrino];
+
    long   **NCell=NULL;
    real   **Dens_Code=NULL, **Temp_Kelv=NULL, **Ye=NULL, **Eint_Code=NULL;
    real   **dEdt=NULL, **dYedt=NULL;
@@ -98,6 +102,7 @@ void Src_Leakage_ComputeTau( Profile_t *Ray[], double *Edge,
    double **x_h=NULL, **x_n=NULL, **x_p=NULL, **abar=NULL, **zbar=NULL;
    double **eta_e=NULL, **eta_p=NULL, **eta_n=NULL, **eta_hat=NULL;
    double **kappa_scat_n_fac=NULL, **kappa_scat_p_fac=NULL, **kappa_abs_fac=NULL;
+   double **OMP_EAve, **OMP_RadNS;
 
    double ***eta_nu=NULL, ***eta_nu_loc=NULL, ***kappa_tot=NULL, ***kappa_tot_old=NULL;
    double ***zeta=NULL, ***tau=NULL, ***chi=NULL;
@@ -124,6 +129,9 @@ void Src_Leakage_ComputeTau( Profile_t *Ray[], double *Edge,
    Aux_AllocateArray2D( dEdt,             NT, NRadius );
    Aux_AllocateArray2D( dYedt,            NT, NRadius );
 
+   Aux_AllocateArray2D( OMP_EAve,         NT, NType_Neutrino );
+   Aux_AllocateArray2D( OMP_RadNS,        NT, NType_Neutrino );
+
    Aux_AllocateArray3D( eta_nu,           NT, NRadius, NType_Neutrino );
    Aux_AllocateArray3D( tau,              NT, NRadius, NType_Neutrino );
    Aux_AllocateArray3D( kappa_tot,        NT, NRadius, NType_Neutrino );
@@ -131,14 +139,6 @@ void Src_Leakage_ComputeTau( Profile_t *Ray[], double *Edge,
    Aux_AllocateArray3D( eta_nu_loc,       NT, NRadius, NType_Neutrino );
    Aux_AllocateArray3D( zeta,             NT, NRadius, NType_Neutrino );
    Aux_AllocateArray3D( chi,              NT, NRadius, NType_Neutrino );
-
-// initialize the last element in dEdt and dYedt to 0.0,
-// which is not updated in the following code, to avoid incorrect output in Leakage_Lum_*
-   for (int t=0; t<NT; t++)
-   {
-      dEdt [t][NRadius-1] = 0.0;
-      dYedt[t][NRadius-1] = 0.0;
-   }
 
 
 // set up the start and end indices for each rank, and reset the output arrays to 0.0
@@ -171,6 +171,19 @@ void Src_Leakage_ComputeTau( Profile_t *Ray[], double *Edge,
 #     else
       const int TID = 0;
 #     endif
+
+//    initialize arrays
+      for (int n=0; n<NType_Neutrino; n++)
+      {
+         OMP_EAve [TID][n] = 0.0;
+         OMP_RadNS[TID][n] = 0.0;
+      }
+
+//    initialize the last element in dEdt and dYedt to 0.0,
+//    which is not updated in the following code, to avoid incorrect output in Leakage_Lum_*
+      dEdt [TID][NRadius-1] = 0.0;
+      dYedt[TID][NRadius-1] = 0.0;
+
 
 #     pragma omp for schedule( runtime )
       for (int v=v_start; v<v_end; v++)
@@ -547,12 +560,19 @@ void Src_Leakage_ComputeTau( Profile_t *Ray[], double *Edge,
 
          for (int j=0; j<NType_Neutrino; j++)
          {
-            HeatE_Rms[v][j] = Temp_MeV[TID][ ns_loc[j] ] * sqrt( FermiInte[2][j] / FermiInte[0][j] ); // (A4)
-            HeatE_Ave[v][j] = Temp_MeV[TID][ ns_loc[j] ] *       FermiInte[2][j] / FermiInte[1][j];   // (A11)
+            const int idx_ns = ns_loc[j];
+
+            HeatE_Rms[v][j] = Temp_MeV[TID][idx_ns] * sqrt( FermiInte[2][j] / FermiInte[0][j] ); // (A4)
+            HeatE_Ave[v][j] = Temp_MeV[TID][idx_ns] *       FermiInte[2][j] / FermiInte[1][j];   // (A11)
+
+            OMP_EAve [TID][j] += HeatE_Ave[v][j];
+            OMP_RadNS[TID][j] += 0.5 * ( Edge_CGS[idx_ns] + Edge_CGS[idx_ns+1] );
          }
 
 //       (5-2) leak along this ray to determine luminosity
-         real   lum_loc [NType_Neutrino];
+         real   lum     [NType_Neutrino];
+         real   heat    [NType_Neutrino];
+         real   netheat [NType_Neutrino];
          double lum_acc [NType_Neutrino] = { 0.0 };
          double lepton_blocking[NType_Neutrino];
 
@@ -564,29 +584,29 @@ void Src_Leakage_ComputeTau( Profile_t *Ray[], double *Edge,
 
             if ( NCell[TID][i] == 0L )
             {
-               for (int j=0; j<NType_Neutrino-1; j++)   lum_loc[j] = 0.0;
+               for (int j=0; j<NType_Neutrino-1; j++)   lum[j] = 0.0;
             }
 
             else
             {
 //             get the change in luminosity
-//             --> the returned lum_loc is the luminosity per volume
+//             --> the returned lum is the luminosity per volume
                Src_Leakage_ComputeLeak( Dens_Code[TID][i], Temp_Kelv[TID][i], Ye[TID][i], chi_Ross[i][v], tau_Ruff[i][v],
                                         Heat_Flux[i][v], HeatE_Rms[v], HeatE_Ave[v],
-                                        dEdt[TID]+i, dYedt[TID]+i, lum_loc, NuHeat, NuHeat_Fac,
-                                        UNIT_D, &EoS );
+                                        dEdt[TID]+i, dYedt[TID]+i, lum, heat, netheat,
+                                        NuHeat, NuHeat_Fac, UNIT_D, &EoS );
             }
 
             for (int j=0; j<NType_Neutrino-1; j++)
             {
-               lum_acc          [j] += vol[i] * lum_loc[j];
+               lum_acc          [j] += vol[i] * lum[j];
                Heat_Flux[i+1][v][j]  = lum_acc[j] * lepton_blocking[j] / area[i];
             }
          } // for (int i=0; i<NRadius-1; i++)
 
 
 //       (6) dump ray data for debug
-#        ifdef GAMER_DEBUG
+#        ifdef GAMER_DEBUGG
          char FileName_Leakage[50];
 
          sprintf( FileName_Leakage, "Leakage_Lum_%06d", v );
@@ -633,6 +653,15 @@ void Src_Leakage_ComputeTau( Profile_t *Ray[], double *Edge,
 // wait for unfinished jobs because jobs could be not evenly distributed (NRay % MPI_NRank != 0)
    MPI_Barrier( MPI_COMM_WORLD );
 
+
+// sum over all OpenMP threads
+   for (int t=0; t<NT;             t++)  {
+   for (int n=0; n<NType_Neutrino; n++)  {
+      EAve [n] += OMP_EAve [t][n];
+      RadNS[n] += OMP_RadNS[t][n];
+   }}
+
+
 // collect data from all ranks
 #  ifndef SERIAL
    MPI_Allreduce( MPI_IN_PLACE, tau_Ruff,  NRadius*NRay*NType_Neutrino, MPI_GAMER_REAL, MPI_SUM, MPI_COMM_WORLD );
@@ -640,7 +669,16 @@ void Src_Leakage_ComputeTau( Profile_t *Ray[], double *Edge,
    MPI_Allreduce( MPI_IN_PLACE, Heat_Flux, NRadius*NRay*NType_Neutrino, MPI_GAMER_REAL, MPI_SUM, MPI_COMM_WORLD );
    MPI_Allreduce( MPI_IN_PLACE, HeatE_Rms,         NRay*NType_Neutrino, MPI_GAMER_REAL, MPI_SUM, MPI_COMM_WORLD );
    MPI_Allreduce( MPI_IN_PLACE, HeatE_Ave,         NRay*NType_Neutrino, MPI_GAMER_REAL, MPI_SUM, MPI_COMM_WORLD );
+   MPI_Allreduce( MPI_IN_PLACE, EAve,                   NType_Neutrino, MPI_DOUBLE,     MPI_SUM, MPI_COMM_WORLD );
+   MPI_Allreduce( MPI_IN_PLACE, RadNS,                  NType_Neutrino, MPI_DOUBLE,     MPI_SUM, MPI_COMM_WORLD );
 #  endif // ifndef SERIAL
+
+
+// store the radius of neutrino sphere and mean neutrino energy
+   for (int n=0; n<NType_Neutrino; n++)  {
+      CCSN_Leakage_EAve [n] = EAve [n] / NRay;
+      CCSN_Leakage_RadNS[n] = RadNS[n] / NRay;
+   }
 
 
 // free allocated arrays
@@ -665,6 +703,8 @@ void Src_Leakage_ComputeTau( Profile_t *Ray[], double *Edge,
    Aux_DeallocateArray2D( kappa_abs_fac    );
    Aux_DeallocateArray2D( dEdt             );
    Aux_DeallocateArray2D( dYedt            );
+   Aux_DeallocateArray2D( OMP_EAve         );
+   Aux_DeallocateArray2D( OMP_RadNS        );
 
    Aux_DeallocateArray3D( eta_nu           );
    Aux_DeallocateArray3D( tau              );
@@ -684,8 +724,8 @@ void Src_Leakage_ComputeTau( Profile_t *Ray[], double *Edge,
 // Description :  Compute the change rate in energy and Ye from the leakage scheme
 //
 // Note        :  1. Invoked by Src_Leakage_ComputeTau() and Src_Leakage()
-//                2. The diffusion rate, production rate, and input Heat_Flux
-//                   are scaled by Const_hc_MeVcm_CUBE to avoid overflow
+//                2. The diffusion rate, production rate, the input Heat_Flux,
+//                   and the output Lum, Heat and NetHeat are scaled by Const_hc_MeVcm_CUBE to avoid overflow
 //                3. Ref: M. Rufferrt, H.-Th. Janka, G. Schaefer, 1996, A&A, 311, 532 (arXiv: 9509006)
 //                        S. Rosswog & M. Liebendoerfer, 2003, MNRAS, 342, 673 (arXiv: 0302301)
 //                        E. O'Connor & C. D. Ott, 2010, Class. Quantum Grav., 27, 114103 (arXiv: 0912.2393)
@@ -701,15 +741,17 @@ void Src_Leakage_ComputeTau( Profile_t *Ray[], double *Edge,
 //                dEdt        : Change rate in the internal energy in erg/g/s
 //                dYedt       : Change rate in electron fraction   in 1/s
 //                Lum         : Local luminosity, dE/dt
+//                Heat        : Local neutrino heating rate per volume in erg/s/cm3
+//                NetHeat     : Local net      heating rate per volume in erg/s/cm3
 //                NuHeat      : Flag for include neutrino heating
 //                NuHeat_Fac  : Factor of the neutrino heating rate
 //
-// Return      :  dEdt, dYedt, Lum
+// Return      :  dEdt, dYedt, Lum, Heat, NetHeat
 //-------------------------------------------------------------------------------------------------------
 GPU_DEVICE
 void Src_Leakage_ComputeLeak( const real Dens_Code, const real Temp_Kelv, const real Ye, const real chi[], const real tau[],
                               const real Heat_Flux[], const real *HeatE_Rms, const real *HeatE_Ave,
-                              real *dEdt, real *dYedt, real *Lum,
+                              real *dEdt, real *dYedt, real *Lum, real *Heat, real *NetHeat,
                               const bool NuHeat, const real NuHeat_Fac, const real UNIT_D, const EoS_t *EoS )
 {
 
@@ -750,10 +792,15 @@ void Src_Leakage_ComputeLeak( const real Dens_Code, const real Temp_Kelv, const 
 // (1-2) do nothing if outside the shock
    if (  ( x_h > (real)0.5 )  &&  ( Dens_CGS < (real)1.0e13 )  )
    {
-      for (int j=0; j<NType_Neutrino; j++)   Lum[j] = (real)0.0;
-
       *dEdt  = (real)0.0;
       *dYedt = (real)0.0;
+
+      for (int j=0; j<NType_Neutrino; j++)
+      {
+         Lum    [j] = (real)0.0;
+         Heat   [j] = (real)0.0;
+         NetHeat[j] = (real)0.0;
+      }
 
       return;
    }
@@ -970,7 +1017,10 @@ void Src_Leakage_ComputeLeak( const real Dens_Code, const real Temp_Kelv, const 
 // (7) compute the changes in the internal energy and electron fraction
    for (int j=0; j<NType_Neutrino; j++)
    {
-      Lum[j]   = Q_eff[j] * Const_MeV - Heat_Eff[j]; // leakage scheme + neutrino heating, in erg/cm^3/s; (32)
+      Lum    [j] = Q_eff[j] * Const_MeV - Heat_Eff[j]; // leakage scheme + neutrino heating, in erg/cm^3/s; (32)
+      Heat   [j] = Heat_Eff[j];
+      NetHeat[j] = FABS(  MIN( Lum[j], (real)0.0 )  );
+
       Lum_tot += Lum[j];
    }
 

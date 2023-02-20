@@ -2,10 +2,22 @@
 
 
        double CCSN_CentralDens;
+
        double CCSN_Rsh_Min = 0.0;
        double CCSN_Rsh_Max = 0.0;
        double CCSN_Rsh_Ave = 0.0;
+
+       double CCSN_Leakage_NetHeatGain = 0.0;
+       double CCSN_Leakage_Lum    [3]  = { 0.0 };
+       double CCSN_Leakage_Heat   [3]  = { 0.0 };
+       double CCSN_Leakage_NetHeat[3]  = { 0.0 };
+       double CCSN_Leakage_EAve   [3]  = { 0.0 };
+       double CCSN_Leakage_RadNS  [3]  = { 0.0 };
+
 extern bool   CCSN_Is_PostBounce;
+
+extern void Src_WorkBeforeMajorFunc_Leakage( const int lv, const double TimeNew, const double TimeOld, const double dt,
+                                             double AuxArray_Flt[], int AuxArray_Int[] );
 
 
 
@@ -140,9 +152,21 @@ void Record_CCSN_CentralQuant()
          else
          {
              FILE *file_cent_quant = fopen( filename_central_quant, "w" );
-             fprintf( file_cent_quant, "#%14s %12s %16s %16s %16s %16s %16s %16s %16s %16s\n",
+
+             fprintf( file_cent_quant, "#%14s %12s %16s %16s %16s %16s %16s %16s %16s %16s",
                                        "1_Time [sec]", "2_Step", "3_PosX [cm]", "4_PosY [cm]", "5_PosZ [cm]",
                                        "6_Dens [g/cm^3]", "7_Ye", "8_Rsh_Min [cm]", "9_Rsh_Ave [cm]", "10_Rsh_Max [cm]" );
+
+#            if ( defined NEUTRINO_SCHEME  &&  NEUTRINO_SCHEME == LEAKAGE )
+             fprintf( file_cent_quant, "%29s %28s %28s %28s %28s %28s %28s %28s %28s %28s %28s %28s %28s %28s",
+                                       "11_Leak_NetHeat_Gain [erg/s]", "12_Leak_Lum_Nue [erg/s]", "13_Leak_Lum_Nua [erg/s]", "14_Leak_Lum_Nux [erg/s]",
+                                       "15_Leak_Heat_Nue [erg/s]", "16_Leak_Heat_Nua [erg/s]", "17_Leak_NetHeat_Nue [erg/s]", "18_Leak_NetHeat_Nua [erg/s]",
+                                       "19_Leak_EAve_Nue [MeV]", "20_Leak_EAve_Nua [MeV]", "21_Leak_EAve_Nux [MeV]",
+                                       "22_Leak_RadNS_Nue [cm]", "23_Leak_RadNS_Nua [cm]", "24_Leak_RadNS_Nux [cm]" );
+#            endif
+
+             fprintf( file_cent_quant, "\n" );
+
              fclose( file_cent_quant );
          }
 
@@ -166,9 +190,21 @@ void Record_CCSN_CentralQuant()
 #     endif
 
       FILE *file_cent_quant = fopen( filename_central_quant, "a" );
-      fprintf( file_cent_quant, "%15.7e %12ld %16.7e %16.7e %16.7e %16.7e %16.7e %16.7e %16.7e %16.7e\n",
+
+      fprintf( file_cent_quant, "%15.7e %12ld %16.7e %16.7e %16.7e %16.7e %16.7e %16.7e %16.7e %16.7e",
                Time[0]*UNIT_T, Step, Data_Flt[1]*UNIT_L, Data_Flt[2]*UNIT_L, Data_Flt[3]*UNIT_L,
                u[DENS]*UNIT_D, Ye, CCSN_Rsh_Min*UNIT_L, CCSN_Rsh_Ave*UNIT_L, CCSN_Rsh_Max*UNIT_L );
+
+#     if ( defined NEUTRINO_SCHEME  &&  NEUTRINO_SCHEME == LEAKAGE )
+      fprintf( file_cent_quant, "%29.7e %28.7e %28.7e %28.7e %28.7e %28.7e %28.7e %28.7e %28.7e %28.7e %28.7e %28.7e %28.7e %28.7e",
+               CCSN_Leakage_NetHeatGain, CCSN_Leakage_Lum[0], CCSN_Leakage_Lum[1], CCSN_Leakage_Lum[2],
+               CCSN_Leakage_Heat[0], CCSN_Leakage_Heat[1], CCSN_Leakage_NetHeat[0], CCSN_Leakage_NetHeat[1],
+               CCSN_Leakage_EAve[0], CCSN_Leakage_EAve[1], CCSN_Leakage_EAve[2],
+               CCSN_Leakage_RadNS[0], CCSN_Leakage_RadNS[1], CCSN_Leakage_RadNS[2] );
+#     endif
+
+      fprintf( file_cent_quant, "\n" );
+
       fclose( file_cent_quant );
 
    } // if ( MPI_Rank == 0 )
@@ -178,6 +214,178 @@ void Record_CCSN_CentralQuant()
    CCSN_CentralDens = Data_Flt[0] * UNIT_D;
 
 } // FUNCTION : Record_CCSN_CentralQuant()
+
+
+
+#if ( defined NEUTRINO_SCHEME  &&  NEUTRINO_SCHEME == LEAKAGE )
+//-------------------------------------------------------------------------------------------------------
+// Function    :  Record_CCSN_Leakage
+// Description :  Compute the net heating in the gain region, and the total luminosity,
+//                heating rate and net heating rate of the leakage scheme
+//
+// Note        :  1. Invoked by Record_CCSN_CentralQuant()
+//-------------------------------------------------------------------------------------------------------
+void Record_CCSN_Leakage()
+{
+
+   const int    NType_Neutrino = 3;
+   const double Const_hc_MeVcm_CUBE = CUBE( 1.0e-6 * 2.0 * M_PI * Const_Planck_eV * Const_c );
+
+// update leakage data at TimeNew
+   const int    lv = 0;
+   const double TimeNew = amr->FluSgTime[lv][ amr->FluSg[lv] ];
+
+   Src_WorkBeforeMajorFunc_Leakage( lv, TimeNew, TimeNew, 0.0,
+                                    Src_Leakage_AuxArray_Flt, Src_Leakage_AuxArray_Int );
+
+// enable the record mode
+   Src_Leakage_AuxArray_Int[4] = 1;
+
+// allocate memory for per-thread arrays
+#  ifdef OPENMP
+   const int NT = OMP_NTHREAD;
+#  else
+   const int NT = 1;
+#  endif
+
+   double NetHeatGain = 0.0; // net heating rate in gain region
+   double Lum    [NType_Neutrino] = { 0.0 };
+   double Heat   [NType_Neutrino] = { 0.0 };
+   double NetHeat[NType_Neutrino] = { 0.0 };
+
+   double *OMP_NetHeatGain = new double [NT];
+   double **OMP_Lum, **OMP_Heat, **OMP_NetHeat;
+
+   Aux_AllocateArray2D( OMP_Lum,     NT, NType_Neutrino );
+   Aux_AllocateArray2D( OMP_Heat,    NT, NType_Neutrino );
+   Aux_AllocateArray2D( OMP_NetHeat, NT, NType_Neutrino );
+
+
+#  pragma omp parallel
+   {
+#     ifdef OPENMP
+      const int TID = omp_get_thread_num();
+#     else
+      const int TID = 0;
+#     endif
+
+//    initialize arrays
+      OMP_NetHeatGain[TID] = 0.0;
+
+      for (int n=0; n<NType_Neutrino; n++)
+      {
+         OMP_Lum    [TID][n] = 0.0;
+         OMP_Heat   [TID][n] = 0.0;
+         OMP_NetHeat[TID][n] = 0.0;
+      }
+
+
+//    loop over all levels
+      for (int lv=0; lv<=MAX_LEVEL; lv++)
+      {
+         if ( NPatchTotal[lv] == 0 )   continue;
+
+         const double dh     = amr->dh[lv];
+         const double dv_CGS = CUBE( dh * UNIT_L );
+
+
+#        pragma omp for schedule( static )
+         for (int PID=0; PID<amr->NPatchComma[lv][1]; PID++)
+         {
+//          skip non-leaf patches
+            if ( amr->patch[0][lv][PID]->son != -1 )   continue;
+
+            const double z0 = amr->patch[0][lv][PID]->EdgeL[2];
+            const double y0 = amr->patch[0][lv][PID]->EdgeL[1];
+            const double x0 = amr->patch[0][lv][PID]->EdgeL[0];
+
+            for (int k=0; k<PS1; k++)  {  const double z = z0 + (k+0.5)*dh;
+            for (int j=0; j<PS1; j++)  {  const double y = y0 + (j+0.5)*dh;
+            for (int i=0; i<PS1; i++)  {  const double x = x0 + (i+0.5)*dh;
+
+//             get the input arrays
+               real fluid[FLU_NIN_S];
+
+               for (int v=0; v<FLU_NIN_S; v++)  fluid[v] = amr->patch[ amr->FluSg[lv] ][lv][PID]->fluid[v][k][j][i];
+
+#              ifdef MHD
+               real B[NCOMP_MAG];
+
+               MHD_GetCellCenteredBFieldInPatch( B, lv, PID, i, j, k, amr->MagSg[lv] );
+#              else
+               real *B = NULL;
+#              endif
+
+               SrcTerms.Leakage_CPUPtr( fluid, B, &SrcTerms, 0.0, NULL_REAL, x, y, z, NULL_REAL, NULL_REAL,
+                                        MIN_DENS, MIN_PRES, MIN_EINT, NULL,
+                                        Src_Leakage_AuxArray_Flt, Src_Leakage_AuxArray_Int );
+
+               if ( fluid[DENS] > 0.0 )
+                  OMP_NetHeatGain[TID] += fluid[DENS] * dv_CGS;
+
+               OMP_Lum    [TID][0] += fluid[MOMX] * dv_CGS;
+               OMP_Lum    [TID][1] += fluid[MOMY] * dv_CGS;
+               OMP_Lum    [TID][2] += fluid[MOMZ] * dv_CGS;
+               OMP_Heat   [TID][0] += fluid[ENGY] * dv_CGS;
+               OMP_Heat   [TID][1] += fluid[YE  ] * dv_CGS;
+#              ifdef DYEDT_NU
+               OMP_NetHeat[TID][0] += fluid[DEDT_NU ] * dv_CGS;
+               OMP_NetHeat[TID][1] += fluid[DYEDT_NU] * dv_CGS;
+#              endif
+
+            }}} // i,j,k
+         } // for (int PID=0; PID<amr->NPatchComma[lv][1]; PID++)
+      } // for (int lv=0; lv<=MAX_LEVEL; lv++)
+   } // OpenMP parallel region
+
+
+// sum over all OpenMP threads
+   for (int t=0; t<NT; t++)
+   {
+      NetHeatGain += OMP_NetHeatGain[t];
+
+      for (int n=0; n<NType_Neutrino; n++)
+      {
+         Lum    [n] += OMP_Lum    [t][n];
+         Heat   [n] += OMP_Heat   [t][n];
+         NetHeat[n] += OMP_NetHeat[t][n];
+      }
+   }
+
+
+// collect data from all ranks (in-place reduction)
+#  ifndef SERIAL
+   MPI_Allreduce( MPI_IN_PLACE, &NetHeatGain, 1,              MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD );
+   MPI_Allreduce( MPI_IN_PLACE,  Lum,         NType_Neutrino, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD );
+   MPI_Allreduce( MPI_IN_PLACE,  Heat,        NType_Neutrino, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD );
+   MPI_Allreduce( MPI_IN_PLACE,  NetHeat,     NType_Neutrino, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD );
+#  endif // ifndef SERIAL
+
+
+// store the results with correction
+   CCSN_Leakage_NetHeatGain = NetHeatGain;
+
+   for (int n=0; n<NType_Neutrino; n++)
+   {
+      CCSN_Leakage_Lum    [n] = Lum    [n] / Const_hc_MeVcm_CUBE;
+      CCSN_Leakage_Heat   [n] = Heat   [n] / Const_hc_MeVcm_CUBE;
+      CCSN_Leakage_NetHeat[n] = NetHeat[n] / Const_hc_MeVcm_CUBE;
+   }
+
+
+// disable the record mode
+   Src_Leakage_AuxArray_Int[4] = 0;
+
+
+// free per-thread arrays
+   delete [] OMP_NetHeatGain;
+
+   Aux_DeallocateArray2D( OMP_Lum     );
+   Aux_DeallocateArray2D( OMP_Heat    );
+   Aux_DeallocateArray2D( OMP_NetHeat );
+
+} // FUNCTION : Record_CCSN_Leakage()
+#endif // if ( defined NEUTRINO_SCHEME  &&  NEUTRINO_SCHEME == LEAKAGE )
 
 
 

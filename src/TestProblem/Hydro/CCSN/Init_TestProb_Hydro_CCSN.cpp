@@ -69,6 +69,7 @@ static int        CCSN_Eint_Mode;                  // Mode of obtaining internal
 
 // problem-specific function prototypes
 void   Record_CCSN_CentralQuant();
+void   Record_CCSN_Leakage();
 void   Record_CCSN_GWSignal();
 void   Detect_CoreBounce();
 void   Detect_Shock();
@@ -742,6 +743,10 @@ void Record_CCSN()
 
 
 // (2) record quantities at the center
+#  if ( defined NEUTRINO_SCHEME  &&  NEUTRINO_SCHEME == LEAKAGE )
+   if ( CCSN_Is_PostBounce )   Record_CCSN_Leakage();
+#  endif
+
    Record_CCSN_CentralQuant();
 
 

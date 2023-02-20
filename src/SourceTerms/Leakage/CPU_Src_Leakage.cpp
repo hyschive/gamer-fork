@@ -50,7 +50,7 @@ extern void Src_Leakage_ComputeTau( Profile_t *Ray[], double *Edge,
                                     real HeatE_Ave[][NType_Neutrino] );
 extern void Src_Leakage_ComputeLeak( const real Dens_Code, const real Temp_Kelv, const real Ye, const real chi[], const real tau[],
                                      const real Heat_Flux[], const real *HeatE_Rms, const real *HeatE_Ave,
-                                     real *dEdt, real *dYedt, real *Lum,
+                                     real *dEdt, real *dYedt, real *Lum, real *Heat, real *NetHeat,
                                      const bool NuHeat, const real NuHeat_Fac, const real UNIT_D, const EoS_t *EoS  );
 
 #endif // #ifndef __CUDACC__
@@ -134,6 +134,7 @@ void Src_SetAuxArray_Leakage( double AuxArray_Flt[], int AuxArray_Int[] )
    AuxArray_Int[SRC_AUX_MODE      ] = Mode;
    AuxArray_Int[SRC_AUX_NRAD_LIN  ] = int( SrcTerms.Leakage_RadiusMin_Log / SrcTerms.Leakage_BinSize_Radius );
    AuxArray_Int[SRC_AUX_STRIDE    ] = NRay * NType_Neutrino;
+   AuxArray_Int[SRC_AUX_RECORD    ] = 0;
 
 } // FUNCTION : Src_SetAuxArray_Leakage
 #endif // #ifndef __CUDACC__
@@ -199,6 +200,7 @@ static void Src_Leakage( real fluid[], const real B[],
    const int  Mode       = AuxArray_Int[SRC_AUX_MODE      ];
    const int  NRad_Lin   = AuxArray_Int[SRC_AUX_NRAD_LIN  ];
    const int  Stride     = AuxArray_Int[SRC_AUX_STRIDE    ];
+   const int  RecMode    = AuxArray_Int[SRC_AUX_RECORD    ];
 
 
    const int  NRadius = SrcTerms->Leakage_NRadius;
@@ -223,6 +225,16 @@ static void Src_Leakage( real fluid[], const real B[],
 // do nothing if the cell is beyond the sampled rays
    if ( rad > MaxRadius )
    {
+      if ( RecMode )
+      {
+         fluid[DENS] = (real)0.0;
+         fluid[MOMX] = (real)0.0;
+         fluid[MOMY] = (real)0.0;
+         fluid[MOMZ] = (real)0.0;
+         fluid[ENGY] = (real)0.0;
+         fluid[YE  ] = (real)0.0;
+      }
+
 #     ifdef DYEDT_NU
       fluid[DEDT_NU ] = (real)0.0;
       fluid[DYEDT_NU] = (real)0.0;
@@ -506,10 +518,10 @@ static void Src_Leakage( real fluid[], const real B[],
    const real NuHeat_Fac = SrcTerms->Leakage_NuHeat_Fac;
    const real Unit_D     = SrcTerms->Unit_D;
    const real Unit_T     = SrcTerms->Unit_T;
-         real dEdt_CGS, dYedt, Lum[NType_Neutrino];
+         real dEdt_CGS, dYedt, Lum[NType_Neutrino], Heat[NType_Neutrino], NetHeat[NType_Neutrino];
 
    Src_Leakage_ComputeLeak( Dens_Code, Temp_Kelv, Ye, chi, tau, Heat_Flux, HeatE_Rms, HeatE_Ave,
-                            &dEdt_CGS, &dYedt, Lum, NuHeat, NuHeat_Fac, Unit_D, EoS );
+                            &dEdt_CGS, &dYedt, Lum, Heat, NetHeat, NuHeat, NuHeat_Fac, Unit_D, EoS );
 
 // the returned dEdt_CGS is in erg/g/s
    real dEdt_Code  = dEdt_CGS * sEint2Code * Unit_T * Dens_Code;
@@ -538,7 +550,23 @@ static void Src_Leakage( real fluid[], const real B[],
 #  endif
 
 
-// (5) final check
+// (5) store the dEdt, luminosity, heating rate, and net heating rate
+   if ( RecMode )
+   {
+      fluid[DENS    ] = dEdt_CGS * Dens_Code * Unit_D;
+      fluid[MOMX    ] = Lum [0];
+      fluid[MOMY    ] = Lum [1];
+      fluid[MOMZ    ] = Lum [2];
+      fluid[ENGY    ] = Heat[0];
+      fluid[YE      ] = Heat[1];
+#     ifdef DYEDT_NU
+      fluid[DEDT_NU ] = NetHeat[0];
+      fluid[DYEDT_NU] = NetHeat[1];
+#     endif
+   }
+
+
+// (6) final check
 #  ifdef GAMER_DEBUGG
    if (  Hydro_CheckUnphysical( UNPHY_MODE_SING, &Eint_Update, "output internal energy density", ERROR_INFO, UNPHY_VERBOSE )  )
    {

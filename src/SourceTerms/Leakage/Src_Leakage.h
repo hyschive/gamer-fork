@@ -23,6 +23,7 @@
 #define SRC_AUX_MODE          0     // AuxArray_Int: mode of the leakage scheme
 #define SRC_AUX_NRAD_LIN      1     // AuxArray_Int: number of linear bin in the radial direction
 #define SRC_AUX_STRIDE        2     // AuxArray_Int: stride for indexing
+#define SRC_AUX_RECORD        3     // AuxArray_Int: record mode
 
 
 // additional physical constants for the leakage scheme
