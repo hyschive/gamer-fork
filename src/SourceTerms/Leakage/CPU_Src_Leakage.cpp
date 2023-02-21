@@ -183,7 +183,7 @@ static void Src_Leakage( real fluid[], const real B[],
 {
 
 // check
-#  ifdef GAMER_DEBUGG
+#  ifdef GAMER_DEBUG
    if ( AuxArray_Flt == NULL )   printf( "ERROR : AuxArray_Flt == NULL in %s !!\n", __FUNCTION__ );
    if ( AuxArray_Int == NULL )   printf( "ERROR : AuxArray_Int == NULL in %s !!\n", __FUNCTION__ );
 #  endif
@@ -577,7 +577,7 @@ static void Src_Leakage( real fluid[], const real B[],
 
 
 // (6) final check
-#  ifdef GAMER_DEBUGG
+#  ifdef GAMER_DEBUG
    if (  Hydro_CheckUnphysical( UNPHY_MODE_SING, &Eint_Update, "output internal energy density", ERROR_INFO, UNPHY_VERBOSE )  )
    {
       printf( "   Dens=%13.7e code units, Eint=%13.7e code units, Ye=%13.7e\n", Dens_Code, Eint_Code, Ye );

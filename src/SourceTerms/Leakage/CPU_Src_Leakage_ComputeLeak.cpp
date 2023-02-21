@@ -270,7 +270,8 @@ void Src_Leakage_ComputeTau( Profile_t *Ray[], double *Edge,
                   if ( Out[n] != Out[n] )
                   {
                      Aux_Message( stderr, "unphysical thermal variable (%d = %13.7e) in %s\n", In_Int[n+1], Out[n], __FUNCTION__ );
-                     Aux_Message( stderr, "   Dens=%13.7e code units, Temp=%13.7e Kelvin, Ye=%13.7e, Mode %d\n", In_Flt[0], In_Flt[1], In_Flt[2], NUC_MODE_TEMP );
+                     Aux_Message( stderr, "   Dens=%13.7e code units, Temp=%13.7e Kelvin, Ye=%13.7e, Mode %d\n",
+                                          In_Flt[0], In_Flt[1], In_Flt[2], NUC_MODE_TEMP );
                   }
                }
 #              endif
@@ -431,7 +432,7 @@ void Src_Leakage_ComputeTau( Profile_t *Ray[], double *Edge,
 
          if ( NIter >= NIter_Max )
          {
-#           ifdef GAMER_DEBUGG
+#           ifdef GAMER_DEBUG
             Aux_Message( stderr, "#%13s %14s %14s %14s %14s %14s %14s %14s %14s %14s %14s\n",
                                  "Index", "NCell", "kappa_old[0]", "kappa_old[1]", "kappa_old[2]",
                                  "kappa_new[0]", "kappa_new[1]", "kappa_new[2]", "tau[0]", "tau[1]", "tau[2]" );
@@ -608,7 +609,7 @@ void Src_Leakage_ComputeTau( Profile_t *Ray[], double *Edge,
 
 
 //       (6) dump ray data for debug
-#        ifdef GAMER_DEBUGG
+#        ifdef GAMER_DEBUG
          char FileName_Leakage[50];
 
          sprintf( FileName_Leakage, "Leakage_Lum_%06d", j );
