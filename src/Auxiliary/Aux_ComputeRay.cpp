@@ -536,17 +536,28 @@ void Aux_GetMinMax_Vertex_Angle( const double x, const double y, const double z,
    for (int j=-1; j<=1; j+=2)  {  const double yy = y + j * HalfWidth;  const double yy2 = SQR(yy);
    for (int i=-1; i<=1; i+=2)  {  const double xx = x + i * HalfWidth;  const double xx2 = SQR(xx);
 
-      const double radius = sqrt( xx2 + yy2 + zz2 );
-      const double theta  = acos( zz / radius );
-      const double phi    = ( yy >= 0.0 )
+//    deal the special case that the vertex locates on the z-axis (xx = yy = 0.0)
+      if ( xx != 0.0  ||  yy != 0.0 )
+      {
+         const double phi = ( yy >= 0.0 )
                           ? atan2( yy, xx )
                           : atan2( yy, xx ) + 2.0 * M_PI;
 
-      *theta_min = fmin( *theta_min, theta );
-      *theta_max = fmax( *theta_max, theta );
-      *phi_min   = fmin( *phi_min,   phi   );
-      *phi_max   = fmax( *phi_max,   phi   );
+         *phi_min = fmin( *phi_min, phi );
+         *phi_max = fmax( *phi_max, phi );
+      }
 
-   }}}
+
+      const double radius = sqrt( xx2 + yy2 + zz2 );
+
+//    deal the special case that the vertex locates at the center (radius = 0.0)
+      if ( radius != 0.0 )
+      {
+         const double theta = acos( zz / radius );
+
+         *theta_min = fmin( *theta_min, theta );
+         *theta_max = fmax( *theta_max, theta );
+      }
+   }}} // i,j,k
 
 } // FUNCTION : Aux_GetMinMax_Vertex_Angle

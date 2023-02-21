@@ -223,7 +223,11 @@ double Mis_GetTimeStep_Leakage( const int lv, const double dTime_dt )
             const real Momy = amr->patch[ amr->FluSg[lv] ][lv][PID]->fluid[MOMY][k][j][i];
             const real Momz = amr->patch[ amr->FluSg[lv] ][lv][PID]->fluid[MOMZ][k][j][i];
             const real Engy = amr->patch[ amr->FluSg[lv] ][lv][PID]->fluid[ENGY][k][j][i];
+#           ifdef YE
             const real Ye   = amr->patch[ amr->FluSg[lv] ][lv][PID]->fluid[YE  ][k][j][i] / Dens;
+#           else
+            const real Ye   = NULL_REAL;
+#           endif
 
 #           ifdef MHD
                   real B[NCOMP_MAG];

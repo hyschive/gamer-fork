@@ -158,9 +158,11 @@ void Record_CCSN_CentralQuant()
                                        "6_Dens [g/cm^3]", "7_Ye", "8_Rsh_Min [cm]", "9_Rsh_Ave [cm]", "10_Rsh_Max [cm]" );
 
 #            if ( defined NEUTRINO_SCHEME  &&  NEUTRINO_SCHEME == LEAKAGE )
-             fprintf( file_cent_quant, "%29s %28s %28s %28s %28s %28s %28s %28s %28s %28s %28s %28s %28s %28s",
-                                       "11_Leak_NetHeat_Gain [erg/s]", "12_Leak_Lum_Nue [erg/s]", "13_Leak_Lum_Nua [erg/s]", "14_Leak_Lum_Nux [erg/s]",
-                                       "15_Leak_Heat_Nue [erg/s]", "16_Leak_Heat_Nua [erg/s]", "17_Leak_NetHeat_Nue [erg/s]", "18_Leak_NetHeat_Nua [erg/s]",
+             fprintf( file_cent_quant, " %29s %28s %28s %28s %28s %28s %28s %28s %28s %28s %28s %28s %28s %28s",
+                                       "11_Leak_NetHeat_Gain [erg/s]",
+                                       "12_Leak_Lum_Nue [erg/s]", "13_Leak_Lum_Nua [erg/s]", "14_Leak_Lum_Nux [erg/s]",
+                                       "15_Leak_Heat_Nue [erg/s]", "16_Leak_Heat_Nua [erg/s]",
+                                       "17_Leak_NetHeat_Nue [erg/s]", "18_Leak_NetHeat_Nua [erg/s]",
                                        "19_Leak_EAve_Nue [MeV]", "20_Leak_EAve_Nua [MeV]", "21_Leak_EAve_Nux [MeV]",
                                        "22_Leak_RadNS_Nue [cm]", "23_Leak_RadNS_Nua [cm]", "24_Leak_RadNS_Nux [cm]" );
 #            endif
@@ -196,7 +198,7 @@ void Record_CCSN_CentralQuant()
                u[DENS]*UNIT_D, Ye, CCSN_Rsh_Min*UNIT_L, CCSN_Rsh_Ave*UNIT_L, CCSN_Rsh_Max*UNIT_L );
 
 #     if ( defined NEUTRINO_SCHEME  &&  NEUTRINO_SCHEME == LEAKAGE )
-      fprintf( file_cent_quant, "%29.7e %28.7e %28.7e %28.7e %28.7e %28.7e %28.7e %28.7e %28.7e %28.7e %28.7e %28.7e %28.7e %28.7e",
+      fprintf( file_cent_quant, " %29.7e %28.7e %28.7e %28.7e %28.7e %28.7e %28.7e %28.7e %28.7e %28.7e %28.7e %28.7e %28.7e %28.7e",
                CCSN_Leakage_NetHeatGain, CCSN_Leakage_Lum[0], CCSN_Leakage_Lum[1], CCSN_Leakage_Lum[2],
                CCSN_Leakage_Heat[0], CCSN_Leakage_Heat[1], CCSN_Leakage_NetHeat[0], CCSN_Leakage_NetHeat[1],
                CCSN_Leakage_EAve[0], CCSN_Leakage_EAve[1], CCSN_Leakage_EAve[2],
@@ -327,7 +329,9 @@ void Record_CCSN_Leakage()
                OMP_Lum    [TID][1] += fluid[MOMY] * dv_CGS;
                OMP_Lum    [TID][2] += fluid[MOMZ] * dv_CGS;
                OMP_Heat   [TID][0] += fluid[ENGY] * dv_CGS;
+#              ifdef YE
                OMP_Heat   [TID][1] += fluid[YE  ] * dv_CGS;
+#              endif
 #              ifdef DYEDT_NU
                OMP_NetHeat[TID][0] += fluid[DEDT_NU ] * dv_CGS;
                OMP_NetHeat[TID][1] += fluid[DYEDT_NU] * dv_CGS;

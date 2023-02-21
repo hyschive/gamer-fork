@@ -29,7 +29,9 @@ extern real *d_SrcLeakage_HeatEAve;
 // external variables, local and external function prototypes
 #ifndef __CUDACC__
 
+#if ( EOS == EOS_NUCLEAR )
 extern int g_nye;
+#endif
 
 void   Src_SetAuxArray_Leakage( double [], int [] );
 void   Src_SetCPUFunc_Leakage( SrcFunc_t & );
@@ -127,8 +129,10 @@ void Src_SetAuxArray_Leakage( double AuxArray_Flt[], int AuxArray_Int[] )
    AuxArray_Flt[SRC_AUX_DRAD      ] = SrcTerms.Leakage_BinSize_Radius;
    AuxArray_Flt[SRC_AUX_DTHETA    ] = M_PI / SrcTerms.Leakage_NTheta;
    AuxArray_Flt[SRC_AUX_DPHI      ] = 2.0 * M_PI / SrcTerms.Leakage_NPhi;
+#  if ( EOS == EOS_NUCLEAR )
    AuxArray_Flt[SRC_AUX_YEMIN     ] = ( 1.0 + Ye_Frac ) * h_EoS_Table[NUC_TAB_YE][0];
    AuxArray_Flt[SRC_AUX_YEMAX     ] = ( 1.0 - Ye_Frac ) * h_EoS_Table[NUC_TAB_YE][g_nye-1];
+#  endif
    AuxArray_Flt[SRC_AUX_VSQR2CODE ] = 1.0 / SQR( UNIT_V );
 
    AuxArray_Int[SRC_AUX_MODE      ] = Mode;
@@ -232,7 +236,9 @@ static void Src_Leakage( real fluid[], const real B[],
          fluid[MOMY] = (real)0.0;
          fluid[MOMZ] = (real)0.0;
          fluid[ENGY] = (real)0.0;
+#        ifdef YE
          fluid[YE  ] = (real)0.0;
+#        endif
       }
 
 #     ifdef DYEDT_NU
@@ -285,9 +291,9 @@ static void Src_Leakage( real fluid[], const real B[],
 //                         int( phi / dPhi - 0.5 )  otherwise
    if ( NPhi > 1 )
    {
-      phi     = ( y0 >= (real)0.0 )
-              ? atan2( y0, x0 )
-              : atan2( y0, x0 ) + (real)2.0 * M_PI;
+      phi     = ( x0 == (real)0.0  &&  y0 == (real) 0.0 )
+              ? 0.0
+              : (  ( y0 >= (real)0.0 ) ? atan2( y0, x0 ) : atan2( y0, x0 ) + (real)2.0 * M_PI  );
       idx_phi = int( phi / dPhi + (real)0.5 ) - 1;
 
 //    deal the case phi < 0.5 * dPhi
@@ -542,7 +548,9 @@ static void Src_Leakage( real fluid[], const real B[],
    const real Ye_Update   = Ye + dYedt_Code * dt;
 
    fluid[ENGY] = Hydro_ConEint2Etot( fluid[DENS], fluid[MOMX], fluid[MOMY], fluid[MOMZ], Eint_Update, Emag );
+#  ifdef YE
    fluid[YE  ] = Ye_Update * fluid[DENS];
+#  endif
 
 #  ifdef DYEDT_NU
    fluid[DEDT_NU ] = FABS( dEdt_Code  );
@@ -558,7 +566,9 @@ static void Src_Leakage( real fluid[], const real B[],
       fluid[MOMY    ] = Lum [1];
       fluid[MOMZ    ] = Lum [2];
       fluid[ENGY    ] = Heat[0];
+#     ifdef YE
       fluid[YE      ] = Heat[1];
+#     endif
 #     ifdef DYEDT_NU
       fluid[DEDT_NU ] = NetHeat[0];
       fluid[DYEDT_NU] = NetHeat[1];
@@ -665,6 +675,9 @@ void Src_WorkBeforeMajorFunc_Leakage( const int lv, const double TimeNew, const 
 
 // (3) sample ray
 //     --> prepare data at TimeOld because data on higher level at TimeNew are not available
+#  ifndef _YE
+   const long _YE = 0;
+#  endif
    const int  NProf  = 3;
    const int  NData  = NRad * NTheta * NPhi;
    const long TVar[] = { _DENS, _TEMP, _YE };
