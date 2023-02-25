@@ -236,6 +236,42 @@ int Flu_ResetByUser_Func_ClusterMerger( real fluid[], const double Emag, const d
 //-------------------------------------------------------------------------------------------------------
 void Flu_ResetByUser_API_ClusterMerger( const int lv, const int FluSg, const double TimeNew, const double dt )
 {
+   double RelativeBHPos[3] = { BH_Pos[0][0]-BH_Pos[1][0], BH_Pos[0][1]-BH_Pos[1][1], BH_Pos[0][2]-BH_Pos[1][2] };
+   double RelativeBHVel[3] = { BH_Vel[0][0]-BH_Vel[1][0], BH_Vel[0][1]-BH_Vel[1][1], BH_Vel[0][2]-BH_Vel[1][2] };
+   double AbsRelPos = sqrt( SQR(RelativeBHPos[0])+SQR(RelativeBHPos[1])+SQR(RelativeBHPos[2]) );
+   double AbsRelVel = sqrt( SQR(RelativeBHVel[0])+SQR(RelativeBHVel[1])+SQR(RelativeBHVel[2]) );
+   double escape_vel[2] = { sqrt(2*NEWTON_G*Bondi_MassBH2/AbsRelPos), sqrt(2*NEWTON_G*Bondi_MassBH1/AbsRelPos) };
+
+   if ( Merger_Coll_NumHalos == 2  &&  TimeNew > 3e-3 &&  MPI_Rank == 0 ){
+      Aux_Message( stdout, "In rank %d, lv = %d, TimeNew = %14.8e; BHPos1 = %14.8e, %14.8e, %14.8e; BHPos2 = %14.8e, %14.8e, %14.8e; BHVel1 = %14.8e, %14.8e, %14.8e; BHVel2 = %14.8e, %14.8e, %14.8e; AbsRelPos = %14.8e, AbsRelVel = %14.8e, escape_vel[0] = %14.8e, escape_vel[1] = %14.8e.\n", MPI_Rank, lv, TimeNew, BH_Pos[0][0], BH_Pos[0][1], BH_Pos[0][2], BH_Pos[1][0], BH_Pos[1][1], BH_Pos[1][2], BH_Vel[0][0], BH_Vel[0][1], BH_Vel[0][2], BH_Vel[1][0], BH_Vel[1][1], BH_Vel[1][2], AbsRelPos, AbsRelVel, escape_vel[0], escape_vel[1]); 
+   }
+
+// Merge the two BHs if they are located within R_acc, and the relative velocity is low enough
+   if ( Merger_Coll_NumHalos == 2 ){
+      if ( AbsRelPos < R_acc  &&  AbsRelVel < 3*escape_vel[1]  &&  AbsRelVel >= 3*escape_vel[0] ){
+         Merger_Coll_NumHalos -= 1;
+         Bondi_MassBH1 += Bondi_MassBH2;
+         Bondi_MassBH2 = 0.0;
+         Aux_Message( stdout, "Merge! In rank %d, TimeNew = %14.8e; BHPos1 = %14.8e, %14.8e, %14.8e; BHPos2 = %14.8e, %14.8e, %14.8e; BHVel1 = %14.8e, %14.8e, %14.8e; BHVel2 = %14.8e, %14.8e, %14.8e; AbsRelPos = %14.8e, AbsRelVel = %14.8e, escape_vel[0] = %14.8e, escape_vel[1] = %14.8e.\n", MPI_Rank, TimeNew, BH_Pos[0][0], BH_Pos[0][1], BH_Pos[0][2], BH_Pos[1][0], BH_Pos[1][1], BH_Pos[1][2], BH_Vel[0][0], BH_Vel[0][1], BH_Vel[0][2], BH_Vel[1][0], BH_Vel[1][1], BH_Vel[1][2], AbsRelPos, AbsRelVel, escape_vel[0], escape_vel[1]);
+      }
+      else if ( AbsRelPos < R_acc  &&  AbsRelVel < 3*escape_vel[0]  &&  AbsRelVel >= 3*escape_vel[1] ){
+         Merger_Coll_NumHalos -= 1; 
+         Bondi_MassBH2 += Bondi_MassBH1; 
+         Bondi_MassBH1 = 0.0;   
+      }
+      else if ( AbsRelPos < R_acc  &&  AbsRelVel < 3*escape_vel[1]  &&  AbsRelVel < 3*escape_vel[0] ){
+         Merger_Coll_NumHalos -= 1;
+         if ( Bondi_MassBH1 >= Bondi_MassBH2 ){
+            Bondi_MassBH1 += Bondi_MassBH2; 
+            Bondi_MassBH2 = 0.0; 
+         }
+         else {
+            Bondi_MassBH2 += Bondi_MassBH1; 
+            Bondi_MassBH1 = 0.0; 
+         }
+         Aux_Message( stdout, "Merge! In rank %d, TimeNew = %14.8e; BHPos1 = %14.8e, %14.8e, %14.8e; BHPos2 = %14.8e, %14.8e, %14.8e; BHVel1 = %14.8e, %14.8e, %14.8e; BHVel2 = %14.8e, %14.8e, %14.8e; AbsRelPos = %14.8e, AbsRelVel = %14.8e, escape_vel[0] = %14.8e, escape_vel[1] = %14.8e.\n", MPI_Rank, TimeNew, BH_Pos[0][0], BH_Pos[0][1], BH_Pos[0][2], BH_Pos[1][0], BH_Pos[1][1], BH_Pos[1][2], BH_Vel[0][0], BH_Vel[0][1], BH_Vel[0][2], BH_Vel[1][0], BH_Vel[1][1], BH_Vel[1][2], AbsRelPos, AbsRelVel, escape_vel[0], escape_vel[1]);
+      }  
+   }
 
    const bool CurrentMaxLv = (  NPatchTotal[lv] > 0  &&  ( lv == MAX_LEVEL || NPatchTotal[lv+1] == 0 )  );
 
@@ -568,30 +604,6 @@ void Flu_ResetByUser_API_ClusterMerger( const int lv, const int FluSg, const dou
    } // for (int PID=0; PID<amr->NPatchComma[lv][1]; PID++)
 
 //   delete RNG;
-
-
-// Find the potential minimum and reposition the BH particle
-//   real *ParPos[3] = { amr->Par->PosX, amr->Par->PosY, amr->Par->PosZ };
-//   for (int c=0; c<Merger_Coll_NumHalos; c++) {
-//      Extrema_t Extrema;  
-//      Extrema.Field = _POTE;                  
-//      Extrema.Radius = 2*R_acc;  
-//      int Cen_idx_Tmp = -1000000;
-//      int Cen_idx;
-//      for (long p=0; p<amr->Par->NPar_AcPlusInac; p++) {
-//         if ( amr->Par->Mass[p] >= (real)0.0  &&  amr->Par->Type[p] == real(PTYPE_CEN+c) ){
-//            Cen_idx_Tmp = p;
-//         }
-//      }
-//      MPI_Allreduce( &Cen_idx_Tmp, &Cen_idx, 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD );
-//      for (int d=0; d<3; d++)   Extrema.Center[d] = ParPos[d][Cen_idx];
-//      Aux_Message( stdout, "In rank %d, Cen_idx = %d.\n", MPI_Rank, Cen_idx);
-//      Aux_FindExtrema( &Extrema, EXTREMA_MIN, 0, TOP_LEVEL, PATCH_LEAF );
-////      Aux_Message( stdout, "Potential minimum is found." );
-//      amr->Par->PosX[Cen_idx] = Extrema.Coord[0];
-//      amr->Par->PosY[Cen_idx] = Extrema.Coord[1];
-//      amr->Par->PosZ[Cen_idx] = Extrema.Coord[2];
-//   }
 
 
 } // FUNCTION : Flu_ResetByUser_API_ClusterMerger
