@@ -544,32 +544,53 @@ void Src_Leakage_ComputeTau( Profile_t *Ray[], double *Edge,
 
 
 //       (5) neutrino heating in O'Connor & Ott (2010)
-         int    ns_loc      [NType_Neutrino] = { 0, 0, 0 };
+         int    idx_NS;
+         double eta_nu_Inte, Temp_MeV_Inte;
+         double Table_tau[2], Table_Data[2];
          double FermiInte[3][NType_Neutrino];
+         double NS_loc      [NType_Neutrino] = { 0.0, 0.0, 0.0 };
 
 //       (5-1) measure the rms and mean energy at neutrino sphere (tau = 2/3)
          for (int k=0; k<NType_Neutrino; k++)
          {
+            idx_NS = 0;
+
             for (int i=0; i<NRadius; i++)
             {
                if ( tau[TID][i][k] < TwoThirds )   break;
 
-               ns_loc[k] = i;
+               idx_NS = i;
             }
 
+//          use linear interpolation to obtain the correct location of neutrino sphere
+            Table_tau [0] = tau[TID][idx_NS+1][k];
+            Table_tau [1] = tau[TID][idx_NS  ][k];
+            Table_Data[0] = 0.5 * ( Edge_CGS[idx_NS+1] + Edge_CGS[idx_NS+2] );
+            Table_Data[1] = 0.5 * ( Edge_CGS[idx_NS  ] + Edge_CGS[idx_NS+1] );
+
+            NS_loc[k] = Mis_InterpolateFromTable( 2, Table_tau, Table_Data, TwoThirds );
+
+//          use interpolated eta_nu to compute the Fermi integrate
             for (int i=0; i<3; i++)
-               FermiInte[i][k] = Compute_FermiIntegral( i+3, eta_nu[TID][ ns_loc[k] ][k] );
-         }
+            {
+               Table_Data[0] = eta_nu[TID][idx_NS+1][k];
+               Table_Data[1] = eta_nu[TID][idx_NS  ][k];
+               eta_nu_Inte   = Mis_InterpolateFromTable( 2, Table_tau, Table_Data, TwoThirds );
 
-         for (int k=0; k<NType_Neutrino; k++)
-         {
-            const int idx_ns = ns_loc[k];
+               FermiInte[i][k] = Compute_FermiIntegral( i+3, eta_nu_Inte );
+            }
 
-            HeatE_Rms[j][k] = Temp_MeV[TID][idx_ns] * sqrt( FermiInte[2][k] / FermiInte[0][k] ); // (A4)
-            HeatE_Ave[j][k] = Temp_MeV[TID][idx_ns] *       FermiInte[2][k] / FermiInte[1][k];   // (A11)
+//          use interpolated eta_nu and Temp_MeV to compute the HeatE_Rms and HeatE_Ave
+            Table_Data[0] = Temp_MeV[TID][idx_NS+1];
+            Table_Data[1] = Temp_MeV[TID][idx_NS  ];
+            Temp_MeV_Inte = Mis_InterpolateFromTable( 2, Table_tau, Table_Data, TwoThirds );
 
+            HeatE_Rms[j][k] = Temp_MeV_Inte * sqrt( FermiInte[2][k] / FermiInte[0][k] ); // (A4)
+            HeatE_Ave[j][k] = Temp_MeV_Inte *       FermiInte[2][k] / FermiInte[1][k];   // (A11)
+
+//          sum the HeatE_Ave and NS_loc for computing the average
             OMP_EAve [TID][k] += HeatE_Ave[j][k];
-            OMP_RadNS[TID][k] += 0.5 * ( Edge_CGS[idx_ns] + Edge_CGS[idx_ns+1] );
+            OMP_RadNS[TID][k] += NS_loc[k];
          }
 
 //       (5-2) leak along this ray to determine luminosity
@@ -623,6 +644,8 @@ void Src_Leakage_ComputeTau( Profile_t *Ray[], double *Edge,
                                 j, idx_theta, idx_phi );
 
 //       ray data
+         fprintf( File_Leakage, "# Rad_NS_Nue    = %14.6e, Rad_NS_Nua    = %14.6e, Rad_NS_Nux    = %14.6e\n",
+                                NS_loc[0], NS_loc[1], NS_loc[2] );
          fprintf( File_Leakage, "# HeatE_Rms_Nue = %14.6e, HeatE_Rms_Nua = %14.6e, HeatE_Rms_Nux = %14.6e\n",
                                 HeatE_Rms[j][0], HeatE_Rms[j][1], HeatE_Rms[j][2] );
          fprintf( File_Leakage, "# HeatE_Ave_Nue = %14.6e, HeatE_Ave_Nua = %14.6e, HeatE_Ave_Nux = %14.6e\n#\n",
