@@ -1,10 +1,12 @@
 #include "GAMER.h"
 
+extern void (*Init_User_Ptr)();
+extern void (*Init_DerivedField_User_Ptr)();
 #ifdef PARTICLE
 extern void (*Par_Init_ByFunction_Ptr)( const long NPar_ThisRank, const long NPar_AllRank,
                                         real *ParMass, real *ParPosX, real *ParPosY, real *ParPosZ,
                                         real *ParVelX, real *ParVelY, real *ParVelZ, real *ParTime,
-                                        real *AllAttribute[PAR_NATT_TOTAL] );
+                                        real *ParType, real *AllAttribute[PAR_NATT_TOTAL] );
 #endif
 
 
@@ -13,6 +15,10 @@ extern void (*Par_Init_ByFunction_Ptr)( const long NPar_ThisRank, const long NPa
 //-------------------------------------------------------------------------------------------------------
 // Function    :  Init
 // Description :  Initialize GAMER
+//
+// Note        :  1. Function pointer "Init_User_Ptr" may be set by a test problem initializer
+//
+// Parameter   :  argc, argv: Command line arguments
 //-------------------------------------------------------------------------------------------------------
 void Init_GAMER( int *argc, char ***argv )
 {
@@ -44,7 +50,8 @@ void Init_GAMER( int *argc, char ***argv )
    Init_Unit();
 
 
-// reset parameters --> must be called after Init_Unit()
+// reset parameters
+// --> must be called after Init_Unit()
    Init_ResetParameter();
 
 
@@ -52,6 +59,15 @@ void Init_GAMER( int *argc, char ***argv )
 #  ifdef OPENMP
    Init_OpenMP();
 #  endif
+
+
+// initialize GPU
+// --> must be called before Init_ExtAccPot() and EoS_Init()
+#  ifdef GPU
+   CUAPI_SetDevice( OPT__GPUID_SELECT );
+
+   CUAPI_SetCache();
+#  endif // #ifdef GPU
 
 
 // initialize yt inline analysis
@@ -66,11 +82,7 @@ void Init_GAMER( int *argc, char ***argv )
 #  endif
 
 
-// initialize parameters for the parallelization (rectangular domain decomposition)
-   Init_Parallelization();
-
-
-#  ifdef GRAVITY
+#  ifdef SUPPORT_FFTW
 // initialize FFTW
    Init_FFTW();
 #  endif
@@ -80,8 +92,13 @@ void Init_GAMER( int *argc, char ***argv )
    Init_TestProb();
 
 
+// initialize parameters for the parallelization
+// --> call it after Init_TestProb() since Init_TestProb() may overwrite the total number of particles
+   Init_Parallelization();
+
+
 // initialize all fields and particle attributes
-// --> Init_Field() must be called BEFORE CUAPI_Set_Default_GPU_Parameter()
+// --> Init_Field() must be called before CUAPI_SetConstMemory()
    Init_Field();
 #  ifdef PARTICLE
    Par_Init_Attribute();
@@ -89,24 +106,38 @@ void Init_GAMER( int *argc, char ***argv )
 
 
 // initialize the external potential and acceleration parameters
-// --> must be called AFTER Init_TestProb()
+// --> must be called after Init_TestProb()
 #  ifdef GRAVITY
-   Init_ExternalAccPot();
+   Init_ExtAccPot();
 #  endif
 
 
-// set the GPU ID and several GPU parameters
-// --> must be called AFTER Init_Field()
+// initialize the EoS routines
+#  if ( MODEL == HYDRO )
+   EoS_Init();
+#  endif
+
+
+// initialize the source-term routines
+// --> must be called before memory allocation
+   Src_Init();
+
+
+// initialize the user-defined derived fields
+   if ( OPT__OUTPUT_USER_FIELD )
+   {
+      if ( Init_DerivedField_User_Ptr != NULL )
+         Init_DerivedField_User_Ptr();
+
+      else
+         Aux_Error( ERROR_INFO, "Init_DerivedField_User_Ptr == NULL for OPT__OUTPUT_USER_FIELD !!\n" );
+   }
+
+
+// set GPU constant memory
+// --> must be called after Init_Field() and Init_ExtAccPot()
 #  ifdef GPU
-#  ifndef GRAVITY
-   int POT_GPU_NPGROUP = NULL_INT;
-#  endif
-#  ifndef SUPPORT_GRACKLE
-   int CHE_GPU_NPGROUP = NULL_INT;
-#  endif
-   CUAPI_SetDevice( OPT__GPUID_SELECT );
-
-   CUAPI_Set_Default_GPU_Parameter( GPU_NSTREAM, FLU_GPU_NPGROUP, POT_GPU_NPGROUP, CHE_GPU_NPGROUP );
+   CUAPI_SetConstMemory();
 #  endif
 
 
@@ -128,7 +159,7 @@ void Init_GAMER( int *argc, char ***argv )
 //###NOTE: unit has not been converted into internal unit
    if ( OPT__OUTPUT_MODE == OUTPUT_USE_TABLE )
 #  ifdef PARTICLE
-   if ( OPT__OUTPUT_TOTAL || OPT__OUTPUT_PART || OPT__OUTPUT_USER || OPT__OUTPUT_BASEPS || OPT__OUTPUT_PAR_TEXT )
+   if ( OPT__OUTPUT_TOTAL || OPT__OUTPUT_PART || OPT__OUTPUT_USER || OPT__OUTPUT_BASEPS || OPT__OUTPUT_PAR_MODE )
 #  else
    if ( OPT__OUTPUT_TOTAL || OPT__OUTPUT_PART || OPT__OUTPUT_USER || OPT__OUTPUT_BASEPS )
 #  endif
@@ -139,8 +170,21 @@ void Init_GAMER( int *argc, char ***argv )
    if ( OPT__MEMORY_POOL )    Init_MemoryPool();
 
 
-// allocate memory for several global arrays
+// allocate memory for several CPU/GPU global arrays
+#  ifdef GPU
+   CUAPI_MemAllocate();
+#  endif
+
    Init_MemAllocate();
+
+
+// load the external potential table
+// --> before Init_ByFunction() so that the test problem initializer can access
+//     the external potential table if required
+// --> after Init_MemAllocate() to allocate the potential table array first
+#  ifdef GRAVITY
+   if ( OPT__EXT_POT == EXT_POT_TABLE )   Init_LoadExtPotTable();
+#  endif
 
 
 // initialize particles
@@ -148,11 +192,13 @@ void Init_GAMER( int *argc, char ***argv )
    switch ( amr->Par->Init )
    {
       case PAR_INIT_BY_FUNCTION:
-         if ( Par_Init_ByFunction_Ptr == NULL )    Aux_Error( ERROR_INFO, "Par_Init_ByFunction_Ptr == NULL !!\n" );
-         Par_Init_ByFunction_Ptr( amr->Par->NPar_Active, amr->Par->NPar_Active_AllRank,
-                                  amr->Par->Mass, amr->Par->PosX, amr->Par->PosY, amr->Par->PosZ,
-                                  amr->Par->VelX, amr->Par->VelY, amr->Par->VelZ, amr->Par->Time,
-                                  amr->Par->Attribute );
+         if ( Par_Init_ByFunction_Ptr != NULL )
+            Par_Init_ByFunction_Ptr( amr->Par->NPar_Active, amr->Par->NPar_Active_AllRank,
+                                     amr->Par->Mass, amr->Par->PosX, amr->Par->PosY, amr->Par->PosZ,
+                                     amr->Par->VelX, amr->Par->VelY, amr->Par->VelZ, amr->Par->Time,
+                                     amr->Par->Type, amr->Par->Attribute );
+         else
+            Aux_Error( ERROR_INFO, "Par_Init_ByFunction_Ptr == NULL for PAR_INIT = 1 !!\n" );
          break;
 
       case PAR_INIT_BY_RESTART:
@@ -184,6 +230,17 @@ void Init_GAMER( int *argc, char ***argv )
    }
 
 
+// ensure B field consistency on the shared interfaces between sibling patches
+#  if ( MODEL == HYDRO  &&  defined MHD )
+   if ( OPT__SAME_INTERFACE_B )
+   for (int lv=0; lv<NLEVEL; lv++)  MHD_SameInterfaceB( lv );
+#  endif
+
+
+// user-defined initialization
+   if ( Init_User_Ptr != NULL )  Init_User_Ptr();
+
+
 // record the initial weighted load-imbalance factor
 #  ifdef LOAD_BALANCE
    if ( OPT__RECORD_LOAD_BALANCE )  LB_EstimateLoadImbalance();
@@ -191,10 +248,12 @@ void Init_GAMER( int *argc, char ***argv )
 
 
 #  ifdef GRAVITY
-   if ( OPT__GRAVITY_TYPE == GRAVITY_SELF  ||  OPT__GRAVITY_TYPE == GRAVITY_BOTH )
+   if ( OPT__SELF_GRAVITY  ||  OPT__EXT_POT )
    {
+#     ifdef SUPPORT_FFTW
 //    initialize the k-space Green's function for the isolated BC.
-      if ( OPT__BC_POT == BC_POT_ISOLATED )  Init_GreenFuncK();
+      if ( OPT__SELF_GRAVITY  &&  OPT__BC_POT == BC_POT_ISOLATED )    Init_GreenFuncK();
+#     endif
 
 
 //    evaluate the initial average density if it is not set yet (may already be set in Init_ByRestart)
@@ -208,32 +267,49 @@ void Init_GAMER( int *argc, char ***argv )
       {
          if ( MPI_Rank == 0 )    Aux_Message( stdout, "   Lv %2d ... ", lv );
 
-         Buf_GetBufferData( lv, amr->FluSg[lv], NULL_INT, DATA_GENERAL, _DENS, Rho_ParaBuf, USELB_YES );
+         Buf_GetBufferData( lv, amr->FluSg[lv], NULL_INT, NULL_INT, DATA_GENERAL, _DENS, _NONE, Rho_ParaBuf, USELB_YES );
 
-         Gra_AdvanceDt( lv, Time[lv], NULL_REAL, NULL_REAL, NULL_INT, amr->PotSg[lv], true, false, false, false );
+         Gra_AdvanceDt( lv, Time[lv], NULL_REAL, NULL_REAL, NULL_INT, amr->PotSg[lv], true, false, false, false, true );
 
          if ( lv > 0 )
-         Buf_GetBufferData( lv, NULL_INT, amr->PotSg[lv], POT_FOR_POISSON, _POTE, Pot_ParaBuf, USELB_YES );
+         Buf_GetBufferData( lv, NULL_INT, NULL_INT, amr->PotSg[lv], POT_FOR_POISSON, _POTE, _NONE, Pot_ParaBuf, USELB_YES );
 
          if ( MPI_Rank == 0 )    Aux_Message( stdout, "done\n" );
       } // for (int lv=0; lv<NLEVEL; lv++)
 
       if ( MPI_Rank == 0 )    Aux_Message( stdout, "%s ... done\n", "Calculating gravitational potential" );
-   } // if ( OPT__GRAVITY_TYPE == GRAVITY_SELF  ||  OPT__GRAVITY_TYPE == GRAVITY_BOTH )
+   } // if ( OPT__SELF_GRAVITY  ||  OPT__EXT_POT )
 #  endif // #ifdef GARVITY
 
 
+#  ifdef PARTICLE
+
 // initialize particle acceleration
-#  if ( defined PARTICLE  &&  defined STORE_PAR_ACC )
+#  if ( defined MASSIVE_PARTICLES  &&  defined STORE_PAR_ACC )
    if ( MPI_Rank == 0 )    Aux_Message( stdout, "%s ...\n", "Calculating particle acceleration" );
 
    const bool StoreAcc_Yes    = true;
    const bool UseStoredAcc_No = false;
 
    for (int lv=0; lv<NLEVEL; lv++)
-   Par_UpdateParticle( lv, amr->PotSgTime[lv][ amr->PotSg[lv] ], NULL_REAL, PAR_UPSTEP_ACC_ONLY, StoreAcc_Yes, UseStoredAcc_No );
+      Par_UpdateParticle( lv, amr->PotSgTime[lv][ amr->PotSg[lv] ], NULL_REAL, PAR_UPSTEP_ACC_ONLY, StoreAcc_Yes, UseStoredAcc_No );
 
    if ( MPI_Rank == 0 )    Aux_Message( stdout, "%s ... done\n", "Calculating particle acceleration" );
-#  endif
+#  endif // #if ( defined MASSIVE_PARTICLES  &&  defined STORE_PAR_ACC )
+
+#  ifdef TRACER
+// initialize tracer particles
+   if ( MPI_Rank == 0 )    Aux_Message( stdout, "%s ...\n", "Initializing tracer particles" );
+
+   const bool MapOnly_Yes = true;
+
+   for (int lv=0; lv<NLEVEL; lv++)
+      Par_UpdateTracerParticle( lv, Time[lv], NULL_REAL, MapOnly_Yes );
+
+   if ( MPI_Rank == 0 )    Aux_Message( stdout, "%s ... done\n", "Initializing tracer particles" );
+#  endif // #ifdef TRACER
+
+#  endif // #ifdef PARTICLE
+
 
 } // FUNCTION : Init_GAMER

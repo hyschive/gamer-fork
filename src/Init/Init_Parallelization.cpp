@@ -39,6 +39,11 @@ void Init_Parallelization()
    IntGhostSize_Flu = ( (FLU_GHOST_SIZE == 0) ? 0 : (FLU_GHOST_SIZE+1)/2 + NGhost_Flu );
    IntGhostSize_Flu = MAX( IntGhostSize_Flu, NGhost_RefFlu );
 
+#  ifdef TRACER
+   if ( amr->Par->GhostSizeTracer > 0 )
+   IntGhostSize_Flu = MAX( IntGhostSize_Flu, (amr->Par->GhostSizeTracer+1)/2 + NGhost_Flu );
+#  endif
+
 #  ifdef GRAVITY
    int NGhost_Pot, NGhost_Rho, NGhost_Gra, NGhost_RefPot;
    Int_Table( OPT__POT_INT_SCHEME,     NSide_Useless, NGhost_Pot );
@@ -54,14 +59,34 @@ void Init_Parallelization()
    IntGhostSize_Rho = ( (RHO_GHOST_SIZE == 0) ? 0 : (RHO_GHOST_SIZE+1)/2 + NGhost_Rho );
 #  endif
 
+#  ifdef MHD
+   int NGhost_Mag, NGhost_RefMag;
+   Int_Table( OPT__MAG_INT_SCHEME,     NSide_Useless, NGhost_Mag );
+   Int_Table( OPT__REF_MAG_INT_SCHEME, NSide_Useless, NGhost_RefMag );
+
+   int IntGhostSize_Mag;
+// for the coarse-grid B field used in the div(B)-free interpolation in InterpolateGhostZone()
+   IntGhostSize_Mag = ( (FLU_GHOST_SIZE == 0) ? 0 : (FLU_GHOST_SIZE+1)/2 + NGhost_Mag );
+
+// for the coarse-grid B field used in the div(B)-free interpolation in Refine() and LB_Refine_AllocateNewPatch()
+   IntGhostSize_Mag = MAX( IntGhostSize_Mag, NGhost_RefMag );
+
+// for the **fine-grid** B field used in the div(B)-free interpolation in InterpolateGhostZone()
+// --> these additional fine-grid buffer zones are NOT required in pure-hydro simulations
+   IntGhostSize_Mag = MAX( IntGhostSize_Mag, ((FLU_GHOST_SIZE+1)/2)*2 );
+#  endif
+
 // 1.2 set the sizes of parallel buffers
    Flu_ParaBuf = MAX( FLU_GHOST_SIZE, IntGhostSize_Flu );
 #  ifdef GRAVITY
    Pot_ParaBuf = MAX( GRA_GHOST_SIZE, IntGhostSize_Pot );
    Rho_ParaBuf = MAX( RHO_GHOST_SIZE, IntGhostSize_Rho );
 
-   if ( OPT__GRAVITY_TYPE == GRAVITY_SELF  ||  OPT__GRAVITY_TYPE == GRAVITY_BOTH )
+   if ( OPT__SELF_GRAVITY )
    Flu_ParaBuf = MAX( Flu_ParaBuf,    IntGhostSize_Rho );   // ensure that the fluid ghost zone is large enough for Poisson
+#  endif
+#  ifdef MHD
+   Flu_ParaBuf = MAX( Flu_ParaBuf,    IntGhostSize_Mag );   // ensure that the fluid ghost zone is large enough for MHD
 #  endif
 
 
@@ -203,10 +228,9 @@ void Init_Parallelization()
    double (*SubDomain_EdgeL)[3] = new double [MPI_NRank][3];
    double (*SubDomain_EdgeR)[3] = new double [MPI_NRank][3];
 
-   double (*SubDomain_EdgeL3D)[ MPI_NRank_X[1] ][ MPI_NRank_X[0] ][3]
-                = ( double (*)[ MPI_NRank_X[1] ][ MPI_NRank_X[0] ][3] )SubDomain_EdgeL;
-   double (*SubDomain_EdgeR3D)[ MPI_NRank_X[1] ][ MPI_NRank_X[0] ][3]
-                = ( double (*)[ MPI_NRank_X[1] ][ MPI_NRank_X[0] ][3] )SubDomain_EdgeR;
+   typedef double (*vla)[ MPI_NRank_X[1] ][ MPI_NRank_X[0] ][3];
+   vla SubDomain_EdgeL3D = ( vla )SubDomain_EdgeL;
+   vla SubDomain_EdgeR3D = ( vla )SubDomain_EdgeR;
 
 // calculate the left/right edges by rank 0 only to ensure that all ranks see EXACTLY the same values (no round-off errors)
    if ( MPI_Rank == 0 )

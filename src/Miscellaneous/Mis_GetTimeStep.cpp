@@ -16,8 +16,8 @@ extern double (*Mis_GetTimeStep_User_Ptr)( const int lv, const double dTime_dt )
 //                       Comoving coordinates : dt = delta(scale_factor) / ( Hubble_parameter*scale_factor^3 )
 //                   --> We convert dTime, the physical time interval == "delta(scale_factor)"
 //                       in the comoving coordinates, back to dt in EvolveLevel()
-//                2. The function pointer "Mis_GetTimeStep_User_Ptr" points to "Mis_GetTimeStep_User()" by default
-//                   but may be overwritten by various test problem initializers
+//                2. For OPT__DT_USER, the function pointer "Mis_GetTimeStep_User_Ptr" must be set by a
+//                   test problem initializer
 //
 // Parameter   :  lv                : Target refinement level
 //                dTime_SyncFaLv    : dt to synchronize lv and lv-1
@@ -63,9 +63,6 @@ double Mis_GetTimeStep( const int lv, const double dTime_SyncFaLv, const double 
    dTime[NdTime] = dTime_dt * dt_InvokeSolver( DT_FLU_SOLVER, lv );
    sprintf( dTime_Name[NdTime++], "%s", "Hydro_CFL" );
 
-#  elif ( MODEL == MHD )
-#  warning : WAIT MHD !!!
-
 #  elif ( MODEL == ELBDM )
    dTime[NdTime] = dTime_dt * ELBDM_GetTimeStep_Fluid( lv );
    sprintf( dTime_Name[NdTime++], "%s", "ELBDM_CFL" );
@@ -73,6 +70,9 @@ double Mis_GetTimeStep( const int lv, const double dTime_SyncFaLv, const double 
 #  else
 #  error : ERROR : unsupported MODEL !!
 #  endif // MODEL
+
+// when fluid is freezed, disable this criterion by resetting it to a huge value
+   if ( OPT__FREEZE_FLUID )   dTime[NdTime-1] = HUGE_NUMBER;
 
 
 // 1.2 CRITERION TWO : gravitational acceleration
@@ -82,9 +82,6 @@ double Mis_GetTimeStep( const int lv, const double dTime_SyncFaLv, const double 
    dTime[NdTime] = dTime_dt * dt_InvokeSolver( DT_GRA_SOLVER, lv );
    sprintf( dTime_Name[NdTime++], "%s", "Hydro_Acc" );
 
-#  elif ( MODEL == MHD )
-#  warning : WAIT MHD !!!
-
 #  elif ( MODEL == ELBDM )
    dTime[NdTime] = dTime_dt * ELBDM_GetTimeStep_Gravity( lv  );
    sprintf( dTime_Name[NdTime++], "%s", "ELBDM_Pot" );
@@ -92,6 +89,9 @@ double Mis_GetTimeStep( const int lv, const double dTime_SyncFaLv, const double 
 #  else
 #  error : ERROR : unsupported MODEL !!
 #  endif // MODEL
+
+// when fluid is freezed, disable this criterion by resetting it to a huge value
+   if ( OPT__FREEZE_FLUID )   dTime[NdTime-1] = HUGE_NUMBER;
 #  endif // #ifdef GRAVITY
 
 
@@ -108,7 +108,7 @@ double Mis_GetTimeStep( const int lv, const double dTime_SyncFaLv, const double 
 // DumpByTime : true --> dump data according to the physical time
 #  ifdef PARTICLE
    const bool DumpData   = ( OPT__OUTPUT_TOTAL || OPT__OUTPUT_PART || OPT__OUTPUT_USER || OPT__OUTPUT_BASEPS ||
-                             OPT__OUTPUT_PAR_TEXT );
+                             OPT__OUTPUT_PAR_MODE );
 #  else
    const bool DumpData   = ( OPT__OUTPUT_TOTAL || OPT__OUTPUT_PART || OPT__OUTPUT_USER || OPT__OUTPUT_BASEPS );
 #  endif
@@ -154,10 +154,16 @@ double Mis_GetTimeStep( const int lv, const double dTime_SyncFaLv, const double 
 
 // 1.6 CRITERION SIX : user-defined criteria
 // =============================================================================================================
-   if ( OPT__DT_USER  &&  Mis_GetTimeStep_User_Ptr != NULL )
+   if ( OPT__DT_USER )
    {
-      dTime[NdTime] = dTime_dt * Mis_GetTimeStep_User_Ptr( lv, dTime_dt );
-      sprintf( dTime_Name[NdTime++], "%s", "User" );
+      if ( Mis_GetTimeStep_User_Ptr != NULL )
+      {
+         dTime[NdTime] = dTime_dt * Mis_GetTimeStep_User_Ptr( lv, dTime_dt );
+         sprintf( dTime_Name[NdTime++], "%s", "User" );
+      }
+
+      else
+         Aux_Error( ERROR_INFO, "Mis_GetTimeStep_User_Ptr == NULL for OPT__DT_USER !!\n" );
    }
 
 
@@ -168,6 +174,9 @@ double Mis_GetTimeStep( const int lv, const double dTime_SyncFaLv, const double 
    {
       dTime[NdTime] = dTime_dt * ELBDM_GetTimeStep_Phase( lv );
       sprintf( dTime_Name[NdTime++], "%s", "ELBDM_Phase" );
+
+//    when fluid is freezed, disable this criterion by resetting it to a huge value
+      if ( OPT__FREEZE_FLUID )   dTime[NdTime-1] = HUGE_NUMBER;
    }
 #  endif
 
@@ -180,7 +189,13 @@ double Mis_GetTimeStep( const int lv, const double dTime_SyncFaLv, const double 
    dTime[NdTime] *= dTime_dt;
    sprintf( dTime_Name[NdTime++], "%s", "Par_Vel" );
 
-   if ( DT__PARACC > 0.0 ) {
+#  ifdef MASSIVE_PARTICLES
+   const bool  UseAcc = ( DT__PARACC > 0.0 );
+#  else
+   const bool  UseAcc = false;
+#  endif
+
+   if ( UseAcc ) {
    dTime[NdTime] *= dTime_dt;
    sprintf( dTime_Name[NdTime++], "%s", "Par_Acc" ); }
 #  endif
@@ -237,7 +252,11 @@ double Mis_GetTimeStep( const int lv, const double dTime_SyncFaLv, const double 
    }
 
 
-// 2.5 reduce dt for AUTO_REDUCE_DT
+// 2.5 apply a maximum allowed dt
+   if ( DT__MAX >= 0.0 )    dTime_min = MIN( dTime_min, DT__MAX );
+
+
+// 2.6 reduce dt for AUTO_REDUCE_DT
 // --> must do this AFTER checking all other dt criteria
    if ( AUTO_REDUCE_DT )   dTime_min *= AutoReduceDtCoeff;
 
@@ -295,6 +314,12 @@ double Mis_GetTimeStep( const int lv, const double dTime_SyncFaLv, const double 
 // =============================================================================================================
    if ( dTime_min <= 0.0  ||  !Aux_IsFinite(dTime_min) )
       Aux_Error( ERROR_INFO, "incorrect time-step (dTime_min = %20.14e) !!\n", dTime_min );
+
+// time synchronization may fail if dt/t is close to the round-off error limit
+// --> e.g., temporal interpolation in Prepare_PatchData() may fail
+   if (  Mis_CompareRealValue( Time[lv]+dTime_min, Time[lv], NULL, false )  )
+      Aux_Error( ERROR_INFO, "time-step is too small (lv=%d, dt=%20.14e, t=%20.14e, dt/t=%20.14e, max_error=%20.14e) !!\n",
+                 lv, dTime_min, Time[lv], dTime_min/Time[lv], MAX_ERROR_DBL );
 
 
 

@@ -117,7 +117,7 @@ void SetParameter()
    ReadPara->Add( "Soliton_RSeed",             &Soliton_RSeed,              0,             NoMin_int,        NoMax_int         );
    ReadPara->Add( "Soliton_CoreRadiusAll",     &Soliton_CoreRadiusAll,      NoDef_double,  NoMin_double,     NoMax_double      );
    ReadPara->Add( "Soliton_EmptyRegion",       &Soliton_EmptyRegion,        0.0,           NoMin_double,     NoMax_double      );
-   ReadPara->Add( "Soliton_DensProf_Filename",  Soliton_DensProf_Filename,  Useless_str,   Useless_str,      Useless_str       );
+   ReadPara->Add( "Soliton_DensProf_Filename",  Soliton_DensProf_Filename,  NoDef_str,     Useless_str,      Useless_str       );
    ReadPara->Add( "ExtPot_M",                  &ExtPot_M,                   0.0,           0.0,              NoMax_double      ); 
 
    ReadPara->Read( FileName );
@@ -449,16 +449,10 @@ void Init_TestProb_ELBDM_Soliton()
    SetParameter();
 
 
-   Init_Function_User_Ptr   = SetGridIC;
-   Flag_User_Ptr            = NULL;
-   Mis_GetTimeStep_User_Ptr = NULL;
-   BC_User_Ptr              = BC;
-   Flu_ResetByUser_Func_Ptr = NULL;
-   Output_User_Ptr          = NULL;
-   Aux_Record_User_Ptr      = NULL;
-   End_User_Ptr             = End_Soliton;
-   Init_ExternalAcc_Ptr     = NULL;
-   Init_ExternalPot_Ptr     = Init_ExtPot;
+   Init_Function_User_Ptr = SetGridIC;
+   BC_User_Ptr            = BC;
+   End_User_Ptr           = End_Soliton;
+   Init_ExternalPot_Ptr   = Init_ExtPot;
 #  endif // #if ( MODEL == ELBDM  &&  defined GRAVITY )
 
 

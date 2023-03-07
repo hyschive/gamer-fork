@@ -1,18 +1,21 @@
 #include "GAMER.h"
 
+extern Timer_t Timer_OutputWalltime;
+
 static void Write_DumpRecord();
 extern void (*Output_User_Ptr)();
+extern void (*Output_UserWorkBeforeOutput_Ptr)();
 
 
 
 
 //-------------------------------------------------------------------------------------------------------
 // Function    :  Output_DumpData
-// Description :  Trigger the output functions "Output_DumpData_Total, Output_DumpData_Part, Output_User,
-//                Output_BasePowerSpectrum, Par_Output_TextFile"
+// Description :  Trigger the output functions Output_DumpData_Total(), Output_DumpData_Part(), Output_User(),
+//                Output_BasePowerSpectrum(), Par_Output_TextFile(), Par_Output_BinaryFile()
 //
-// Note        :  1. The function pointer "Output_User_Ptr" points to "Output_User()" by default
-//                   but may be overwritten by various test problem initializers
+// Note        :  1. For OUTPUT_USER, the function pointer "Output_User_Ptr" must be set by a
+//                   test problem initializer
 //
 // Parameter   :  Stage : 0 : beginning of the run
 //                        1 : during the evolution
@@ -28,7 +31,7 @@ void Output_DumpData( const int Stage )
 
 // nothing to do if all output options are off
 #  ifdef PARTICLE
-   if ( !OPT__OUTPUT_TOTAL && !OPT__OUTPUT_PART && !OPT__OUTPUT_USER && !OPT__OUTPUT_BASEPS && !OPT__OUTPUT_PAR_TEXT )
+   if ( !OPT__OUTPUT_TOTAL && !OPT__OUTPUT_PART && !OPT__OUTPUT_USER && !OPT__OUTPUT_BASEPS && !OPT__OUTPUT_PAR_MODE )
 #  else
    if ( !OPT__OUTPUT_TOTAL && !OPT__OUTPUT_PART && !OPT__OUTPUT_USER && !OPT__OUTPUT_BASEPS )
 #  endif
@@ -47,7 +50,7 @@ void Output_DumpData( const int Stage )
 
          case OUTPUT_CONST_DT :
          {
-            if ( OPT__INIT != INIT_BY_RESTART  ||  OPT__RESTART_RESET )
+            if ( OPT__INIT != INIT_BY_RESTART  ||  OPT__RESTART_RESET  ||  OPT__OUTPUT_RESTART )
                DumpTime = Time[0];
 
             else
@@ -64,7 +67,7 @@ void Output_DumpData( const int Stage )
 
          case OUTPUT_USE_TABLE :
          {
-            if ( OPT__INIT != INIT_BY_RESTART  ||  OPT__RESTART_RESET )
+            if ( OPT__INIT != INIT_BY_RESTART  ||  OPT__RESTART_RESET  ||  OPT__OUTPUT_RESTART )
             {
                for (DumpTableID=0; DumpTableID<DumpTable_NDump; DumpTableID++)
                {
@@ -97,8 +100,8 @@ void Output_DumpData( const int Stage )
    } // if ( Stage == 0 )
 
 
-// do not output the initial data for the restart run
-   if ( OPT__INIT == INIT_BY_RESTART  &&  Stage == 0  &&  !OPT__RESTART_RESET )  return;
+// do not output the initial data for the restart run (unless enabling OPT__OUTPUT_RESTART)
+   if ( OPT__INIT == INIT_BY_RESTART  &&  Stage == 0  &&  !OPT__RESTART_RESET  &&  !OPT__OUTPUT_RESTART )   return;
 
 
 // set the file names for all output functions
@@ -137,8 +140,10 @@ void Output_DumpData( const int Stage )
       sprintf( FileName_PS, "PowerSpec_%06d", DumpID );
 
 #  ifdef PARTICLE
-   if ( OPT__OUTPUT_PAR_TEXT )
-      sprintf( FileName_Particle, "Particle_%06d", DumpID );
+   if ( OPT__OUTPUT_PAR_MODE == OUTPUT_PAR_TEXT )
+      sprintf( FileName_Particle, "Particle_%06d.txt", DumpID );
+   if ( OPT__OUTPUT_PAR_MODE == OUTPUT_PAR_CBIN )
+      sprintf( FileName_Particle, "Particle_%06d.cbin", DumpID );
 #  endif
 
 
@@ -177,23 +182,94 @@ void Output_DumpData( const int Stage )
    if ( OPT__MANUAL_CONTROL )    Output_DumpManually( OutputData_RunTime );
 
 
+// dump data if the elapsed walltime exceeds the user-defined walltime
+   int OutputData_Walltime = false;
+
+   if ( OUTPUT_WALLTIME > 0.0 )
+   {
+      Timer_OutputWalltime.Stop();
+
+      double ElapsedWalltime = Timer_OutputWalltime.GetValue();
+
+#     ifndef SERIAL
+      MPI_Allreduce( MPI_IN_PLACE, &ElapsedWalltime, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD );
+#     endif
+
+      switch ( OUTPUT_WALLTIME_UNIT )
+      {
+         case 0 :                               break;
+         case 1 : ElapsedWalltime /=    60.0;   break;
+         case 2 : ElapsedWalltime /=  3600.0;   break;
+         case 3 : ElapsedWalltime /= 86400.0;   break;
+         default: Aux_Error( ERROR_INFO, "unsupported unit (%d) for output walltime !!\n", OUTPUT_WALLTIME_UNIT );
+      }
+
+
+      if ( ElapsedWalltime >= OUTPUT_WALLTIME )
+      {
+         OutputData_Walltime = true;
+         Timer_OutputWalltime.Reset();
+      }
+
+      Timer_OutputWalltime.Start();
+   } // if ( OUTPUT_WALLTIME > 0.0 )
+
+
+// set potential to zero when disabling both self-gravity and external potential
+// to make outputs deterministic and more reasonable
+#  ifdef GRAVITY
+   if ( !OPT__SELF_GRAVITY && !OPT__EXT_POT )
+   {
+      for (int lv=0; lv<NLEVEL; lv++)
+      for (int PID=0; PID<amr->NPatchComma[lv][1]; PID++)
+      for (int k=0; k<PS1; k++)
+      for (int j=0; j<PS1; j++)
+      for (int i=0; i<PS1; i++)
+         amr->patch[ amr->PotSg[lv] ][lv][PID]->pot[k][j][i] = (real)0.0;
+   }
+#  endif
+
+
+// set the acceleration of tracer particles to zero to make outputs deterministic
+#  if ( defined TRACER  &&  defined STORE_PAR_ACC )
+   for (long p=0; p<amr->Par->NPar_AcPlusInac; p++)
+   {
+      if ( amr->Par->Type[p] == PTYPE_TRACER )
+      {
+         amr->Par->AccX[p] = (real)0.0;
+         amr->Par->AccY[p] = (real)0.0;
+         amr->Par->AccZ[p] = (real)0.0;
+      }
+   }
+#  endif
+
+
 // output data
-   if ( OutputData || OutputData_RunTime )
+   if ( OutputData || OutputData_RunTime || OutputData_Walltime )
    {
 //    apply various corrections (e.g., synchronize particles, restrict data, recalculate potential and particle acceleration)
 //    before dumpting data --> for bitwise reproducibility
       if ( OPT__CORR_AFTER_ALL_SYNC == CORR_AFTER_SYNC_BEFORE_DUMP  &&  Stage != 0 )  Flu_CorrAfterAllSync();
 
+//    perform user-specified work before dumping data
+      if ( Output_UserWorkBeforeOutput_Ptr != NULL )  Output_UserWorkBeforeOutput_Ptr();
+
+//    start dumping data
       if ( OPT__OUTPUT_TOTAL )            Output_DumpData_Total( FileName_Total );
       if ( OPT__OUTPUT_PART  )            Output_DumpData_Part( OPT__OUTPUT_PART, OPT__OUTPUT_BASE, OUTPUT_PART_X,
                                                                 OUTPUT_PART_Y, OUTPUT_PART_Z, FileName_Part );
-      if ( OPT__OUTPUT_USER  &&
-           Output_User_Ptr != NULL )      Output_User_Ptr();
-#     ifdef GRAVITY
-      if ( OPT__OUTPUT_BASEPS )           Output_BasePowerSpectrum( FileName_PS );
+      if ( OPT__OUTPUT_USER )
+      {
+         if ( Output_User_Ptr != NULL )   Output_User_Ptr();
+         else
+            Aux_Error( ERROR_INFO, "Output_User_Ptr == NULL for OPT__OUTPUT_USER !!\n" );
+      }
+#     ifdef SUPPORT_FFTW
+      if ( OPT__OUTPUT_BASEPS )           Output_BasePowerSpectrum( FileName_PS, _TOTAL_DENS );
 #     endif
 #     ifdef PARTICLE
-      if ( OPT__OUTPUT_PAR_TEXT )         Par_Output_TextFile( FileName_Particle );
+      if ( OPT__OUTPUT_PAR_MODE == OUTPUT_PAR_TEXT )  Par_Output_TextFile( FileName_Particle );
+      if ( OPT__OUTPUT_PAR_MODE == OUTPUT_PAR_CBIN )  Par_Output_BinaryFile( FileName_Particle );
 #     endif
 
       Write_DumpRecord();

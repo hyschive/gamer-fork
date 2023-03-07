@@ -2,14 +2,6 @@
 
 #ifdef PARTICLE
 
-#ifndef GRAVITY
-#   error : ERROR : GRAVITY is not defined !!
-#endif
-
-#include "CUPOT.h"
-extern double ExtPot_AuxArray[EXT_POT_NAUX_MAX];
-extern double ExtAcc_AuxArray[EXT_ACC_NAUX_MAX];
-
 
 
 
@@ -27,13 +19,13 @@ extern double ExtAcc_AuxArray[EXT_ACC_NAUX_MAX];
 //                4. For the Euler scheme, this function completes the full update
 //                   --> UpdateStep==PAR_UPSTEP_CORR is meaningless
 //                5. For KDK, particle time is set to -0.5*dt after the K-D operation to indicate that they require
-//                   velocity correction (the last K operation) later. Otherwise particles just cross from fine to coarse
+//                   velocity correction (the last K operation) later. Otherwise particles just crossing from fine to coarse
 //                   grids cannot be distinguished from those already in the coarse grid, while we only want to apply
-//                   velocity correction to the former. After the velocity correction, particle time is set to TimeNew
-//                   For Euler, particle time is set to TimeNew in the PAR_UPSTEP_PRED step
+//                   velocity correction to the former. After the velocity correction, particle time is set to TimeNew.
+//                   For Euler, particle time is set to TimeNew in the PAR_UPSTEP_PRED step.
 //                6. Particle time may not be synchronized (so different particles may have different time).
-//                   --> For example, particles just cross from coarse (lv) to fine (lv+1) grids may have time greater than
-//                       other particles at lv+1. Also, particles just cross from fine (lv) to coarse (lv-1) grids may have
+//                   --> For example, particles just crossing from coarse (lv) to fine (lv+1) grids may have time greater than
+//                       other particles at lv+1. Also, particles just crossing from fine (lv) to coarse (lv-1) grids may have
 //                       time less than other particles at lv-1.
 //                   --> Only update particles with time < TimeNew
 //                7. If STORE_PAR_ACC is on, we can store the acceleration of each particle (option "StoreAcc")
@@ -43,6 +35,7 @@ extern double ExtAcc_AuxArray[EXT_ACC_NAUX_MAX];
 //                   --> Particle position, velocity, and time are not modified at all
 //                   --> Use "TimeNew" to determine the target time
 //                   --> StoreAcc must be on, and UseStoredAcc must be off
+//                9. Does not update any tracer particle, which is done by Par_UpdateTracerParticle()
 //
 // Parameter   :  lv           : Target refinement level
 //                TimeNew      : Target physical time to reach (also used by PAR_UPSTEP_ACC_ONLY)
@@ -57,11 +50,21 @@ void Par_UpdateParticle( const int lv, const double TimeNew, const double TimeOl
                          const bool StoreAcc, const bool UseStoredAcc )
 {
 
+#  ifndef GRAVITY
+   return;
+#  else
+
+// do nothing when enabling OPT__FREEZE_PAR (except for storing particle acceleration)
+   if ( OPT__FREEZE_PAR  &&  UpdateStep != PAR_UPSTEP_ACC_ONLY )     return;
+
    const ParInterp_t IntScheme    = amr->Par->Interp;
+   const bool   UsePot            = ( OPT__SELF_GRAVITY  ||  OPT__EXT_POT );
    const bool   IntPhase_No       = false;
    const bool   DE_Consistency_No = false;
    const real   MinDens_No        = -1.0;
    const real   MinPres_No        = -1.0;
+   const real   MinTemp_No        = -1.0;
+   const real   MinEntr_No        = -1.0;
    const double dh                = amr->dh[lv];
    const double _dh               = 1.0/dh;
    const double PrepPotTime       = ( UpdateStep==PAR_UPSTEP_CORR || UpdateStep==PAR_UPSTEP_ACC_ONLY ) ? TimeNew : TimeOld;
@@ -74,14 +77,17 @@ void Par_UpdateParticle( const int lv, const double TimeNew, const double TimeOl
    const real Const_8             = (real)8.0;
 // const real GraConst            = ( OPT__GRA_P5_GRADIENT ) ? -1.0/(12.0*dh) : -1.0/(2.0*dh); // but P5 is NOT supported yet
    const real GraConst            = ( false                ) ? -1.0/(12.0*dh) : -1.0/(2.0*dh); // but P5 is NOT supported yet
-
-   real *ParPos[3] = { amr->Par->PosX, amr->Par->PosY, amr->Par->PosZ };
-   real *ParVel[3] = { amr->Par->VelX, amr->Par->VelY, amr->Par->VelZ };
-#  ifdef STORE_PAR_ACC
-   real *ParAcc[3] = { amr->Par->AccX, amr->Par->AccY, amr->Par->AccZ };
+#  ifdef COMOVING
+   const real dt_com              = (real)Mis_dTime2dt( TimeOld, TimeNew-TimeOld );
 #  endif
-   real *ParTime   = amr->Par->Time;
 
+   real *ParPos[3]       = { amr->Par->PosX, amr->Par->PosY, amr->Par->PosZ };
+   real *ParVel[3]       = { amr->Par->VelX, amr->Par->VelY, amr->Par->VelZ };
+#  ifdef STORE_PAR_ACC
+   real *ParAcc[3]       = { amr->Par->AccX, amr->Par->AccY, amr->Par->AccZ };
+#  endif
+   real *ParTime         = amr->Par->Time;
+   const real *ParType   = amr->Par->Type;
 
 // determine PotSg for STORE_POT_GHOST
 #  ifdef STORE_POT_GHOST
@@ -89,7 +95,7 @@ void Par_UpdateParticle( const int lv, const double TimeNew, const double TimeOl
    real PotWeighting0, PotWeighting1;
    bool PotIntTime = false;
 
-   if (  ( OPT__GRAVITY_TYPE == GRAVITY_SELF || OPT__GRAVITY_TYPE == GRAVITY_BOTH )  &&  amr->Par->ImproveAcc  )
+   if ( UsePot  &&  amr->Par->ImproveAcc )
    {
       if      (  Mis_CompareRealValue( PrepPotTime, amr->PotSgTime[lv][   amr->PotSg[lv] ], NULL, false )  )
          PotSg =   amr->PotSg[lv];
@@ -116,12 +122,8 @@ void Par_UpdateParticle( const int lv, const double TimeNew, const double TimeOl
 
 
 // check
-#  ifdef COMOVING
-#  error : ERROR : does not support COMOVING because time-step has not been converted to comoving !!
-#  endif
-
 #  ifdef DEBUG_PARTICLE
-// Par->ImproveAcc only works particle interpolation schemes with ParGhost == 1 (CIC & TSC)
+// Par->ImproveAcc only supports particle interpolation schemes with ParGhost == 1 (CIC & TSC)
    if ( amr->Par->ImproveAcc  &&  PotGhost != GRA_GHOST_SIZE )
       Aux_Error( ERROR_INFO, "PotGhost (%d) != GRA_GHOST_SIZE (%d) for amr->Par->ImproveAcc !!\n",
                  PotGhost, GRA_GHOST_SIZE );
@@ -175,27 +177,29 @@ void Par_UpdateParticle( const int lv, const double TimeNew, const double TimeOl
    real *Pot = new real [ 8*CUBE(PotSize) ];    // 8: number of patches per patch group
    real *Acc = new real [ 3*CUBE(AccSize) ];    // 3: three dimension
 
-   real (*Pot3D)[PotSize][PotSize][PotSize] = ( real (*)[PotSize][PotSize][PotSize] )Pot;
-   real (*Acc3D)[AccSize][AccSize][AccSize] = ( real (*)[AccSize][AccSize][AccSize] )Acc;
+   typedef real (*vla_pot)[PotSize][PotSize][PotSize];
+   typedef real (*vla_acc)[AccSize][AccSize][AccSize];
+   vla_pot Pot3D = ( vla_pot )Pot;
+   vla_acc Acc3D = ( vla_acc )Acc;
 
-   bool   GotYou;
-   long   ParID;
-   real   Acc_Temp[3], dt, dt_half;
-   double PhyCorner_ExtAcc[3], PhyCorner_ExtPot[3], x, y, z;
+   bool GotYou;
+   long ParID;
+   real Acc_Temp[3], dt, dt_half;
 
+   long ptype_tracer = (long)PTYPE_TRACER;
 
 // loop over all **real** patch groups
 #  pragma omp for schedule( PAR_OMP_SCHED, PAR_OMP_SCHED_CHUNK )
    for (int PID0=0; PID0<amr->NPatchComma[lv][1]; PID0+=8)
    {
 //    1. find the patch groups with target particles
-//    --> use patch group as the calculation unit since Prepare_PatchData() only work with patch group
+//    --> use patch group as the calculation unit since Prepare_PatchData() only works with patch group
 //    --> disadvantage: some patches may not have particles ... (they will be skipped later)
       GotYou = false;
 
       for (int PID=PID0; PID<PID0+8; PID++)
       {
-         if ( amr->patch[0][lv][PID]->NPar > 0 )
+         if ( amr->patch[0][lv][PID]->NPar - amr->patch[0][lv][PID]->NParType[ptype_tracer] > 0 )
          {
             if ( UpdateStep == PAR_UPSTEP_CORR )
             {
@@ -203,7 +207,7 @@ void Par_UpdateParticle( const int lv, const double TimeNew, const double TimeOl
                {
                   ParID = amr->patch[0][lv][PID]->ParList[p];
 
-                  if ( ParTime[ParID] < (real)0.0 )
+                  if ( ParTime[ParID] < (real)0.0  &&  ParType[ParID] != PTYPE_TRACER )
                   {
                      GotYou = true;
                      break;
@@ -224,15 +228,15 @@ void Par_UpdateParticle( const int lv, const double TimeNew, const double TimeOl
 
 
 //    2. prepare the potential data for the patch group with particles (need NSIDE_26 for ParGhost>0 )
-//    2.1 potential from self-gravity
-      if (  !UseStoredAcc  &&  ( OPT__GRAVITY_TYPE == GRAVITY_SELF || OPT__GRAVITY_TYPE == GRAVITY_BOTH )  )
+      if ( !UseStoredAcc  &&  UsePot )
       {
 #        ifdef STORE_POT_GHOST
          if ( amr->Par->ImproveAcc )
          {
             for (int PID=PID0, P=0; PID<PID0+8; PID++, P++)
             {
-               if ( amr->patch[0][lv][PID]->NPar == 0 )  continue;   // skip patches with no particles
+               if ( amr->patch[0][lv][PID]->NPar - amr->patch[0][lv][PID]->NParType[ptype_tracer] == 0 )
+                  continue;   // skip patches with no massive particles
 
 //             temporal interpolation is required for correcting the velocity of particles just crossing
 //             from fine to coarse grids
@@ -248,40 +252,27 @@ void Par_UpdateParticle( const int lv, const double TimeNew, const double TimeOl
                else
                   memcpy( Pot3D[P], amr->patch[PotSg][lv][PID]->pot_ext, CUBE(PotSize)*sizeof(real) );
             }
-         }
+         } // if ( amr->Par->ImproveAcc )
 
          else
 #        endif // #ifdef STORE_POT_GHOST
-            Prepare_PatchData( lv, PrepPotTime, Pot, PotGhost, 1, &PID0, _POTE,
-                               OPT__GRA_INT_SCHEME, UNIT_PATCH, NSIDE_26, IntPhase_No, OPT__BC_FLU, OPT__BC_POT,
-                               MinDens_No, MinPres_No, DE_Consistency_No );
-      } // if ( OPT__GRAVITY_TYPE == GRAVITY_SELF  ||  OPT__GRAVITY_TYPE == GRAVITY_BOTH )
+            Prepare_PatchData( lv, PrepPotTime, Pot, NULL, PotGhost, 1, &PID0, _POTE, _NONE,
+                               OPT__GRA_INT_SCHEME, INT_NONE, UNIT_PATCH, NSIDE_26, IntPhase_No,
+                               OPT__BC_FLU, OPT__BC_POT, MinDens_No, MinPres_No, MinTemp_No, MinEntr_No, DE_Consistency_No );
+      } // if ( !UseStoredAcc  &&  UsePot )
 
 
       for (int PID=PID0, P=0; PID<PID0+8; PID++, P++)
       {
-         if ( amr->patch[0][lv][PID]->NPar == 0 )  continue;   // skip patches with no particles
+         if ( amr->patch[0][lv][PID]->NPar - amr->patch[0][lv][PID]->NParType[ptype_tracer] == 0 )
+            continue;   // skip patches with no massive particles
 
          if ( !UseStoredAcc )
          {
+            double PhyCorner_ExtAcc[3], x, y, z;
+
             for (int d=0; d<3; d++)
-            {
                PhyCorner_ExtAcc[d] = amr->patch[0][lv][PID]->EdgeL[d] + (0.5-ParGhost)*dh;
-               PhyCorner_ExtPot[d] = amr->patch[0][lv][PID]->EdgeL[d] + (0.5-PotGhost)*dh;
-            }
-
-//          2.2 external potential (currently useful only for ELBDM)
-            if ( OPT__EXTERNAL_POT )
-            {
-               for (int k=0; k<PotSize; k++)    {  z = PhyCorner_ExtPot[2] + (double)k*dh;
-               for (int j=0; j<PotSize; j++)    {  y = PhyCorner_ExtPot[1] + (double)j*dh;
-               for (int i=0; i<PotSize; i++)    {  x = PhyCorner_ExtPot[0] + (double)i*dh;
-
-                  Pot3D[P][k][j][i] += ExternalPot( x, y, z, PrepPotTime, ExtPot_AuxArray );
-
-               }}}
-            }
-
 
 //          3. calculate acceleration on cells
             for (int k=GraGhost_Par, kk=0; k<PotSize-GraGhost_Par; k++, kk++)  {  z = PhyCorner_ExtAcc[2] + (double)kk*dh;
@@ -292,13 +283,12 @@ void Par_UpdateParticle( const int lv, const double TimeNew, const double TimeOl
                Acc_Temp[1] = (real)0.0;
                Acc_Temp[2] = (real)0.0;
 
-//             3.1 external gravity (currently useful only for HYDRO)
-               if ( OPT__GRAVITY_TYPE == GRAVITY_EXTERNAL  ||  OPT__GRAVITY_TYPE == GRAVITY_BOTH )
-                  ExternalAcc( Acc_Temp, x, y, z, PrepPotTime, ExtAcc_AuxArray );
+//             3.1 external acceleration
+               if ( OPT__EXT_ACC )
+                  CPUExtAcc_Ptr( Acc_Temp, x, y, z, PrepPotTime, ExtAcc_AuxArray );
 
-
-//             3.2 self-gravity
-               if ( OPT__GRAVITY_TYPE == GRAVITY_SELF  ||  OPT__GRAVITY_TYPE == GRAVITY_BOTH )
+//             3.2 self-gravity and external potential
+               if ( UsePot )
                {
 //                OPT__GRA_P5_GRADIENT is not supported yet
 //                if ( OPT__GRA_P5_GRADIENT )
@@ -318,7 +308,7 @@ void Par_UpdateParticle( const int lv, const double TimeNew, const double TimeOl
                      Acc_Temp[1] += GraConst * ( Pot3D[P][k  ][j+1][i  ] - Pot3D[P][k  ][j-1][i  ] );
                      Acc_Temp[2] += GraConst * ( Pot3D[P][k+1][j  ][i  ] - Pot3D[P][k-1][j  ][i  ] );
                   }
-               }
+               } // if ( UsePot )
 
                for (int d=0; d<3; d++)    Acc3D[d][kk][jj][ii] = Acc_Temp[d];
 
@@ -330,13 +320,25 @@ void Par_UpdateParticle( const int lv, const double TimeNew, const double TimeOl
          {
             ParID = amr->patch[0][lv][PID]->ParList[p];
 
-//          determine time-step and skip particles with zero or negative time-step
+//          skip tracer particles
+            if ( ParType[ParID] == PTYPE_TRACER )
+               continue;
+
+//          4. determine time-step and skip particles with zero or negative time-step
             if ( UpdateStep == PAR_UPSTEP_PRED )
             {
 //             it's crucial to first calculate dt here and skip particles with dt <= (real)0.0 (including the equal sign)
 //             since later on we select particles with negative particle time (which has been set to -dt), with equal sign
 //             excluded, for the velocity correction
+//             --> particles just crossing from coarse to fine grids can have ParTime[ParID] >= TimeNew
                dt      = (real)TimeNew - ParTime[ParID];
+
+//             convert time-step for comoving
+#              ifdef COMOVING
+               if ( ParTime[ParID] == (real)TimeOld )    dt = dt_com;   // avoid redundant calculations
+               else                                      dt = Mis_dTime2dt( ParTime[ParID], dt );
+#              endif
+
                dt_half = (real)0.5*dt;
 
                if ( dt <= (real)0.0 )  continue;
@@ -358,10 +360,10 @@ void Par_UpdateParticle( const int lv, const double TimeNew, const double TimeOl
             }
 
 
-//          4. calculate acceleration at the particle position
+//          5. calculate acceleration at the particle position
             switch ( IntScheme ) {
 
-//          4.1 NGP
+//          5.1 NGP
             case ( PAR_INTERP_NGP ):
             {
                int idx[3];
@@ -414,7 +416,7 @@ void Par_UpdateParticle( const int lv, const double TimeNew, const double TimeOl
             break;
 
 
-//          4.2 CIC
+//          5.2 CIC
             case ( PAR_INTERP_CIC ):
             {
                int    idxLR[2][3];     // array index of the left (idxLR[0][d]) and right (idxLR[1][d]) cells
@@ -430,7 +432,7 @@ void Par_UpdateParticle( const int lv, const double TimeNew, const double TimeOl
                   idxLR[1][d] = idxLR[0][d] + 1;
 
 //                prevent from round-off errors
-//                (CIC should be clear off this issue unless round-off erros are comparable to dh)
+//                (CIC should be clear of this issue unless round-off errors are comparable to dh)
                   if ( idxLR[0][d] < 0 )
                   {
 #                    ifdef DEBUG_PARTICLE
@@ -487,7 +489,7 @@ void Par_UpdateParticle( const int lv, const double TimeNew, const double TimeOl
             break;
 
 
-//          4.3 TSC
+//          5.3 TSC
             case ( PAR_INTERP_TSC ):
             {
                int    idxLCR[3][3];    // array index of the left/central/right cells (idxLCR[0/1/2][d])
@@ -567,12 +569,12 @@ void Par_UpdateParticle( const int lv, const double TimeNew, const double TimeOl
             } // switch ( IntScheme )
 
 
-//          5. update particles
-//          5.0 nothing to do if we only want to store particle acceleration
+//          6. update particles
+//          6.0 nothing to do if we only want to store particle acceleration
             if ( UpdateStep == PAR_UPSTEP_ACC_ONLY )     continue;
 
 
-//          5.1 Euler method
+//          6.1 Euler method
             else if ( amr->Par->Integ == PAR_INTEG_EULER )
             {
                for (int d=0; d<3; d++)
@@ -585,10 +587,10 @@ void Par_UpdateParticle( const int lv, const double TimeNew, const double TimeOl
             }
 
 
-//          5.2 KDK scheme
+//          6.2 KDK scheme
             else if ( amr->Par->Integ == PAR_INTEG_KDK )
             {
-//             5.2.1 KDK prediction
+//             6.2.1 KDK prediction
                if ( UpdateStep == PAR_UPSTEP_PRED )
                {
                   for (int d=0; d<3; d++)
@@ -600,7 +602,7 @@ void Par_UpdateParticle( const int lv, const double TimeNew, const double TimeOl
                   ParTime[ParID] = -dt_half;   // negative --> indicating that it requires velocity correction
                }
 
-//             5.2.2 KDK correction for velocity
+//             6.2.2 KDK correction for velocity
                else // UpdateStep == PAR_UPSTEP_CORR
                {
                   for (int d=0; d<3; d++)
@@ -613,11 +615,13 @@ void Par_UpdateParticle( const int lv, const double TimeNew, const double TimeOl
       } // for (int PID=PID0, P=0; PID<PID0+8; PID++, P++)
    } // for (int PID0=0; PID0<amr->NPatchComma[lv][1]; PID0+=8)
 
-// 6. free memory
+// 7. free memory
    delete [] Pot;
    delete [] Acc;
 
    } // end of OpenMP parallel region
+
+#  endif // #ifndef GRAVITY
 
 } // FUNCTION : Par_UpdateParticle
 

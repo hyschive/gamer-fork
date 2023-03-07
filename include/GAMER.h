@@ -25,7 +25,7 @@
 #  include <omp.h>
 #endif
 
-#ifdef GRAVITY
+#ifdef SUPPORT_FFTW
 #  ifdef FLOAT8
 #     ifdef SERIAL
 #        include <drfftw.h>
@@ -62,10 +62,15 @@ extern "C" {
 #include "AMR.h"
 #include "Timer.h"
 #include "RandomNumber.h"
+#include "Profile.h"
+#include "Extrema.h"
+#include "SrcTerms.h"
+#include "EoS.h"
 #include "Global.h"
 #include "Field.h"
 #include "Prototype.h"
 #include "PhysicalConstant.h"
+#include "GatherTree.h"
 
 #ifdef SERIAL
 #  include "Serial.h"

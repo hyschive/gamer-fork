@@ -12,12 +12,12 @@ extern real TwoParOrbit_M;
 
 
 //-------------------------------------------------------------------------------------------------------
-// Function    :  Init_ExternalAcc 
+// Function    :  Init_ExternalAcc
 // Description :  Initialize the external potential routines "CUPOT_ExternalAcc.cu / CPU_ExternalAcc.cpp"
 //
-// Note        :  Fill in the array "ExtAcc_AuxArray" here 
+// Note        :  Fill in the array "ExtAcc_AuxArray" here
 //
-// Parameter   :  None 
+// Parameter   :  None
 //-------------------------------------------------------------------------------------------------------
 void Init_ExternalAcc()
 {
@@ -25,7 +25,7 @@ void Init_ExternalAcc()
    if ( MPI_Rank == 0 )    Aux_Message( stdout, "%s ...\n", __FUNCTION__ );
 
 
-// ExtAcc_AuxArray has the size of EXT_ACC_NAUX_MAX defined in CUPOT.h (default = 10)
+// ExtAcc_AuxArray has the size of EXT_ACC_NAUX_MAX defined in Macro.h (default = 20)
    ExtAcc_AuxArray[0] = (real)0.5*amr->BoxSize[0];
    ExtAcc_AuxArray[1] = (real)0.5*amr->BoxSize[1];
    ExtAcc_AuxArray[2] = (real)0.5*amr->BoxSize[2];

@@ -40,8 +40,8 @@ void Aux_Check_PatchAllocate( const int lv, const char *comment )
    int    NTot  = amr->NPatchComma[lv][27];
    int    NBuff = NTot - NReal;
    int    Pass  = true;
-   int    Cr_Padded[3], NReal_Tot=-1, NBuff_Tot=-1; 
-   int   *NReal_Each=NULL, *NReal_Disp=NULL, *NBuff_Each=NULL, *NBuff_Disp=NULL; 
+   int    Cr_Padded[3], NReal_Tot=-1, NBuff_Tot=-1;
+   int   *NReal_Each=NULL, *NReal_Disp=NULL, *NBuff_Each=NULL, *NBuff_Disp=NULL;
    ulong *Cr1D_Real=NULL, *Cr1D_Buff=NULL;
    char  *Match=NULL;
    ulong *Cr1D      = new ulong [ NReal+NBuff ];
@@ -67,11 +67,11 @@ void Aux_Check_PatchAllocate( const int lv, const char *comment )
       {
          for (int PID=0; PID<NTot; PID++)
          {
-            for (int d=0; d<3; d++)    
+            for (int d=0; d<3; d++)
             {
                Cr_Padded[d] = amr->patch[0][lv][PID]->corner[d] + PGScale;
 
-//             check 1 
+//             check 1
                if ( PID < NReal  ||  OPT__BC_FLU[2*d] != BC_FLU_PERIODIC )    // real patches or non-periodic B.C
                {
                   if ( Cr_Padded[d] < PGScale  ||  Cr_Padded[d] > BoxScale_Padded[d]-PGScale-PScale )
@@ -128,8 +128,10 @@ void Aux_Check_PatchAllocate( const int lv, const char *comment )
                {
                   for (int d=0; d<3; d++)
                   {
-                     if (    amr->patch[0][lv][   PID]->corner[d] + TABLE_01( s, 'x'+d, -PScale, 0, PScale )
-                          != amr->patch[0][lv][SibPID]->corner[d]  )
+                     int corner_ck = amr->patch[0][lv][PID]->corner[d] + TABLE_01( s, 'x'+d, -PScale, 0, PScale );
+                         corner_ck = ( corner_ck + amr->BoxScale[d] ) % amr->BoxScale[d];    // take care of periodic BC
+
+                     if ( corner_ck != amr->patch[0][lv][SibPID]->corner[d] )
                      {
                         if ( Pass )
                         {
@@ -152,7 +154,7 @@ void Aux_Check_PatchAllocate( const int lv, const char *comment )
          } // for (int PID=0; PID<NTot; PID++)
 
 
-//       check 3         
+//       check 3
          memcpy( Cr1D_Sort, Cr1D, NTot*sizeof(ulong) );
          Mis_Heapsort( NTot, Cr1D_Sort, NULL );
          for (int t=0; t<NTot-1; t++)
@@ -213,7 +215,7 @@ void Aux_Check_PatchAllocate( const int lv, const char *comment )
       Cr1D_Buff = new ulong [NBuff_Tot];
       Match     = new  char [NBuff_Tot];
    }
-   
+
 #  ifndef SERIAL
    MPI_Gatherv( Cr1D,       NReal, MPI_UNSIGNED_LONG, Cr1D_Real, NReal_Each, NReal_Disp, MPI_UNSIGNED_LONG, 0, MPI_COMM_WORLD );
    MPI_Gatherv( Cr1D+NReal, NBuff, MPI_UNSIGNED_LONG, Cr1D_Buff, NBuff_Each, NBuff_Disp, MPI_UNSIGNED_LONG, 0, MPI_COMM_WORLD );
@@ -225,7 +227,7 @@ void Aux_Check_PatchAllocate( const int lv, const char *comment )
 
    if ( MPI_Rank == 0 )
    {
-//    apply periodic boundary condition for the external buffer patches     
+//    apply periodic boundary condition for the external buffer patches
       if ( OPT__BC_FLU[0] == BC_FLU_PERIODIC  ||  OPT__BC_FLU[2] == BC_FLU_PERIODIC  ||  OPT__BC_FLU[4] == BC_FLU_PERIODIC )
       for (int t=0; t<NBuff_Tot; t++)
       {
@@ -244,12 +246,12 @@ void Aux_Check_PatchAllocate( const int lv, const char *comment )
       }
 
 
-//    sort all real and buffer patches   
+//    sort all real and buffer patches
       Mis_Heapsort( NReal_Tot, Cr1D_Real, NULL );
       Mis_Heapsort( NBuff_Tot, Cr1D_Buff, NULL );
 
 
-//    check 4      
+//    check 4
       for (int t=0; t<NReal_Tot-1; t++)
       {
          if ( Cr1D_Real[t] == Cr1D_Real[t+1] )
@@ -266,7 +268,7 @@ void Aux_Check_PatchAllocate( const int lv, const char *comment )
       }
 
 
-//    check 5      
+//    check 5
       Mis_Matching_char( NReal_Tot, Cr1D_Real, NBuff_Tot, Cr1D_Buff, Match );
 
       for (int t=0; t<NBuff_Tot; t++)
@@ -288,8 +290,8 @@ void Aux_Check_PatchAllocate( const int lv, const char *comment )
 
    if ( Pass )
    {
-      if ( MPI_Rank == 0 )    
-         Aux_Message( stdout, "\"%s\" : <%s> PASSED at level %2d, Time = %13.7e, Step = %ld\n", 
+      if ( MPI_Rank == 0 )
+         Aux_Message( stdout, "\"%s\" : <%s> PASSED at level %2d, Time = %13.7e, Step = %ld\n",
                       comment, __FUNCTION__, lv, Time[lv], Step );
    }
    else

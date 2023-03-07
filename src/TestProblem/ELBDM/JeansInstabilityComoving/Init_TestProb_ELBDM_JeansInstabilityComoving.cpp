@@ -36,6 +36,9 @@ inline double Jeans_ImagAmp( const double ImagAmp0, const double y )
 }
 // =======================================================================================
 
+static void OutputError();
+
+
 
 
 //-------------------------------------------------------------------------------------------------------
@@ -254,7 +257,7 @@ void OutputError()
    const char Prefix[100]     = "JeansInstabilityComoving";
    const OptOutputPart_t Part = OUTPUT_DIAG;
 
-   Output_L1Error( SetGridIC, Prefix, Part, NULL_REAL, NULL_REAL, NULL_REAL );
+   Output_L1Error( SetGridIC, NULL, Prefix, Part, NULL_REAL, NULL_REAL, NULL_REAL );
 
 } // FUNCTION : OutputError
 #endif // #if ( MODEL == ELBDM  &&  defined GRAVITY  &&  defined COMOVING )
@@ -286,16 +289,8 @@ void Init_TestProb_ELBDM_JeansInstabilityComoving()
    SetParameter();
 
 
-   Init_Function_User_Ptr   = SetGridIC;
-   Flag_User_Ptr            = NULL;
-   Mis_GetTimeStep_User_Ptr = NULL;
-   BC_User_Ptr              = NULL;
-   Flu_ResetByUser_Func_Ptr = NULL;
-   Output_User_Ptr          = OutputError;
-   Aux_Record_User_Ptr      = NULL;
-   End_User_Ptr             = NULL;
-   Init_ExternalAcc_Ptr     = NULL;
-   Init_ExternalPot_Ptr     = NULL;
+   Init_Function_User_Ptr = SetGridIC;
+   Output_User_Ptr        = OutputError;
 #  endif // #if ( MODEL == ELBDM  &&  defined GRAVITY  &&  defined COMOVING )
 
 

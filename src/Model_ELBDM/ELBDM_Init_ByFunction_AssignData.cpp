@@ -3,30 +3,30 @@
 #if ( MODEL == ELBDM )
 
 // declare as static so that other functions cannot invoke it directly and must use the function pointer
-static void Init_Function_User( real fluid[], const double x, const double y, const double z, const double Time,
-                                const int lv, double AuxArray[] );
-
-// this function pointer may be overwritten by various test problem initializers
-void (*Init_Function_User_Ptr)( real fluid[], const double x, const double y, const double z, const double Time,
-                                const int lv, double AuxArray[] ) = Init_Function_User;
-
-extern bool (*Flu_ResetByUser_Func_Ptr)( real fluid[], const double x, const double y, const double z, const double Time,
+static void Init_Function_User_Template( real fluid[], const double x, const double y, const double z, const double Time,
                                          const int lv, double AuxArray[] );
+
+// this function pointer must be set by a test problem initializer
+void (*Init_Function_User_Ptr)( real fluid[], const double x, const double y, const double z, const double Time,
+                                const int lv, double AuxArray[] ) = NULL;
+
+extern int (*Flu_ResetByUser_Func_Ptr)( real fluid[], const double x, const double y, const double z, const double Time,
+                                        const int lv, double AuxArray[] );
 
 
 
 
 //-------------------------------------------------------------------------------------------------------
-// Function    :  Init_Function_User
-// Description :  Function to initialize the scalar field
+// Function    :  Init_Function_User_Template
+// Description :  Function template to initialize the ELBDM field
 //
-// Note        :  1. Invoked by "ELBDM_Init_StartOver_AssignData" using the function pointer "Init_Function_User_Ptr"
-//                   --> The function pointer may be reset by various test problem initializers, in which case
-//                       this funtion will become useless
+// Note        :  1. Invoked by ELBDM_Init_ByFunction_AssignData() using the function pointer
+//                   "Init_Function_User_Ptr", which must be set by a test problem initializer
 //                2. This function will be invoked by multiple OpenMP threads when OPENMP is enabled
+//                   (unless OPT__INIT_GRID_WITH_OMP is disabled)
 //                   --> Please ensure that everything here is thread-safe
 //
-// Parameter   :  fluid    : Scalar field array to be initialized
+// Parameter   :  fluid    : ELBDM field array to be initialized
 //                x/y/z    : Target physical coordinates
 //                Time     : Target physical time
 //                lv       : Target refinement level
@@ -34,8 +34,8 @@ extern bool (*Flu_ResetByUser_Func_Ptr)( real fluid[], const double x, const dou
 //
 // Return      :  fluid
 //-------------------------------------------------------------------------------------------------------
-void Init_Function_User( real fluid[], const double x, const double y, const double z, const double Time,
-                         const int lv, double AuxArray[] )
+void Init_Function_User_Template( real fluid[], const double x, const double y, const double z, const double Time,
+                                  const int lv, double AuxArray[] )
 {
 
    const double C1[3]   = { 0.5*amr->BoxSize[0]+100.0,
@@ -53,7 +53,7 @@ void Init_Function_User( real fluid[], const double x, const double y, const dou
 
 // ELBDM does not support passive scalars yet ...
 
-} // FUNCTION : Init_Function_User
+} // FUNCTION : Init_Function_User_Template
 
 
 
@@ -61,15 +61,13 @@ void Init_Function_User( real fluid[], const double x, const double y, const dou
 // Function    :  ELBDM_Init_ByFunction_AssignData
 // Description :  Construct the initial condition in ELBDM
 //
-// Note        :  1. Work for the option "OPT__INIT == INIT_STARTOVER"
-//                2. The function pointer "Init_Function_User_Ptr" points to "Init_Function_User()" by default
-//                   but may be overwritten by various test problem initializers
-//                3. The function pointer "Flu_ResetByUser_Func_Ptr" points to "Flu_ResetByUser_Func()" by default
-//                   but may be overwritten by various test problem initializers
-//                4. One can disable OpenMP in this routine by setting OPT__INIT_GRID_WITH_OMP = 0
-//                   --> Useful when Init_Function_User_Ptr() does not support OpenMP parallelization
-//                       (e.g., it may not be thread-safe or may involve a random number generator for which
-//                       all threads would share the same random seed if OpenMP is not disabled)
+// Note        :  1. Work for the option "OPT__INIT == INIT_BY_FUNCTION"
+//                2. Function pointers "Init_Function_User_Ptr/Flu_ResetByUser_Func_Ptr" must be set by a
+//                   test problem initializer
+//                3. One can disable OpenMP in this routine by setting OPT__INIT_GRID_WITH_OMP = 0
+//                   --> Useful if "Init_Function_User_Ptr/Flu_ResetByUser_Func_Ptr" do not support OpenMP
+//                       (e.g., they may not be thread-safe or may involve a random number generator for which
+//                       all threads would share the same random seed when adopting OpenMP)
 //
 // Parameter   :  lv : Target refinement level
 //-------------------------------------------------------------------------------------------------------
@@ -78,6 +76,9 @@ void ELBDM_Init_ByFunction_AssignData( const int lv )
 
 // check
    if ( Init_Function_User_Ptr == NULL )  Aux_Error( ERROR_INFO, "Init_Function_User_Ptr == NULL !!\n" );
+
+   if ( OPT__RESET_FLUID_INIT  &&  Flu_ResetByUser_Func_Ptr == NULL )
+      Aux_Error( ERROR_INFO, "Flu_ResetByUser_Func_Ptr == NULL for OPT__RESET_FLUID_INIT !!\n" );
 
 
 // set the number of OpenMP threads
@@ -110,7 +111,7 @@ void ELBDM_Init_ByFunction_AssignData( const int lv )
          Init_Function_User_Ptr( fluid_sub, x, y, z, Time[lv], lv, NULL );
 
 //       modify the initial condition if required
-         if ( OPT__RESET_FLUID  &&  Flu_ResetByUser_Func_Ptr != NULL )
+         if ( OPT__RESET_FLUID_INIT )
             Flu_ResetByUser_Func_Ptr( fluid_sub, x, y, z, Time[lv], lv, NULL );
 
          for (int v=0; v<NCOMP_TOTAL; v++)   fluid[v] += fluid_sub[v];
@@ -133,12 +134,14 @@ void ELBDM_Init_ByFunction_AssignData( const int lv )
       }
 
 //    floor and normalize passive scalars (actually passive scalars are NOT supported by ELBDM yet)
+      /*
 #     if ( NCOMP_PASSIVE > 0 )
       for (int v=NCOMP_FLUID; v<NCOMP_TOTAL; v++)  fluid[v] = FMAX( fluid[v], TINY_NUMBER );
 
       if ( OPT__NORMALIZE_PASSIVE )
-         CPU_NormalizePassive( fluid[DENS], fluid+NCOMP_FLUID, PassiveNorm_NVar, PassiveNorm_VarIdx );
+         Hydro_NormalizePassive( fluid[DENS], fluid+NCOMP_FLUID, PassiveNorm_NVar, PassiveNorm_VarIdx );
 #     endif
+      */
 
       for (int v=0; v<NCOMP_TOTAL; v++)   amr->patch[ amr->FluSg[lv] ][lv][PID]->fluid[v][k][j][i] = fluid[v];
 

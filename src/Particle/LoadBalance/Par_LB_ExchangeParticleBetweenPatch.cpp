@@ -16,8 +16,8 @@
 //                2. All Target patches (those in Send_PIDList[] and Recv_PIDList[]) must be patches at the same level "lv"
 //                3. Currently this function exchanges ALL particle attributes
 //                   --> But it can be generalized to work with arbitrary particle attributes
-//                4. This function is called by Par_PassParticle2Sibling(), Par_PassParticle2Son_AllPatch(),
-//                   Par_LB_Refine_SendParticle2Son(), and Par_LB_Refine_SendParticle2Father()
+//                4. This function is called by Par_PassParticle2Sibling(), Par_PassParticle2Son_MultiPatch(),
+//                   and Par_LB_Refine_SendParticle2Father()
 //
 // Parameter   :  lv                  : Target refinement level
 //                Send_NPatchTotal    : Total number of patches in Send_PIDList
@@ -26,8 +26,8 @@
 //                Recv_NPatchTotal    : Total number of patches in Recv_PIDList
 //                Recv_PIDList        : Patch indices to receive particles
 //                Recv_NPatchEachRank : Number of patches to receive particles from each rank
-//                Timer               : Timer used by "Par_LB_SendParticleData"
-//                Timer_Comment       : String used by "Par_LB_SendParticleData"
+//                Timer               : Timer used by Par_LB_SendParticleData()
+//                Timer_Comment       : String used by Par_LB_SendParticleData()
 //
 // Return      :  New particles will be added to the particle repository of this rank and linked to the
 //                target recv patches
@@ -84,9 +84,9 @@ void Par_LB_ExchangeParticleBetweenPatch( const int lv,
       if ( amr->patch[0][lv][PID]->NPar_Copy != -1 )
          Aux_Error( ERROR_INFO, "lv %d, PID %d, NPar_Copy = %d != -1 !!\n", lv, PID, amr->patch[0][lv][PID]->NPar_Copy );
 
-      for (int v=0; v<4; v++)
-      if ( amr->patch[0][lv][PID]->ParMassPos_Copy[v] != NULL )
-         Aux_Error( ERROR_INFO, "lv %d, PID %d, NPar_Copy = %d, ParMassPos_Copy[%d] != NULL !!\n",
+      for (int v=0; v<PAR_NATT_TOTAL; v++)
+      if ( amr->patch[0][lv][PID]->ParAtt_Copy[v] != NULL )
+         Aux_Error( ERROR_INFO, "lv %d, PID %d, NPar_Copy = %d, ParAtt_Copy[%d] != NULL !!\n",
                     lv, PID, amr->patch[0][lv][PID]->NPar_Copy, v );
    } // for m, t
 
@@ -173,7 +173,9 @@ void Par_LB_ExchangeParticleBetweenPatch( const int lv,
       }
 
 //    2-3. remove all particles in this send patch
-      amr->patch[0][lv][PID]->RemoveParticle( NULL_INT, NULL, &amr->Par->NPar_Lv[lv], RemoveAllPar_Yes );
+      const real *PType = amr->Par->Type;
+      amr->patch[0][lv][PID]->RemoveParticle( NULL_INT, NULL, &amr->Par->NPar_Lv[lv],
+                                              RemoveAllPar_Yes, PType );
    } // for (int t=0; t<Send_NPatchTotal; t++)
 
 
@@ -185,8 +187,8 @@ void Par_LB_ExchangeParticleBetweenPatch( const int lv,
    int  *SendBuf_NPatchEachRank   = Send_NPatchEachRank;
    int  *RecvBuf_NPatchEachRank   = Recv_NPatchEachRank;
    int  *RecvBuf_NParEachPatch    = NULL;    // will be allocated by Par_LB_SendParticleData and must be free'd later
-   real *RecvBuf_ParDataEachPatch = NULL;   // a pointer to the MPI recv buffer declared in LB_GetBufferData
-                                            // --> don't have to be free'd here
+   real *RecvBuf_ParDataEachPatch = NULL;    // a pointer to the MPI recv buffer declared in LB_GetBufferData
+                                             // --> don't have to be free'd here
 
    long *SendBuf_LBIdxEachRank    = NULL;    // useless and does not need to be allocated
    long *RecvBuf_LBIdxEachRank    = NULL;    // useless and will not be allocated by Par_LB_SendParticleData
@@ -248,6 +250,7 @@ void Par_LB_ExchangeParticleBetweenPatch( const int lv,
 //    4-3. add particles to the recv patch
       PID = Recv_PIDList[t];
 
+      const real *PType = amr->Par->Type;
 #     ifdef DEBUG_PARTICLE
 //    do not set ParPos too early since pointers to the particle repository (e.g., amr->Par->PosX)
 //    may change after calling amr->Par->AddOneParticle
@@ -256,9 +259,10 @@ void Par_LB_ExchangeParticleBetweenPatch( const int lv,
       sprintf( Comment, "%s", __FUNCTION__ );
 
       amr->patch[0][lv][PID]->AddParticle( NParThisPatch, NewParIDList, &amr->Par->NPar_Lv[lv],
-                                           ParPos, amr->Par->NPar_AcPlusInac, Comment );
+                                           PType, ParPos, amr->Par->NPar_AcPlusInac, Comment );
 #     else
-      amr->patch[0][lv][PID]->AddParticle( NParThisPatch, NewParIDList, &amr->Par->NPar_Lv[lv] );
+      amr->patch[0][lv][PID]->AddParticle( NParThisPatch, NewParIDList, &amr->Par->NPar_Lv[lv],
+                                           PType );
 #     endif
    } // for (int t=0; t<Recv_NPatchTotal; t++)
 

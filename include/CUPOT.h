@@ -43,10 +43,6 @@
 // ####################
 #if   ( POT_SCHEME == SOR )
 
-// determine the version of the GPU Poisson solver (10to14cube vs. 16to18cube)
-#define USE_PSOLVER_10TO14
-
-
 // blockDim.z for the GPU Poisson solver
 #if   ( POT_GHOST_SIZE == 1 )
 #        define POT_BLOCK_SIZE_Z      4
@@ -55,58 +51,60 @@
 #elif ( POT_GHOST_SIZE == 3 )
 #        define POT_BLOCK_SIZE_Z      2
 #elif ( POT_GHOST_SIZE == 4 )
-#  ifdef USE_PSOLVER_10TO14
 #        define POT_BLOCK_SIZE_Z      5
-#  else
-#        define POT_BLOCK_SIZE_Z      1
-#  endif
 #elif ( POT_GHOST_SIZE == 5 )
-#  ifdef USE_PSOLVER_10TO14
-#     if   ( GPU_ARCH == FERMI )
-#        ifdef FLOAT8
+#  if   ( GPU_ARCH == FERMI )
+#     ifdef FLOAT8
 #        define POT_BLOCK_SIZE_Z      2
-#        else
-#        define POT_BLOCK_SIZE_Z      4
-#        endif
-#     elif ( GPU_ARCH == KEPLER )
-#        ifdef FLOAT8
-#        define POT_BLOCK_SIZE_Z      2
-#        else
-#        define POT_BLOCK_SIZE_Z      8
-#        endif
-#     elif ( GPU_ARCH == MAXWELL )
-#        ifdef FLOAT8
-#        define POT_BLOCK_SIZE_Z      2      // not optimized yet
-#        else
-#        define POT_BLOCK_SIZE_Z      4      // not optimized yet
-#        endif
-#     elif ( GPU_ARCH == PASCAL )
-#        ifdef FLOAT8
-#        define POT_BLOCK_SIZE_Z      2      // not optimized yet
-#        else
-#        define POT_BLOCK_SIZE_Z      4      // not optimized yet
-#        endif
-#     elif ( GPU_ARCH == VOLTA )
-#        ifdef FLOAT8
-#        define POT_BLOCK_SIZE_Z      2      // not optimized yet
-#        else
-#        define POT_BLOCK_SIZE_Z      4      // not optimized yet
-#        endif
 #     else
-#        define POT_BLOCK_SIZE_Z      NULL_INT
-#        ifdef GPU
-#        error : UNKNOWN GPU_ARCH !!
-#        endif
-#     endif // GPU_ARCH
+#        define POT_BLOCK_SIZE_Z      4
+#     endif
+#  elif ( GPU_ARCH == KEPLER )
+#     ifdef FLOAT8
+#        define POT_BLOCK_SIZE_Z      2
+#     else
+#        define POT_BLOCK_SIZE_Z      8
+#     endif
+#  elif ( GPU_ARCH == MAXWELL )
+#     ifdef FLOAT8
+#        define POT_BLOCK_SIZE_Z      2      // not optimized yet
+#     else
+#        define POT_BLOCK_SIZE_Z      4      // not optimized yet
+#     endif
+#  elif ( GPU_ARCH == PASCAL )
+#     ifdef FLOAT8
+#        define POT_BLOCK_SIZE_Z      2      // not optimized yet
+#     else
+#        define POT_BLOCK_SIZE_Z      4      // not optimized yet
+#     endif
+#  elif ( GPU_ARCH == VOLTA )
+#     ifdef FLOAT8
+#        define POT_BLOCK_SIZE_Z      2      // not optimized yet
+#     else
+#        define POT_BLOCK_SIZE_Z      4      // not optimized yet
+#     endif
+#  elif ( GPU_ARCH == TURING )
+#     ifdef FLOAT8
+#        define POT_BLOCK_SIZE_Z      2      // not optimized yet
+#     else
+#        define POT_BLOCK_SIZE_Z      4      // not optimized yet
+#     endif
+#  elif ( GPU_ARCH == AMPERE )
+#     ifdef FLOAT8
+#        define POT_BLOCK_SIZE_Z      2      // not optimized yet
+#     else
+#        define POT_BLOCK_SIZE_Z      4      // not optimized yet
+#     endif
 #  else
-#        define POT_BLOCK_SIZE_Z      1
-#  endif // #ifdef USE_PSOLVER_10TO14 ... else ...
+#        define POT_BLOCK_SIZE_Z      NULL_INT
+#     ifdef GPU
+#        error : UNKNOWN GPU_ARCH !!
+#     endif
+#  endif // GPU_ARCH
 #endif // POT_GHOST_SIZE
 
 
-// optimization options for CUPOT_PoissonSolver_SOR_10to14cube.cu
-#ifdef USE_PSOLVER_10TO14
-
+// optimization options for CUPOT_PoissonSolver_SOR.cu
 // load density into shared memory for higher performance
 #  ifndef FLOAT8
 #     define SOR_RHO_SHARED
@@ -115,9 +113,10 @@
 #  if ( POT_GHOST_SIZE == 5 )
 // use shuffle reduction
 // --> only work for POT_GHOST_SIZE == 5 since # threads must be a multiple of warpSize
-// --> although strickly speaking the shuffle functions do NOT work for double precision, but experiments
+// --> although strictly speaking the shuffle functions do NOT work for double precision, but experiments
 //     show that residual_sum += (float)residual, where residual_sum is double, gives acceptable accuracy
-#  if ( GPU_ARCH == KEPLER  ||  GPU_ARCH == MAXWELL  ||  GPU_ARCH == PASCAL  ||  GPU_ARCH == VOLTA )
+#  if ( GPU_ARCH == KEPLER  ||  GPU_ARCH == MAXWELL  ||  GPU_ARCH == PASCAL  ||  GPU_ARCH == VOLTA  ||  \
+        GPU_ARCH == TURING  ||  GPU_ARCH == AMPERE )
 #     define SOR_USE_SHUFFLE
 #  endif
 
@@ -136,8 +135,6 @@
 #  if ( !defined FLOAT8  &&  !defined SOR_USE_PADDING  &&  GPU_ARCH != KEPLER )
 #     define SOR_CPOT_SHARED
 #  endif
-
-#endif // #ifdef USE_PSOLVER_10TO14
 
 
 
@@ -162,7 +159,12 @@
 #endif // POT_SCHEME
 
 
-// blockDim.z for the GPU Gravity solver
+
+// blockDim.x for the GPU external potential solver
+#define EXTPOT_BLOCK_SIZE           256
+
+
+// blockDim.x for the GPU Gravity solver
 #define GRA_BLOCK_SIZE              256
 
 
@@ -170,21 +172,18 @@
 #define DT_GRA_BLOCK_SIZE           256
 
 // use shuffle reduction in the KEPLER and later GPUs
-#if ( GPU_ARCH == KEPLER  ||  GPU_ARCH == MAXWELL  ||  GPU_ARCH == PASCAL  ||  GPU_ARCH == VOLTA )
+#if ( GPU_ARCH == KEPLER  ||  GPU_ARCH == MAXWELL  ||  GPU_ARCH == PASCAL  ||  GPU_ARCH == VOLTA  ||  \
+      GPU_ARCH == TURING  ||  GPU_ARCH == AMPERE )
 #   define DT_GRA_USE_SHUFFLE
 #endif
-
-
-// maximum size of the arrays ExtPot_AuxArray and ExtAcc_AuxArray
-#define EXT_POT_NAUX_MAX            10
-#define EXT_ACC_NAUX_MAX            10
 
 
 // warp size (which must be the same as the CUDA predefined constant "warpSize")
 // --> please refer to https://en.wikipedia.org/wiki/CUDA#Version_features_and_specifications
 //     for information on warp size
 #ifdef __CUDACC__
-#if ( GPU_ARCH == FERMI  ||  GPU_ARCH == KEPLER  ||  GPU_ARCH == MAXWELL  ||  GPU_ARCH == PASCAL  ||  GPU_ARCH == VOLTA )
+#if ( GPU_ARCH == FERMI  ||  GPU_ARCH == KEPLER  ||  GPU_ARCH == MAXWELL  ||  GPU_ARCH == PASCAL  ||  GPU_ARCH == VOLTA  ||  \
+      GPU_ARCH == TURING  ||  GPU_ARCH == AMPERE )
 // CUFLU.h will define WARP_SIZE as well
 #  ifndef WARP_SIZE
 #  define WARP_SIZE 32
@@ -202,9 +201,11 @@
 
 // GPU device function specifier
 #ifdef __CUDACC__
-# define GPU_DEVICE __forceinline__ __device__
+# define GPU_DEVICE          __forceinline__ __device__
+# define GPU_DEVICE_NOINLINE    __noinline__ __device__
 #else
 # define GPU_DEVICE
+# define GPU_DEVICE_NOINLINE
 #endif
 
 // unified CPU/GPU loop

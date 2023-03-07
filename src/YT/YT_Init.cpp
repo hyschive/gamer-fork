@@ -9,7 +9,7 @@
 // Function    :  YT_Init
 // Description :  Initialize the yt inline analysis
 //
-// Note        :  1. This function must be invoked once and only once during the entire simulation 
+// Note        :  1. This function must be invoked once and only once during the entire simulation
 //
 // Parameter   :  argc : Argument count
 //                argv : Argument vector
@@ -30,6 +30,13 @@ void YT_Init( int argc, char *argv[] )
 
 // YT analysis script without the ".py" extension (default="yt_inline_script")
    param_libyt.script  = YT_SCRIPT;
+
+// YT check data or not interface turned off (default=true)
+#ifdef GAMER_DEBUG
+   param_libyt.check_data = true;
+#else
+   param_libyt.check_data = false;
+#endif
 
 // initialize libyt
    if ( yt_init( argc, argv, &param_libyt ) != YT_SUCCESS )    Aux_Error( ERROR_INFO, "yt_init() failed !!\n" );

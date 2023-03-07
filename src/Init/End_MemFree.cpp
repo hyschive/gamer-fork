@@ -26,22 +26,18 @@ void End_MemFree()
       for (int PID=0; PID<amr->num[lv]; PID++)
       {
          amr->patch[0][lv][PID]->NPar = 0;
+         for (int i=0; i<PAR_NTYPE; i++) amr->patch[0][lv][PID]->NParType[i] = 0;
          free( amr->patch[0][lv][PID]->ParList );
          amr->patch[0][lv][PID]->ParList = NULL;
       }
 #     endif
 
-      delete amr;
-      amr = NULL;
+      delete amr;    amr = NULL;
    }
 
 
 // 2. BaseP
-   if ( BaseP != NULL )
-   {
-      delete [] BaseP;
-      BaseP = NULL;
-   }
+   delete [] BaseP;  BaseP = NULL;
 
 
 // 3. arrays for GPU (or CPU) solvers
@@ -64,21 +60,13 @@ void End_MemFree()
    {
       End_MemFree_Grackle();
 
-      if ( Che_FieldData != NULL )
-      {
-         delete Che_FieldData;
-         Che_FieldData = NULL;
-      }
+      delete Che_FieldData;   Che_FieldData = NULL;
    }
 #  endif
 
 
 // 4. dump table
-   if ( DumpTable != NULL )
-   {
-      delete [] DumpTable;
-      DumpTable = NULL;
-   }
+   delete [] DumpTable;    DumpTable = NULL;
 
 
 // 5. MPI buffers used by LOAD_BALANCE
@@ -91,6 +79,19 @@ void End_MemFree()
 #  ifdef STAR_FORMATION
    SF_FreeRNG();
 #  endif
+
+
+// 7. user-defined table for grid refinement
+   for (int lv=0; lv<NLEVEL-1; lv++)   free( FlagTable_User[lv] );
+
+
+// 8. user-defined derived fields
+   delete [] UserDerField_Label;    UserDerField_Label = NULL;
+   delete [] UserDerField_Unit;     UserDerField_Unit  = NULL;
+
+
+// 9. table of refinement region for OPT__UM_IC_NLEVEL>1
+   delete [] UM_IC_RefineRegion;    UM_IC_RefineRegion = NULL;
 
 
    if ( MPI_Rank == 0 )    Aux_Message( stdout, "done\n" );

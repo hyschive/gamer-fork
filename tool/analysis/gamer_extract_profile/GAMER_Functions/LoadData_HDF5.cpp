@@ -78,7 +78,7 @@ void LoadData_HDF5( const char *FileName )
 #  else
    const int  Float8_RT       = 0;
 #  endif
-   const int MaxString        = 512;
+   const int  MaxString       = 512;
 
    int    Model_RS, PatchSize_RS, NLevel_RS, NCompFluid_RS, NCompPassive_RS, Float8_RS;
    int    FormatVersion, Gravity, Particle, ExtBC_RS[6], NPatchTotal[NLEVEL], NPatchAllLv;
@@ -87,7 +87,9 @@ void LoadData_HDF5( const char *FileName )
    char  *FieldName_In[NCOMP_TOTAL];            // for format version >= 2300
    int   *NullPtr = NULL;
 
-#  if ( MODEL == ELBDM )
+#  if   ( MODEL == HYDRO )
+   int    Magnetohydrodynamics;
+#  elif ( MODEL == ELBDM )
    double ELBDM_Mass;
    double ELBDM_PlanckConst;
 #  endif
@@ -130,36 +132,47 @@ void LoadData_HDF5( const char *FileName )
    if ( FormatVersion < 2200 )
       Aux_Error( ERROR_INFO, "unsupported data format version (only support version >= 2200) !!\n" );
 
-   LoadField( "Model",               &Model_RS,          H5_SetID_KeyInfo,   H5_TypeID_KeyInfo,   Fatal, &Model_RT,        1,    Fatal );
-   LoadField( "Float8",              &Float8_RS,         H5_SetID_KeyInfo,   H5_TypeID_KeyInfo,   Fatal, &Float8_RT,       1,    Fatal );
-   LoadField( "NLevel",              &NLevel_RS,         H5_SetID_KeyInfo,   H5_TypeID_KeyInfo,   Fatal, &NLevel_RT,       1,    Fatal );
-   LoadField( "PatchSize",           &PatchSize_RS,      H5_SetID_KeyInfo,   H5_TypeID_KeyInfo,   Fatal, &PatchSize_RT,    1,    Fatal );
-   LoadField( "NCompFluid",          &NCompFluid_RS,     H5_SetID_KeyInfo,   H5_TypeID_KeyInfo,   Fatal, &NCompFluid_RT,   1,    Fatal );
-   LoadField( "NCompPassive",        &NCompPassive_RS,   H5_SetID_KeyInfo,   H5_TypeID_KeyInfo,   Fatal, &NCompPassive_RT, 1,    Fatal );
+   LoadField( "Model",                &Model_RS,             H5_SetID_KeyInfo,   H5_TypeID_KeyInfo,   Fatal, &Model_RT,        1,    Fatal );
+   LoadField( "Float8",               &Float8_RS,            H5_SetID_KeyInfo,   H5_TypeID_KeyInfo,   Fatal, &Float8_RT,       1,    Fatal );
+   LoadField( "NLevel",               &NLevel_RS,            H5_SetID_KeyInfo,   H5_TypeID_KeyInfo,   Fatal, &NLevel_RT,       1,    Fatal );
+   LoadField( "PatchSize",            &PatchSize_RS,         H5_SetID_KeyInfo,   H5_TypeID_KeyInfo,   Fatal, &PatchSize_RT,    1,    Fatal );
+   LoadField( "NCompFluid",           &NCompFluid_RS,        H5_SetID_KeyInfo,   H5_TypeID_KeyInfo,   Fatal, &NCompFluid_RT,   1,    Fatal );
+   LoadField( "NCompPassive",         &NCompPassive_RS,      H5_SetID_KeyInfo,   H5_TypeID_KeyInfo,   Fatal, &NCompPassive_RT, 1,    Fatal );
 
-   LoadField( "Gravity",             &Gravity,           H5_SetID_KeyInfo,   H5_TypeID_KeyInfo,   Fatal,  NullPtr,        -1, NonFatal );
-   LoadField( "Particle",            &Particle,          H5_SetID_KeyInfo,   H5_TypeID_KeyInfo,   Fatal,  NullPtr,        -1, NonFatal );
-   LoadField( "DumpID",              &DumpID,            H5_SetID_KeyInfo,   H5_TypeID_KeyInfo,   Fatal,  NullPtr,        -1, NonFatal );
-   LoadField( "NX0",                  NX0_TOT,           H5_SetID_KeyInfo,   H5_TypeID_KeyInfo,   Fatal,  NullPtr,        -1, NonFatal );
-   LoadField( "NPatch",               NPatchTotal,       H5_SetID_KeyInfo,   H5_TypeID_KeyInfo,   Fatal,  NullPtr,        -1, NonFatal );
-   LoadField( "Step",                &Step,              H5_SetID_KeyInfo,   H5_TypeID_KeyInfo,   Fatal,  NullPtr,        -1, NonFatal );
-   LoadField( "Time",                 Time,              H5_SetID_KeyInfo,   H5_TypeID_KeyInfo,   Fatal,  NullPtr,        -1, NonFatal );
-   LoadField( "CellSize",             amr.dh,            H5_SetID_KeyInfo,   H5_TypeID_KeyInfo,   Fatal,  NullPtr,        -1, NonFatal );
-   LoadField( "BoxScale",             amr.BoxScale,      H5_SetID_KeyInfo,   H5_TypeID_KeyInfo,   Fatal,  NullPtr,        -1, NonFatal );
-   LoadField( "BoxSize",              amr.BoxSize,       H5_SetID_KeyInfo,   H5_TypeID_KeyInfo,   Fatal,  NullPtr,        -1, NonFatal );
+   LoadField( "Gravity",              &Gravity,              H5_SetID_KeyInfo,   H5_TypeID_KeyInfo,   Fatal,  NullPtr,        -1, NonFatal );
+   LoadField( "Particle",             &Particle,             H5_SetID_KeyInfo,   H5_TypeID_KeyInfo,   Fatal,  NullPtr,        -1, NonFatal );
+   LoadField( "DumpID",               &DumpID,               H5_SetID_KeyInfo,   H5_TypeID_KeyInfo,   Fatal,  NullPtr,        -1, NonFatal );
+   LoadField( "NX0",                   NX0_TOT,              H5_SetID_KeyInfo,   H5_TypeID_KeyInfo,   Fatal,  NullPtr,        -1, NonFatal );
+   LoadField( "NPatch",                NPatchTotal,          H5_SetID_KeyInfo,   H5_TypeID_KeyInfo,   Fatal,  NullPtr,        -1, NonFatal );
+   LoadField( "Step",                 &Step,                 H5_SetID_KeyInfo,   H5_TypeID_KeyInfo,   Fatal,  NullPtr,        -1, NonFatal );
+   LoadField( "Time",                  Time,                 H5_SetID_KeyInfo,   H5_TypeID_KeyInfo,   Fatal,  NullPtr,        -1, NonFatal );
+   LoadField( "CellSize",              amr.dh,               H5_SetID_KeyInfo,   H5_TypeID_KeyInfo,   Fatal,  NullPtr,        -1, NonFatal );
+   LoadField( "BoxScale",              amr.BoxScale,         H5_SetID_KeyInfo,   H5_TypeID_KeyInfo,   Fatal,  NullPtr,        -1, NonFatal );
+   LoadField( "BoxSize",               amr.BoxSize,          H5_SetID_KeyInfo,   H5_TypeID_KeyInfo,   Fatal,  NullPtr,        -1, NonFatal );
 
-   LoadField( "Opt__BC_Flu",          ExtBC_RS,          H5_SetID_InputPara, H5_TypeID_InputPara, Fatal,  NullPtr,        -1, NonFatal );
+   LoadField( "Opt__BC_Flu",           ExtBC_RS,             H5_SetID_InputPara, H5_TypeID_InputPara, Fatal,  NullPtr,        -1, NonFatal );
    if ( Gravity ) {
-   LoadField( "Opt__Output_Pot",     &LoadPot,           H5_SetID_InputPara, H5_TypeID_InputPara, Fatal,  NullPtr,        -1, NonFatal ); }
+   LoadField( "Opt__Output_Pot",      &LoadPot,              H5_SetID_InputPara, H5_TypeID_InputPara, Fatal,  NullPtr,        -1, NonFatal ); }
    if ( Particle ) {
-   LoadField( "Opt__Output_ParDens", &OutputParDens,     H5_SetID_InputPara, H5_TypeID_InputPara, Fatal,  NullPtr,        -1, NonFatal ); }
+   LoadField( "Opt__Output_ParDens",  &OutputParDens,        H5_SetID_InputPara, H5_TypeID_InputPara, Fatal,  NullPtr,        -1, NonFatal ); }
 #  if   ( MODEL == HYDRO )
-   LoadField( "Gamma",               &GAMMA,             H5_SetID_InputPara, H5_TypeID_InputPara, Fatal,  NullPtr,        -1, NonFatal );
+   LoadField( "Gamma",                &GAMMA,                H5_SetID_InputPara, H5_TypeID_InputPara, Fatal,  NullPtr,        -1, NonFatal );
 #  elif ( MODEL == ELBDM )
-   LoadField( "ELBDM_Mass",          &ELBDM_Mass,        H5_SetID_InputPara, H5_TypeID_InputPara, Fatal,  NullPtr,        -1, NonFatal );
-   LoadField( "ELBDM_PlanckConst",   &ELBDM_PlanckConst, H5_SetID_InputPara, H5_TypeID_InputPara, Fatal,  NullPtr,        -1, NonFatal );
+   LoadField( "ELBDM_Mass",           &ELBDM_Mass,           H5_SetID_InputPara, H5_TypeID_InputPara, Fatal,  NullPtr,        -1, NonFatal );
+   LoadField( "ELBDM_PlanckConst",    &ELBDM_PlanckConst,    H5_SetID_InputPara, H5_TypeID_InputPara, Fatal,  NullPtr,        -1, NonFatal );
 
    ELBDM_ETA = ELBDM_Mass / ELBDM_PlanckConst;
+#  endif
+
+// check if B field is included
+#  if ( MODEL == HYDRO )
+   if ( FormatVersion >= 2400 )
+      LoadField( "Magnetohydrodynamics", &Magnetohydrodynamics, H5_SetID_KeyInfo, H5_TypeID_KeyInfo, Fatal, NullPtr, -1, NonFatal );
+   else
+      Magnetohydrodynamics = 0;
+
+// MHD is actually not supported yet
+   if ( Magnetohydrodynamics )   Aux_Error( ERROR_INFO, "MHD is NOT supported yet !!\n" );
 #  endif
 
 // field labels
@@ -370,37 +383,37 @@ void LoadData_HDF5( const char *FileName )
    if ( FormatVersion >= 2300 )
    {
       for (int v=0; v<NCOMP_TOTAL; v++)
-      sprintf( FieldName[v], FieldName_In[v] );
+      sprintf( FieldName[v], "%s", FieldName_In[v] );
    }
 
    else
    {
 #     if   ( MODEL == HYDRO )
-      sprintf( FieldName[DENS], "Dens" );
-      sprintf( FieldName[MOMX], "MomX" );
-      sprintf( FieldName[MOMY], "MomY" );
-      sprintf( FieldName[MOMZ], "MomZ" );
-      sprintf( FieldName[ENGY], "Engy" );
+      sprintf( FieldName[DENS], "%s", "Dens" );
+      sprintf( FieldName[MOMX], "%s", "MomX" );
+      sprintf( FieldName[MOMY], "%s", "MomY" );
+      sprintf( FieldName[MOMZ], "%s", "MomZ" );
+      sprintf( FieldName[ENGY], "%s", "Engy" );
 
 #     elif ( MODEL == ELBDM )
-      sprintf( FieldName[DENS], "Dens" );
-      sprintf( FieldName[REAL], "Real" );
-      sprintf( FieldName[IMAG], "Imag" );
+      sprintf( FieldName[DENS], "%s", "Dens" );
+      sprintf( FieldName[REAL], "%s", "Real" );
+      sprintf( FieldName[IMAG], "%s", "Imag" );
 
 #     else
 #     error : ERROR : unsupported MODEL !!
 #     endif
 
       for (int v=0; v<NCOMP_PASSIVE; v++)
-      sprintf( FieldName[ NCOMP_FLUID + v ], PassiveFieldName_Grid[v] );
+      sprintf( FieldName[ NCOMP_FLUID + v ], "%s", PassiveFieldName_Grid[v] );
    }
 
 // set the names of potential and particle/total density
-   sprintf( FieldName[ NCOMP_TOTAL + 0 ], (OutputPot)?"Pote":"None" );
-   sprintf( FieldName[ NCOMP_TOTAL + 1 ], (OutputParDens==0)?"None":
-                                          (OutputParDens==1)?"ParDens":
-                                          (OutputParDens==2)?"TotalDens":
-                                                             "Unknown" );
+   sprintf( FieldName[ NCOMP_TOTAL + 0 ], "%s", (OutputPot)?"Pote":"None" );
+   sprintf( FieldName[ NCOMP_TOTAL + 1 ], "%s", (OutputParDens==0)?"None":
+                                                (OutputParDens==1)?"ParDens":
+                                                (OutputParDens==2)?"TotalDens":
+                                                                   "Unknown" );
 
 
 // 4-2. initialize relevant HDF5 objects
@@ -476,7 +489,7 @@ void LoadData_HDF5( const char *FileName )
 
 // 4-5. record the total number of loaded patches at each level
    Aux_Message( stdout, "\n" );
-   for (int lv=0; lv<NLEVEL; lv++)     Aux_Message( stdout, "      Lv %2d: %10d patches loaded)\n", lv, amr.num[lv] );
+   for (int lv=0; lv<NLEVEL; lv++)     Aux_Message( stdout, "      Lv %2d: %10d patches loaded\n", lv, amr.num[lv] );
    Aux_Message( stdout, "\n" );
 
 #  ifdef DEBUG_HDF5
@@ -514,7 +527,7 @@ void LoadData_HDF5( const char *FileName )
 
 
 
-// 6. set the shell width and other parameters
+// 7. set the shell width and other parameters
    if ( LogBin > 1.0 )
    {
       ShellWidth = GetMinShellWidth( Center, Center_Map );

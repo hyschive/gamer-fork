@@ -7,7 +7,6 @@
 #include "Typedef.h"
 #include "AMR.h"
 
-
 // Auxiliary
 void Aux_Check_MemFree( const double MinMemFree_Total, const char *comment );
 void Aux_Check_Conservation( const char *comment );
@@ -35,6 +34,12 @@ void Aux_Record_PatchCount();
 void Aux_Record_Performance( const double ElapsedTime );
 void Aux_Record_CorrUnphy();
 int  Aux_CountRow( const char *FileName );
+void Aux_ComputeProfile( Profile_t *Prof[], const double Center[], const double r_max_input, const double dr_min,
+                         const bool LogBin, const double LogBinRatio, const bool RemoveEmpty, const long TVarBitIdx[],
+                         const int NProf, const int MinLv, const int MaxLv, const PatchType_t PatchType,
+                         const double PrepTime );
+void Aux_FindExtrema( Extrema_t *Extrema, const ExtremaMode_t Mode, const int MinLv, const int MaxLv,
+                      const PatchType_t PatchType );
 #ifndef SERIAL
 void Aux_Record_BoundaryPatch( const int lv, int *NList, int **IDList, int **PosList );
 #endif
@@ -53,8 +58,8 @@ int Aux_IsFinite( const double x );
 #ifndef SERIAL
 void Buf_AllocateBufferPatch_Base( AMR_t *Tamr );
 void Buf_AllocateBufferPatch( AMR_t *Tamr, const int lv );
-void Buf_GetBufferData( const int lv, const int FluSg, const int PotSg, const GetBufMode_t GetBufMode,
-                        const int TVar, const int ParaBuffer, const UseLBFunc_t UseLBFunc );
+void Buf_GetBufferData( const int lv, const int FluSg, const int MagSg, const int PotSg, const GetBufMode_t GetBufMode,
+                        const long TVarCC, const long TVarFC, const int ParaBuf, const UseLBFunc_t UseLBFunc );
 void Buf_RecordBoundaryFlag( const int lv );
 void Buf_RecordBoundaryPatch_Base();
 void Buf_RecordBoundaryPatch( const int lv );
@@ -68,73 +73,111 @@ void Buf_SortBoundaryPatch( const int NPatch, int *IDList, int *PosList );
 // Hydrodynamics
 void CPU_FluidSolver( real h_Flu_Array_In[][FLU_NIN][ CUBE(FLU_NXT) ],
                       real h_Flu_Array_Out[][FLU_NOUT][ CUBE(PS2) ],
+                      real h_Mag_Array_In[][NCOMP_MAG][ FLU_NXT_P1*SQR(FLU_NXT) ],
+                      real h_Mag_Array_Out[][NCOMP_MAG][ PS2P1*SQR(PS2) ],
                       char h_DE_Array_Out[][ CUBE(PS2) ],
                       real h_Flux_Array[][9][NFLUX_TOTAL][ SQR(PS2) ],
+                      real h_Ele_Array[][9][NCOMP_ELE][ PS2P1*PS2 ],
                       const double h_Corner_Array[][3],
                       const real h_Pot_Array_USG[][ CUBE(USG_NXT_F) ],
-                      const int NPatchGroup, const real dt, const real dh, const real Gamma, const bool StoreFlux,
-                      const bool XYZ, const LR_Limiter_t LR_Limiter, const real MinMod_Coeff,
+                      const int NPatchGroup, const real dt, const real dh,
+                      const bool StoreFlux, const bool StoreElectric,
+                      const bool XYZ, const LR_Limiter_t LR_Limiter, const real MinMod_Coeff, const int MinMod_MaxIter,
                       const real ELBDM_Eta, real ELBDM_Taylor3_Coeff, const bool ELBDM_Taylor3_Auto,
-                      const double Time, const OptGravityType_t GravityType,
-                      const real MinDens, const real MinPres, const real DualEnergySwitch,
+                      const double Time, const bool UsePot, const OptExtAcc_t ExtAcc,
+                      const real MinDens, const real MinPres, const real MinEint,
+                      const real DualEnergySwitch,
                       const bool NormPassive, const int NNorm, const int NormIdx[],
+                      const bool FracPassive, const int NFrac, const int FracIdx[],
                       const bool JeansMinPres, const real JeansMinPres_Coeff );
-real Hydro_GetPressure( const real Dens, const real MomX, const real MomY, const real MomZ, const real Engy,
-                        const real Gamma_m1, const bool CheckMinPres, const real MinPres );
-real Hydro_GetTemperature( const real Dens, const real MomX, const real MomY, const real MomZ, const real Engy,
-                           const real Gamma_m1, const bool CheckMinPres, const real MinPres );
-double Hydro_Temperature2Pressure( const double Dens, const double Temp, const double mu, const double m_H,
-                                   const bool CheckMinPres, const double MinPres );
-real Hydro_CheckMinPres( const real InPres, const real MinPres );
 void Hydro_NormalizePassive( const real GasDens, real Passive[], const int NNorm, const int NormIdx[] );
+#if ( MODEL == HYDRO )
+real Hydro_Con2Pres( const real Dens, const real MomX, const real MomY, const real MomZ, const real Engy,
+                     const real Passive[], const bool CheckMinPres, const real MinPres, const real Emag,
+                     const EoS_DE2P_t EoS_DensEint2Pres, const double EoS_AuxArray_Flt[], const int EoS_AuxArray_Int[],
+                     const real *const EoS_Table[EOS_NTABLE_MAX], real *EintOut );
+real Hydro_Con2Eint( const real Dens, const real MomX, const real MomY, const real MomZ, const real Engy,
+                     const bool CheckMinEint, const real MinEint, const real Emag );
+real Hydro_ConEint2Etot( const real Dens, const real MomX, const real MomY, const real MomZ, const real Eint, const real Emag );
+real Hydro_Con2Temp( const real Dens, const real MomX, const real MomY, const real MomZ, const real Engy,
+                     const real Passive[], const bool CheckMinTemp, const real MinTemp, const real Emag,
+                     const EoS_DE2T_t EoS_DensEint2Temp, const double EoS_AuxArray_Flt[], const int EoS_AuxArray_Int[],
+                     const real *const EoS_Table[EOS_NTABLE_MAX] );
+real Hydro_Con2Entr( const real Dens, const real MomX, const real MomY, const real MomZ, const real Engy,
+                     const real Passive[], const bool CheckMinEntr, const real MinEntr, const real Emag,
+                     const EoS_DE2S_t EoS_DensEint2Entr, const double EoS_AuxArray_Flt[], const int EoS_AuxArray_Int[],
+                     const real *const EoS_Table[EOS_NTABLE_MAX] );
+real Hydro_CheckMinPres( const real InPres, const real MinPres );
+real Hydro_CheckMinEint( const real InEint, const real MinEint );
+real Hydro_CheckMinEintInEngy( const real Dens, const real MomX, const real MomY, const real MomZ, const real InEngy,
+                               const real MinEint, const real Emag );
+bool Hydro_CheckUnphysical( const CheckUnphysical_t Mode, const real Fields[], const char SingleFieldName[],
+                            const char File[], const int Line, const char Function[], const CheckUnphysical_t Verbose );
 #ifdef DUAL_ENERGY
 void Hydro_DualEnergyFix( const real Dens, const real MomX, const real MomY, const real MomZ,
-                          real &Etot, real &Enpy, char &DE_Status, const real Gamma_m1, const real _Gamma_m1,
-                          const bool CheckMinPres, const real MinPres, const real DualEnergySwitch );
-#if ( DUAL_ENERGY == DE_ENPY )
-real Hydro_Fluid2Entropy( const real Dens, const real MomX, const real MomY, const real MomZ, const real Engy, const real Gamma_m1 );
-real Hydro_DensPres2Entropy( const real Dens, const real Pres, const real Gamma_m1 );
-real Hydro_DensEntropy2Pres( const real Dens, const real Enpy, const real Gamma_m1,
-                             const bool CheckMinPres, const real MinPres );
-#endif
-#endif
-real Hydro_CheckMinPresInEngy( const real Dens, const real MomX, const real MomY, const real MomZ, const real Engy,
-                               const real Gamma_m1, const real _Gamma_m1, const real MinPres );
-int Flu_AdvanceDt( const int lv, const double TimeNew, const double TimeOld, const double dt, const int SaveSg,
-                   const bool OverlapMPI, const bool Overlap_Sync );
+                          real &Etot, real &Dual, char &DE_Status, const real Gamma_m1, const real _Gamma_m1,
+                          const bool CheckMinPres, const real MinPres, const real DualEnergySwitch,
+                          const real Emag );
+real Hydro_Con2Dual( const real Dens, const real MomX, const real MomY, const real MomZ, const real Engy,
+                     const real Emag, const EoS_DE2P_t EoS_DensEint2Pres, const double EoS_AuxArray_Flt[],
+                     const int EoS_AuxArray_Int[], const real *const EoS_Table[EOS_NTABLE_MAX] );
+real Hydro_DensPres2Dual( const real Dens, const real Pres, const real Gamma_m1 );
+real Hydro_DensDual2Pres( const real Dens, const real Dual, const real Gamma_m1,
+                          const bool CheckMinPres, const real MinPres );
+#endif // #ifdef DUAL_ENERGY
+#endif // #if ( MODEL == HYDRO )
+int Flu_AdvanceDt( const int lv, const double TimeNew, const double TimeOld, const double dt,
+                   const int SaveSg_Flu, const int SaveSg_Mag, const bool OverlapMPI, const bool Overlap_Sync );
 void Flu_AllocateFluxArray( const int lv );
-void Flu_Close( const int lv, const int SaveSg, real h_Flux_Array[][9][NFLUX_TOTAL][ SQR(PS2) ],
-                real h_Flu_Array_F_Out[][FLU_NOUT][ CUBE(PS2) ], char h_DE_Array_F_Out[][ CUBE(PS2) ],
-                const int NPG, const int *PID0_List, const real h_Flu_Array_F_In[][FLU_NIN][ CUBE(FLU_NXT) ],
+void Flu_Close( const int lv, const int SaveSg_Flu, const int SaveSg_Mag,
+                real h_Flux_Array[][9][NFLUX_TOTAL][ SQR(PS2) ],
+                real h_Ele_Array[][9][NCOMP_ELE][ PS2P1*PS2 ],
+                real h_Flu_Array_F_Out[][FLU_NOUT][ CUBE(PS2) ],
+                real h_Mag_Array_F_Out[][NCOMP_MAG][ PS2P1*SQR(PS2) ],
+                char h_DE_Array_F_Out[][ CUBE(PS2) ],
+                const int NPG, const int *PID0_List,
+                const real h_Flu_Array_F_In[][FLU_NIN][ CUBE(FLU_NXT) ],
+                const real h_Mag_Array_In[][NCOMP_MAG][ FLU_NXT_P1*SQR(FLU_NXT) ],
                 const double dt );
-void Flu_FixUp( const int lv );
-void Flu_Prepare( const int lv, const double PrepTime, real h_Flu_Array_F_In[], real h_Pot_Array_USG_F[],
+void Flu_Prepare( const int lv, const double PrepTime,
+                  real h_Flu_Array_F_In[][FLU_NIN][ CUBE(FLU_NXT) ],
+                  real h_Mag_Array_F_In[][NCOMP_MAG][ FLU_NXT_P1*SQR(FLU_NXT) ],
+                  real h_Pot_Array_USG_F[][ CUBE(USG_NXT_F) ],
                   double h_Corner_Array_F[][3], const int NPG, const int *PID0_List );
-void Flu_Restrict( const int FaLv, const int SonFluSg, const int FaFluSg, const int SonPotSg, const int FaPotSg,
-                   const int TVar );
+void Flu_FixUp_Flux( const int lv );
+void Flu_FixUp_Restrict( const int FaLv, const int SonFluSg, const int FaFluSg, const int SonMagSg, const int FaMagSg,
+                         const int SonPotSg, const int FaPotSg, const long TVarCC, const long TVarFC );
 void Flu_BoundaryCondition_User( real *Array, const int NVar_Flu, const int ArraySizeX, const int ArraySizeY,
                                  const int ArraySizeZ, const int Idx_Start[], const int Idx_End[],
                                  const int TFluVarIdxList[], const double Time, const double dh, const double *Corner,
-                                 const int TVar, const int lv );
-void Flu_BoundaryCondition_Outflow( real *Array, const int BC_Face, const int NVar, const int GhostSize,
-                                    const int ArraySizeX, const int ArraySizeY, const int ArraySizeZ,
-                                    const int Idx_Start[], const int Idx_End[] );
+                                 const long TVar, const int lv );
+void Hydro_BoundaryCondition_Outflow( real *Array, const int BC_Face, const int NVar, const int GhostSize,
+                                      const int ArraySizeX, const int ArraySizeY, const int ArraySizeZ,
+                                      const int Idx_Start[], const int Idx_End[] );
 void Flu_CorrAfterAllSync();
 #ifndef SERIAL
 void Flu_AllocateFluxArray_Buffer( const int lv );
+#endif
+#if ( MODEL == HYDRO )
+void Flu_DerivedField_DivVel( real Out[], const real FluIn[], const real MagIn[], const int NFieldOut,
+                              const int NCellInX, const int NCellInY, const int NCellInZ,
+                              const int NGhost, const double dh );
+void Flu_DerivedField_Mach( real Out[], const real FluIn[], const real MagIn[], const int NFieldOut,
+                            const int NCellInX, const int NCellInY, const int NCellInZ,
+                            const int NGhost, const double dh );
 #endif
 
 
 // GAMER
 void EvolveLevel( const int lv, const double dTime_FaLv );
-void InvokeSolver( const Solver_t TSolver, const int lv, const double TimeNew, const double TimeOld, const double dt,
-                   const double Poi_Coeff, const int SaveSg_Flu, const int SaveSg_Pot,
+void InvokeSolver( const Solver_t TSolver, const int lv, const double TimeNew, const double TimeOld, const double dt_in,
+                   const double Poi_Coeff, const int SaveSg_Flu, const int SaveSg_Mag, const int SaveSg_Pot,
                    const bool OverlapMPI, const bool Overlap_Sync );
-void Prepare_PatchData( const int lv, const double PrepTime, real *h_Input_Array,
-                        const int GhostSize, const int NPG, const int *PID0_List, int TVar,
-                        const IntScheme_t IntScheme, const PrepUnit_t PrepUnit, const NSide_t NSide,
-                        const bool IntPhase, const OptFluBC_t FluBC[], const OptPotBC_t PotBC,
-                        const real MinDens, const real MinPres, const bool DE_Consistency );
+void Prepare_PatchData( const int lv, const double PrepTime, real *OutputCC, real *OutputFC,
+                        const int GhostSize, const int NPG, const int *PID0_List, long TVarCC, long TVarFC,
+                        const IntScheme_t IntScheme_CC, const IntScheme_t IntScheme_FC, const PrepUnit_t PrepUnit,
+                        const NSide_t NSide, const bool IntPhase, const OptFluBC_t FluBC[], const OptPotBC_t PotBC,
+                        const real MinDens, const real MinPres, const real MinTemp, const real MinEntr, const bool DE_Consistency );
 
 
 // Init
@@ -150,7 +193,7 @@ void Init_Load_Parameter();
 void Init_MemoryPool();
 void Init_ResetParameter();
 void Init_MemAllocate();
-void Init_MemAllocate_Fluid( const int Flu_NPatchGroup, const int Pot_NPatchGroup );
+void Init_MemAllocate_Fluid( const int Flu_NPatchGroup, const int Pot_NPatchGroup, const int Src_NPatchGroup );
 void Init_Parallelization();
 void Init_RecordBasePatch();
 void Init_Refine( const int lv );
@@ -162,21 +205,35 @@ void Init_TestProb();
 void Init_ByFile();
 void Init_UniformGrid( const int lv, const bool FindHomePatchForPar );
 void Init_Field();
-FieldIdx_t AddField( char *InputLabel, const NormPassive_t Norm );
-FieldIdx_t GetFieldIndex( char *InputLabel, const Check_t Check );
+FieldIdx_t AddField( const char *InputLabel, const NormPassive_t Norm, const IntFracPassive_t IntFrac );
+FieldIdx_t GetFieldIndex( const char *InputLabel, const Check_t Check );
 #ifdef OPENMP
 void Init_OpenMP();
 #endif
 #ifdef SUPPORT_HDF5
 void Init_ByRestart_HDF5( const char *FileName );
 #endif
+#ifdef SUPPORT_FFTW
+void End_FFTW();
+void Init_FFTW();
+void Patch2Slab( real *VarS, real *SendBuf_Var, real *RecvBuf_Var, long *SendBuf_SIdx, long *RecvBuf_SIdx,
+                 int **List_PID, int **List_k, int *List_NSend_Var, int *List_NRecv_Var,
+                 const int *List_z_start, const int local_nz, const int FFT_Size[], const int NRecvSlice,
+                 const double PrepTime, const long TVar, const bool InPlacePad, const bool ForPoisson, const bool AddExtraMass );
+void Slab2Patch( const real *VarS, real *SendBuf, real *RecvBuf, const int SaveSg, const long *List_SIdx,
+                 int **List_PID, int **List_k, int *List_NSend, int *List_NRecv, const int local_nz, const int FFT_Size[],
+                 const int NSendSlice, const long TVar, const bool InPlacePad );
+#endif // #ifdef SUPPORT_FFTW
 
 
 // Interpolation
+void Interpolate( real CData[], const int CSize[3], const int CStart[3], const int CRange[3],
+                  real FData[], const int FSize[3], const int FStart[3],
+                  const int NComp, const IntScheme_t IntScheme, const bool UnwrapPhase,
+                  const bool Monotonic[], const bool OppSign0thOrder, const bool AllCons,
+                  const IntPrim_t IntPrim, const ReduceOrFixMonoCoeff_t ReduceMonoCoeff,
+                  const real CMag_IntIter[], const real FMag_IntIter[][NCOMP_MAG] );
 void Int_Table( const IntScheme_t IntScheme, int &NSide, int &NGhost );
-void Interpolate( real CData [], const int CSize[3], const int CStart[3], const int CRange[3],
-                  real FData [], const int FSize[3], const int FStart[3],
-                  const int NComp, const IntScheme_t IntScheme, const bool UnwrapPhase, const bool Monotonic[] );
 
 
 // Miscellaneous
@@ -198,16 +255,18 @@ double Mis_Cell2PhySize( const int NCell, const int lv );
 int    Mis_Scale2Cell( const int Scale, const int lv );
 int    Mis_Cell2Scale( const int NCell, const int lv );
 double dt_InvokeSolver( const Solver_t TSolver, const int lv );
-void   dt_Prepare_Flu( const int lv, real h_Flu_Array_T[][NCOMP_FLUID][ CUBE(PS1) ], const int NPG, const int *PID0_List );
+void   dt_Prepare_Flu( const int lv, real h_Flu_Array_T[][FLU_NIN_T][ CUBE(PS1) ],
+                       real h_Mag_Array_T[][NCOMP_MAG][ PS1P1*SQR(PS1) ], const int NPG, const int *PID0_List );
 #ifdef GRAVITY
 void   dt_Prepare_Pot( const int lv, real h_Pot_Array_T[][ CUBE(GRA_NXT) ], const int NPG, const int *PID0_List,
                        const double PrepTime );
 #endif
 void   dt_Close( const real h_dt_Array_T[], const int NPG );
-void   CPU_dtSolver( const Solver_t TSolver, real dt_Array[], const real Flu_Array[][NCOMP_FLUID][ CUBE(PS1) ],
-                     const real Pot_Array[][ CUBE(GRA_NXT) ], const double Corner_Array[][3],
-                     const int NPatchGroup, const real dh, const real Safety, const real Gamma, const real MinPres,
-                     const bool P5_Gradient, const OptGravityType_t GravityType, const bool ExtPot, const double TargetTime );
+void   CPU_dtSolver( const Solver_t TSolver, real dt_Array[], const real Flu_Array[][FLU_NIN_T][ CUBE(PS1) ],
+                     const real Mag_Array[][NCOMP_MAG][ PS1P1*SQR(PS1) ], const real Pot_Array[][ CUBE(GRA_NXT) ],
+                     const double Corner_Array[][3], const int NPatchGroup, const real dh, const real Safety,
+                     const real MinPres, const bool P5_Gradient,
+                     const bool UsePot, const OptExtAcc_t ExtAcc, const double TargetTime );
 
 
 // MPI
@@ -233,14 +292,19 @@ void Output_DumpManually( int &Dump_global );
 void Output_FlagMap( const int lv, const int xyz, const char *comment );
 void Output_Flux( const int lv, const int PID, const int Sib, const char *comment );
 void Output_PatchCorner( const int lv, const char *comment );
-void Output_Patch( const int lv, const int PID, const int FluSg, const int PotSg, const char *comment );
+void Output_Patch( const int lv, const int PID, const int FluSg, const int MagSg, const int PotSg, const char *comment );
 void Output_PatchMap( const int lv, const int PID, const int TSg, const int Comp, const char *comment );
 void Output_PreparedPatch_Fluid( const int TLv, const int TPID,
-                                 const real h_Flu_Array[][FLU_NIN][FLU_NXT*FLU_NXT*FLU_NXT],
+                                 const real h_Flu_Array[][FLU_NIN][ CUBE(FLU_NXT) ],
+                                 const real h_Mag_Array[][NCOMP_MAG][ FLU_NXT_P1*SQR(FLU_NXT) ],
                                  const int NPG, const int *PID0_List, const int CLv, const char *comment );
-void Output_BasePowerSpectrum( const char *FileName );
-void Output_L1Error( void (*AnalFunc)( real fluid[], const double x, const double y, const double z, const double Time,
-                                       const int lv, double AuxArray[] ),
+#ifdef SUPPORT_FFTW
+void Output_BasePowerSpectrum( const char *FileName, const long TVar );
+#endif
+void Output_L1Error( void (*AnalFunc_Flu)( real fluid[], const double x, const double y, const double z, const double Time,
+                                           const int lv, double AuxArray[] ),
+                     void (*AnalFunc_Mag)( real magnetic[], const double x, const double y, const double z, const double Time,
+                                           const int lv, double AuxArray[] ),
                      const char *Prefix, const OptOutputPart_t Part, const double x, const double y, const double z );
 #ifndef SERIAL
 void Output_ExchangePatchMap( const int lv, const int xyz, const char *comment );
@@ -254,10 +318,10 @@ void Output_BoundaryFlagList( const int option, const int lv, const char *commen
 void FindFather( const int lv, const int Mode );
 void Flag_Real( const int lv, const UseLBFunc_t UseLBFunc );
 bool Flag_Check( const int lv, const int PID, const int i, const int j, const int k, const real dv,
-                 const real Fluid[][PS1][PS1][PS1], const real Pot[][PS1][PS1], const real Pres[][PS1][PS1],
+                 const real Fluid[][PS1][PS1][PS1], const real Pot[][PS1][PS1], const real MagCC[][PS1][PS1][PS1],
+                 const real Vel[][PS1][PS1][PS1], const real Pres[][PS1][PS1],
                  const real *Lohner_Var, const real *Lohner_Ave, const real *Lohner_Slope, const int Lohner_NVar,
                  const real ParCount[][PS1][PS1], const real ParDens[][PS1][PS1], const real JeansCoeff );
-bool Flag_Region( const int i, const int j, const int k, const int lv, const int PID );
 bool Flag_Lohner( const int i, const int j, const int k, const OptLohnerForm_t Form, const real *Var1D, const real *Ave1D,
                   const real *Slope1D, const int NVar, const double Threshold, const double Filter, const double Soften );
 void Refine( const int lv, const UseLBFunc_t UseLBFunc );
@@ -271,39 +335,38 @@ void Refine_Buffer( const int lv, const int *SonTable, const int *GrandTable );
 
 // SelfGravity
 #ifdef GRAVITY
-void ExternalAcc( real Acc[], const double x, const double y, const double z, const double Time, const double UserArray[] );
-real ExternalPot( const double x, const double y, const double z, const double Time, const double UserArray[] );
 void CPU_PoissonGravitySolver( const real h_Rho_Array    [][RHO_NXT][RHO_NXT][RHO_NXT],
                                const real h_Pot_Array_In [][POT_NXT][POT_NXT][POT_NXT],
                                      real h_Pot_Array_Out[][GRA_NXT][GRA_NXT][GRA_NXT],
                                      real h_Flu_Array    [][GRA_NIN][PS1][PS1][PS1],
-                               const double h_Corner_Array [][3],
+                               const double h_Corner_Array[][3],
                                const real h_Pot_Array_USG[][USG_NXT_G][USG_NXT_G][USG_NXT_G],
                                const real h_Flu_Array_USG[][GRA_NIN-1][PS1][PS1][PS1],
                                      char h_DE_Array     [][PS1][PS1][PS1],
+                               const real h_Emag_Array   [][PS1][PS1][PS1],
                                const int NPatchGroup, const real dt, const real dh, const int SOR_Min_Iter,
                                const int SOR_Max_Iter, const real SOR_Omega, const int MG_Max_Iter,
                                const int MG_NPre_Smooth, const int MG_NPost_Smooth, const real MG_Tolerated_Error,
                                const real Poi_Coeff, const IntScheme_t IntScheme, const bool P5_Gradient,
                                const real ELBDM_Eta, const real ELBDM_Lambda, const bool Poisson, const bool GraAcc,
-                               const OptGravityType_t GravityType, const double TimeNew, const double TimeOld,
-                               const bool ExtPot, const real MinEint );
+                               const bool SelfGravity, const OptExtPot_t ExtPot, const OptExtAcc_t ExtAcc,
+                               const double TimeNew, const double TimeOld, const real MinEint );
+void CPU_ExtPotSolver_BaseLevel( const ExtPot_t Func, const double AuxArray_Flt[], const int AuxArray_Int[],
+                                 const real Table[], void **GenePtr,
+                                 const double Time, const bool PotIsInit, const int SaveSg );
+#ifdef SUPPORT_FFTW
 void CPU_PoissonSolver_FFT( const real Poi_Coeff, const int SaveSg, const double PrepTime );
-void Patch2Slab( real *RhoK, real *SendBuf_Rho, real *RecvBuf_Rho, long *SendBuf_SIdx, long *RecvBuf_SIdx,
-                 int **List_PID, int **List_k, int *List_NSend_Rho, int *List_NRecv_Rho,
-                 const int *List_z_start, const int local_nz, const int FFT_Size[], const int NRecvSlice,
-                 const double PrepTime );
-void Slab2Patch( const real *RhoK, real *SendBuf, real *RecvBuf, const int SaveSg, const long *List_SIdx,
-                 int **List_PID, int **List_k, int *List_NSend, int *List_NRecv, const int local_nz, const int FFT_Size[],
-                 const int NSendSlice );
+void Init_GreenFuncK();
+#endif
 void End_MemFree_PoissonGravity();
 void Gra_AdvanceDt( const int lv, const double TimeNew, const double TimeOld, const double dt,
                     const int SaveSg_Flu, const int SaveSg_Pot, const bool Poisson, const bool Gravity,
-                    const bool OverlapMPI, const bool Overlap_Sync );
+                    const bool OverlapMPI, const bool Overlap_Sync, const bool Timing );
 void Gra_Close( const int lv, const int SaveSg, const real h_Flu_Array_G[][GRA_NIN][PS1][PS1][PS1],
-                const char h_DE_Array_G[][PS1][PS1][PS1], const int NPG, const int *PID0_List );
-void Gra_Prepare_Flu( const int lv, real h_Flu_Array_G[][GRA_NIN][PS1][PS1][PS1], char h_DE_Array[][PS1][PS1][PS1],
-                      const int NPG, const int *PID0_List );
+                const char h_DE_Array_G[][PS1][PS1][PS1], const real h_Emag_Array_G[][PS1][PS1][PS1],
+                const int NPG, const int *PID0_List );
+void Gra_Prepare_Flu( const int lv, real h_Flu_Array_G[][GRA_NIN][PS1][PS1][PS1], char h_DE_Array_G[][PS1][PS1][PS1],
+                      real h_Emag_Array_G[][PS1][PS1][PS1], const int NPG, const int *PID0_List );
 void Gra_Prepare_Pot( const int lv, const double PrepTime, real h_Pot_Array_P_Out[][GRA_NXT][GRA_NXT][GRA_NXT],
                       const int NPG, const int *PID0_List );
 void Gra_Prepare_Corner( const int lv, double h_Corner_Array[][3], const int NPG, const int *PID0_List );
@@ -312,10 +375,9 @@ void Gra_Prepare_USG( const int lv, const double PrepTime,
                       real h_Pot_Array_USG_G[][USG_NXT_G][USG_NXT_G][USG_NXT_G],
                       real h_Flu_Array_USG_G[][GRA_NIN-1][PS1][PS1][PS1], const int NPG, const int *PID0_List );
 #endif
-void End_FFTW();
-void Init_FFTW();
-void Init_ExternalAccPot();
-void Init_GreenFuncK();
+void Init_ExtAccPot();
+void End_ExtAccPot();
+void Init_LoadExtPotTable();
 void Init_MemAllocate_PoissonGravity( const int Pot_NPatchGroup );
 void Init_Set_Default_MG_Parameter( int &Max_Iter, int &NPre_Smooth, int &NPost_Smooth, double &Tolerated_Error );
 void Init_Set_Default_SOR_Parameter( double &SOR_Omega, int &SOR_Max_Iter, int &SOR_Min_Iter );
@@ -340,17 +402,35 @@ void Poi_StorePotWithGhostZone( const int lv, const int PotSg, const bool AllPat
 
 
 // Tables
-int TABLE_01( const int SibIndex, const char dim, const int w0, const int w1, const int w2 );
-int TABLE_02( const int LocalID, const char dim, const int w0, const int w1 );
+template <typename T> T TABLE_01( const int SibIndex, const char dim, const T w0, const T w1, const T w2 );
+template <typename T> T TABLE_02( const int LocalID, const char dim, const T w0, const T w1 );
 int TABLE_03( const int SibID, const int Count );
 int TABLE_04( const int SibID );
 int TABLE_05( const int SibID );
 int TABLE_06( const int SibID, const int FlagLayer );
 int TABLE_07( const int SibID, const int Count );
+void TABLE_SiblingSharingSameEdge( const int EdgeID, int SibID[], int SibSibID[] );
+void TABLE_GetSibPID_Delta( int NSibPatch[], int *SibPID_Delta[] );
+void TABLE_GetSibPID_Based( const int lv, const int PID0, int SibPID_Based[] );
 
 
 // LoadBalance
 long LB_Corner2Index( const int lv, const int Corner[], const Check_t Check );
+
+// Declare classes defined in GatherTree.h
+class LB_PatchCount;
+class LB_LocalPatchExchangeList;
+class LB_GlobalPatchExchangeList;
+class LB_GlobalPatch;
+
+void LB_GetPID( const int GID, int& level, int& PID, int* GID_Offset );
+void LB_AllgatherPatchCount( LB_PatchCount& pc );
+void LB_AllgatherLBIdx( LB_PatchCount& pc, LB_LocalPatchExchangeList& lel, LB_GlobalPatchExchangeList* gel = NULL );
+void LB_FillLocalPatchExchangeList( LB_PatchCount& pc, LB_LocalPatchExchangeList& lel );
+void LB_FillGlobalPatchExchangeList( LB_PatchCount& pc, LB_LocalPatchExchangeList& lel, LB_GlobalPatchExchangeList& gel, int root );
+LB_GlobalPatch* LB_ConstructGlobalTree( LB_PatchCount& pc, LB_GlobalPatchExchangeList& gel, int root );
+LB_GlobalPatch* LB_GatherTree( LB_PatchCount& pc, int root );
+
 #ifdef LOAD_BALANCE
 void LB_AllocateBufferPatch_Father( const int SonLv, const bool SearchAllSon, const int NInput, int* TargetSonPID0,
                                     const bool RecordFaPID, int* NNewFaBuf0, int** NewFaBufPID0 );
@@ -360,14 +440,14 @@ void LB_AllocateFluxArray( const int FaLv );
 void LB_ExchangeFlaggedBuffer( const int lv );
 void LB_FindFather( const int SonLv, const bool SearchAllSon, const int NInput, int* TargetSonPID0, const bool ResetSonID );
 void LB_FindSonNotHome( const int FaLv, const bool SearchAllFa, const int NInput, int* TargetFaPID );
-void LB_GetBufferData( const int lv, const int FluSg, const int PotSg, const GetBufMode_t GetBufMode,
-                       const int TVar, const int ParaBuf );
+void LB_GetBufferData( const int lv, const int FluSg, const int MagSg, const int PotSg, const GetBufMode_t GetBufMode,
+                       const long TVarCC, const long TVarFC, const int ParaBuf );
 real*LB_GetBufferData_MemAllocate_Send( const int NSend );
 real*LB_GetBufferData_MemAllocate_Recv( const int NRecv );
 void LB_GrandsonCheck( const int lv );
-void LB_Init_LoadBalance( const bool Redistribute, const double ParWeight, const bool Reset, const int TLv );
+void LB_Init_LoadBalance( const bool Redistribute, const bool SendGridData, const double ParWeight, const bool Reset, const int TLv );
 void LB_Init_ByFunction();
-void LB_Init_Refine( const int FaLv );
+void LB_Init_Refine( const int FaLv, const bool AllocData );
 void LB_SetCutPoint( const int lv, const int NPG_Total, long *CutPoint, const bool InputLBIdx0AndLoad,
                      long *LBIdx0_AllRank_Input, double *Load_AllRank_Input, const double ParWeight );
 void LB_EstimateWorkload_AllPatchGroup( const int lv, const double ParWeight, double *Load_PG );
@@ -395,13 +475,60 @@ void Hydro_Init_ByFunction_AssignData( const int lv );
 void Hydro_BoundaryCondition_Reflecting( real *Array, const int BC_Face, const int NVar_Flu, const int GhostSize,
                                          const int ArraySizeX, const int ArraySizeY, const int ArraySizeZ,
                                          const int Idx_Start[], const int Idx_End[], const int TFluVarIdxList[],
-                                         const int NVar_Der, const int TDerVarList[] );
-bool Hydro_Flag_Vorticity( const int i, const int j, const int k, const int lv, const int PID, const double Threshold );
-
-
-// MHD model
-#elif ( MODEL == MHD )
-#warning : WAIT MHD !!!
+                                         const int NVar_Der, const long TDerVarList[] );
+void Hydro_BoundaryCondition_Diode( real *Array, const int BC_Face, const int NVar_Flu, const int GhostSize,
+                                    const int ArraySizeX, const int ArraySizeY, const int ArraySizeZ,
+                                    const int Idx_Start[], const int Idx_End[], const int TFluVarIdxList[],
+                                    const int NVar_Der, const long TDerVarList[] );
+void Hydro_Con2Pri( const real In[], real Out[], const real MinPres,
+                    const bool FracPassive, const int NFrac, const int FracIdx[],
+                    const bool JeansMinPres, const real JeansMinPres_Coeff,
+                    const EoS_DE2P_t EoS_DensEint2Pres, const EoS_DP2E_t EoS_DensPres2Eint,
+                    const double EoS_AuxArray_Flt[], const int EoS_AuxArray_Int[],
+                    const real *const EoS_Table[EOS_NTABLE_MAX], real* const EintOut );
+void Hydro_Pri2Con( const real In[], real Out[], const bool FracPassive, const int NFrac, const int FracIdx[],
+                    const EoS_DP2E_t EoS_DensPres2Eint, const double EoS_AuxArray_Flt[], const int EoS_AuxArray_Int[],
+                    const real *const EoS_Table[EOS_NTABLE_MAX], const real* const EintIn );
+#ifdef MHD
+void MHD_GetCellCenteredBField( real B_CC[], const real Bx_FC[], const real By_FC[], const real Bz_FC[],
+                                const int Nx, const int Ny, const int Nz, const int i, const int j, const int k );
+real MHD_GetCellCenteredBEnergy( const real Bx_FC[], const real By_FC[], const real Bz_FC[],
+                                 const int Nx, const int Ny, const int Nz, const int i, const int j, const int k );
+void MHD_GetCellCenteredBFieldInPatch( real B[], const int lv, const int PID, const int i, const int j, const int k,
+                                       const int MagSg );
+real MHD_GetCellCenteredBEnergyInPatch( const int lv, const int PID, const int i, const int j, const int k,
+                                        const int MagSg );
+real MHD_GetCellCenteredDivBInPatch( const int lv, const int PID, const int i, const int j, const int k,
+                                     const int MagSg );
+void MHD_InterpolateBField( const real **CData, const int CSize[3][3], const int CStart[3][3], const int CRange[3],
+                                  real **FData, const int FSize[3][3], const int FStart[3][3],
+                            const real *FInterface[6], const IntScheme_t IntScheme, const bool Monotonic );
+void MHD_AllocateElectricArray( const int lv );
+void MHD_Aux_Check_InterfaceB( const char *comment );
+void MHD_Aux_Check_DivergenceB( const bool Verbose, const char *comment );
+void MHD_FixUp_Electric( const int lv );
+void MHD_SameInterfaceB( const int lv );
+void MHD_CopyPatchInterfaceBField( const int lv, const int PID, const int SibID, const int MagSg );
+void MHD_BoundaryCondition_Outflow( real **Array, const int BC_Face, const int NVar, const int GhostSize,
+                                    const int ArraySizeX, const int ArraySizeY, const int ArraySizeZ,
+                                    const int Idx_Start[], const int Idx_End[], const int TVarIdxList[] );
+void MHD_BoundaryCondition_Reflecting( real **Array, const int BC_Face, const int NVar, const int GhostSize,
+                                       const int ArraySizeX, const int ArraySizeY, const int ArraySizeZ,
+                                       const int Idx_Start[], const int Idx_End[], const int TVarIdxList[] );
+void MHD_BoundaryCondition_Diode( real **Array, const int BC_Face, const int NVar, const int GhostSize,
+                                  const int ArraySizeX, const int ArraySizeY, const int ArraySizeZ,
+                                  const int Idx_Start[], const int Idx_End[], const int TVarIdxList[] );
+void MHD_BoundaryCondition_User( real **Array, const int BC_Face, const int NVar,
+                                 const int ArraySizeX, const int ArraySizeY, const int ArraySizeZ,
+                                 const int Idx_Start[], const int Idx_End[], const int TVarIdxList[],
+                                 const double Time, const double dh, const double *Corner, const int lv );
+void MHD_Init_BField_ByFile( const int B_lv );
+#ifdef LOAD_BALANCE
+void MHD_LB_EnsureBFieldConsistencyAfterRestrict( const int lv );
+void MHD_LB_AllocateElectricArray( const int FaLv );
+void MHD_LB_ResetBufferElectric( const int lv );
+#endif
+#endif // #ifdef MHD
 
 
 // ELBDM model
@@ -426,47 +553,66 @@ void   ELBDM_RemoveMotionCM();
 #ifdef GPU
 void CUAPI_Asyn_FluidSolver( real h_Flu_Array_In[][FLU_NIN ][ CUBE(FLU_NXT) ],
                              real h_Flu_Array_Out[][FLU_NOUT][ CUBE(PS2) ],
+                             real h_Mag_Array_In[][NCOMP_MAG][ FLU_NXT_P1*SQR(FLU_NXT) ],
+                             real h_Mag_Array_Out[][NCOMP_MAG][ PS2P1*SQR(PS2) ],
                              char h_DE_Array_Out[][ CUBE(PS2) ],
                              real h_Flux_Array[][9][NFLUX_TOTAL][ SQR(PS2) ],
+                             real h_Ele_Array[][9][NCOMP_ELE][ PS2P1*PS2 ],
                              const double h_Corner_Array[][3],
                              real h_Pot_Array_USG[][ CUBE(USG_NXT_F) ],
-                             const int NPatchGroup, const real dt, const real dh, const real Gamma, const bool StoreFlux,
-                             const bool XYZ, const LR_Limiter_t LR_Limiter, const real MinMod_Coeff,
+                             const int NPatchGroup, const real dt, const real dh,
+                             const bool StoreFlux, const bool StoreElectric,
+                             const bool XYZ, const LR_Limiter_t LR_Limiter, const real MinMod_Coeff, const int MinMod_MaxIter,
                              const real ELBDM_Eta, real ELBDM_Taylor3_Coeff, const bool ELBDM_Taylor3_Auto,
-                             const double Time, const OptGravityType_t GravityType,
-                             const int GPU_NStream, const real MinDens, const real MinPres, const real DualEnergySwitch,
+                             const double Time, const bool UsePot, const OptExtAcc_t ExtAcc,
+                             const real MinDens, const real MinPres, const real MinEint,
+                             const real DualEnergySwitch,
                              const bool NormPassive, const int NNorm,
-                             const bool JeansMinPres, const real JeansMinPres_Coeff );
-void CUAPI_Asyn_dtSolver( const Solver_t TSolver, real h_dt_Array[], const real h_Flu_Array[][NCOMP_FLUID][ CUBE(PS1) ],
-                          const real h_Pot_Array[][ CUBE(GRA_NXT) ], const double h_Corner_Array[][3],
-                          const int NPatchGroup, const real dh, const real Safety, const real Gamma, const real MinPres,
-                          const bool P5_Gradient, const OptGravityType_t GravityType, const bool ExtPot,
+                             const bool FracPassive, const int NFrac,
+                             const bool JeansMinPres, const real JeansMinPres_Coeff,
+                             const int GPU_NStream );
+void CUAPI_Asyn_dtSolver( const Solver_t TSolver, real h_dt_Array[], const real h_Flu_Array[][FLU_NIN_T][ CUBE(PS1) ],
+                          const real h_Mag_Array[][NCOMP_MAG][ PS1P1*SQR(PS1) ], const real h_Pot_Array[][ CUBE(GRA_NXT) ],
+                          const double h_Corner_Array[][3], const int NPatchGroup, const real dh, const real Safety,
+                          const real MinPres, const bool P5_Gradient, const bool UsePot, const OptExtAcc_t ExtAcc,
                           const double TargetTime, const int GPU_NStream );
+void CUAPI_Asyn_SrcSolver( const real h_Flu_Array_In [][FLU_NIN_S ][ CUBE(SRC_NXT)           ],
+                                 real h_Flu_Array_Out[][FLU_NOUT_S][ CUBE(PS1)               ],
+                           const real h_Mag_Array_In [][NCOMP_MAG ][ SRC_NXT_P1*SQR(SRC_NXT) ],
+                           const double h_Corner_Array[][3],
+                           const SrcTerms_t SrcTerms, const int NPatchGroup, const real dt, const real dh,
+                           const double TimeNew, const double TimeOld,
+                           const real MinDens, const real MinPres, const real MinEint,
+                           const int GPU_NStream );
 void CUAPI_DiagnoseDevice();
-void CUAPI_MemAllocate_Fluid( const int Flu_NPG, const int Pot_NPG, const int GPU_NStream );
+void CUAPI_MemAllocate();
 void CUAPI_MemFree_Fluid( const int GPU_NStream );
-void CUAPI_Set_Default_GPU_Parameter( int &GPU_NStream, int &Flu_GPU_NPGroup, int &Pot_GPU_NPGroup, int &Che_GPU_NPGroup );
-void CUAPI_Init_ExternalAccPot();
+void CUAPI_SetCache();
 void CUAPI_SetDevice( const int Mode );
+void CUAPI_SetConstMemory();
+void CUAPI_SetConstMemory_EoS();
 void CUAPI_Synchronize();
 #ifdef GRAVITY
+void CUAPI_SetConstMemory_ExtAccPot();
 void CUAPI_Asyn_PoissonGravitySolver( const real h_Rho_Array    [][RHO_NXT][RHO_NXT][RHO_NXT],
                                       const real h_Pot_Array_In [][POT_NXT][POT_NXT][POT_NXT],
                                             real h_Pot_Array_Out[][GRA_NXT][GRA_NXT][GRA_NXT],
                                             real h_Flu_Array    [][GRA_NIN][PS1][PS1][PS1],
-                                      const double h_Corner_Array [][3],
+                                      const double h_Corner_Array[][3],
                                       const real h_Pot_Array_USG[][USG_NXT_G][USG_NXT_G][USG_NXT_G],
                                       const real h_Flu_Array_USG[][GRA_NIN-1][PS1][PS1][PS1],
                                             char h_DE_Array     [][PS1][PS1][PS1],
+                                      const real h_Emag_Array   [][PS1][PS1][PS1],
                                       const int NPatchGroup, const real dt, const real dh, const int SOR_Min_Iter,
                                       const int SOR_Max_Iter, const real SOR_Omega, const int MG_Max_Iter,
                                       const int MG_NPre_Smooth, const int MG_NPost_Smooth,
                                       const real MG_Tolerated_Error, const real Poi_Coeff,
                                       const IntScheme_t IntScheme, const bool P5_Gradient, const real ELBDM_Eta,
-                                      const real ELBDM_Lambda, const bool Poisson, const bool GraAcc, const int GPU_NStream,
-                                      const OptGravityType_t GravityType, const double TimeNew, const double TimeOld,
-                                      const bool ExtPot, const real MinEint );
-void CUAPI_MemAllocate_PoissonGravity( const int Pot_NPatchGroup );
+                                      const real ELBDM_Lambda, const bool Poisson, const bool GraAcc,
+                                      const bool SelfGravity, const OptExtPot_t ExtPot, const OptExtAcc_t ExtAcc,
+                                      const double TimeNew, const double TimeOld, const real MinEint,
+                                      const int GPU_NStream );
+void CUAPI_SendExtPotTable2GPU( const real *h_Table );
 void CUAPI_MemFree_PoissonGravity();
 #endif // #ifdef GRAVITY
 #endif // #ifdef GPU
@@ -476,9 +622,12 @@ void CUAPI_MemFree_PoissonGravity();
 #ifdef PARTICLE
 void Par_Init_ByFile();
 void Par_Output_TextFile( const char *comment );
-void Par_FindHomePatch_UniformGrid( const int lv );
-void Par_PassParticle2Son( const int FaLv, const int FaPID );
-void Par_PassParticle2Son_AllPatch( const int FaLv, const bool TimingSendPar );
+void Par_Output_BinaryFile( const char *comment );
+void Par_FindHomePatch_UniformGrid( const int lv, const bool OldParOnly,
+                                    const long NNewPar, real *NewParAtt[PAR_NATT_TOTAL] );
+void Par_PassParticle2Son_SinglePatch( const int FaLv, const int FaPID );
+void Par_PassParticle2Son_MultiPatch( const int FaLv, const ParPass2Son_t Mode, const bool TimingSendPar,
+                                      const int NFaPatch, const int *FaPIDList );
 void Par_PassParticle2Father( const int FaLv, const int FaPID );
 void Par_Aux_Check_Particle( const char *comment );
 void Par_MassAssignment( const long *ParList, const long NPar, const ParInterp_t IntScheme, real *Rho,
@@ -487,6 +636,8 @@ void Par_MassAssignment( const long *ParList, const long NPar, const ParInterp_t
                          const bool UnitDens, const bool CheckFarAway, const bool UseInputMassPos, real **InputMassPos );
 void Par_UpdateParticle( const int lv, const double TimeNew, const double TimeOld, const ParUpStep_t UpdateStep,
                          const bool StoreAcc, const bool UseStoredAcc );
+void Par_UpdateTracerParticle( const int lv, const double TimeNew, const double TimeOld,
+                               const bool MapOnly );
 void Par_GetTimeStep_VelAcc( double &dt_vel, double &dt_acc, const int lv );
 void Par_PassParticle2Sibling( const int lv, const bool TimingSendPar );
 bool Par_WithinActiveRegion( const real x, const real y, const real z );
@@ -494,7 +645,7 @@ int  Par_CountParticleInDescendant( const int FaLv, const int FaPID );
 void Par_Aux_GetConservedQuantity( double &Mass, double &MomX, double &MomY, double &MomZ, double &Ek, double &Ep );
 void Par_Aux_InitCheck();
 void Par_Aux_Record_ParticleCount();
-void Par_CollectParticle2OneLevel( const int FaLv, const bool PredictPos, const double TargetTime,
+void Par_CollectParticle2OneLevel( const int FaLv, const long AttBitIdx, const bool PredictPos, const double TargetTime,
                                    const bool SibBufPatch, const bool FaSibBufPatch, const bool JustCountNPar,
                                    const bool TimingSendPar );
 void Par_CollectParticle2OneLevel_FreeMemory( const int FaLv, const bool SibBufPatch, const bool FaSibBufPatch );
@@ -505,14 +656,22 @@ void Prepare_PatchData_FreeParticleDensityArray( const int lv );
 void Par_PredictPos( const long NPar, const long *ParList, real *ParPosX, real *ParPosY, real *ParPosZ,
                      const double TargetTime );
 void Par_Init_Attribute();
-FieldIdx_t AddParticleAttribute( char *InputLabel );
-FieldIdx_t GetParticleAttributeIndex( char *InputLabel, const Check_t Check );
+void Par_AddParticleAfterInit( const long NNewPar, real *NewParAtt[PAR_NATT_TOTAL] );
+void Par_ScatterParticleData( const long NPar_ThisRank, const long NPar_AllRank, const long AttBitIdx,
+                              real *Data_Send[PAR_NATT_TOTAL], real *Data_Recv[PAR_NATT_TOTAL] );
+void Par_MapMesh2Particles( const double EdgeL[3], const double EdgeR[3],
+                            const double _dh, const int AttrSize3D, const real *Attr,
+                            const int NPar, real *InterpParPos[3],
+                            const real ParType[], const long ParList[],
+                            const bool UseTracers, real ParAttr[], const bool CorrectVelocity );
+FieldIdx_t AddParticleAttribute( const char *InputLabel );
+FieldIdx_t GetParticleAttributeIndex( const char *InputLabel, const Check_t Check );
 #ifdef LOAD_BALANCE
-void Par_LB_CollectParticle2OneLevel( const int FaLv, const bool PredictPos, const double TargetTime,
+void Par_LB_CollectParticle2OneLevel( const int FaLv, const long AttBitIdx, const bool PredictPos, const double TargetTime,
                                       const bool SibBufPatch, const bool FaSibBufPatch, const bool JustCountNPar,
                                       const bool TimingSendPar );
 void Par_LB_CollectParticle2OneLevel_FreeMemory( const int lv, const bool SibBufPatch, const bool FaSibBufPatch );
-void Par_LB_CollectParticleFromRealPatch( const int lv,
+void Par_LB_CollectParticleFromRealPatch( const int lv, const long AttBitIdx,
                                           const int Buff_NPatchTotal, const int *Buff_PIDList, int *Buff_NPatchEachRank,
                                           const int Real_NPatchTotal, const int *Real_PIDList, int *Real_NPatchEachRank,
                                           const bool PredictPos, const double TargetTime,
@@ -543,6 +702,28 @@ void YT_Inline();
 #endif // #ifdef SUPPORT_LIBYT
 
 
+// source terms
+void Src_Init();
+void Src_End();
+void Src_AdvanceDt( const int lv, const double TimeNew, const double TimeOld, const double dt,
+                    const int SaveSg_Flu, const int SaveSg_Mag, const bool OverlapMPI, const bool Overlap_Sync );
+void Src_Prepare( const int lv, const double PrepTime,
+                  real h_Flu_Array_S_In[][FLU_NIN_S][ CUBE(SRC_NXT)           ],
+                  real h_Mag_Array_S_In[][NCOMP_MAG][ SRC_NXT_P1*SQR(SRC_NXT) ],
+                  double h_Corner_Array_S[][3],
+                  const int NPG, const int *PID0_List );
+void Src_Close( const int lv, const int SaveSg_Flu, const real h_Flu_Array_S_Out[][FLU_NOUT_S][ CUBE(PS1) ],
+                const int NPG, const int *PID0_List );
+void Src_WorkBeforeMajorFunc( const int lv, const double TimeNew, const double TimeOld, const double dt );
+void CPU_SrcSolver( const real h_Flu_Array_In [][FLU_NIN_S ][ CUBE(SRC_NXT)           ],
+                          real h_Flu_Array_Out[][FLU_NOUT_S][ CUBE(PS1)               ],
+                    const real h_Mag_Array_In [][NCOMP_MAG ][ SRC_NXT_P1*SQR(SRC_NXT) ],
+                    const double h_Corner_Array[][3],
+                    const SrcTerms_t SrcTerms, const int NPatchGroup, const real dt, const real dh,
+                    const double TimeNew, const double TimeOld,
+                    const real MinDens, const real MinPres, const real MinEint );
+
+
 // Grackle
 #ifdef SUPPORT_GRACKLE
 void Grackle_Init();
@@ -565,6 +746,13 @@ void SF_FreeRNG();
 void SF_CreateStar_AGORA( const int lv, const real TimeNew, const real dt, RandomNumber_t *RNG,
                           const real GasDensThres, const real Efficiency, const real MinStarMass, const real MaxStarMFrac,
                           const bool DetRandom, const bool UseMetal );
+#endif
+
+
+// EoS in hydrodynamics
+#if ( MODEL == HYDRO )
+void EoS_Init();
+void EoS_End();
 #endif
 
 

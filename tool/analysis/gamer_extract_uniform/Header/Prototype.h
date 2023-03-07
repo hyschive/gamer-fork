@@ -1,6 +1,10 @@
 #ifndef __PROTOTYPE_H__
 #define __PROTOTYPE_H__
 
+#ifdef SUPPORT_HDF5
+#include "hdf5.h"
+#endif
+
 
 
 // GAMER_GetSlice functions
@@ -28,6 +32,9 @@ void GetTemp( real FData[], const int FSize, const int Buffer, const int NextIdx
 #if ( MODEL == ELBDM )
 void GetELBDM_Vel( real FData[], const int FSize, const int Buffer, const int NextIdx, const real dh,
                    const bool Com2Phy );
+#endif
+#ifdef SUPPORT_HDF5
+void SetHDF5Info( hid_t &H5_FileID );
 #endif
 
 
@@ -62,12 +69,12 @@ int  TABLE_07( const int SibID, const int Count );
 void Aux_Message( FILE *Type, const char *Format, ... );
 void Aux_Error( const char *File, const int Line, const char *Func, const char *Format, ... );
 bool Aux_CheckFileExist( const char *FileName );
-void Hydro_BoundaryCondition_Outflow( real *Array, const int BC_Face, const int NVar_Flu, const int GhostSize, 
-                                      const int ArraySizeX, const int ArraySizeY, const int ArraySizeZ, 
+void Hydro_BoundaryCondition_Outflow( real *Array, const int BC_Face, const int NVar_Flu, const int GhostSize,
+                                      const int ArraySizeX, const int ArraySizeY, const int ArraySizeZ,
                                       const int Idx_Start[], const int Idx_End[] );
 void Int_Table( const IntScheme_t IntScheme, int &NSide, int &NGhost );
 void Interpolate( real CData [], const int CSize[3], const int CStart[3], const int CRange[3],
-                  real FData [], const int FSize[3], const int FStart[3], 
+                  real FData [], const int FSize[3], const int FStart[3],
                   const int NComp, const IntScheme_t IntScheme, const bool UnwrapPhase, const bool Monotonic,
                   const real MonoCoeff );
 #if ( MODEL == ELBDM )

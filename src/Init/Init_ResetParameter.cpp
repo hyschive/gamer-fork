@@ -10,7 +10,7 @@
 // Note        :  1. Parameters are reset here usually because they are either non-deterministic when
 //                   calling Init_Load_Parameter() (because they depend on compilation options and/or other
 //                   runtime parameters) or are useless/unsupported in the adopted compilation options
-//                2. This function must be invoked AFTER both Init_Load_Parameter and Init_Unit
+//                2. This function must be invoked AFTER both Init_Load_Parameter() and Init_Unit()
 //                   --> The latter may reset several physical constants (e.g., ELBDM_MASS) which are
 //                       required here
 //                3. This function also sets the default values for the derived runtime parameters
@@ -61,17 +61,14 @@ void Init_ResetParameter()
 #     if   ( FLU_SCHEME == RTVD )
       DT__FLUID = 0.50;
 #     elif ( FLU_SCHEME == MHM )
-      DT__FLUID = 1.00;
+      DT__FLUID = 0.40;
 #     elif ( FLU_SCHEME == MHM_RP )
-      DT__FLUID = 1.00;
+      DT__FLUID = 0.30;
 #     elif ( FLU_SCHEME == CTU )
       DT__FLUID = 0.50;
 #     else
 #     error : unsupported CPU hydro scheme
 #     endif
-
-#     elif  ( MODEL == MHD )
-#     warning : WAIT MHD !!!
 
 #     elif  ( MODEL == ELBDM )
 #     ifdef GRAVITY
@@ -105,13 +102,8 @@ void Init_ResetParameter()
    {
 #     if   ( MODEL == HYDRO )
       DT__GRAVITY = 0.50;
-
-#     elif  ( MODEL == MHD )
-#     warning : WAIT MHD !!!
-
 #     elif  ( MODEL == ELBDM )
       DT__GRAVITY = 0.125;
-
 #     else
 #     error : ERROR : unsupported MODEL !!
 #     endif // MODEL
@@ -140,6 +132,22 @@ void Init_ResetParameter()
    Init_Set_Default_MG_Parameter( MG_MAX_ITER, MG_NPRE_SMOOTH, MG_NPOST_SMOOTH, MG_TOLERATED_ERROR );
 #  endif
 #  endif // GRAVITY
+
+
+// external potential table
+#  ifdef GRAVITY
+   if ( OPT__EXT_POT == EXT_POT_TABLE  &&  EXT_POT_TABLE_FLOAT8 < 0 )
+   {
+//    set EXT_POT_TABLE_FLOAT8 = FLOAT8 by default
+#     ifdef FLOAT8
+      EXT_POT_TABLE_FLOAT8 = 1;
+#     else
+      EXT_POT_TABLE_FLOAT8 = 0;
+#     endif
+
+      PRINT_WARNING( EXT_POT_TABLE_FLOAT8, FORMAT_INT, "to be consistent with FLOAT8" );
+   }
+#  endif
 
 
 // GPU parameters when using CPU only (must set OMP_NTHREAD in advance)
@@ -184,6 +192,17 @@ void Init_ResetParameter()
       PRINT_WARNING( CHE_GPU_NPGROUP, FORMAT_INT, "since GPU is disabled" );
    }
 #  endif
+
+   if ( SRC_GPU_NPGROUP <= 0 )
+   {
+#     ifdef OPENMP
+      SRC_GPU_NPGROUP = OMP_NTHREAD*20;
+#     else
+      SRC_GPU_NPGROUP = 1;
+#     endif
+
+      PRINT_WARNING( SRC_GPU_NPGROUP, FORMAT_INT, "since GPU is disabled" );
+   }
 #  endif // #ifndef GPU
 
 
@@ -214,16 +233,17 @@ void Init_ResetParameter()
 // whether of not to allocate fluxes at the coarse-fine boundaries
 #  if   ( MODEL == HYDRO )
    if ( OPT__FIXUP_FLUX )  amr->WithFlux = true;
-
-#  elif ( MODEL == MHD )
-#  warning : WAIT MHD !!!
-
 #  elif ( MODEL == ELBDM )
    if ( OPT__FIXUP_FLUX )  amr->WithFlux = true;
-
 #  else
 #  error : ERROR : unsupported MODEL !!
 #  endif // MODEL
+
+
+// whether of not to allocate electric field arrays at the coarse-fine boundaries
+#  ifdef MHD
+   if ( OPT__FIXUP_ELECTRIC )    amr->WithElectric = true;
+#  endif
 
 
 // ELBDM parameters
@@ -247,6 +267,14 @@ void Init_ResetParameter()
 
       PRINT_WARNING( ELBDM_TAYLOR3_COEFF, FORMAT_FLT, "since ELBDM_TAYLOR3_AUTO is enabled" );
    }
+
+// must disable ELBDM_TAYLOR3_AUTO for OPT__FREEZE_FLUID since ELBDM_SetTaylor3Coeff() doesn't support dt=0.0
+   if ( OPT__FREEZE_FLUID  &&  ELBDM_TAYLOR3_AUTO )
+   {
+      ELBDM_TAYLOR3_AUTO = false;
+
+      PRINT_WARNING( ELBDM_TAYLOR3_AUTO, FORMAT_INT, "since OPT__FREEZE_FLUID is enabled" );
+   }
 #  endif // #if ( MODEL == ELBDM )
 
 
@@ -265,9 +293,6 @@ void Init_ResetParameter()
 
       PRINT_WARNING( OPT__REF_FLU_INT_SCHEME, FORMAT_INT, "" );
    }
-
-#  elif ( MODEL == MHD )
-#  warning : WAIT MHD !!!
 
 #  elif ( MODEL == ELBDM )
    if ( OPT__FLU_INT_SCHEME == INT_DEFAULT )
@@ -356,6 +381,20 @@ void Init_ResetParameter()
 
       PRINT_WARNING( amr->Par->GhostSize, FORMAT_INT, "for the adopted PAR_INTERP scheme" );
    }
+
+   if ( amr->Par->GhostSizeTracer < 0 )
+   {
+      switch ( amr->Par->InterpTracer )
+      {
+         case ( PAR_INTERP_NGP ): amr->Par->GhostSizeTracer = 1;  break;
+         case ( PAR_INTERP_CIC ): amr->Par->GhostSizeTracer = 2;  break;
+         case ( PAR_INTERP_TSC ): amr->Par->GhostSizeTracer = 2;  break;
+         default: Aux_Error( ERROR_INFO, "unsupported particle interpolation scheme !!\n" );
+      }
+
+      PRINT_WARNING( amr->Par->GhostSizeTracer, FORMAT_INT, "for the adopted PAR_TR_INTERP scheme" );
+   }
+
 #  endif // #ifdef PARTICLE
 
 
@@ -363,6 +402,7 @@ void Init_ResetParameter()
 #  ifdef GRAVITY
    if ( OPT__BC_POT == BC_POT_ISOLATED  &&  GFUNC_COEFF0 < 0.0 )
    {
+      /*
 #     ifdef PARTICLE
       switch ( amr->Par->Interp )
       {
@@ -374,6 +414,9 @@ void Init_ResetParameter()
 #     else
       GFUNC_COEFF0 = 0.0;
 #     endif
+      */
+
+      GFUNC_COEFF0 = 3.8;  // empirically determined value for minimizing the center-of-mass drift
 
       PRINT_WARNING( GFUNC_COEFF0, FORMAT_FLT, "" );
    }
@@ -381,14 +424,44 @@ void Init_ResetParameter()
 
 
 // 1st-order flux correction
-#  if ( MODEL == HYDRO  ||  MODEL == MHD )
-   if ( OPT__1ST_FLUX_CORR == FIRST_FLUX_CORR_NONE  &&  OPT__1ST_FLUX_CORR_SCHEME != RSOLVER_1ST_NONE )
+#  if ( MODEL == HYDRO )
+   if ( OPT__1ST_FLUX_CORR < 0 )
+   {
+#     ifdef MHD
+      OPT__1ST_FLUX_CORR = FIRST_FLUX_CORR_3D;
+
+      PRINT_WARNING( OPT__1ST_FLUX_CORR, FORMAT_INT, "for MHD" );
+
+#     else
+
+#     if ( FLU_SCHEME == RTVD )
+      OPT__1ST_FLUX_CORR = FIRST_FLUX_CORR_NONE;
+#     else
+      OPT__1ST_FLUX_CORR = FIRST_FLUX_CORR_3D1D;
+#     endif
+
+      PRINT_WARNING( OPT__1ST_FLUX_CORR, FORMAT_INT, "for HYDRO" );
+#     endif // #ifdef MHD ... else ...
+   }
+
+   if      ( OPT__1ST_FLUX_CORR == FIRST_FLUX_CORR_NONE  &&  OPT__1ST_FLUX_CORR_SCHEME != RSOLVER_1ST_NONE )
    {
       OPT__1ST_FLUX_CORR_SCHEME = RSOLVER_1ST_NONE;
 
       PRINT_WARNING( OPT__1ST_FLUX_CORR_SCHEME, FORMAT_INT, "since OPT__1ST_FLUX_CORR is disabled" );
    }
-#  endif
+
+   else if ( OPT__1ST_FLUX_CORR != FIRST_FLUX_CORR_NONE  &&  OPT__1ST_FLUX_CORR_SCHEME == RSOLVER_1ST_DEFAULT )
+   {
+#     ifdef MHD
+      OPT__1ST_FLUX_CORR_SCHEME = RSOLVER_1ST_HLLE;
+#     else
+      OPT__1ST_FLUX_CORR_SCHEME = RSOLVER_1ST_HLLE;
+#     endif
+
+      PRINT_WARNING( OPT__1ST_FLUX_CORR_SCHEME, FORMAT_INT, "" );
+   }
+#  endif // if ( MODEL == HYDRO )
 
 
 // timing options
@@ -400,6 +473,10 @@ void Init_ResetParameter()
       else
 #     endif
          OPT__TIMING_BARRIER = 0;
+
+#     ifdef TIMING_SOLVER
+      OPT__TIMING_BARRIER = 1;
+#     endif
 
       PRINT_WARNING( OPT__TIMING_BARRIER, FORMAT_INT, "" );
    }
@@ -416,11 +493,17 @@ void Init_ResetParameter()
       Time_Prev[lv] = -__FLT_MAX__;    // initialize as negative to indicate that it has not been set yet
 
       amr->FluSgTime[lv][   amr->FluSg[lv] ] = Time[lv];
+#     ifdef MHD
+      amr->MagSgTime[lv][   amr->MagSg[lv] ] = Time[lv];
+#     endif
 #     ifdef GRAVITY
       amr->PotSgTime[lv][   amr->PotSg[lv] ] = Time[lv];
 #     endif
 
       amr->FluSgTime[lv][ 1-amr->FluSg[lv] ] = Time_Prev[lv];
+#     ifdef MHD
+      amr->MagSgTime[lv][ 1-amr->MagSg[lv] ] = Time_Prev[lv];
+#     endif
 #     ifdef GRAVITY
       amr->PotSgTime[lv][ 1-amr->PotSg[lv] ] = Time_Prev[lv];
 #     endif
@@ -516,20 +599,20 @@ void Init_ResetParameter()
 #  endif
 
 
-// flux operations are useful in HYDRO/MHD/ELBDM only
-#  if ( MODEL != HYDRO  &&  MODEL != MHD  &&  MODEL != ELBDM )
+// flux operations are useful in HYDRO/ELBDM only
+#  if ( MODEL != HYDRO  &&  MODEL != ELBDM )
    if ( OPT__FIXUP_FLUX )
    {
       OPT__FIXUP_FLUX = false;
 
-      PRINT_WARNING( OPT__FIXUP_FLUX, FORMAT_INT, "since it's only supported in HYDRO/MHD/ELBDM" );
+      PRINT_WARNING( OPT__FIXUP_FLUX, FORMAT_INT, "since it's only supported in HYDRO/ELBDM" );
    }
 
    if ( OPT__CK_FLUX_ALLOCATE )
    {
       OPT__CK_FLUX_ALLOCATE = false;
 
-      PRINT_WARNING( OPT__CK_FLUX_ALLOCATE, FORMAT_INT, "since it's only supported in HYDRO/MHD/ELBDM" );
+      PRINT_WARNING( OPT__CK_FLUX_ALLOCATE, FORMAT_INT, "since it's only supported in HYDRO/ELBDM" );
    }
 #  endif
 
@@ -559,32 +642,54 @@ void Init_ResetParameter()
 #  endif // #ifndef DENS
 
 
-// conservation check is supported only in HYDRO, MHD, and ELBDM
-#  if ( MODEL != HYDRO  &&  MODEL != MHD  &&  MODEL != ELBDM )
+// conservation check is supported only in HYDRO/ELBDM
+#  if ( MODEL != HYDRO  &&  MODEL != ELBDM )
    if ( OPT__CK_CONSERVATION )
    {
       OPT__CK_CONSERVATION = false;
 
-      PRINT_WARNING( OPT__CK_CONSERVATION, FORMAT_INT, "since it's only supported in HYDRO/MHD/ELBDM" );
+      PRINT_WARNING( OPT__CK_CONSERVATION, FORMAT_INT, "since it's only supported in HYDRO/ELBDM" );
    }
 #  endif
 
 
-// disable OPT__LR_LIMITER if it is useless
-#  if ( MODEL == HYDRO  ||  MODEL == MHD )
-#  if ( FLU_SCHEME != MHM  &&  FLU_SCHEME != MHM_RP  &&  FLU_SCHEME != CTU )
+// OPT__LR_LIMITER
+#  if ( MODEL == HYDRO )
+#  if ( FLU_SCHEME == MHM  ||  FLU_SCHEME == MHM_RP  ||  FLU_SCHEME == CTU )
+
+#  if ( FLU_SCHEME == MHM_RP  &&  LR_SCHEME == PPM )
+   if ( OPT__LR_LIMITER == LR_LIMITER_DEFAULT )
+   {
+//    OPT__LR_LIMITER = LR_LIMITER_CENTRAL;
+//    OPT__LR_LIMITER = LR_LIMITER_VL_GMINMOD;
+      OPT__LR_LIMITER = LR_LIMITER_GMINMOD;
+
+      PRINT_WARNING( OPT__LR_LIMITER, FORMAT_INT, "for MHM_RP+PPM" );
+   }
+#  else
+   if ( OPT__LR_LIMITER == LR_LIMITER_DEFAULT )
+   {
+      OPT__LR_LIMITER = LR_LIMITER_VL_GMINMOD;
+
+      PRINT_WARNING( OPT__LR_LIMITER, FORMAT_INT, "" );
+   }
+#  endif // #if ( FLU_SCHEME == MHM_RP  &&  LR_SCHEME == PPM ) ... else ...
+
+#  else // if ( FLU_SCHEME == MHM  ||  FLU_SCHEME == MHM_RP  ||  FLU_SCHEME == CTU )
+
    if ( OPT__LR_LIMITER != LR_LIMITER_NONE )
    {
       OPT__LR_LIMITER = LR_LIMITER_NONE;
 
-      PRINT_WARNING( OPT__LR_LIMITER, FORMAT_INT, "since it's only useful for the MHM/MHM_RP/CTU schemes" );
+      PRINT_WARNING( OPT__LR_LIMITER, FORMAT_INT, "since it's only useful for the MHM/MHM_RP/CTU integrators" );
    }
-#  endif
-#  endif // #if ( MODEL == HYDRO  ||  MODEL == MHD )
+
+#  endif // #if ( FLU_SCHEME == MHM  ||  FLU_SCHEME == MHM_RP  ||  FLU_SCHEME == CTU ) ... else ...
+#  endif // #if ( MODEL == HYDRO )
 
 
 // disable the refinement flag of Jeans length if GRAVITY is disabled
-#  if (  (MODEL == HYDRO || MODEL == MHD )  &&  !defined GRAVITY  )
+#  if ( MODEL == HYDRO  &&  !defined GRAVITY )
    if ( OPT__FLAG_JEANS )
    {
       OPT__FLAG_JEANS = false;
@@ -612,13 +717,13 @@ void Init_ResetParameter()
 #  endif
 
 
-// OPT__OUTPUT_BASEPS is not supported if GRAVITY is disabled
-#  ifndef GRAVITY
+// OPT__OUTPUT_BASEPS is not supported if SUPPORT_FFTW is disabled
+#  ifndef SUPPORT_FFTW
    if ( OPT__OUTPUT_BASEPS )
    {
       OPT__OUTPUT_BASEPS = false;
 
-      PRINT_WARNING( OPT__OUTPUT_BASEPS, FORMAT_INT, "since GRAVITY is disabled" );
+      PRINT_WARNING( OPT__OUTPUT_BASEPS, FORMAT_INT, "since SUPPORT_FFTW is disabled" );
    }
 #  endif
 
@@ -690,7 +795,7 @@ void Init_ResetParameter()
 // OPT__UM_IC_NVAR
    if ( OPT__INIT == INIT_BY_FILE  &&  OPT__UM_IC_NVAR <= 0 )
    {
-#     if (  ( MODEL == HYDRO || MODEL == MHD )  &&  defined DUAL_ENERGY  )
+#     if ( MODEL == HYDRO  &&  defined DUAL_ENERGY )
       OPT__UM_IC_NVAR = NCOMP_TOTAL - 1;  // do not load the dual-energy field from the disk
 
 #     elif ( MODEL == ELBDM )
@@ -728,13 +833,13 @@ void Init_ResetParameter()
 
 
 // JEANS_MIN_PRES must work with GRAVITY
-#  if ( MODEL == HYDRO  ||  MODEL == MHD )
+#  if ( MODEL == HYDRO )
 #  ifndef GRAVITY
    if ( JEANS_MIN_PRES )
    {
       JEANS_MIN_PRES = false;
 
-      PRINT_WARNING( JEANS_MIN_PRES, FORMAT_INT, "since either SUPPORT_GRACKLE or GRAVITY is disabled" );
+      PRINT_WARNING( JEANS_MIN_PRES, FORMAT_INT, "since GRAVITY is disabled" );
    }
 #  endif
 
@@ -743,6 +848,45 @@ void Init_ResetParameter()
       JEANS_MIN_PRES_LEVEL = MAX_LEVEL;
 
       PRINT_WARNING( JEANS_MIN_PRES_LEVEL, FORMAT_INT, "" );
+   }
+#  endif
+
+
+// MIN_PRES and MIN_EINT
+#  if ( MODEL == HYDRO )
+   if      ( MIN_PRES > 0.0  &&  MIN_EINT == 0.0 )
+   {
+      MIN_EINT = MIN_PRES*1.5;
+
+      PRINT_WARNING( MIN_EINT, FORMAT_FLT, "" );
+   }
+
+   else if ( MIN_EINT > 0.0  &&  MIN_PRES == 0.0 )
+   {
+      MIN_PRES = MIN_EINT/1.5;
+
+      PRINT_WARNING( MIN_PRES, FORMAT_FLT, "" );
+   }
+#  endif
+
+
+// OPT__CHECK_PRES_AFTER_FLU
+#  if ( MODEL == HYDRO )
+   if ( OPT__CHECK_PRES_AFTER_FLU < 0 )
+   {
+      if ( EOS == EOS_NUCLEAR  ||  EOS == EOS_TABULAR )
+      {
+         OPT__CHECK_PRES_AFTER_FLU = 1;
+
+         PRINT_WARNING( OPT__CHECK_PRES_AFTER_FLU, FORMAT_INT, "" );
+      }
+
+      else
+      {
+         OPT__CHECK_PRES_AFTER_FLU = 0;
+
+         PRINT_WARNING( OPT__CHECK_PRES_AFTER_FLU, FORMAT_INT, "" );
+      }
    }
 #  endif
 
@@ -756,14 +900,24 @@ void Init_ResetParameter()
    }
 
 
-// FLAG_BUFFER_SIZE at the level MAX_LEVEL-1 and MAX_LEVEL-2
-   if ( FLAG_BUFFER_SIZE_MAXM1_LV < 0 )
+// FLAG_BUFFER_SIZE on different levels
+// levels other than MAX_LEVEL-1 and MAX_LEVEL-2
+   if ( FLAG_BUFFER_SIZE < 0 )
    {
-      FLAG_BUFFER_SIZE_MAXM1_LV = FLAG_BUFFER_SIZE;
+      FLAG_BUFFER_SIZE = PS1;
 
-      PRINT_WARNING( FLAG_BUFFER_SIZE_MAXM1_LV, FORMAT_INT, "" );
+      PRINT_WARNING( FLAG_BUFFER_SIZE, FORMAT_INT, "to match PATCH_SIZE" );
    }
 
+// level MAX_LEVEL-1
+   if ( FLAG_BUFFER_SIZE_MAXM1_LV < 0 )
+   {
+      FLAG_BUFFER_SIZE_MAXM1_LV = REGRID_COUNT;
+
+      PRINT_WARNING( FLAG_BUFFER_SIZE_MAXM1_LV, FORMAT_INT, "to match REGRID_COUNT" );
+   }
+
+// level MAX_LEVEL-2
 // must set FLAG_BUFFER_SIZE_MAXM1_LV in advance
    if ( FLAG_BUFFER_SIZE_MAXM2_LV < 0 )
    {
@@ -831,6 +985,15 @@ void Init_ResetParameter()
       PRINT_WARNING( OPT__INIT_GRID_WITH_OMP, FORMAT_INT, "since OPENMP is disabled" );
    }
 #  endif
+
+
+// set OPT__RESET_FLUID_INIT = OPT__RESET_FLUID by default
+   if ( OPT__RESET_FLUID_INIT < 0 )
+   {
+      OPT__RESET_FLUID_INIT = OPT__RESET_FLUID;
+
+      PRINT_WARNING( OPT__RESET_FLUID_INIT, FORMAT_INT, "to match OPT__RESET_FLUID" );
+   }
 
 
 // remove symbolic constants and macros only used in this structure
