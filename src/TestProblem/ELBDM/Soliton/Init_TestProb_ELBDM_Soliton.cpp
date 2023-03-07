@@ -118,7 +118,7 @@ void SetParameter()
    ReadPara->Add( "Soliton_CoreRadiusAll",     &Soliton_CoreRadiusAll,      NoDef_double,  NoMin_double,     NoMax_double      );
    ReadPara->Add( "Soliton_EmptyRegion",       &Soliton_EmptyRegion,        0.0,           NoMin_double,     NoMax_double      );
    ReadPara->Add( "Soliton_DensProf_Filename",  Soliton_DensProf_Filename,  NoDef_str,     Useless_str,      Useless_str       );
-   ReadPara->Add( "ExtPot_M",                  &ExtPot_M,                   0.0,           0.0,              NoMax_double      ); 
+   ReadPara->Add( "ExtPot_M",                  &ExtPot_M,                   0.0,           0.0,              NoMax_double      );
 
    ReadPara->Read( FileName );
 
@@ -133,17 +133,18 @@ void SetParameter()
    if ( Soliton_CoreRadiusAll == NoDef_double )
       Aux_Error( ERROR_INFO, "Runtime parameter \"Soliton_CoreRadiusAll\" is not set !!\n" );
 
-   if ( ExtPot_M != 0.0 && !OPT__EXTERNAL_POT )
+   if ( ExtPot_M != 0.0  &&  !OPT__EXTERNAL_POT )
       Aux_Error( ERROR_INFO, "OPT__EXTERNAL_POT must be enabled to add a point source mass !!\n");
 
    if ( MPI_Rank == 0)
    {
-      if ( ExtPot_M != 0.0 && strcmp( Soliton_DensProf_Filename, "SolitonDensityProfile_OneTenthPointMass") != 0 )
+      if ( ExtPot_M != 0.0  &&  strcmp( Soliton_DensProf_Filename, "SolitonDensityProfile_OneTenthPointMass") != 0 )
          Aux_Message( stdout, "WARNING : A soliton solution with point mass (=0.1*SolitonTotalMass) is provided as SolitonDensityProfile_OneTenthPointMass.\n" );
 
-      if ( ExtPot_M != 0.0 && strcmp( Soliton_DensProf_Filename, "SolitonDensityProfile_OneTenthPointMass") == 0 )
-         Aux_Message( stdout, "WARNING : Be careful that  SolitonDensityProfile_OneTenthPointMass is only valid when ExtPot_M == 0.1*SolitonTotalMass.\n" );
+      if ( ExtPot_M != 0.0  &&  strcmp( Soliton_DensProf_Filename, "SolitonDensityProfile_OneTenthPointMass") == 0 )
+         Aux_Message( stdout, "WARNING : Be careful that SolitonDensityProfile_OneTenthPointMass is only valid when ExtPot_M == 0.1*SolitonTotalMass.\n" );
    }
+
 
 // (2) set the problem-specific derived parameters
 // (2-1) allocate memory
@@ -399,6 +400,8 @@ void BC( real fluid[], const double x, const double y, const double z, const dou
 
 } // FUNCTION : BC
 
+
+
 //-------------------------------------------------------------------------------------------------------
 // Function    :  Init_ExtPot
 // Description :  Set the array "ExtPot_AuxArray" used by the external potential routines
@@ -419,7 +422,6 @@ void Init_ExtPot()
    ExtPot_AuxArray[3] = ExtPot_M*NEWTON_G;
 
 } // FUNCTION : Init_ExtPot
-
 #endif // #if ( MODEL == ELBDM  &&  defined GRAVITY )
 
 
