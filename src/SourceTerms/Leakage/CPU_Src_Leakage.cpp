@@ -3,7 +3,6 @@
 #include "NuclearEoS.h"
 #include "Src_Leakage.h"
 
-
 #if ( MODEL == HYDRO )
 
 
@@ -151,7 +150,7 @@ void Src_SetAuxArray_Leakage( double AuxArray_Flt[], int AuxArray_Int[] )
 
 //-------------------------------------------------------------------------------------------------------
 // Function    :  Src_Leakage
-// Description :  Major source-term function
+// Description :  Apply the leakage scheme for neutrino heating and cooling, and the change in electron fraction
 //
 // Note        :  1. Invoked by CPU/GPU_SrcSolver_IterateAllCells()
 //                2. See Src_SetAuxArray_Leakage() for the values stored in AuxArray_Flt/Int[]
@@ -274,12 +273,12 @@ static void Src_Leakage( real fluid[], const real B[],
    if ( NTheta > 1 )
    {
 //    set theta = 0.5 * PI arbitrarily if rad = 0
-      theta     = ( rad == (real)0.0 )
-                ? (real)0.5 * M_PI
+      theta     = ( rad == 0.0 )
+                ? 0.5 * M_PI
                 : acos( z0 / rad );
       idx_theta = ( NPhi > 1 )
-                ? int( theta / dTheta + (real)0.5 ) - 1
-                : MIN(  MAX( int( theta / dTheta - (real)0.5 ), 0 ), NTheta-2  );
+                ? int( theta / dTheta + 0.5 ) - 1
+                : MIN(  MAX( int( theta / dTheta - 0.5 ), 0 ), NTheta-2  );
 
       ys[0] = ( (real)0.5 + (real)idx_theta ) * dTheta;
       ys[1] = ( (real)1.5 + (real)idx_theta ) * dTheta;
@@ -291,13 +290,13 @@ static void Src_Leakage( real fluid[], const real B[],
 //                         int( phi / dPhi - 0.5 )  otherwise
    if ( NPhi > 1 )
    {
-      phi     = ( x0 == (real)0.0  &&  y0 == (real) 0.0 )
+      phi     = (  ( x0 == 0.0 )  &&  ( y0 == 0.0 )  )
               ? 0.0
-              : (  ( y0 >= (real)0.0 ) ? atan2( y0, x0 ) : atan2( y0, x0 ) + (real)2.0 * M_PI  );
-      idx_phi = int( phi / dPhi + (real)0.5 ) - 1;
+              : (  ( y0 >= 0.0 ) ? atan2( y0, x0 ) : atan2( y0, x0 ) + 2.0 * M_PI  );
+      idx_phi = int( phi / dPhi + 0.5 ) - 1;
 
 //    deal the case phi < 0.5 * dPhi
-      if ( idx_phi == -1 )  {  idx_phi += NPhi;  phi += (real)2.0 * M_PI;  }
+      if ( idx_phi == -1 )  {  idx_phi += NPhi;  phi += 2.0 * M_PI;  }
 
       zs[0] = ( (real)0.5 + (real)idx_phi ) * dPhi;
       zs[1] = ( (real)1.5 + (real)idx_phi ) * dPhi;
@@ -600,7 +599,7 @@ static void Src_Leakage( real fluid[], const real B[],
 
 //-------------------------------------------------------------------------------------------------------
 // Function    :  Src_WorkBeforeMajorFunc_Leakage
-// Description :  Specify work to be done every time before calling the major source-term function
+// Description :  Prepare the leakage profile before calling the major source-term function
 //
 // Note        :  1. Invoked by Src_WorkBeforeMajorFunc()
 //                2. Add "#ifndef __CUDACC__" since this routine is only useful on CPU

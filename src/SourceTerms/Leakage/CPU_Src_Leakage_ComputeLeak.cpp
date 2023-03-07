@@ -6,9 +6,9 @@
 
 #ifndef __CUDACC__
 
-extern bool   IsInit_dEdt_Nu     [NLEVEL];
-extern double CCSN_Leakage_EAve  [NType_Neutrino];
-extern double CCSN_Leakage_RadNS [NType_Neutrino];
+extern bool   IsInit_dEdt_Nu    [NLEVEL];
+extern double CCSN_Leakage_EAve [NType_Neutrino];
+extern double CCSN_Leakage_RadNS[NType_Neutrino];
 
 #endif
 
@@ -63,14 +63,10 @@ void Src_Leakage_ComputeTau( Profile_t *Ray[], double *Edge,
                              real HeatE_Ave[][NType_Neutrino] )
 {
 
-   #ifdef FLOAT8
-   const double Tolerance    = 1.0e-10;
-   #else
-   const double Tolerance    = 1.0e-6;
-   #endif
-   const bool   NuHeat       = SrcTerms.Leakage_NuHeat;
-   const real   NuHeat_Fac   = SrcTerms.Leakage_NuHeat_Fac;
-         bool   Have_tau_USG = IsInit_dEdt_Nu[0];
+   const double Tolerance_Leak = 1.0e-10;
+   const bool   NuHeat         = SrcTerms.Leakage_NuHeat;
+   const real   NuHeat_Fac     = SrcTerms.Leakage_NuHeat_Fac;
+         bool   Have_tau_USG   = IsInit_dEdt_Nu[0];
 
 
 // prepare the line element, area, and bin volume for better performance
@@ -418,7 +414,7 @@ void Src_Leakage_ComputeTau( Profile_t *Ray[], double *Edge,
                                rel_diff );
             }}
 
-            if ( rel_diff < Tolerance )   break;
+            if ( rel_diff < Tolerance_Leak )   break;
 
 
 //          back up the current kappa
@@ -445,7 +441,7 @@ void Src_Leakage_ComputeTau( Profile_t *Ray[], double *Edge,
 #           endif
 
             Aux_Error( ERROR_INFO, "failed in finding converged opacity for Ray (%d) in %s (tolerance=%.15e, relative difference=%.15e) !!\n",
-                       j, __FUNCTION__, Tolerance, rel_diff );
+                       j, __FUNCTION__, Tolerance_Leak, rel_diff );
          }
 
 //       update eta_nu and store tau with typecasting

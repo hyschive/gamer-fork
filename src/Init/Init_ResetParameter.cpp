@@ -956,6 +956,16 @@ void Init_ResetParameter()
    PRINT_WARNING( SF_CREATE_STAR_MIN_STAR_MASS, FORMAT_FLT, "to be consistent with the code units" );
 #  endif // #ifdef STAR_FORMATION
 
+#  if ( defined NEUTRINO_SCHEME  &&  NEUTRINO_SCHEME == LEAKAGE )
+   SrcTerms.Leakage_BinSize_Radius /= UNIT_L;
+   SrcTerms.Leakage_RadiusMax      /= UNIT_L;
+   SrcTerms.Leakage_RadiusMin_Log  /= UNIT_L;
+
+   PRINT_WARNING( SrcTerms.Leakage_BinSize_Radius, FORMAT_FLT, "to be consistent with the code units" );
+   PRINT_WARNING( SrcTerms.Leakage_RadiusMax,      FORMAT_FLT, "to be consistent with the code units" );
+   PRINT_WARNING( SrcTerms.Leakage_RadiusMin_Log,  FORMAT_FLT, "to be consistent with the code units" );
+#  endif // if ( defined NEUTRINO_SCHEME  &&  NEUTRINO_SCHEME == LEAKAGE )
+
 
 // disable OPT__MINIMIZE_MPI_BARRIER in the serial mode
 #  ifdef SERIAL
