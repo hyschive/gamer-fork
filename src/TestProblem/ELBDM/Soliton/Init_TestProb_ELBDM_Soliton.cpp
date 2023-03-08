@@ -22,8 +22,11 @@ static double  *Soliton_ScaleL     = NULL;               // L/D: length/density 
                                                          //      (defined as the ratio between the core radii/peak
                                                          //      density of the target and reference soliton profiles)
 static double  *Soliton_ScaleD     = NULL;
-static double   Soliton_ExtPot_M;                        // point source mass
+       double   Soliton_ExtPot_M;                        // point source mass
 // =======================================================================================
+
+// external potential routines
+void Init_ExtPot_ELBDM_Soliton();
 
 
 
