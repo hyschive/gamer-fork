@@ -263,19 +263,27 @@ void Aux_ComputeRay( Profile_t *Ray[], const double Center[], const double Edge[
 //                   --> contribute to rays close to the z-axis with arbitrary azimuthal angle
                      if (  ( fabs(dx) < dh_half )  &&  ( fabs(dy) < dh_half )  )
                      {
-                        idx_theta_min = ( dz > 0.0 ) ? 0                          : int( theta_max * _dtheta );
-                        idx_theta_max = ( dz > 0.0 ) ? int( theta_min * _dtheta ) : NTheta-1;
+                        idx_theta_min = ( dz > 0.0 ) ? 0                          : int( theta_min * _dtheta );
+                        idx_theta_max = ( dz > 0.0 ) ? int( theta_max * _dtheta ) : NTheta-1;
                         idx_phi_min   = 0;
                         idx_phi_max   = NPhi-1;
                      }
 
                      else
                      {
+                        double theta_tmp, phi_tmp;
+
                         idx_theta_min = int( theta_min * _dtheta );
-                        idx_theta_max = MIN( int( theta_max * _dtheta ), NTheta-1 );
+
+//                      avoid redundant mapping
+                        theta_tmp     = theta_max * _dtheta;
+                        idx_theta_max = (  Mis_CompareRealValue( floor(theta_tmp), theta_tmp, NULL, false )  )
+                                      ? MIN( int(theta_tmp) - 1, NTheta-1 )
+                                      : MIN( int(theta_tmp),     NTheta-1 );
+
 
 //                      deal with the special case that the cell overlay with the positive xz plane (dx > 0, dy = 0)
-                        if (  ( dx > 0 )  &&  ( fabs(dy) < dh_half )  )
+                        if (  ( dx > 0.0 )  &&  ( fabs(dy) < dh_half )  )
                         {
 //                         get the correct azimuthal angle
                            phi_min = atan2( dy - dh_half, dx - dh_half ) + 2.0 * M_PI;
@@ -290,7 +298,12 @@ void Aux_ComputeRay( Profile_t *Ray[], const double Center[], const double Edge[
                         else
                         {
                            idx_phi_min = int( phi_min * _dphi );
-                           idx_phi_max = int( phi_max * _dphi );
+
+//                         avoid redundant mapping
+                           phi_tmp     = phi_max * _dphi;
+                           idx_phi_max = (  Mis_CompareRealValue( floor(phi_tmp), phi_tmp, NULL, false )  )
+                                         ? int(phi_tmp) - 1
+                                         : int(phi_tmp);
                         }
                      }
                   } // if (  Mis_CompareRealValue( rad_min, rad_max, NULL, false )  ) ... else ...
@@ -539,9 +552,10 @@ void Aux_GetMinMax_Vertex_Angle( const double x, const double y, const double z,
 //    deal the special case that the vertex locates on the z-axis (xx = yy = 0.0)
       if ( xx != 0.0  ||  yy != 0.0 )
       {
-         const double phi = ( yy >= 0.0 )
-                          ? atan2( yy, xx )
-                          : atan2( yy, xx ) + 2.0 * M_PI;
+         double phi = ( yy >= 0.0 ) ? atan2( yy, xx ) : atan2( yy, xx ) + 2.0 * M_PI;
+
+         if (  ( phi == 0.0 )  &&  ( y < 0.0 )  )
+            phi += 2.0 * M_PI;
 
          *phi_min = fmin( *phi_min, phi );
          *phi_max = fmax( *phi_max, phi );
