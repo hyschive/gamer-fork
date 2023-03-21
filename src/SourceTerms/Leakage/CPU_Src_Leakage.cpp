@@ -252,7 +252,7 @@ static void Src_Leakage( real fluid[], const real B[],
 // (1) set up the data index and coordinate
 // (1-1) radius:
 //       --> use data at boundary for cells outside of the radius range
-//       --> for rad <= RadMin_Log, add MIN( ..., NRadius-2 ) to deal the special case RadMin_Log = MaxRadius
+//       --> for rad <= RadMin_Log, add MIN( ..., NRadius-2 ) to deal with the special case RadMin_Log = MaxRadius
    idx_rad = ( rad <= RadMin_Log )
            ? MIN(  MAX( int( rad / dRad - (real)0.5 ), 0 ), NRadius-2  )
            : Src_Leakage_BinarySearch( Radius, NRad_Lin-1, NRadius-2, rad );
@@ -295,7 +295,7 @@ static void Src_Leakage( real fluid[], const real B[],
               : (  ( y0 >= 0.0 ) ? atan2( y0, x0 ) : atan2( y0, x0 ) + 2.0 * M_PI  );
       idx_phi = int( phi / dPhi + 0.5 ) - 1;
 
-//    deal the case phi < 0.5 * dPhi
+//    deal with the case phi < 0.5 * dPhi
       if ( idx_phi == -1 )  {  idx_phi += NPhi;  phi += 2.0 * M_PI;  }
 
       zs[0] = ( (real)0.5 + (real)idx_phi ) * dPhi;
@@ -537,6 +537,11 @@ static void Src_Leakage( real fluid[], const real B[],
 
    if (  ( Ye + dYe < YeMin )  ||  ( Ye + dYe > YeMax )  )
    {
+#     ifdef GAMER_DEBUG
+      printf( "Invalid change rate of Ye: Ye=%13.7e, dYedt=%13.7e, dt=%13.7e, YeMin=%13.7e, YeMax=%13.7e\n",
+              Ye, dYedt, dt, YeMin, YeMax );
+#     endif
+
       dEdt_Code  = (real)0.0;
       dYedt_Code = (real)0.0;
    }

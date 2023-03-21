@@ -63,7 +63,11 @@ void Src_Leakage_ComputeTau( Profile_t *Ray[], double *Edge,
                              real HeatE_Ave[][NType_Neutrino] )
 {
 
+#  ifdef FLOAT8
    const double Tolerance_Leak = 1.0e-10;
+#  else
+   const double Tolerance_Leak = 1.0e-5;
+#  endif
    const bool   NuHeat         = SrcTerms.Leakage_NuHeat;
    const real   NuHeat_Fac     = SrcTerms.Leakage_NuHeat_Fac;
          bool   Have_tau_USG   = IsInit_dEdt_Nu[0];
