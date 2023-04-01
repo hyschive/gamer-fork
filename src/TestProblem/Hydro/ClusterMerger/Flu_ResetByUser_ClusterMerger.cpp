@@ -54,7 +54,7 @@ double E_inj_exp[3] = { 0.0, 0.0, 0.0 };   // the expected amount of injected en
 double dt_base; 
 double E_power_inj[3];   // the injection power
 
-extern void GetClusterCenter( double Cen_old[][3], double Cen_new[][3] );
+extern void GetClusterCenter( int lv, bool AdjustPos, bool AdjustVel, double Cen_old[][3], double Cen_new[][3], double Cen_Vel[][3] );
 
 static bool FirstTime = true;
 /*
@@ -74,6 +74,12 @@ extern int     JetDirection_NBin;     // number of bins of the jet direction tab
 extern double *Time_table;            // the time table of jet direction 
 extern double *Theta_table[3];        // the theta table of jet direction for 3 clusters
 extern double *Phi_table[3];          // the phi table of jet direction for 3 clusters
+
+extern bool   AdjustBHPos;
+extern bool   AdjustBHVel;
+extern double AdjustPeriod;
+int AdjustCount = 0;   // count the number of adjustments
+int merge_index = 0;   // record BH 1 merge BH 2 / BH 2 merge BH 1
 
 //-------------------------------------------------------------------------------------------------------
 // Function    :  Flu_ResetByUser_Func_ClusterMerger
@@ -236,40 +242,63 @@ int Flu_ResetByUser_Func_ClusterMerger( real fluid[], const double Emag, const d
 //-------------------------------------------------------------------------------------------------------
 void Flu_ResetByUser_API_ClusterMerger( const int lv, const int FluSg, const double TimeNew, const double dt )
 {
+/*
+// TEMP!!! For restart.
+   if (BH_Pos[0][0] == 0.0){                        
+      BH_Pos[0][0] = 7.4718022e+00;
+      BH_Pos[0][1] = 7.5023150e+00;
+      BH_Pos[0][2] = 7.5038495e+00;
+      BH_Pos[1][0] = 7.5331659e+00;
+      BH_Pos[1][1] = 7.5056639e+00;
+      BH_Pos[1][2] = 7.5041471e+00;
+      ClusterCen[0][0] = 7.4718022e+00;
+      ClusterCen[0][1] = 7.5023150e+00;
+      ClusterCen[0][2] = 7.5038495e+00;
+      ClusterCen[1][0] = 7.5331659e+00;
+      ClusterCen[1][1] = 7.5056639e+00;
+      ClusterCen[1][2] = 7.5041471e+00;
+      BH_Vel[0][0] = 4.4017131e+02/UNIT_V*(Const_km/Const_s); 
+      BH_Vel[0][1] = 2.1990993e+01/UNIT_V*(Const_km/Const_s);    
+      BH_Vel[0][2] = -7.8597931e+00/UNIT_V*(Const_km/Const_s);
+      BH_Vel[1][0] = -4.8891710e+02/UNIT_V*(Const_km/Const_s);
+      BH_Vel[1][1] = -2.5195094e+01/UNIT_V*(Const_km/Const_s);         
+      BH_Vel[1][2] = 5.7178019e+01/UNIT_V*(Const_km/Const_s);
+      Bondi_MassBH1 = 7.1479449e+10/1e14;
+      Bondi_MassBH2 = 7.1476139e+10/1e14;
+      AdjustCount = 389; 
+   } 
+*/
+
    double RelativeBHPos[3] = { BH_Pos[0][0]-BH_Pos[1][0], BH_Pos[0][1]-BH_Pos[1][1], BH_Pos[0][2]-BH_Pos[1][2] };
    double RelativeBHVel[3] = { BH_Vel[0][0]-BH_Vel[1][0], BH_Vel[0][1]-BH_Vel[1][1], BH_Vel[0][2]-BH_Vel[1][2] };
    double AbsRelPos = sqrt( SQR(RelativeBHPos[0])+SQR(RelativeBHPos[1])+SQR(RelativeBHPos[2]) );
    double AbsRelVel = sqrt( SQR(RelativeBHVel[0])+SQR(RelativeBHVel[1])+SQR(RelativeBHVel[2]) );
-   double escape_vel[2] = { sqrt(2*NEWTON_G*Bondi_MassBH2/AbsRelPos), sqrt(2*NEWTON_G*Bondi_MassBH1/AbsRelPos) };
-
-   if ( Merger_Coll_NumHalos == 2  &&  TimeNew > 3e-3 &&  MPI_Rank == 0 ){
-      Aux_Message( stdout, "In rank %d, lv = %d, TimeNew = %14.8e; BHPos1 = %14.8e, %14.8e, %14.8e; BHPos2 = %14.8e, %14.8e, %14.8e; BHVel1 = %14.8e, %14.8e, %14.8e; BHVel2 = %14.8e, %14.8e, %14.8e; AbsRelPos = %14.8e, AbsRelVel = %14.8e, escape_vel[0] = %14.8e, escape_vel[1] = %14.8e.\n", MPI_Rank, lv, TimeNew, BH_Pos[0][0], BH_Pos[0][1], BH_Pos[0][2], BH_Pos[1][0], BH_Pos[1][1], BH_Pos[1][2], BH_Vel[0][0], BH_Vel[0][1], BH_Vel[0][2], BH_Vel[1][0], BH_Vel[1][1], BH_Vel[1][2], AbsRelPos, AbsRelVel, escape_vel[0], escape_vel[1]); 
+   double escape_vel[2];
+   double soften = amr->dh[MAX_LEVEL];
+   if ( AbsRelPos > soften ){
+      escape_vel[0] = sqrt(2*NEWTON_G*Bondi_MassBH2/AbsRelPos);
+      escape_vel[1] = sqrt(2*NEWTON_G*Bondi_MassBH1/AbsRelPos);
+   }
+   else{   
+      escape_vel[0] = sqrt(2*NEWTON_G*Bondi_MassBH2/soften);
+      escape_vel[1] = sqrt(2*NEWTON_G*Bondi_MassBH1/soften);
    }
 
-// Merge the two BHs if they are located within R_acc, and the relative velocity is low enough
+// Merge the two BHs if they are located within R_acc, and the relative velocity is small enough
    if ( Merger_Coll_NumHalos == 2 ){
-      if ( AbsRelPos < R_acc  &&  AbsRelVel < 3*escape_vel[1]  &&  AbsRelVel >= 3*escape_vel[0] ){
+      if ( AbsRelPos < R_acc  &&  ( AbsRelVel < 3*escape_vel[1]  ||  AbsRelVel < 3*escape_vel[0] ) ){
          Merger_Coll_NumHalos -= 1;
+         if ( Bondi_MassBH1 >= Bondi_MassBH2 )   merge_index = 1;   // record BH 1 merge BH 2 / BH 2 merge BH 1
+         else   merge_index = 2;
+//       Relabel the BH particle being merged back to dark matter
          Bondi_MassBH1 += Bondi_MassBH2;
          Bondi_MassBH2 = 0.0;
-         Aux_Message( stdout, "Merge! In rank %d, TimeNew = %14.8e; BHPos1 = %14.8e, %14.8e, %14.8e; BHPos2 = %14.8e, %14.8e, %14.8e; BHVel1 = %14.8e, %14.8e, %14.8e; BHVel2 = %14.8e, %14.8e, %14.8e; AbsRelPos = %14.8e, AbsRelVel = %14.8e, escape_vel[0] = %14.8e, escape_vel[1] = %14.8e.\n", MPI_Rank, TimeNew, BH_Pos[0][0], BH_Pos[0][1], BH_Pos[0][2], BH_Pos[1][0], BH_Pos[1][1], BH_Pos[1][2], BH_Vel[0][0], BH_Vel[0][1], BH_Vel[0][2], BH_Vel[1][0], BH_Vel[1][1], BH_Vel[1][2], AbsRelPos, AbsRelVel, escape_vel[0], escape_vel[1]);
-      }
-      else if ( AbsRelPos < R_acc  &&  AbsRelVel < 3*escape_vel[0]  &&  AbsRelVel >= 3*escape_vel[1] ){
-         Merger_Coll_NumHalos -= 1; 
-         Bondi_MassBH2 += Bondi_MassBH1; 
-         Bondi_MassBH1 = 0.0;   
-      }
-      else if ( AbsRelPos < R_acc  &&  AbsRelVel < 3*escape_vel[1]  &&  AbsRelVel < 3*escape_vel[0] ){
-         Merger_Coll_NumHalos -= 1;
-         if ( Bondi_MassBH1 >= Bondi_MassBH2 ){
-            Bondi_MassBH1 += Bondi_MassBH2; 
-            Bondi_MassBH2 = 0.0; 
-         }
-         else {
-            Bondi_MassBH2 += Bondi_MassBH1; 
-            Bondi_MassBH1 = 0.0; 
-         }
-         Aux_Message( stdout, "Merge! In rank %d, TimeNew = %14.8e; BHPos1 = %14.8e, %14.8e, %14.8e; BHPos2 = %14.8e, %14.8e, %14.8e; BHVel1 = %14.8e, %14.8e, %14.8e; BHVel2 = %14.8e, %14.8e, %14.8e; AbsRelPos = %14.8e, AbsRelVel = %14.8e, escape_vel[0] = %14.8e, escape_vel[1] = %14.8e.\n", MPI_Rank, TimeNew, BH_Pos[0][0], BH_Pos[0][1], BH_Pos[0][2], BH_Pos[1][0], BH_Pos[1][1], BH_Pos[1][2], BH_Vel[0][0], BH_Vel[0][1], BH_Vel[0][2], BH_Vel[1][0], BH_Vel[1][1], BH_Vel[1][2], AbsRelPos, AbsRelVel, escape_vel[0], escape_vel[1]);
+         for (long p=0; p<amr->Par->NPar_AcPlusInac; p++) {                                  
+            if ( amr->Par->Mass[p] >= (real)0.0  &&  amr->Par->Type[p] == real(PTYPE_CEN+1) ){       
+               amr->Par->Type[p] = PTYPE_DARK_MATTER;      
+            }
+         }     
+         Aux_Message( stdout, "Merge! In rank %d, TimeNew = %14.8e; merge_index = %d, BHPos1 = %14.8e, %14.8e, %14.8e; BHPos2 = %14.8e, %14.8e, %14.8e; BHVel1 = %14.8e, %14.8e, %14.8e; BHVel2 = %14.8e, %14.8e, %14.8e; AbsRelPos = %14.8e, AbsRelVel = %14.8e, escape_vel[0] = %14.8e, escape_vel[1] = %14.8e.\n", MPI_Rank, TimeNew, merge_index, BH_Pos[0][0], BH_Pos[0][1], BH_Pos[0][2], BH_Pos[1][0], BH_Pos[1][1], BH_Pos[1][2], BH_Vel[0][0], BH_Vel[0][1], BH_Vel[0][2], BH_Vel[1][0], BH_Vel[1][1], BH_Vel[1][2], AbsRelPos, AbsRelVel, escape_vel[0], escape_vel[1]);
       }  
    }
 
@@ -278,7 +307,15 @@ void Flu_ResetByUser_API_ClusterMerger( const int lv, const int FluSg, const dou
    double Mdot_BH[3] = { Mdot_BH1, Mdot_BH2, Mdot_BH3 };
    double Bondi_MassBH[3] = { Bondi_MassBH1, Bondi_MassBH2, Bondi_MassBH3 }; 
 
-   GetClusterCenter( BH_Pos, ClusterCen );
+// Get the BH position and velocity and adjust them if needed
+   bool AdjustPosNow = false;
+   bool AdjustVelNow = false;
+   if ( CurrentMaxLv  &&  AdjustCount < int(TimeNew/AdjustPeriod)){   // only adjust the BHs on the current maximum level 
+      if ( AdjustBHPos == true )   AdjustPosNow = true;
+      if ( AdjustBHVel == true )   AdjustVelNow = true;
+      AdjustCount += 1;
+   }
+   GetClusterCenter( lv, AdjustPosNow, AdjustVelNow, BH_Pos, ClusterCen, BH_Vel );
 
    Jet_HalfHeight[0] = Jet_HalfHeight1;
    Jet_HalfHeight[1] = Jet_HalfHeight2;
@@ -288,11 +325,11 @@ void Flu_ResetByUser_API_ClusterMerger( const int lv, const int FluSg, const dou
    Jet_Radius[2] = Jet_Radius3;
 
 // Set the jet direction vector
-   double Time_period = Time_table[JetDirection_NBin-1];
-   double Time_interpolate = fmod(TimeNew, Time_period);
+//   double Time_period = Time_table[JetDirection_NBin-1];
+//   double Time_interpolate = fmod(TimeNew, Time_period);
    for (int c=0; c<Merger_Coll_NumHalos; c++) {
-      double theta = Mis_InterpolateFromTable( JetDirection_NBin, Time_table, Theta_table[c], Time_interpolate );
-      double phi   = Mis_InterpolateFromTable( JetDirection_NBin, Time_table, Phi_table[c], Time_interpolate );
+//      double theta = Mis_InterpolateFromTable( JetDirection_NBin, Time_table, Theta_table[c], Time_interpolate );
+//      double phi   = Mis_InterpolateFromTable( JetDirection_NBin, Time_table, Phi_table[c], Time_interpolate );
 //      double theta = 10.0*M_PI/180.0;
 //      double phi = 2*M_PI*Time_interpolate/Time_period;
       Jet_Vec[c][0] = 1.0;   //cos(theta);   //sin(theta)*cos(phi);
@@ -424,11 +461,11 @@ void Flu_ResetByUser_API_ClusterMerger( const int lv, const int FluSg, const dou
          rho_sum /= (4.0/3.0*M_PI*pow(R_acc,3));
          Cs_sum /= (double)num_sum;
          for (int d=0; d<3; d++)  BH_Pos[c][d] = ClusterCen[c][d];
-         for (int d=0; d<3; d++)  BH_Vel[c][d] = gas_vel_sum[d];
+//         for (int d=0; d<3; d++)  BH_Vel[c][d] = gas_vel_sum[d];
          for (int d=0; d<3; d++)  v += SQR(BH_Vel[c][d]-gas_vel_sum[d]);
 
 //       calculate the accretion rate
-         Mdot_BH[c] = 100.0*4.0*M_PI*SQR(NEWTON_G)*SQR(Bondi_MassBH[c])*rho_sum/pow(Cs_sum*Cs_sum+v,1.5);
+         Mdot_BH[c] = 4.0*M_PI*SQR(NEWTON_G)*SQR(Bondi_MassBH[c])*rho_sum/pow(Cs_sum*Cs_sum+v,1.5);
          GasDens[c] = rho_sum;
          SoundSpeed[c] = Cs_sum;
          for (int d=0; d<3; d++)  GasVel[c][d] = gas_vel_sum[d];

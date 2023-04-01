@@ -115,6 +115,10 @@ static double *JetDirection = NULL;   // jet direction[time/theta_1/phi_1/theta_
        double *Time_table;            // the time table of jet direction 
        double *Theta_table[3];        // the theta table of jet direction for 3 clusters
        double *Phi_table[3];          // the phi table of jet direction for 3 clusters
+
+       bool   AdjustBHPos;    // (true/false) --> Adjust the BH position 
+       bool   AdjustBHVel;    // (true/false) --> Adjust the BH velocity 
+       double AdjustPeriod;   // the time interval of adjustment
 // =======================================================================================
 
 // problem-specific function prototypes
@@ -139,7 +143,7 @@ int Flu_ResetByUser_Func_ClusterMerger( real fluid[], const double Emag, const d
 void Flu_ResetByUser_API_ClusterMerger( const int lv, const int FluSg, const double TimeNew, const double dt );
 
 extern void (*Flu_ResetByUser_API_Ptr)( const int lv, const int FluSg, const double TimeNew, const double dt );
-extern void GetClusterCenter( double Cen_old[][3], double Cen_new[][3] ); 
+//extern void GetClusterCenter( int lv, double Cen_old[][3], double Cen_new[][3], double Cen_Vel[][3] ); 
 
 //-------------------------------------------------------------------------------------------------------
 // Function    :  Validate
@@ -282,6 +286,9 @@ void SetParameter()
    ReadPara->Add( "eta",                    &eta,                    -1.0,             NoMin_double,  NoMax_double   );
    ReadPara->Add( "eps_f",                  &eps_f,                  -1.0,             NoMin_double,  NoMax_double   );
    ReadPara->Add( "eps_m",                  &eps_m,                  -1.0,             NoMin_double,  NoMax_double   );
+   ReadPara->Add( "AdjustBHPos",           &AdjustBHPos,            false,             Useless_bool,  Useless_bool   );
+   ReadPara->Add( "AdjustBHVel",           &AdjustBHVel,            false,             Useless_bool,  Useless_bool   );
+   ReadPara->Add( "AdjustPeriod",          &AdjustPeriod,            -1.0,             NoMin_double,  NoMax_double   );
 
    ReadPara->Read( FileName );
 
@@ -319,6 +326,7 @@ void SetParameter()
    Jet_Radius1       *= Const_kpc / UNIT_L;
    Jet_Radius2       *= Const_kpc / UNIT_L;
    Jet_Radius3       *= Const_kpc / UNIT_L;
+   AdjustPeriod      *= Const_Myr / UNIT_T;
 
    if ( OPT__INIT != INIT_BY_RESTART ) {
 
