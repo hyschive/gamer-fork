@@ -435,8 +435,9 @@ LIBYT_PATH   :=
 # -------------------------------------------------------------------------------
 # CUDA source files (compiled with nvcc)
 GPU_FILE    := CUAPI_Asyn_FluidSolver.cu  CUAPI_DiagnoseDevice.cu  CUAPI_MemAllocate_Fluid.cu \
-               CUAPI_MemFree_Fluid.cu  CUAPI_Set_Default_GPU_Parameter.cu  CUAPI_SetDevice.cu \
-               CUAPI_Synchronize.cu  CUAPI_Asyn_dtSolver.cu  CUAPI_SetConstMemory.cu  CUAPI_SetConstMemory_EoS.cu
+               CUAPI_MemFree_Fluid.cu  CUAPI_SetMemSize.cu  CUAPI_SetCache.cu  CUAPI_SetDevice.cu \
+               CUAPI_Synchronize.cu  CUAPI_Asyn_dtSolver.cu  CUAPI_SetConstMemory.cu  CUAPI_SetConstMemory_EoS.cu \
+               CUAPI_MemAllocate.cu
 
 
 # C/C++ source files (compiled with c++ compiler)
@@ -639,7 +640,7 @@ endif # !SERIAL
 
 # load-balance source files (included only if "LOAD_BALANCE" is turned on)
 # ------------------------------------------------------------------------------------
-CPU_FILE    += LB_HilbertCurve.cpp  LB_Utility.cpp
+CPU_FILE    += LB_HilbertCurve.cpp  LB_Utility.cpp  LB_GatherTree.cpp
 
 ifeq "$(findstring -DLOAD_BALANCE, $(SIMU_OPTION))" "-DLOAD_BALANCE"
 CPU_FILE    += LB_Init_LoadBalance.cpp  LB_AllocateBufferPatch_Sibling.cpp  LB_RecordOvelapMPIPatchID.cpp \
