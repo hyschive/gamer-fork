@@ -139,11 +139,8 @@ void Aux_ComputeRay( Profile_t *Ray[], const double Center[], const double Edge[
 
 //    initialize arrays
       for (int p=0; p<NProf; p++)
-      for (int b=0; b<NBin;  b++)
       {
-         OMP_Data  [p][TID][b] = 0.0;
-         OMP_Weight[p][TID][b] = 0.0;
-         OMP_NCell [p][TID][b] = 0;
+         memset( OMP_NCell[p][TID], 0, sizeof(long)*NBin );
       }
 
 //    allocate passive scalar arrays
@@ -402,14 +399,24 @@ void Aux_ComputeRay( Profile_t *Ray[], const double Center[], const double Edge[
 
 
 //                   add the data to all the rays that overlay with this cell
-                     for (int kk=idx_phi_min;   kk<=idx_phi_max;   kk++)  {
-                     for (int jj=idx_theta_min; jj<=idx_theta_max; jj++)  {
+                     for (int kk=idx_phi_min;   kk<=idx_phi_max;   kk++)  {  const int iv1 = NTheta * ( kk % NPhi );
+                     for (int jj=idx_theta_min; jj<=idx_theta_max; jj++)  {  const int iv2 = NRadius * ( jj + iv1 );
                      for (int ii=idx_rad_min;   ii<=idx_rad_max;   ii++)  {
 
-                        const int idx = ii + NRadius * (  jj + NTheta * ( kk % NPhi )  );
+                        const int idx = ii + iv2;
 
-                        OMP_Data  [p][TID][idx] += Data;
-                        OMP_Weight[p][TID][idx] += Weight;
+                        if ( OMP_NCell[p][TID][idx] == 0L )
+                        {
+                           OMP_Data  [p][TID][idx] = Data;
+                           OMP_Weight[p][TID][idx] = Weight;
+                        }
+
+                        else
+                        {
+                           OMP_Data  [p][TID][idx] += Data;
+                           OMP_Weight[p][TID][idx] += Weight;
+                        }
+
                         OMP_NCell [p][TID][idx] ++;
 
                      }}} // ii,jj,kk
@@ -419,66 +426,63 @@ void Aux_ComputeRay( Profile_t *Ray[], const double Center[], const double Edge[
          } // for (int PID=0; PID<amr->NPatchComma[lv][1]; PID++)
       } // for (int lv=0; lv<=MAX_LEVEL; lv++)
 
+
 #     if ( MODEL == HYDRO )
       delete [] Passive;         Passive      = NULL;
       delete [] Passive_IntT;    Passive_IntT = NULL;
 #     endif
 
+
+//    set the uninitialized Data and Weight of thread=0 to 0.0
+#     pragma omp for schedule( static ) collapse( 2 )
+      for (int p=0; p<NProf; p++)  {
+      for (int b=0; b<NBin;  b++)  {
+         if ( OMP_NCell [p][0][b] == 0L )
+         {
+            OMP_Data  [p][0][b] = 0.0;
+            OMP_Weight[p][0][b] = 0.0;
+         }
+      }}
+
+
+//    sum over all OpenMP threads
+      for (int p=0; p<NProf; p++)  {
+      for (int t=1; t<NT;    t++)  {
+#     pragma omp for schedule( static )
+      for (int b=0; b<NBin;  b++)  {
+         if ( OMP_NCell [p][t][b] != 0L )
+         {
+            OMP_Data  [p][0][b] += OMP_Data  [p][t][b];
+            OMP_Weight[p][0][b] += OMP_Weight[p][t][b];
+            OMP_NCell [p][0][b] += OMP_NCell [p][t][b];
+         }
+      }}}
+
    } // OpenMP parallel region
 
 
-// sum over all OpenMP threads
-   for (int p=0; p<NProf; p++)
-   for (int t=1; t<NT;    t++)
-   for (int b=0; b<NBin;  b++)
-   {
-      OMP_Data  [p][0][b] += OMP_Data  [p][t][b];
-      OMP_Weight[p][0][b] += OMP_Weight[p][t][b];
-      OMP_NCell [p][0][b] += OMP_NCell [p][t][b];
-   }
-
-
-// collect data from all ranks (in-place reduction)
+// collect data from all ranks
 #  ifndef SERIAL
    for (int p=0; p<NProf; p++)
    {
-      if ( MPI_Rank == 0 )
-      {
-         MPI_Reduce( MPI_IN_PLACE,     OMP_Data  [p][0], NBin, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD );
-         MPI_Reduce( MPI_IN_PLACE,     OMP_Weight[p][0], NBin, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD );
-         MPI_Reduce( MPI_IN_PLACE,     OMP_NCell [p][0], NBin, MPI_LONG,   MPI_SUM, 0, MPI_COMM_WORLD );
-      }
-
-      else
-      {
-         MPI_Reduce( OMP_Data  [p][0], NULL,             NBin, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD );
-         MPI_Reduce( OMP_Weight[p][0], NULL,             NBin, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD );
-         MPI_Reduce( OMP_NCell [p][0], NULL,             NBin, MPI_LONG,   MPI_SUM, 0, MPI_COMM_WORLD );
-      }
+      MPI_Allreduce( MPI_IN_PLACE, OMP_Data  [p][0], NBin, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD );
+      MPI_Allreduce( MPI_IN_PLACE, OMP_Weight[p][0], NBin, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD );
+      MPI_Allreduce( MPI_IN_PLACE, OMP_NCell [p][0], NBin, MPI_LONG,   MPI_SUM, MPI_COMM_WORLD );
    }
 #  endif
 
 
-// compute profile by the root rank
-   if ( MPI_Rank == 0 )
+// compute profile in each rank
+#  pragma omp parallel
    {
       for (int p=0; p<NProf; p++)
+#     pragma omp for schedule( static )
       for (int b=0; b<NBin;  b++)
       {
          Ray[p]->NCell[b] = OMP_NCell[p][0][b];
          Ray[p]->Data [b] = ( Ray[p]->NCell[b] > 0L ) ? OMP_Data[p][0][b] / OMP_Weight[p][0][b] : 0.0;
       }
-   }
-
-
-// broadcast data to all ranks
-#  ifndef SERIAL
-   for (int p=0; p<NProf; p++)
-   {
-      MPI_Bcast( Ray[p]->Data,  Ray[p]->NBin, MPI_DOUBLE, 0, MPI_COMM_WORLD );
-      MPI_Bcast( Ray[p]->NCell, Ray[p]->NBin, MPI_DOUBLE, 0, MPI_COMM_WORLD );
-   }
-#  endif
+   } // OpenMP parallel region
 
 
 // free per-thread arrays
@@ -505,8 +509,8 @@ void Aux_GetMinMax_Vertex_Radius( const double x, const double y, const double z
                                   double *rad_min, double *rad_max )
 {
 
-   *rad_min   =  HUGE_NUMBER;
-   *rad_max   = -HUGE_NUMBER;
+   *rad_min =  HUGE_NUMBER;
+   *rad_max = -HUGE_NUMBER;
 
    for (int k=-1; k<=1; k+=2)  {  const double zz = z + k * HalfWidth;  const double zz2 = SQR(zz);
    for (int j=-1; j<=1; j+=2)  {  const double yy = y + j * HalfWidth;  const double yy2 = SQR(yy);

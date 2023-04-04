@@ -28,6 +28,8 @@ extern real *d_SrcLeakage_HeatEAve;
 // external variables, local and external function prototypes
 #ifndef __CUDACC__
 
+static long Leakage_Step = -1;
+
 #if ( EOS == EOS_NUCLEAR )
 extern int g_nye;
 #endif
@@ -633,6 +635,10 @@ void Src_WorkBeforeMajorFunc_Leakage( const int lv, const double TimeNew, const 
    const int NRay   = NTheta * NPhi;
 
 
+// (0) do nothing if the leakage profile for current step is already constructed
+   if ( Step == Leakage_Step )   return;
+
+
 // (1) find the position of proto-neutron star center
    Extrema_t Extrema;
    Extrema.Field     = _DENS;
@@ -724,6 +730,10 @@ void Src_WorkBeforeMajorFunc_Leakage( const int lv, const double TimeNew, const 
 
 // (7) free Profile_t objects
    for (int p=0; p<NProf; p++)   Leakage_Ray[p]->FreeMemory();
+
+
+// (8) update the time stamp
+   Leakage_Step = Step;
 
 } // FUNCTION : Src_WorkBeforeMajorFunc_Leakage
 #endif // #ifndef __CUDACC__
