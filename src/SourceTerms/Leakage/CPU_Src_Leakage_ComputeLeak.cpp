@@ -1015,8 +1015,8 @@ void Src_Leakage_ComputeLeak( const real Dens_Code, const real Temp_Kelv, const 
 
    for (int k=0; k<NType_Neutrino; k++)
    {
-      R_eff[k] = R_loc[k] / ( (real)1.0 + R_loc[k] / R_diff[k] ); // (A1)
-      Q_eff[k] = Q_loc[k] / ( (real)1.0 + Q_loc[k] / Q_diff[k] ); // (A2)
+      R_eff[k] = R_loc[k] * R_diff[k] / ( R_diff[k] + R_loc[k] ); // (A1)
+      Q_eff[k] = Q_loc[k] * Q_diff[k] / ( Q_diff[k] + Q_loc[k] ); // (A2)
    }
 
 

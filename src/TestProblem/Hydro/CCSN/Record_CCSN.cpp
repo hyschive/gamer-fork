@@ -233,7 +233,7 @@ void Record_CCSN_Leakage()
    const int    NType_Neutrino = 3;
    const double Const_hc_MeVcm_CUBE = CUBE( 1.0e-6 * 2.0 * M_PI * Const_Planck_eV * Const_c );
 
-// update leakage data at TimeNew
+// update leakage data at TimeNew on lv=0
    const int    lv = 0;
    const double TimeNew = amr->FluSgTime[lv][ amr->FluSg[lv] ];
 
@@ -241,7 +241,7 @@ void Record_CCSN_Leakage()
                                     Src_Leakage_AuxArray_Flt, Src_Leakage_AuxArray_Int );
 
 // enable the record mode
-   Src_Leakage_AuxArray_Int[4] = 1;
+   Src_Leakage_AuxArray_Int[3] = 1;
 
 // allocate memory for per-thread arrays
 #  ifdef OPENMP
@@ -378,7 +378,7 @@ void Record_CCSN_Leakage()
 
 
 // disable the record mode
-   Src_Leakage_AuxArray_Int[4] = 0;
+   Src_Leakage_AuxArray_Int[3] = 0;
 
 
 // free per-thread arrays
