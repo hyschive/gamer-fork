@@ -160,6 +160,7 @@ OPT__MINIMIZE_MPI_BARRIER     1           # minimize MPI barriers to improve loa
 
 # source terms
 SRC_DELEPTONIZATION           0           # deleptonization (for simulations of stellar core collapse) [0] ##HYDRO ONLY##
+SRC_EXACTCOOLING              0           # exact cooling scheme from Gaspari (2009) [0] ##HYDRO ONLY##
 SRC_USER                      0           # user-defined source terms -> edit "Src_User.cpp" [0]
 SRC_GPU_NPGROUP              -1           # number of patch groups sent into the CPU/GPU source-term solver (<=0=auto) [-1]
 
