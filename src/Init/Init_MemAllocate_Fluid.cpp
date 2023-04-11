@@ -92,6 +92,16 @@ void Init_MemAllocate_Fluid( const int Flu_NPatchGroup, const int Pot_NPatchGrou
 #  endif
 #  endif // FLU_SCHEME
 
+#  if ( MODEL == HYDRO )
+   h_SrcEC_TEF_lambda = new real [SrcTerms.EC_TEF_N];
+   h_SrcEC_TEF_alpha  = new real [SrcTerms.EC_TEF_N];
+   h_SrcEC_TEFc       = new real [SrcTerms.EC_TEF_N];
+
+   SrcTerms.EC_TEF_lambda_DevPtr = h_SrcEC_TEF_lambda;
+   SrcTerms.EC_TEF_alpha_DevPtr  = h_SrcEC_TEF_alpha;
+   SrcTerms.EC_TEFc_DevPtr       = h_SrcEC_TEFc;
+#  endif
+
 } // FUNCTION : Init_MemAllocate_Fluid
 
 
