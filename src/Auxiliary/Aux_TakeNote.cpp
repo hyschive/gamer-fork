@@ -937,8 +937,6 @@ void Aux_TakeNote()
       fprintf( Note, "***********************************************************************************\n" );
       fprintf( Note, "SRC_ANY                         %d\n",      SrcTerms.Any                    );
       fprintf( Note, "SRC_DELEPTONIZATION             %d\n",      SrcTerms.Deleptonization        );
-      fprintf( Note, "SRC_LIGHTBULB                   %d\n",      SrcTerms.Lightbulb              );
-      fprintf( Note, "SRC_LEAKAGE                     %d\n",      SrcTerms.Leakage                );
       if ( SrcTerms.Deleptonization ) {
       fprintf( Note, "SRC_DELEP_ENU                   %13.7e\n",  SrcTerms.Dlep_Enu               );
       fprintf( Note, "SRC_DELEP_RHO1                  %13.7e\n",  SrcTerms.Dlep_Rho1              );
@@ -946,10 +944,13 @@ void Aux_TakeNote()
       fprintf( Note, "SRC_DELEP_YE1                   %13.7e\n",  SrcTerms.Dlep_Ye1               );
       fprintf( Note, "SRC_DELEP_YE2                   %13.7e\n",  SrcTerms.Dlep_Ye2               );
       fprintf( Note, "SRC_DELEP_YEC                   %13.7e\n",  SrcTerms.Dlep_Yec               ); }
-      if ( SrcTerms.Lightbulb ) {
+#     ifdef NEUTRINO_SCHEME
+#     if   ( NEUTRINO_SCHEME == LIGHTBULB )
+      fprintf( Note, "SRC_LIGHTBULB                   %d\n",      SrcTerms.Lightbulb              );
       fprintf( Note, "SRC_LIGHTBULB_LNUE              %13.7e\n",  SrcTerms.Lightbulb_Lnue         );
-      fprintf( Note, "SRC_LIGHTBULB_TNUE              %13.7e\n",  SrcTerms.Lightbulb_Tnue         ); }
-      if ( SrcTerms.Leakage ) {
+      fprintf( Note, "SRC_LIGHTBULB_TNUE              %13.7e\n",  SrcTerms.Lightbulb_Tnue         );
+#     elif ( NEUTRINO_SCHEME == LEAKAGE   )
+      fprintf( Note, "SRC_LEAKAGE                     %d\n",      SrcTerms.Leakage                );
       fprintf( Note, "SRC_LEAKAGE_NRADIUS             %d\n",      SrcTerms.Leakage_NRadius        );
       fprintf( Note, "SRC_LEAKAGE_NTHETA              %d\n",      SrcTerms.Leakage_NTheta         );
       fprintf( Note, "SRC_LEAKAGE_NPHI                %d\n",      SrcTerms.Leakage_NPhi           );
@@ -957,7 +958,9 @@ void Aux_TakeNote()
       fprintf( Note, "SRC_LEAKAGE_RADIUSMAX           %13.7e\n",  SrcTerms.Leakage_RadiusMax      );
       fprintf( Note, "SRC_LEAKAGE_RADIUSMIN_LOG       %13.7e\n",  SrcTerms.Leakage_RadiusMin_Log  );
       fprintf( Note, "SRC_LEAKAGE_NUHEAT              %d\n",      SrcTerms.Leakage_NuHeat         );
-      fprintf( Note, "SRC_LEAKAGE_NUHEAT_FAC          %13.7e\n",  SrcTerms.Leakage_NuHeat_Fac     ); }
+      fprintf( Note, "SRC_LEAKAGE_NUHEAT_FAC          %13.7e\n",  SrcTerms.Leakage_NuHeat_Fac     );
+#     endif
+#     endif // #ifdef NEUTRINO_SCHEME
       fprintf( Note, "SRC_USER                        %d\n",      SrcTerms.User                   );
       fprintf( Note, "SRC_GPU_NPGROUP                 %d\n",      SRC_GPU_NPGROUP                 );
       fprintf( Note, "***********************************************************************************\n" );
