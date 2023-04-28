@@ -324,6 +324,7 @@ HDF5_PATH    :=
 GRACKLE_PATH :=
 GSL_PATH     :=
 LIBYT_PATH   :=
+CUFFTDX_PATH :=
 
 # NCSA-bluewaters (only need to specify the path of user-installed packages)
 #GRACKLE_PATH :=
@@ -550,9 +551,9 @@ endif # MHD
 # ELBDM source files (included only inf "MODEL=ELBDM")
 # -------------------------------------------------------------------------------
 else ifeq "$(filter -DMODEL=ELBDM, $(SIMU_OPTION))" "-DMODEL=ELBDM"
-GPU_FILE    += CUFLU_ELBDMSolver.cu
+GPU_FILE    += CUFLU_ELBDMSolver.cu CUFLU_ELBDMSolver_GramFE.cu
 
-CPU_FILE    += CPU_ELBDMSolver.cpp  CPU_ELBDMSolver_FFT.cpp  ELBDM_Init_ByFunction_AssignData.cpp \
+CPU_FILE    += CPU_ELBDMSolver.cpp  CPU_ELBDMSolver_FFT.cpp  CPU_ELBDMSolver_GramFE.cpp ELBDM_Init_ByFunction_AssignData.cpp \
                ELBDM_GetTimeStep_Fluid.cpp  ELBDM_Flag_EngyDensity.cpp  ELBDM_UnwrapPhase.cpp \
                ELBDM_GetTimeStep_Phase.cpp  ELBDM_SetTaylor3Coeff.cpp  ELBDM_RemoveMotionCM.cpp
 
@@ -850,6 +851,12 @@ ifeq "$(filter -DSUPPORT_LIBYT, $(SIMU_OPTION))" "-DSUPPORT_LIBYT"
 INCLUDE += -I$(LIBYT_PATH)/include
 endif
 
+ifeq "$(filter -DGPU, $(SIMU_OPTION))" "-DGPU"
+   ifeq "$(filter -DWAVE_SCHEME=WAVE_GRAMFE, $(SIMU_OPTION))" "-DWAVE_SCHEME=WAVE_GRAMFE"
+      ifeq "$(filter -DENABLE_GPU_WAVE_GRAMFE, $(SIMU_OPTION))" "-DENABLE_GPU_WAVE_GRAMFE"
+         INCLUDE += -I$(CUFFTDX_PATH)/include
+   endif
+endif
 
 # CXX flags
 # -------------------------------------------------------------------------------
