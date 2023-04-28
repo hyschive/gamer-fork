@@ -129,7 +129,7 @@ void Init_FFTW()
 #  endif // # ifdef SERIAL ... # else
 
 #  if ( WAVE_SCHEME == WAVE_GRAMFE )
-   int ExtPsi_FFT_Size    = EXTENSION_FLU_NXT;
+   int ExtPsi_FFT_Size    = GRAMFE_FLU_NXT;
 #  endif // # if ( WAVE_SCHEME == WAVE_GRAMFE )
 #  endif // # if ( MODEL == ELBDM )
    real* PS   = NULL;

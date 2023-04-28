@@ -23,10 +23,17 @@ typedef float  real;
 #endif
 
 #ifndef GRAMFE_ENABLE_SINGLE_PRECISION
-typedef float  gramfe_float;
-#else
-#define GRAMFE_FLOAT8
+#  ifdef GRAMFE_FLOAT8
+#     error "Cannot enable GRAMFE_FLOAT8 and GRAMFE_ENABLE_SINGLE_PRECISION at the same time!"
+#  else
+#     define GRAMFE_FLOAT8
+#  endif
+#endif
+
+#ifdef GRAMFE_FLOAT8
 typedef double gramfe_float;
+#else
+typedef float  gramfe_float;
 #endif
 
 // short names for unsigned type

@@ -607,7 +607,7 @@
 # if ( GRAMFE_ORDER > GRAMFE_NDELTA )
 #  error : ERROR : Gram Fourier extension order must not be higher than NDELTA
 # endif
-# define EXTENSION_FLU_NXT ( FLU_NXT + GRAMFE_ND - 2)
+# define GRAMFE_FLU_NXT ( FLU_NXT + GRAMFE_ND - 2)
 # endif // # if ( MODEL == ELBDM && WAVE_SCHEME == WAVE_GRAMFE )
 
 

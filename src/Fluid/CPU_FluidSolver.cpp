@@ -260,9 +260,6 @@ void CPU_FluidSolver( real h_Flu_Array_In[][FLU_NIN][ CUBE(FLU_NXT) ],
 #  else // #  if (WAVE_SCHEME == WAVE_GRAMFE )
 #     error : ERROR : unsupported WAVE_SCHEME !!
 #  endif // WAVE_SCHEME
-
-#  else // #  if ( WAVE_SCHEME == WAVE_GRAMFE )
-
 #  else
 #     error : ERROR : unsupported MODEL !!
 #  endif // MODEL

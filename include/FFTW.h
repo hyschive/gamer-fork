@@ -151,6 +151,7 @@
 #define destroy_real_fftw_plan                      rfftwnd_mpi_destroy_plan
 #define destroy_complex_fftw_plan                    fftwnd_mpi_destroy_plan
 #endif // #ifdef SERIAL ... # else
+#endif // # if ( SUPPORT_FFTW == FFTW3 )
 
 #if ( SUPPORT_FFTW == FFTW3 )
 #if ( WAVE_SCHEME == WAVE_GRAMFE )

@@ -8,7 +8,7 @@
 #include <cufftdx.hpp>
 
 using namespace cufftdx;
-using fft_incomplete = decltype(Block() + Size<EXTENSION_FLU_NXT>() + Type<fft_type::c2c>() + Precision<gramfe_float>() + SM<750>());
+using fft_incomplete = decltype(Block() + Size<GRAMFE_FLU_NXT>() + Type<fft_type::c2c>() + Precision<gramfe_float>() + SM<750>());
 using fft_base       = decltype(fft_incomplete() + Direction<fft_direction::forward>());
 using ifft_base      = decltype(fft_incomplete() + Direction<fft_direction::inverse>());
 static constexpr unsigned int elements_per_thread = use_suggested ? fft_base::elements_per_thread : custom_elements_per_thread;

@@ -203,11 +203,12 @@ void Aux_TakeNote()
       fprintf( Note, "GRAMFE_G                        %d\n",      GRAMFE_G );
       fprintf( Note, "GRAMFE_NDELTA                   %d\n",      GRAMFE_NDELTA);
       fprintf( Note, "GRAMFE_ND                       %d\n",      GRAMFE_ND);
+      fprintf( Note, "GRAMFE_ORDER                    %d\n",      GRAMFE_ORDER);
 #     ifdef GRAMFE_FLOAT8
-      fprintf( Note, "EXTENSION_FLOAT8                ON\n" );
-#     else // # ifdef EXTENSION_FLOAT8
-      fprintf( Note, "EXTENSION_FLOAT8                OFF\n" );
-#     endif // # ifdef EXTENSION_FLOAT8 ... # else
+      fprintf( Note, "GRAMFE_FLOAT8                   ON\n" );
+#     else // # ifdef GRAMFE_FLOAT8
+      fprintf( Note, "GRAMFE_FLOAT8                   OFF\n" );
+#     endif // # ifdef GRAMFE_FLOAT8 ... # else
 #     elif ( WAVE_SCHEME == WAVE_FD )
       fprintf( Note, "WAVE_SCHEME                     FD\n ");
 #     else // #  if (WAVE_SCHEME == WAVE_GRAMFE )

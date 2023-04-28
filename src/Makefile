@@ -95,7 +95,7 @@ SIMU_OPTION += -DEOS=EOS_GAMMA
 # ------------------------------------------------------------------------------------
 else ifeq "$(filter -DMODEL=ELBDM, $(SIMU_OPTION))" "-DMODEL=ELBDM"
 
-# choose wave scheme WAVE_FD (finite difference), WAVE_GRAMFE (local spectral method)
+# choose wave scheme WAVE_FD (finite difference), WAVE_GRAMFE (local spectral method, must define SUPPORT_FFTW=FFTW2 or SUPPORT_FFTW=FFTW3)
 SIMU_OPTION += -DWAVE_SCHEME=WAVE_FD
 
 # finite-difference scheme specific options
