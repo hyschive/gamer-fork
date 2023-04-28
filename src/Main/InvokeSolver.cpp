@@ -533,7 +533,8 @@ void Solver( const Solver_t TSolver, const int lv, const double TimeNew, const d
    {
       case FLUID_SOLVER :
 
-#        ifdef GPU
+//       only use GPU for Gram FE wave scheme if ENABLE_GPU_WAVE_GRAMFE is defined
+#        if ( ( defined(GPU) && ( WAVE_SCHEME != WAVE_GRAMFE ) ) || ( defined(GPU) && ( WAVE_SCHEME == WAVE_GRAMFE ) && defined(ENABLE_GPU_WAVE_GRAMFE) ) )
          CUAPI_Asyn_FluidSolver( h_Flu_Array_F_In[ArrayID], h_Flu_Array_F_Out[ArrayID],
                                  h_Mag_Array_F_In[ArrayID], h_Mag_Array_F_Out[ArrayID],
                                  h_DE_Array_F_Out[ArrayID], h_Flux_Array[ArrayID], h_Ele_Array[ArrayID],

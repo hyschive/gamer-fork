@@ -45,6 +45,9 @@
 #define MHM_RP       4
 #define CTU          5
 
+// wave schemes
+#define WAVE_FD      1
+#define WAVE_GRAMFE  2
 
 // data reconstruction schemes
 #define PLM          1
@@ -560,12 +563,45 @@
 #    endif // MHD
 #  endif // FLU_SCHEME
 
+
 #elif ( MODEL == ELBDM )   // ELBDM
-#  ifdef LAPLACIAN_4TH
-#     define FLU_GHOST_SIZE         6
-#  else
-#     define FLU_GHOST_SIZE         3
+// use finite-difference scheme by default
+#  ifndef WAVE_SCHEME
+#  define WAVE_SCHEME WAVE_FD
 #  endif
+
+#  if ( WAVE_SCHEME == WAVE_GRAMFE ) // Gram(FE) scheme
+#        define FLU_GHOST_SIZE         8
+#  else // #  if ( WAVE_SCHEME == WAVE_GRAMFE )
+#     ifdef LAPLACIAN_4TH
+#        define FLU_GHOST_SIZE         6
+#     else
+#        define FLU_GHOST_SIZE         3
+#     endif
+#  endif // # if ( WAVE_SCHEME == WAVE_GRAMFE ) ... # else
+
+
+# if ( WAVE_SCHEME == WAVE_GRAMFE )
+# ifndef EXTENSION_GAMMA
+#  error : ERROR : Gram Fourier extension GAMMA not defined
+# endif
+# ifndef EXTENSION_G
+#  error : ERROR : Gram Fourier extension G not defined
+# endif
+# ifndef EXTENSION_NDELTA
+#  error : ERROR : Gram Fourier extension NDELTA not defined
+# endif
+# ifndef EXTENSION_ND
+#  error : ERROR : Gram Fourier extension ND not defined
+# endif
+# ifndef EXTENSION_ORDER
+#  error : ERROR : Gram Fourier extension order not defined
+# endif
+# if ( EXTENSION_ORDER > EXTENSION_NDELTA )
+#  error : ERROR : Gram Fourier extension order must not be higher than NDELTA
+# endif
+# define EXTENSION_FLU_NXT ( FLU_NXT + EXTENSION_ND - 2)
+# endif // # if ( WAVE_SCHEME == WAVE_GRAMFE )
 
 #else
 #  error : ERROR : unsupported MODEL !!
