@@ -4,7 +4,7 @@
 #ifdef GPU
 
 // Include CUDA FFT libraby if gpu kinetic ELBDM Gram Fourier extension solver is enabled
-#if ( MODEL == ELBDM && WAVE_SCHEME == WAVE_GRAMFE && ENABLE_GPU_WAVE_GRAMFE )
+#if ( MODEL == ELBDM && WAVE_SCHEME == WAVE_GRAMFE && GRAMFE_ENABLE_GPU )
 #include <cufftdx.hpp>
 
 using namespace cufftdx;
@@ -98,7 +98,7 @@ __global__ void CUFLU_ELBDMSolver( real g_Fluid_In [][FLU_NIN ][ CUBE(FLU_NXT) ]
                                    const real Taylor3_Coeff, const bool XYZ, const real MinDens );
 real ELBDM_SetTaylor3Coeff( const real dt, const real dh, const real Eta );
 # elif ( WAVE_SCHEME == WAVE_GRAMFE )
-# ifdef ENABLE_GPU_WAVE_GRAMFE
+# ifdef GRAMFE_ENABLE_GPU
 __launch_bounds__(FFT::max_threads_per_block)
 __global__ void CUFLU_ELBDMSolver_GramFE(    real g_Fluid_In [][FLU_NIN ][ CUBE(FLU_NXT) ],
                                              real g_Fluid_Out[][FLU_NOUT ][ CUBE(PS2) ],
@@ -107,7 +107,7 @@ __global__ void CUFLU_ELBDMSolver_GramFE(    real g_Fluid_In [][FLU_NIN ][ CUBE(
                                              const bool XYZ, const real MinDens,
                                              typename FFT::workspace_type workspace,
                                              typename IFFT::workspace_type iworkspace);
-#  endif // # ifdef ENABLE_GPU_WAVE_GRAMFE
+#  endif // # ifdef GRAMFE_ENABLE_GPU
 #  else // #  if (WAVE_SCHEME == WAVE_GRAMFE )
 #     error : ERROR : unsupported WAVE_SCHEME !!
 #  endif // WAVE_SCHEME
@@ -318,7 +318,7 @@ void CUAPI_Asyn_FluidSolver( real h_Flu_Array_In[][FLU_NIN ][ CUBE(FLU_NXT) ],
 #  elif ( WAVE_SCHEME == WAVE_GRAMFE )
 #  ifdef ENABLE_GPU_GRAMFE
 // total size of shared memory required for storing FFT::ffts_per_block rows of data after Gram extension and the coefficients of the respective left and right extension polynomials
-   auto          size       = FFT::ffts_per_block * cufftdx::size_of<FFT>::value + 2 * FFT::ffts_per_block * EXTENSION_NDELTA;
+   auto          size       = FFT::ffts_per_block * cufftdx::size_of<FFT>::value + 2 * FFT::ffts_per_block * GRAMFE_NDELTA;
    auto          size_bytes = size * sizeof(complex_type);
 
 // shared memory must fit input data and must be big enough to run FFT
@@ -507,13 +507,13 @@ void CUAPI_Asyn_FluidSolver( real h_Flu_Array_In[][FLU_NIN ][ CUBE(FLU_NXT) ],
               d_Flux_Array      + UsedPatch[s],
               dt, 1.0/dh, ELBDM_Eta, StoreFlux, ELBDM_Taylor3_Coeff, XYZ, MinDens );
 #     elif ( WAVE_SCHEME == WAVE_GRAMFE )
-#     ifdef ENABLE_GPU_WAVE_GRAMFE
+#     ifdef GRAMFE_ENABLE_GPU
          CUFLU_ELBDMSolver_GramFE <<< NPatch_per_Stream[s], FFT::block_dim, shared_memory_size, Stream[s] >>>
             ( d_Flu_Array_F_In  + UsedPatch[s],
               d_Flu_Array_F_Out + UsedPatch[s],
               d_Flux_Array      + UsedPatch[s],
               dt, 1.0/dh, ELBDM_Eta, StoreFlux, XYZ, MinDens, workspace, iworkspace );
-#     endif // # ifdef ENABLE_GPU_WAVE_GRAMFE
+#     endif // # ifdef GRAMFE_ENABLE_GPU
 #     else // #  if (WAVE_SCHEME == WAVE_FD )
 #        error : ERROR : unsupported WAVE_SCHEME !!
 #     endif // WAVE_SCHEME

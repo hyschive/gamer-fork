@@ -510,7 +510,7 @@
 #endif
 
 // set number of threads and blocks used in GRAMFE GPU scheme
-# if ( WAVE_SCHEME == WAVE_GRAMFE && ENABLE_GPU_WAVE_GRAMFE )
+# if ( WAVE_SCHEME == WAVE_GRAMFE && GRAMFE_ENABLE_GPU )
 static constexpr unsigned int use_suggested                = 0;
 static constexpr unsigned int custom_elements_per_thread   = 4;
 static constexpr unsigned int custom_ffts_per_block        = 12;

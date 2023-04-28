@@ -199,10 +199,10 @@ void Aux_TakeNote()
 
 #     if ( WAVE_SCHEME == WAVE_GRAMFE )
       fprintf( Note, "WAVE_SCHEME                     GRAM FE\n" );
-      fprintf( Note, "EXTENSION_GAMMA                 %d\n", EXTENSION_GAMMA );
-      fprintf( Note, "EXTENSION_G                     %d\n", EXTENSION_G );
-      fprintf( Note, "EXTENSION_NDELTA                %d\n", EXTENSION_NDELTA);
-      fprintf( Note, "EXTENSION_ND                    %d\n", EXTENSION_ND);
+      fprintf( Note, "GRAMFE_GAMMA                    %d\n",      GRAMFE_GAMMA );
+      fprintf( Note, "GRAMFE_G                        %d\n",      GRAMFE_G );
+      fprintf( Note, "GRAMFE_NDELTA                   %d\n",      GRAMFE_NDELTA);
+      fprintf( Note, "GRAMFE_ND                       %d\n",      GRAMFE_ND);
 #     ifdef GRAMFE_FLOAT8
       fprintf( Note, "EXTENSION_FLOAT8                ON\n" );
 #     else // # ifdef EXTENSION_FLOAT8

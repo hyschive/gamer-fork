@@ -1,7 +1,7 @@
 #include "CUFLU.h"
 #include "GAMER.h"
 
-#if ( ( !defined(__CUDACC__) && defined(SUPPORT_FFTW) ) || ( defined(__CUDACC__) && defined(ENABLE_GPU_WAVE_GRAMFE) ) )
+#if ( ( !defined(__CUDACC__) && defined(SUPPORT_FFTW) ) || ( defined(__CUDACC__) && defined(GRAMFE_ENABLE_GPU) ) )
 
 #if ( MODEL == ELBDM  &&  WAVE_SCHEME == WAVE_GRAMFE )
 #include "GramExtensionTables.h"
@@ -70,7 +70,7 @@ __device__ __forceinline__ complex_type operator-(const complex_type& a, const c
       return result;
 }
 
-#else   // #if ( defined(__CUDACC__) && defined(ENABLE_GPU_WAVE_GRAMFE) )
+#else   // #if ( defined(__CUDACC__) && defined(GRAMFE_ENABLE_GPU) )
 
 extern gramfe_complex_fftw_plan FFTW_Plan_ExtPsi, FFTW_Plan_ExtPsi_Inv;
 
@@ -148,7 +148,7 @@ complex_type operator*(const OtherType& other, const complex_type& a) {
 // no workspaces required in CPU solver
 using forward_workspace_type = bool;
 using inverse_workspace_type = bool;
-#endif // #if ( defined(__CUDACC__) && defined(ENABLE_GPU_WAVE_GRAMFE) )
+#endif // #if ( defined(__CUDACC__) && defined(GRAMFE_ENABLE_GPU) )
 
 
 
@@ -198,8 +198,8 @@ static void CUFLU_Advance( real g_Fluid_In [][FLU_NIN ][ CUBE(FLU_NXT) ],
                            const gramfe_float dt, const gramfe_float _dh, const gramfe_float Eta, const bool StoreFlux,
                            const uint j_gap, const uint k_gap,
                            complex_type s_In  [][EXTENSION_FLU_NXT],
-                           complex_type s_Al  [][EXTENSION_NDELTA],
-                           complex_type s_Ar  [][EXTENSION_NDELTA],
+                           complex_type s_Al  [][GRAMFE_NDELTA],
+                           complex_type s_Ar  [][GRAMFE_NDELTA],
                            complex_type ExpCoeff [],
                            const bool FinalOut, const int XYZ, const gramfe_float MinDens,
                            forward_workspace_type workspace,
@@ -289,8 +289,8 @@ void CPU_ELBDMSolver_GramFE(      real g_Fluid_In [][FLU_NIN ][ CUBE(FLU_NXT) ],
 
 // create memories for columns of various intermediate fields in shared GPU memory
    complex_type (*s_In)[EXTENSION_FLU_NXT]  = (complex_type (*)[EXTENSION_FLU_NXT]) (shared_mem);
-   complex_type (*s_Ae)[EXTENSION_NDELTA]   = (complex_type (*)[EXTENSION_NDELTA])  (shared_mem + CGPU_FLU_BLOCK_SIZE_Y * (EXTENSION_FLU_NXT                   ));    // 0.5 * log(rho)
-   complex_type (*s_Ao)[EXTENSION_NDELTA]   = (complex_type (*)[EXTENSION_NDELTA])  (shared_mem + CGPU_FLU_BLOCK_SIZE_Y * (EXTENSION_FLU_NXT + EXTENSION_NDELTA));    // the fluxes for every thread block
+   complex_type (*s_Ae)[GRAMFE_NDELTA]      = (complex_type (*)[GRAMFE_NDELTA])  (shared_mem + CGPU_FLU_BLOCK_SIZE_Y * (EXTENSION_FLU_NXT                   ));    // 0.5 * log(rho)
+   complex_type (*s_Ao)[GRAMFE_NDELTA]      = (complex_type (*)[GRAMFE_NDELTA])  (shared_mem + CGPU_FLU_BLOCK_SIZE_Y * (EXTENSION_FLU_NXT + GRAMFE_NDELTA));    // the fluxes for every thread block
 
 #  ifdef CONSERVE_MASS
    __shared__ real s_Flux    [CGPU_FLU_BLOCK_SIZE_Y][EXTENSION_FLU_NXT];
@@ -304,8 +304,8 @@ void CPU_ELBDMSolver_GramFE(      real g_Fluid_In [][FLU_NIN ][ CUBE(FLU_NXT) ],
 #  else // #  ifdef __CUDACC__
 // allocate memory on stack within loop for CPU run
    complex_type (*s_In)   [EXTENSION_FLU_NXT]          = NULL;
-   complex_type (*s_Ae)   [EXTENSION_NDELTA]           = NULL;
-   complex_type (*s_Ao)   [EXTENSION_NDELTA]           = NULL;
+   complex_type (*s_Ae)   [GRAMFE_NDELTA]           = NULL;
+   complex_type (*s_Ao)   [GRAMFE_NDELTA]           = NULL;
    const gramfe_float _dh                              = gramfe_float(1.0)/dh;
    bool workspace, workspace_inverse;
 #  endif // #  ifdef __CUDACC__ ... else
@@ -391,8 +391,8 @@ void CUFLU_Advance(  real g_Fluid_In [][FLU_NIN ][ CUBE(FLU_NXT) ],
                      const gramfe_float dt, const gramfe_float _dh, const gramfe_float Eta, const bool StoreFlux,
                      const uint j_gap, const uint k_gap,
                      complex_type s_In    [][EXTENSION_FLU_NXT],
-                     complex_type s_Ae    [][EXTENSION_NDELTA],
-                     complex_type s_Ao    [][EXTENSION_NDELTA],
+                     complex_type s_Ae    [][GRAMFE_NDELTA],
+                     complex_type s_Ao    [][GRAMFE_NDELTA],
                      complex_type ExpCoeff [],
                      const bool FinalOut,
                      const int XYZ, const gramfe_float MinDens,
@@ -418,8 +418,8 @@ void CUFLU_Advance(  real g_Fluid_In [][FLU_NIN ][ CUBE(FLU_NXT) ],
 //    create arrays for columns of various intermediate fields on the stack
       complex_type* s_In_1PG = (complex_type* ) gramfe_fftw_malloc( EXTENSION_FLU_NXT * sizeof(complex_type) ); // allocate memory for fourier transform
 
-      complex_type s_Ae_1PG     [CGPU_FLU_BLOCK_SIZE_Y][EXTENSION_NDELTA]; // left projection polynomials
-      complex_type s_Ao_1PG     [CGPU_FLU_BLOCK_SIZE_Y][EXTENSION_NDELTA]; // right projection polynomials
+      complex_type s_Ae_1PG     [CGPU_FLU_BLOCK_SIZE_Y][GRAMFE_NDELTA]; // left projection polynomials
+      complex_type s_Ao_1PG     [CGPU_FLU_BLOCK_SIZE_Y][GRAMFE_NDELTA]; // right projection polynomials
 
 //    in CPU mode, every thread works on one patch group at a time and corresponds to one block in the grid of the GPU solver
 #     pragma omp for schedule( runtime ) private ( s_In, s_Ae, s_Ao )
@@ -481,20 +481,20 @@ void CUFLU_Advance(  real g_Fluid_In [][FLU_NIN ][ CUBE(FLU_NXT) ],
 #           endif // # ifdef __CUDACC_
 
 //          2.1 compute Gram-Polynomial expansion coefficients via semi-discrete scalar products on boundary
-            CELL_LOOP(EXTENSION_ORDER, 0, 0)
+            CELL_LOOP(GRAMFE_ORDER, 0, 0)
             {
                Al.real(0);
                Al.imag(0);
                Ar.real(0);
                Ar.imag(0);
-               for (int t=0; t < EXTENSION_NDELTA; t++) {
+               for (int t=0; t < GRAMFE_NDELTA; t++) {
                   Al += Pl[si][t] * s_In[sj][t];                              // left boundary
-                  Ar += Pr[si][t] * s_In[sj][FLU_NXT - EXTENSION_NDELTA + t]; // right boundary
+                  Ar += Pr[si][t] * s_In[sj][FLU_NXT - GRAMFE_NDELTA + t]; // right boundary
                } // for t
 
                s_Ae[sj][si] = (gramfe_float) 0.5 * (Ar + Al);
                s_Ao[sj][si] = (gramfe_float) 0.5 * (Ar - Al);
-            } // CELL_LOOP(EXTENSION_ORDER, 0, 0)
+            } // CELL_LOOP(GRAMFE_ORDER, 0, 0)
 
 #           ifdef __CUDACC__
             __syncthreads();
@@ -507,10 +507,10 @@ void CUFLU_Advance(  real g_Fluid_In [][FLU_NIN ][ CUBE(FLU_NXT) ],
                s_In[sj][si].imag(0);
 
 
-               for (int order=0; order < EXTENSION_ORDER; order++) {
-                  s_In[sj][si] += s_Ae[sj][order] *  Fe[order][si - FLU_NXT + EXTENSION_NDELTA];
-                  s_In[sj][si] += s_Ao[sj][order] *  Fo[order][si - FLU_NXT + EXTENSION_NDELTA];
-               } // for (int order=0; order < EXTENSION_ORDER; order++)
+               for (int order=0; order < GRAMFE_ORDER; order++) {
+                  s_In[sj][si] += s_Ae[sj][order] *  Fe[order][si - FLU_NXT + GRAMFE_NDELTA];
+                  s_In[sj][si] += s_Ao[sj][order] *  Fo[order][si - FLU_NXT + GRAMFE_NDELTA];
+               } // for (int order=0; order < GRAMFE_ORDER; order++)
             } // CELL_LOOP(EXTENSION_FLU_NXT, FLU_NXT, 0)
 
 #           ifdef __CUDACC__
@@ -594,4 +594,4 @@ void CUFLU_Advance(  real g_Fluid_In [][FLU_NIN ][ CUBE(FLU_NXT) ],
 
 
 #endif // #if ( MODEL == ELBDM  &&  WAVE_SCHEME == WAVE_GRAMFE)
-#endif // #if ( ( !defined(__CUDACC__) && defined(SUPPORT_FFTW) ) || ( defined(__CUDACC__) && defined(ENABLE_GPU_WAVE_GRAMFE) ) )
+#endif // #if ( ( !defined(__CUDACC__) && defined(SUPPORT_FFTW) ) || ( defined(__CUDACC__) && defined(GRAMFE_ENABLE_GPU) ) )

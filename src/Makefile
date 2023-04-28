@@ -94,11 +94,26 @@ SIMU_OPTION += -DEOS=EOS_GAMMA
 # (b-2) ELBDM options
 # ------------------------------------------------------------------------------------
 else ifeq "$(filter -DMODEL=ELBDM, $(SIMU_OPTION))" "-DMODEL=ELBDM"
+
+# choose wave scheme WAVE_FD (finite difference), WAVE_GRAMFE (local spectral method)
+SIMU_OPTION += -DWAVE_SCHEME=WAVE_FD
+
+# finite-difference scheme specific options
 # enforce the mass conservation
 SIMU_OPTION += -DCONSERVE_MASS
-
 # 4-th order Laplacian
 SIMU_OPTION += -DLAPLACIAN_4TH
+
+# Gram-Fourier extension scheme specific options
+# Optional:
+#SIMU_OPTION += -DGRAMFE_GAMMA     = 150 # only for record, not used in Gram-Fourier extension scheme
+#SIMU_OPTION += -DGRAMFE_G         = 63  # only for record, not used in Gram-Fourier extension scheme
+#SIMU_OPTION += -DGRAMFE_NDELTA    = 14
+#SIMU_OPTION += -DGRAMFE_ORDER     = 14
+#SIMU_OPTION += -DGRAMFE_ND        = 28
+#SIMU_OPTION += -DGRAMFE_ENABLE_GPU
+#SIMU_OPTION += -DGRAMFE_ENABLE_SINGLE_PRECISION
+
 
 # include the quartic self-interaction potential
 # --> must turn on GRAVITY; does not support COMOVING
@@ -853,7 +868,7 @@ endif
 
 ifeq "$(filter -DGPU, $(SIMU_OPTION))" "-DGPU"
    ifeq "$(filter -DWAVE_SCHEME=WAVE_GRAMFE, $(SIMU_OPTION))" "-DWAVE_SCHEME=WAVE_GRAMFE"
-      ifeq "$(filter -DENABLE_GPU_WAVE_GRAMFE, $(SIMU_OPTION))" "-DENABLE_GPU_WAVE_GRAMFE"
+      ifeq "$(filter -DGRAMFE_ENABLE_GPU, $(SIMU_OPTION))" "-DGRAMFE_ENABLE_GPU"
          INCLUDE += -I$(CUFFTDX_PATH)/include
    endif
 endif

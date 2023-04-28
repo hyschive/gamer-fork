@@ -570,42 +570,46 @@
 #  define WAVE_SCHEME WAVE_FD
 #  endif
 
-#  if ( WAVE_SCHEME == WAVE_GRAMFE ) // Gram(FE) scheme
-#        define FLU_GHOST_SIZE         8
-#  else // #  if ( WAVE_SCHEME == WAVE_GRAMFE )
+#  if ( WAVE_SCHEME == WAVE_FD )
 #     ifdef LAPLACIAN_4TH
 #        define FLU_GHOST_SIZE         6
 #     else
 #        define FLU_GHOST_SIZE         3
 #     endif
+#  elif ( WAVE_SCHEME == WAVE_GRAMFE )
+#        define FLU_GHOST_SIZE         8
+#  else  // # if ( WAVE_SCHEME == WAVE_FD ) ... else
+#     error : ERROR : unsupported WAVE_SCHEME !!
 #  endif // # if ( WAVE_SCHEME == WAVE_GRAMFE ) ... # else
-
-
-# if ( WAVE_SCHEME == WAVE_GRAMFE )
-# ifndef EXTENSION_GAMMA
-#  error : ERROR : Gram Fourier extension GAMMA not defined
-# endif
-# ifndef EXTENSION_G
-#  error : ERROR : Gram Fourier extension G not defined
-# endif
-# ifndef EXTENSION_NDELTA
-#  error : ERROR : Gram Fourier extension NDELTA not defined
-# endif
-# ifndef EXTENSION_ND
-#  error : ERROR : Gram Fourier extension ND not defined
-# endif
-# ifndef EXTENSION_ORDER
-#  error : ERROR : Gram Fourier extension order not defined
-# endif
-# if ( EXTENSION_ORDER > EXTENSION_NDELTA )
-#  error : ERROR : Gram Fourier extension order must not be higher than NDELTA
-# endif
-# define EXTENSION_FLU_NXT ( FLU_NXT + EXTENSION_ND - 2)
-# endif // # if ( WAVE_SCHEME == WAVE_GRAMFE )
 
 #else
 #  error : ERROR : unsupported MODEL !!
 #endif // MODEL
+
+
+// set default parameters of gram extension scheme if not changed in Makefile
+# if ( MODEL == ELBDM && WAVE_SCHEME == WAVE_GRAMFE )
+# ifndef GRAMFE_GAMMA
+#   define GRAMFE_GAMMA  150
+# endif
+# ifndef GRAMFE_G
+#   define GRAMFE_G      63
+# endif
+# ifndef GRAMFE_NDELTA
+#   define GRAMFE_NDELTA 14
+# endif
+# ifndef GRAMFE_ND
+#   define GRAMFE_ND     28
+# endif
+# ifndef GRAMFE_ORDER
+#   define GRAMFE_ORDER  14
+# endif
+# if ( GRAMFE_ORDER > GRAMFE_NDELTA )
+#  error : ERROR : Gram Fourier extension order must not be higher than NDELTA
+# endif
+# define EXTENSION_FLU_NXT ( FLU_NXT + GRAMFE_ND - 2)
+# endif // # if ( MODEL == ELBDM && WAVE_SCHEME == WAVE_GRAMFE )
+
 
 
 
