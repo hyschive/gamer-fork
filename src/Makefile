@@ -95,7 +95,7 @@ SIMU_OPTION += -DEOS=EOS_GAMMA
 # ------------------------------------------------------------------------------------
 else ifeq "$(filter -DMODEL=ELBDM, $(SIMU_OPTION))" "-DMODEL=ELBDM"
 
-# choose wave scheme WAVE_FD (finite difference), WAVE_GRAMFE (local spectral method, must define SUPPORT_FFTW=FFTW2 or SUPPORT_FFTW=FFTW3)
+# choose wave scheme WAVE_FD (finite difference), WAVE_GRAMFE (local spectral method)
 SIMU_OPTION += -DWAVE_SCHEME=WAVE_FD
 
 # finite-difference scheme specific options
@@ -111,8 +111,8 @@ SIMU_OPTION += -DLAPLACIAN_4TH
 #SIMU_OPTION += -DGRAMFE_NDELTA    = 14
 #SIMU_OPTION += -DGRAMFE_ORDER     = 14
 #SIMU_OPTION += -DGRAMFE_ND        = 28
-#SIMU_OPTION += -DGRAMFE_ENABLE_GPU
-#SIMU_OPTION += -DGRAMFE_ENABLE_SINGLE_PRECISION
+#SIMU_OPTION += -DGRAMFE_ENABLE_GPU      # must enable -std=c++17 for cuda compiler
+#SIMU_OPTION += -DGRAMFE_ENABLE_SINGLE_PRECISION # unstable, not recommended
 
 
 # include the quartic self-interaction potential
