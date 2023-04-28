@@ -1,4 +1,6 @@
-#ifndef GPU
+#include "GAMER.h"
+
+#if (!defined(GPU) || ((MODEL == ELBDM) && (WAVE_SCHEME == WAVE_GRAMFE) && !defined(GRAMFE_ENABLE_GPU)))
 
 
 

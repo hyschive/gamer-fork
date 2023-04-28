@@ -316,29 +316,29 @@ void CUAPI_Asyn_FluidSolver( real h_Flu_Array_In[][FLU_NIN ][ CUBE(FLU_NXT) ],
 // evaluate the optimized Taylor expansion coefficient
    if ( ELBDM_Taylor3_Auto )  ELBDM_Taylor3_Coeff = ELBDM_SetTaylor3Coeff( dt, dh, ELBDM_Eta );
 #  elif ( WAVE_SCHEME == WAVE_GRAMFE )
-#  ifdef ENABLE_GPU_GRAMFE
+#  ifdef GRAMFE_ENABLE_GPU
 // total size of shared memory required for storing FFT::ffts_per_block rows of data after Gram extension and the coefficients of the respective left and right extension polynomials
    auto          size       = FFT::ffts_per_block * cufftdx::size_of<FFT>::value + 2 * FFT::ffts_per_block * GRAMFE_NDELTA;
    auto          size_bytes = size * sizeof(complex_type);
 
 // shared memory must fit input data and must be big enough to run FFT
-   shared_memory_size = std::max((unsigned int)FFT::shared_memory_size, (unsigned int)size_bytes);
+   uint cufftdx_shared_memory_size = std::max((unsigned int)FFT::shared_memory_size, (unsigned int)size_bytes);
 
 // increase max shared memory if needed
    CUDA_CHECK_ERROR(cudaFuncSetAttribute(
       CUFLU_ELBDMSolver_GramFE,
       cudaFuncAttributeMaxDynamicSharedMemorySize,
-      shared_memory_size));
+      cufftdx_shared_memory_size));
 
 // create forward and backward cufftx workspaces
    cudaError_t error_code = cudaSuccess;
-   auto cufftx_workspace = make_workspace<FFT>(error_code);
+   auto cufftdx_workspace = make_workspace<FFT>(error_code);
    CUDA_CHECK_ERROR(error_code);
    error_code = cudaSuccess;
-   auto cufftx_iworkspace = make_workspace<IFFT>(error_code);
+   auto cufftdx_iworkspace = make_workspace<IFFT>(error_code);
    CUDA_CHECK_ERROR(error_code);
 
-#  endif // #  ifdef ENABLE_GPU_GRAMFE
+#  endif // #  ifdef GRAMFE_ENABLE_GPU
 #  else // #  if (WAVE_SCHEME == WAVE_GRAMFE )
 #     error : ERROR : unsupported WAVE_SCHEME !!
 #  endif // WAVE_SCHEME
@@ -508,11 +508,11 @@ void CUAPI_Asyn_FluidSolver( real h_Flu_Array_In[][FLU_NIN ][ CUBE(FLU_NXT) ],
               dt, 1.0/dh, ELBDM_Eta, StoreFlux, ELBDM_Taylor3_Coeff, XYZ, MinDens );
 #     elif ( WAVE_SCHEME == WAVE_GRAMFE )
 #     ifdef GRAMFE_ENABLE_GPU
-         CUFLU_ELBDMSolver_GramFE <<< NPatch_per_Stream[s], FFT::block_dim, shared_memory_size, Stream[s] >>>
+         CUFLU_ELBDMSolver_GramFE <<< NPatch_per_Stream[s], FFT::block_dim, cufftdx_shared_memory_size, Stream[s] >>>
             ( d_Flu_Array_F_In  + UsedPatch[s],
               d_Flu_Array_F_Out + UsedPatch[s],
               d_Flux_Array      + UsedPatch[s],
-              dt, 1.0/dh, ELBDM_Eta, StoreFlux, XYZ, MinDens, workspace, iworkspace );
+              dt, 1.0/dh, ELBDM_Eta, StoreFlux, XYZ, MinDens, cufftdx_workspace, cufftdx_iworkspace );
 #     endif // # ifdef GRAMFE_ENABLE_GPU
 #     else // #  if (WAVE_SCHEME == WAVE_FD )
 #        error : ERROR : unsupported WAVE_SCHEME !!
