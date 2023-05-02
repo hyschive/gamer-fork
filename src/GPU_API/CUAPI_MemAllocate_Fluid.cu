@@ -302,6 +302,9 @@ int CUAPI_MemAllocate_Fluid( const int Flu_NPG, const int Pot_NPG, const int Src
 
 #  if ( MODEL == HYDRO )
       CUDA_CHECK_MALLOC(  cudaMallocHost( (void**) &h_SrcEC_TEF_lambda,    EC_TEF_lambda_MemSize  )  );
+//      printf("Debugging!! h_SrcEC_TEF_lambda is NULL!!!\n");
+//      fflush(stdout);
+//      exit(0); 
       CUDA_CHECK_MALLOC(  cudaMallocHost( (void**) &h_SrcEC_TEF_alpha,     EC_TEF_alpha_MemSize   )  );
       CUDA_CHECK_MALLOC(  cudaMallocHost( (void**) &h_SrcEC_TEFc,          EC_TEFc_MemSize        )  );
 #  endif

@@ -56,6 +56,7 @@ const TestProbID_t
    TESTPROB_HYDRO_BARRED_POT                   =   51,
    TESTPROB_HYDRO_CDM_LSS                      =  100,
    TESTPROB_HYDRO_ZELDOVICH                    =  101,
+   TESTPROB_HYDRO_EXACTCOOLING                 =  123,
    TESTPROB_ELBDM_EXTPOT                       = 1000;
 
 
