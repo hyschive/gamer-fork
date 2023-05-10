@@ -63,6 +63,8 @@ static int        CCSN_Eint_Mode;                  // Mode of obtaining internal
        double     CCSN_CC_Rot_Omega0;              // central angular frequency Omega_0 (in rad/s) in the analytical rotational profile
        double     CCSN_CC_Rot_Fac;                 // multiplication factor for the tabular rotational profile
 
+       double     CCSN_REF_RBase;                  // reference distance for determining a maximum refinement level based on distance from the box center (in cm)
+
        bool       CCSN_Is_PostBounce = false;      // boolean that indicates whether core bounce has occurred
 // =======================================================================================
 
@@ -175,6 +177,7 @@ void SetParameter()
    ReadPara->Add( "CCSN_CC_Rot_R0",           &CCSN_CC_Rot_R0,           2.0e8,         Eps_double,       NoMax_double      );
    ReadPara->Add( "CCSN_CC_Rot_Omega0",       &CCSN_CC_Rot_Omega0,       0.5,           0.0,              NoMax_double      );
    ReadPara->Add( "CCSN_CC_Rot_Fac",          &CCSN_CC_Rot_Fac,          -1.0,          NoMin_double,     NoMax_double      );
+   ReadPara->Add( "CCSN_REF_RBase",           &CCSN_REF_RBase,           1.25e7,        Eps_double,       NoMax_double      );
    ReadPara->Add( "CCSN_Is_PostBounce",       &CCSN_Is_PostBounce,       false,         Useless_bool,     Useless_bool      );
 
    ReadPara->Read( FileName );
@@ -272,6 +275,8 @@ void SetParameter()
 
 
 // (2) set the problem-specific derived parameters
+// convert runtime parameters to the code unit
+   CCSN_REF_RBase /= UNIT_L;
 
 
 // (3) reset other general-purpose parameters
@@ -325,6 +330,7 @@ void SetParameter()
       Aux_Message( stdout, "  central angular frequency Omega_0 (in rad/s)        = %13.7e\n", CCSN_CC_Rot_Omega0       ); }
       if ( CCSN_CC_Rot == 2 )
       Aux_Message( stdout, "  multiplication factor for rotational profile        = %13.7e\n", CCSN_CC_Rot_Fac          );
+      Aux_Message( stdout, "  reference distance for the maximum refinement level = %13.7e\n", CCSN_REF_RBase           );
       Aux_Message( stdout, "=======================================================================================\n"  );
    }
 

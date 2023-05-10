@@ -37,4 +37,6 @@ CCSN_CC_Rot_R0            1.03376e8                # characteristic radius R_0 (
 CCSN_CC_Rot_Omega0        2.0                      # central angular frequency Omega_0 (in rad/s) in the analytical rotational profile  [0.5]
 CCSN_CC_Rot_Fac          -1.0                      # multiplication factor for the tabular rotational profile (<=0 -> off)              [-1.0]
 
+CCSN_REF_RBase            1.25e7;                  # reference distance for determining a maximum refinement level based on distance from the box center (in cm) [1.25e7]
+
 CCSN_Is_PostBounce        0                        # boolean that indicates whether core bounce has occurred  [0]
