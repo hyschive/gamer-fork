@@ -530,41 +530,12 @@ static void Src_Leakage( real fluid[], const real B[],
    Src_Leakage_ComputeLeak( Dens_Code, Temp_Kelv, Ye, chi, tau, Heat_Flux, HeatE_Rms, HeatE_Ave,
                             &dEdt_CGS, &dYedt, Lum, Heat, NetHeat, NuHeat, NuHeat_Fac, Unit_D, EoS );
 
-// the returned dEdt_CGS is in erg/g/s
-   real dEdt_Code  = dEdt_CGS * sEint2Code * Unit_T * Dens_Code;
-   real dYedt_Code = dYedt * Unit_T;
-
-// make sure the new Ye is not within 1% of the table boundary
-   const real dYe = dYedt * dt;
-
-   if (  ( Ye + dYe < YeMin )  ||  ( Ye + dYe > YeMax )  )
-   {
-#     ifdef GAMER_DEBUG
-      printf( "Invalid change rate of Ye: Ye=%13.7e, dYedt=%13.7e, dt=%13.7e, YeMin=%13.7e, YeMax=%13.7e\n",
-              Ye, dYedt, dt, YeMin, YeMax );
-#     endif
-
-      dEdt_Code  = (real)0.0;
-      dYedt_Code = (real)0.0;
-   }
+// the returned dEdt_CGS is in erg/g/s, and dYedt is in 1/s
+   const real dEdt_Code  = dEdt_CGS * sEint2Code * Unit_T * Dens_Code;
+   const real dYedt_Code = dYedt * Unit_T;
 
 
-// (4) update the internal energy density and Ye
-   const real Eint_Update = Eint_Code + dEdt_Code * dt;
-   const real Ye_Update   = Ye + dYedt_Code * dt;
-
-   fluid[ENGY] = Hydro_ConEint2Etot( fluid[DENS], fluid[MOMX], fluid[MOMY], fluid[MOMZ], Eint_Update, Emag );
-#  ifdef YE
-   fluid[YE  ] = Ye_Update * fluid[DENS];
-#  endif
-
-#  ifdef DYEDT_NU
-   fluid[DEDT_NU ] = FABS( dEdt_Code  );
-   fluid[DYEDT_NU] = FABS( dYedt_Code );
-#  endif
-
-
-// (5) store the dEdt, luminosity, heating rate, and net heating rate
+// (4) store the dEdt, luminosity, heating rate, and net heating rate for Record Mode
    if ( RecMode )
    {
       fluid[DENS    ] = dEdt_CGS * Dens_Code * Unit_D;
@@ -579,7 +550,53 @@ static void Src_Leakage( real fluid[], const real B[],
       fluid[DEDT_NU ] = NetHeat[0];
       fluid[DYEDT_NU] = NetHeat[1];
 #     endif
+
+      return;
    }
+
+
+// (5-1) make sure the new Ye is not within 1% of the table boundary
+   const real dYe = dYedt_Code * dt;
+
+   if (  ( Ye + dYe < YeMin )  ||  ( Ye + dYe > YeMax )  )
+   {
+#     ifdef GAMER_DEBUG
+      printf( "Invalid change rate of Ye: Ye=%13.7e, dYedt_Code=%13.7e, dt_Code=%13.7e, YeMin=%13.7e, YeMax=%13.7e\n",
+              Ye, dYedt_Code, dt, YeMin, YeMax );
+#     endif
+
+      return;
+   }
+
+// (5-2) check if the new internal energy density and Ye are allowed for the nuclear EoS table
+   const real Eint_Update = Eint_Code + dEdt_Code * dt;
+   const real Ye_Update   = Ye + dYedt_Code * dt;
+
+   In_Flt[1] = Eint_Update;
+   In_Flt[2] = Ye_Update;
+
+#  ifdef __CUDACC__
+   EoS->General_FuncPtr( NUC_MODE_ENGY, Out, In_Flt, In_Int, EoS->AuxArrayDevPtr_Flt, EoS->AuxArrayDevPtr_Int, EoS->Table );
+#  else
+   EoS_General_CPUPtr  ( NUC_MODE_ENGY, Out, In_Flt, In_Int, EoS_AuxArray_Flt,        EoS_AuxArray_Int,        h_EoS_Table );
+#  endif
+
+   const real Temp_Chk = Out[0];
+
+// (5-3) update the input array if the EoS driver successes (Temp_Chk != NAN)
+   if ( Temp_Chk == Temp_Chk )
+   {
+      fluid[ENGY] = Hydro_ConEint2Etot( fluid[DENS], fluid[MOMX], fluid[MOMY], fluid[MOMZ], Eint_Update, Emag );
+#     ifdef YE
+      fluid[YE  ] = Ye_Update * fluid[DENS];
+#     endif
+
+#     ifdef DYEDT_NU
+      fluid[DEDT_NU ] = FABS( dEdt_Code  );
+      fluid[DYEDT_NU] = FABS( dYedt_Code );
+#     endif
+   }
+
 
 
 // (6) final check
