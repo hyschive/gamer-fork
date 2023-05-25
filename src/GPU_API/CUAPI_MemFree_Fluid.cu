@@ -38,9 +38,9 @@ extern real (*d_EC_Ele     )[NCOMP_MAG][ CUBE(N_EC_ELE)          ];
 #endif
 #endif // FLU_SCHEME
 #if ( MODEL == HYDRO )
-extern real  *d_SrcEC_TEF_lambda;      
-extern real  *d_SrcEC_TEF_alpha;
-extern real  *d_SrcEC_TEFc;
+extern double  *d_SrcEC_TEF_lambda;      
+extern double  *d_SrcEC_TEF_alpha;
+extern double  *d_SrcEC_TEFc;
 #endif      
 
 #if ( MODEL != HYDRO  &&  MODEL != ELBDM )

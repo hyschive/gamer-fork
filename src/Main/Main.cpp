@@ -361,9 +361,9 @@ double (*h_Corner_Array_S[2])[3]                                   = { NULL, NUL
 #if ( MODEL == HYDRO )
 real (*h_SrcDlepProf_Data)[SRC_DLEP_PROF_NBINMAX]                  = NULL;
 real  *h_SrcDlepProf_Radius                                        = NULL;
-real  *h_SrcEC_TEF_lambda                                          = NULL;
-real  *h_SrcEC_TEF_alpha                                           = NULL;
-real  *h_SrcEC_TEFc                                                = NULL;
+double  *h_SrcEC_TEF_lambda                                         = NULL;
+double  *h_SrcEC_TEF_alpha                                          = NULL;
+double  *h_SrcEC_TEFc                                               = NULL;
 #endif
 
 
@@ -445,9 +445,9 @@ double (*d_Corner_Array_S)[3]                                      = NULL;
 #if ( MODEL == HYDRO )
 real (*d_SrcDlepProf_Data)[SRC_DLEP_PROF_NBINMAX]                  = NULL;
 real  *d_SrcDlepProf_Radius                                        = NULL;
-real  *d_SrcEC_TEF_lambda                                          = NULL;
-real  *d_SrcEC_TEF_alpha                                           = NULL;
-real  *d_SrcEC_TEFc                                                = NULL;
+double  *d_SrcEC_TEF_lambda                                         = NULL;
+double  *d_SrcEC_TEF_alpha                                          = NULL;
+double  *d_SrcEC_TEFc                                               = NULL;
 #endif
 
 #endif // #ifdef GPU

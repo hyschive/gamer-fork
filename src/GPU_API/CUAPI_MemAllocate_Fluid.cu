@@ -44,9 +44,9 @@ extern real (*d_EC_Ele     )[NCOMP_MAG][ CUBE(N_EC_ELE)          ];
 #endif
 #endif // FLU_SCHEME
 #if ( MODEL == HYDRO )
-extern real  *d_SrcEC_TEF_lambda;
-extern real  *d_SrcEC_TEF_alpha;
-extern real  *d_SrcEC_TEFc;
+extern double  *d_SrcEC_TEF_lambda;
+extern double  *d_SrcEC_TEF_alpha;
+extern double  *d_SrcEC_TEFc;
 #endif
 
 #if ( MODEL != HYDRO  &&  MODEL != ELBDM )
@@ -104,9 +104,9 @@ int CUAPI_MemAllocate_Fluid( const int Flu_NPG, const int Pot_NPG, const int Src
    const long Flu_MemSize_S_Out   = sizeof(real  )*Src_NP*FLU_NOUT_S*CUBE(PS1);
    const long Corner_MemSize_S    = sizeof(double)*Src_NP*3;
 #  if ( MODEL == HYDRO )
-   const long EC_TEF_lambda_MemSize  = sizeof(real  )* SrcTerms.EC_TEF_N;
-   const long EC_TEF_alpha_MemSize   = sizeof(real  )* SrcTerms.EC_TEF_N;
-   const long EC_TEFc_MemSize        = sizeof(real  )* SrcTerms.EC_TEF_N;
+   const long EC_TEF_lambda_MemSize  = sizeof(double)* SrcTerms.EC_TEF_N;
+   const long EC_TEF_alpha_MemSize   = sizeof(double)* SrcTerms.EC_TEF_N;
+   const long EC_TEFc_MemSize        = sizeof(double)* SrcTerms.EC_TEF_N;
 #  endif
 
 // the size of the global memory arrays in different models
@@ -302,9 +302,6 @@ int CUAPI_MemAllocate_Fluid( const int Flu_NPG, const int Pot_NPG, const int Src
 
 #  if ( MODEL == HYDRO )
       CUDA_CHECK_MALLOC(  cudaMallocHost( (void**) &h_SrcEC_TEF_lambda,    EC_TEF_lambda_MemSize  )  );
-//      printf("Debugging!! h_SrcEC_TEF_lambda is NULL!!!\n");
-//      fflush(stdout);
-//      exit(0); 
       CUDA_CHECK_MALLOC(  cudaMallocHost( (void**) &h_SrcEC_TEF_alpha,     EC_TEF_alpha_MemSize   )  );
       CUDA_CHECK_MALLOC(  cudaMallocHost( (void**) &h_SrcEC_TEFc,          EC_TEFc_MemSize        )  );
 #  endif

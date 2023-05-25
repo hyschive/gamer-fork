@@ -93,12 +93,9 @@ void Init_MemAllocate_Fluid( const int Flu_NPatchGroup, const int Pot_NPatchGrou
 #  endif // FLU_SCHEME
 
 #  if ( MODEL == HYDRO )
-   h_SrcEC_TEF_lambda = new real [SrcTerms.EC_TEF_N];
-//   printf( "Debugging!! h_SrcEC_TEF_lambda is NULL!!!\n");
-//   fflush(stdout);
-//   exit(0);
-   h_SrcEC_TEF_alpha  = new real [SrcTerms.EC_TEF_N];
-   h_SrcEC_TEFc       = new real [SrcTerms.EC_TEF_N];
+   h_SrcEC_TEF_lambda = new double [SrcTerms.EC_TEF_N];
+   h_SrcEC_TEF_alpha  = new double [SrcTerms.EC_TEF_N];
+   h_SrcEC_TEFc       = new double [SrcTerms.EC_TEF_N];
 
    SrcTerms.EC_TEF_lambda_DevPtr = h_SrcEC_TEF_lambda;
    SrcTerms.EC_TEF_alpha_DevPtr  = h_SrcEC_TEF_alpha;

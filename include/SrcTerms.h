@@ -88,9 +88,9 @@ struct SrcTerms_t
    double   *EC_AuxArrayDevPtr_Flt;
    int      *EC_AuxArrayDevPtr_Int;
    int       EC_TEF_N;
-   real     *EC_TEF_lambda_DevPtr;
-   real     *EC_TEF_alpha_DevPtr;
-   real     *EC_TEFc_DevPtr;
+   double   *EC_TEF_lambda_DevPtr;
+   double   *EC_TEF_alpha_DevPtr;
+   double   *EC_TEFc_DevPtr;
 #  endif
 
 // user-specified source term
