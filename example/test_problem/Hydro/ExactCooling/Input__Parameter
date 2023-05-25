@@ -14,7 +14,7 @@
 
 
 # simulation scale
-BOX_SIZE                      1.0         # box size along the longest side (in Mpc/h if COMOVING is adopted)
+BOX_SIZE                      3e21        # box size along the longest side (in Mpc/h if COMOVING is adopted)
 NX0_TOT_X                     64          # number of base-level cells along x
 NX0_TOT_Y                     64          # number of base-level cells along y
 NX0_TOT_Z                     64          # number of base-level cells along z
@@ -24,7 +24,7 @@ END_STEP                     -1           # end step (<0=auto -> must be set by 
 
 
 # test problems
-TESTPROB_ID                   0           # test problem ID [0]
+TESTPROB_ID                 123           # test problem ID [0]
                                           #    0: none
                                           #    1: HYDRO blast wave [+MHD]
                                           #    2: HYDRO acoustic wave
@@ -50,10 +50,10 @@ TESTPROB_ID                   0           # test problem ID [0]
 
 
 # code units (in cgs)
-OPT__UNIT                     0           # specify code units -> must set exactly 3 basic units below [0] ##USELESS FOR COMOVING##
-UNIT_L                       -1.0         # length unit        (<=0 -> set to UNIT_V*UNIT_T or (UNIT_M/UNIT_D)^(1/3)) [-1.0]
-UNIT_M                       -1.0         # mass unit          (<=0 -> set to UNIT_D*UNIT_L^3)                        [-1.0]
-UNIT_T                       -1.0         # time unit          (<=0 -> set to UNIT_L/UNIT_V)                          [-1.0]
+OPT__UNIT                     1           # specify code units -> must set exactly 3 basic units below [0] ##USELESS FOR COMOVING##
+UNIT_L                        1.0         # length unit        (<=0 -> set to UNIT_V*UNIT_T or (UNIT_M/UNIT_D)^(1/3)) [-1.0]
+UNIT_M                        1.0         # mass unit          (<=0 -> set to UNIT_D*UNIT_L^3)                        [-1.0]
+UNIT_T                        1.0         # time unit          (<=0 -> set to UNIT_L/UNIT_V)                          [-1.0]
 UNIT_V                       -1.0         # velocity unit      (<=0 -> set to UNIT_L/UNIT_T)                          [-1.0]
 UNIT_D                       -1.0         # mass density unit  (<=0 -> set to UNIT_M/UNIT_L^3)                        [-1.0]
 
@@ -160,7 +160,7 @@ OPT__MINIMIZE_MPI_BARRIER     1           # minimize MPI barriers to improve loa
 
 # source terms
 SRC_DELEPTONIZATION           0           # deleptonization (for simulations of stellar core collapse) [0] ##HYDRO ONLY##
-SRC_EXACTCOOLING              0           # exact cooling scheme from Gaspari (2009) [0] ##HYDRO ONLY##
+SRC_EXACTCOOLING              1           # exact cooling scheme from Gaspari (2009) [0] ##HYDRO ONLY##
 SRC_EC_TEF_N                  1501        # number of points for lambda(T) sampling in LOG    
 SRC_USER                      0           # user-defined source terms -> edit "Src_User.cpp" [0]
 SRC_GPU_NPGROUP              -1           # number of patch groups sent into the CPU/GPU source-term solver (<=0=auto) [-1]
@@ -198,6 +198,7 @@ SF_CREATE_STAR_MAX_STAR_MFRAC 0.5         # maximum gas mass fraction allowed to
 # fluid solver in HYDRO (MODEL==HYDRO only)
 GAMMA                         1.666666667 # ratio of specific heats (i.e., adiabatic index) [5.0/3.0] ##EOS_GAMMA ONLY##
 MOLECULAR_WEIGHT              0.6         # mean molecular weight [0.6]
+MU_NORM                       1.6737352238051868e-24   # m_H value,  fully consistent with yt
 ISO_TEMP                      1.0e4       # isothermal temperature in kelvin ##EOS_ISOTHERMAL ONLY##
 MINMOD_COEFF                  1.5         # coefficient of the generalized MinMod limiter (1.0~2.0) [1.5]
 MINMOD_MAX_ITER               0           # maximum number of iterations to reduce MINMOD_COEFF when data reconstruction fails (0=off) [0]
@@ -234,10 +235,10 @@ OPT__RESET_FLUID_INIT        -1           # reset fluid variables during initial
 OPT__FREEZE_FLUID             0           # do not evolve fluid at all [0]
 OPT__CHECK_PRES_AFTER_FLU    -1           # check unphysical pressure at the end of the fluid solver (<0=auto) [-1]
 OPT__LAST_RESORT_FLOOR        1           # apply floor values as the last resort when the fluid solver fails [1] ##HYDRO and MHD ONLY##
-MIN_DENS                      0.0         # minimum mass density     (must >= 0.0) [0.0] ##HYDRO, MHD, and ELBDM ONLY##
-MIN_PRES                      0.0         # minimum pressure         (must >= 0.0) [0.0] ##HYDRO and MHD ONLY##
-MIN_EINT                      0.0         # minimum internal energy  (must >= 0.0) [0.0] ##HYDRO and MHD ONLY##
-MIN_TEMP                      0.0         # minimum temperature in K (must >= 0.0) [0.0] ##HYDRO and MHD ONLY##
+MIN_DENS                      1.0e-30     # minimum mass density     (must >= 0.0) [0.0] ##HYDRO, MHD, and ELBDM ONLY##
+MIN_PRES                      1.0e-30     # minimum pressure         (must >= 0.0) [0.0] ##HYDRO and MHD ONLY##
+MIN_EINT                      1.0e-30     # minimum internal energy  (must >= 0.0) [0.0] ##HYDRO and MHD ONLY##
+MIN_TEMP                      1.0e2       # minimum temperature in K (must >= 0.0) [0.0] ##HYDRO and MHD ONLY##
 MIN_ENTR                      0.0         # minimum entropy          (must >= 0.0) [0.0] ##HYDRO and MHD ONLY##
 JEANS_MIN_PRES                0           # minimum pressure estimated from the Jeans length [0] ##HYDRO/MHD and GRAVITY ONLY##
 JEANS_MIN_PRES_LEVEL         -1           # for JEANS_MIN_PRES; ensure Jeans length is resolved by JEANS_MIN_PRES_NCELL*dh[JEANS_MIN_PRES_LEVEL]
@@ -334,10 +335,10 @@ OPT__OUTPUT_DIVVEL            0           # output divergence(velocity) [0] ##HY
 OPT__OUTPUT_MACH              0           # output mach number [0] ##HYDRO ONLY##
 OPT__OUTPUT_DIVMAG            0           # output |divergence(B)*dh/|B|| [0] ##MHD ONLY##
 OPT__OUTPUT_USER_FIELD        0           # output user-defined derived fields [0] -> edit "Flu_DerivedField_User.cpp"
-OPT__OUTPUT_MODE              1           # (1=const step, 2=const dt, 3=dump table) -> edit "Input__DumpTable" for 3
+OPT__OUTPUT_MODE              2           # (1=const step, 2=const dt, 3=dump table) -> edit "Input__DumpTable" for 3
 OPT__OUTPUT_RESTART           0           # output data immediately after restart [0]
 OUTPUT_STEP                   5           # output data every OUTPUT_STEP step ##OPT__OUTPUT_MODE==1 ONLY##
-OUTPUT_DT                     1.0         # output data every OUTPUT_DT time interval ##OPT__OUTPUT_MODE==2 ONLY##
+OUTPUT_DT                     3.15576e13      # output data every OUTPUT_DT time interval ##OPT__OUTPUT_MODE==2 ONLY##
 OUTPUT_WALLTIME              -1.0         # output data every OUTPUT_WALLTIME walltime (<=0.0=off) [-1.0]
 OUTPUT_WALLTIME_UNIT          0           # unit of OUTPUT_WALLTIME (0=second, 1=minute, 2=hour, 3=day) [0]
 OUTPUT_PART_X                -1.0         # x coordinate for OPT__OUTPUT_PART [-1.0]
