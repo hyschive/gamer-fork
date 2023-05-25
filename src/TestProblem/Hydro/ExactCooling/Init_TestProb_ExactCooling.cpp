@@ -1,7 +1,11 @@
 #include "GAMER.h"
 #include "TestProb.h"
+#include <gsl/gsl_integration.h> 
 
 
+static void Output_ExactCooling();
+double Lambda(double Temp, double ZIRON);
+double integrand(double Temp, void *params);
 
 // problem-specific global variables
 // =======================================================================================
@@ -123,8 +127,7 @@ void SetParameter()
 // (3) reset other general-purpose parameters
 //     --> a helper macro PRINT_WARNING is defined in TestProb.h
    const long   End_Step_Default = __INT_MAX__;
-//   const double End_T_Default    = 100.0*Const_Myr/UNIT_T;
-   const double End_T_Default    = 10.0*31.5576e15/UNIT_T;
+   const double End_T_Default    = 100.0*Const_Myr/UNIT_T;
 
    if ( END_STEP < 0 ) {
       END_STEP = End_Step_Default;
@@ -183,7 +186,8 @@ void SetGridIC( real fluid[], const double x, const double y, const double z, co
    double Dens, MomX, MomY, MomZ, Pres, Eint, Etot;
 // Convert the input number density into mass density rho
 //   double cl_dens = (EC_Dens*Const_mp*0.61709348966) / UNIT_D;
-   double cl_dens = (EC_Dens*1.660538921e-24*1.007947*0.61709348966) / UNIT_D;
+//   double cl_dens = (EC_Dens*1.660538921e-24*1.007947*0.61709348966) / UNIT_D;
+   double cl_dens = (EC_Dens*MU_NORM*0.61709348966) / UNIT_D;
 //   double cl_pres = EC_Dens*Const_kB*EC_Temp / UNIT_P; 
    double cl_pres = EoS_DensTemp2Pres_CPUPtr( cl_dens, EC_Temp, NULL, EoS_AuxArray_Flt, EoS_AuxArray_Int, h_EoS_Table );
 
@@ -205,14 +209,208 @@ void SetGridIC( real fluid[], const double x, const double y, const double z, co
 
    double Temp_tmp;
    Temp_tmp = (real) Hydro_Con2Temp( fluid[DENS], fluid[MOMX], fluid[MOMY], fluid[MOMZ], fluid[ENGY], fluid+NCOMP_FLUID, 
-                                 true, MIN_TEMP, 0.0, EoS_DensEint2Temp_CPUPtr, 
-                                 EoS_AuxArray_Flt, EoS_AuxArray_Int, h_EoS_Table );
+                                     true, MIN_TEMP, 0.0, EoS_DensEint2Temp_CPUPtr, 
+                                     EoS_AuxArray_Flt, EoS_AuxArray_Int, h_EoS_Table );
    count += 1;
-   if ( count < 300 && count > 287 ){
-      printf("Debugging in Init!! fluid[DENS] = %14.20e, fluid[MOMX] = %14.8e, fluid[ENGY] = %14.8e, Temp = %14.20e\n", fluid[DENS], fluid[MOMX], fluid[ENGY], Temp_tmp);
-   }
+//   if ( count < 300 && count > 287 ){
+//      printf("Debugging in Init!! fluid[DENS] = %14.20e, fluid[MOMX] = %14.8e, fluid[ENGY] = %14.8e, Temp = %14.20e\n", fluid[DENS], fluid[MOMX], fluid[ENGY], Temp_tmp);
+//   }
 } // FUNCTION : SetGridIC
+
+
+
+//-------------------------------------------------------------------------------------------------------
+// Function    :  OutputExactCooling
+// Description :  Output the temperature relative error in the exact cooling problem
+//
+// Note        :  1. Enabled by the runtime option "OPT__OUTPUT_USER"
+//                2. Construct the analytical solution corresponding to the cooling function
+//
+// Parameter   :  None
+//
+// Return      :  None
+//-------------------------------------------------------------------------------------------------------
+void Output_ExactCooling()
+{
+   const char FileName[] = "Output__Error";
+   static bool FirstTime = true;
+
+// header
+   if ( FirstTime ) {
+      if ( MPI_Rank == 0 ) {   
+         if ( Aux_CheckFileExist(FileName) )
+            Aux_Message( stderr, "WARNING : file \"%s\" already exists !!\n", FileName );
+ 
+         FILE *File_User = fopen( FileName, "a" );
+         fprintf( File_User, "#%13s%10s ",  "Time", "DumpID" );
+         fprintf( File_User, "%14s %14s %14s %14s %14s", "Temp_nume", "Temp_anal", "Err", "Tcool_nume", "Tcool_anal");
+         fprintf( File_User, "\n" );
+         fclose( File_User );
+      }      
+      FirstTime = false;
+   } // if ( FirstTime )
+
+
+   const double cl_X         = 0.7;      // mass-fraction of hydrogen
+   const double cl_Z         = 0.018;    // metallicity (in Zsun)
+   const double cl_mol       = 1.0/(2*cl_X+0.75*(1-cl_X-cl_Z)+cl_Z*0.5);   // mean (total) molecular weights 
+   const double cl_mole      = 2.0/(1+cl_X);   // mean electron molecular weights
+   const double cl_moli      = 1.0/cl_X;   // mean proton molecular weights
+   const double cl_moli_mole = cl_moli*cl_mole;  // Assume the molecular weights are constant, mu_e*mu_i = 1.464
+   const double Temp_cut     = 1e5;
+ 
+// Get the numerical result
+   real fluid[NCOMP_TOTAL];
+   double Temp_nume = 0.0;
+   double Temp_nume_tmp = 0.0;
+   double Tcool_nume = 0.0;
+   int    count = 0;
+   const int lv = 0;
+
+   for (int k=1; k<PS1; k++){
+   for (int j=1; j<PS1; j++){
+   for (int i=1; i<PS1; i++){
+      for (int v=0; v<NCOMP_TOTAL; v++)   fluid[v] = amr->patch[ amr->FluSg[lv] ][lv][0]->fluid[v][k][j][i];
+      Temp_nume_tmp = (real) Hydro_Con2Temp( fluid[0], fluid[1], fluid[2], fluid[3], fluid[4], fluid+NCOMP_FLUID, 
+                                             true, MIN_TEMP, 0.0, EoS_DensEint2Temp_CPUPtr, 
+                                             EoS_AuxArray_Flt, EoS_AuxArray_Int, h_EoS_Table );
+      Tcool_nume += 1.0/(GAMMA-1)*(Const_kB*cl_moli_mole*Temp_nume_tmp)/(fluid[0]*UNIT_D/MU_NORM*cl_mol*3.2217e-27*sqrt(Temp_nume_tmp))/Const_Myr;
+      Temp_nume += Temp_nume_tmp;
+      count += 1;
+   }}}
+   Temp_nume /= count;
+   Tcool_nume /= count;
+
+// Compute the analytical solution
+   double gsl_result, gsl_error;
+   double K = -(GAMMA-1)*EC_Dens*cl_mol*cl_mol/cl_moli_mole/Const_kB;
+   gsl_integration_workspace *w = gsl_integration_workspace_alloc(1000);
+   gsl_function F;
+   F.function = &integrand;
+   gsl_integration_qags(&F, EC_Temp, Temp_nume, 0, 1e-10, 1000, w, &gsl_result, &gsl_error);
+   double Time_gsl = gsl_result/K;
+
+/*
+// Single branch
+   double Temp_anal, Tcool_anal;
+   if (sqrt(EC_Temp) >= 3.2217e-27/2.0*(GAMMA-1)*EC_Dens*cl_mol*cl_mol/cl_mole/cl_moli/Const_kB*Time[0]*UNIT_T){
+      Temp_anal = pow(sqrt(EC_Temp) - 3.2217e-27/2.0*(GAMMA-1)*EC_Dens*cl_mol*cl_mol/cl_mole/cl_moli/Const_kB*Time[0]*UNIT_T, 2.0);
+      if (Temp_anal < MIN_TEMP)   Temp_anal = MIN_TEMP;
+   }
+   else   Temp_anal = MIN_TEMP;
+
+   Tcool_anal = 1.0/(GAMMA-1)*EC_Dens*Const_kB*Temp_anal/((EC_Dens*cl_mol/cl_mole)*(EC_Dens*cl_mol/cl_moli)*3.2217e-27*sqrt(Temp_anal))/Const_Myr;
+*/
+/*
+// 2 branch
+   const int size_anal = 1001;       
+   double time_anal[size_anal];
+   double Temp_anal_arr[size_anal] = {0.0};
+   double Tcool_anal_arr[size_anal] = {0.0};
+   double time_cut, Temp_anal, Tcool_anal;
+
+   for (int i=0; i<size_anal; i++)   time_anal[i] = i*0.1;
+
+   for (int i=0; i<size_anal; i++) {
+      if (sqrt(EC_Temp) >= 3.2217e-27/2.0*(GAMMA-1)*EC_Dens*cl_mol*cl_mol/cl_mole/cl_moli/Const_kB*time_anal[i]*Const_Myr){
+         Temp_anal_arr[i] = pow(sqrt(EC_Temp) - 3.2217e-27/2.0*(GAMMA-1)*EC_Dens*cl_mol*cl_mol/cl_mole/cl_moli/Const_kB*time_anal[i]*Const_Myr, 2.0);
+         if (Temp_anal_arr[i] < MIN_TEMP)   Temp_anal_arr[i] = MIN_TEMP;
+      }
+      else   Temp_anal_arr[i] = MIN_TEMP;
+   }
+
+   for (int i=0; i<size_anal-1; i++) {
+      if ( Temp_anal_arr[i] >= Temp_cut && Temp_anal_arr[i+1] <= Temp_cut ){
+         time_cut = time_anal[i] + (time_anal[i+1]-time_anal[i])*(Temp_cut-Temp_anal_arr[i])/(Temp_anal_arr[i+1]-Temp_anal_arr[i]);
+      }
+   }
+
+//   for (int i=0; i<size_anal; i++) {
+//      Tcool_anal[i] = 1.0/(GAMMA-1)*EC_Dens*Const_kB*Temp_anal[i]/((EC_Dens*cl_mol/cl_mole)*(EC_Dens*cl_mol/cl_moli)*3.2217e-27*sqrt(Temp_anal[i]))/Const_Myr;
+//   }
+
+   if ( Time[0]*UNIT_T <= time_cut*Const_Myr ){
+      if (sqrt(EC_Temp) >= 3.2217e-27/2.0*(GAMMA-1)*EC_Dens*cl_mol*cl_mol/cl_mole/cl_moli/Const_kB*Time[0]*UNIT_T){
+          Temp_anal = pow(sqrt(EC_Temp) - 3.2217e-27/2.0*(GAMMA-1)*EC_Dens*cl_mol*cl_mol/cl_mole/cl_moli/Const_kB*Time[0]*UNIT_T, 2.0);
+      if (Temp_anal < MIN_TEMP)   Temp_anal = MIN_TEMP;
+      }
+      else   Temp_anal = MIN_TEMP;
+   
+      Tcool_anal = 1.0/(GAMMA-1)*EC_Dens*Const_kB*Temp_anal/((EC_Dens*cl_mol/cl_mole)*(EC_Dens*cl_mol/cl_moli)*3.2217e-27*sqrt(Temp_anal))/Const_Myr;
+   }
+   else {
+      if (pow(Temp_cut, 0.6) >= 3.2217e-27*0.6*(GAMMA-1)*EC_Dens*cl_mol*cl_mol/cl_mole/cl_moli/Const_kB*(Time[0]*UNIT_T-time_cut*Const_Myr)){
+          Temp_anal = pow(pow(Temp_cut, 0.6) - 3.2217e-27*0.6*(GAMMA-1)*EC_Dens*cl_mol*cl_mol/cl_mole/cl_moli/Const_kB*(Time[0]*UNIT_T-time_cut*Const_Myr), 1.0/0.6);
+      if (Temp_anal < MIN_TEMP)   Temp_anal = MIN_TEMP;
+      }   
+      else   Temp_anal = MIN_TEMP;
+   
+      Tcool_anal = 1.0/(GAMMA-1)*EC_Dens*Const_kB*Temp_anal/((EC_Dens*cl_mol/cl_mole)*(EC_Dens*cl_mol/cl_moli)*3.2217e-27*pow(Temp_anal, 0.4))/Const_Myr;
+   }
+*/
+
+// Record
+   if ( MPI_Rank == 0 ) {
+      FILE *File_User = fopen( FileName, "a" );
+      fprintf( File_User, "%14.7e%10d ", Time[0]*UNIT_T/Const_Myr, DumpID );
+//      fprintf( File_User, "%14.7e %14.7e %14.7e %14.7e %14.7e", Temp_nume, Temp_anal, (Temp_nume-Temp_anal)/Temp_anal, Tcool_nume, Tcool_anal );
+      fprintf( File_User, "%14.7e %14.7e %14.7e %14.7e %14.7e", Temp_nume, Time_gsl/Const_Myr, (Time[0]*UNIT_T-Time_gsl)/Time_gsl, Tcool_nume, 0.0 );
+      fprintf( File_User, "\n" );
+      fclose( File_User );
+   }
+
+
+} // FUNCTION : Output_ExactCooling
 #endif
+
+
+double Lambda(double TEMP, double ZIRON){
+   double TLOGC = 5.65;
+   double QLOGC = -21.566;
+   double QLOGINFTY = -23.1;
+   double PPP = 0.8;
+   double TLOGM = 5.1;
+   double QLOGM = -20.85;
+   double SIG = 0.65;
+   double TLOG = log10(TEMP);
+
+   double QLOG0, QLOG1, QLAMBDA0, QLAMBDA1, ARG, BUMP1RHS, BUMP2LHS, Lambdat;
+   if (TLOG >= 6.1)   QLOG0 = -26.39 + 0.471*log10(TEMP + 3.1623e6);
+   else if (TLOG >= 4.9){         
+      ARG = pow(10.0, (-(TLOG-4.9)/0.5)) + 0.077302;
+      QLOG0 = -22.16 + log10(ARG);
+   }                              
+   else if (TLOG >= 4.25){        
+      BUMP1RHS = -21.98 - ((TLOG-4.25)/0.55);
+      BUMP2LHS = -22.16 - pow((TLOG-4.9)/0.284, 2); 
+      QLOG0 = fmax(BUMP1RHS, BUMP2LHS);
+   }                              
+   else   QLOG0 = -21.98 - pow((TLOG-4.25)/0.2, 2); 
+                                  
+   if (QLOG0 < -30.0)   QLOG0 = -30.0;
+   QLAMBDA0 = pow(10.0, QLOG0); 
+
+   if (TLOG >= 5.65) {
+       QLOG1 = QLOGC - PPP * (TLOG - TLOGC);
+       QLOG1 = fmax(QLOG1, QLOGINFTY);
+   } else {
+       QLOG1 = QLOGM - pow((TLOG - TLOGM) / SIG, 2.0);
+   }
+
+   if (QLOG1 < -30.0)   QLOG1 = -30.0;
+   QLAMBDA1 = pow(10.0, QLOG1);
+
+//   Lambdat = QLAMBDA0;
+   Lambdat = QLAMBDA0 + ZIRON * QLAMBDA1;
+//   Lambdat = 3.2217e-27 * sqrt(TEMP);
+
+   return Lambdat;
+}
+
+double integrand(double Temp, void *params){
+    double Lambda_T = Lambda(Temp, 0.018);
+    return 1.0/Lambda_T;
+}
 
 
 
@@ -250,6 +448,7 @@ void Init_TestProb_Hydro_ExactCooling()
 //    --> for instance, enable OPT__OUTPUT_USER for Output_User_Ptr
 
    Init_Function_User_Ptr         = SetGridIC;
+   Output_User_Ptr                = Output_ExactCooling;
 //   End_User_Ptr                   = End_ClusterMerger;
 //   Aux_Record_User_Ptr            = Aux_Record_ClusterMerger;
 
