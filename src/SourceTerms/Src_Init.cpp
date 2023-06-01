@@ -13,6 +13,9 @@ void Src_Init_Leakage();
 void (*Src_Init_User_Ptr)() = NULL;
 
 
+extern bool IsInit_dEdt_Nu[NLEVEL];
+
+
 
 
 //-------------------------------------------------------------------------------------------------------
@@ -132,10 +135,10 @@ void Src_Init()
       Src_Init_Leakage();
 
 //    check if the source-term function is set properly
-      if ( SrcTerms.Leakage_FuncPtr == NULL )    Aux_Error( ERROR_INFO, "SrcTerms.Leakage_FuncPtr == NULL !!\n" );
-      if ( SrcTerms.Leakage_CPUPtr  == NULL )    Aux_Error( ERROR_INFO, "SrcTerms.Leakage_CPUPtr  == NULL !!\n" );
+      if ( SrcTerms.Leakage_FuncPtr == NULL )      Aux_Error( ERROR_INFO, "SrcTerms.Leakage_FuncPtr == NULL !!\n" );
+      if ( SrcTerms.Leakage_CPUPtr  == NULL )      Aux_Error( ERROR_INFO, "SrcTerms.Leakage_CPUPtr  == NULL !!\n" );
 #     ifdef GPU
-      if ( SrcTerms.Leakage_GPUPtr  == NULL )    Aux_Error( ERROR_INFO, "SrcTerms.Leakage_GPUPtr  == NULL !!\n" );
+      if ( SrcTerms.Leakage_GPUPtr  == NULL )      Aux_Error( ERROR_INFO, "SrcTerms.Leakage_GPUPtr  == NULL !!\n" );
 #     endif
    }
 #  endif // if ( MODEL == HYDRO )
@@ -153,6 +156,13 @@ void Src_Init()
 #     ifdef GPU
       if ( SrcTerms.User_GPUPtr  == NULL )         Aux_Error( ERROR_INFO, "SrcTerms.User_GPUPtr  == NULL !!\n" );
 #     endif
+   }
+
+
+// reset the flag in restart runs
+   if ( OPT__INIT == INIT_BY_RESTART )
+   {
+      for (int lv=0; lv<=MAX_LEVEL; lv++)   IsInit_dEdt_Nu[lv] = true;
    }
 
 
