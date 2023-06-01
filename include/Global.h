@@ -113,7 +113,9 @@ extern bool             OPT__FIXUP_ELECTRIC, OPT__CK_INTERFACE_B, OPT__OUTPUT_CC
 extern bool             OPT__OUTPUT_DIVMAG;
 extern int              OPT__CK_DIVERGENCE_B;
 extern double           UNIT_B;
-extern bool             OPT__INIT_BFIELD_BYFILE, OPT__SAME_INTERFACE_B;
+extern bool             OPT__SAME_INTERFACE_B;
+
+extern OptInitMagByVecPot_t OPT__INIT_BFIELD_BYVECPOT;
 #endif
 
 #elif ( MODEL == ELBDM )
@@ -183,9 +185,12 @@ extern double     LB_INPUT__PAR_WEIGHT;               // LB->Par_Weight loaded f
 extern bool       OPT__RECORD_LOAD_BALANCE;
 #endif
 extern bool       OPT__MINIMIZE_MPI_BARRIER;
+#ifdef SUPPORT_FFTW
+extern int        OPT__FFTW_STARTUP;
 #if ( SUPPORT_FFTW == FFTW3 )
 extern bool       FFTW3_Double_OMP_Enabled, FFTW3_Single_OMP_Enabled;
-#endif // #if ( SUPPORT_FFTW == FFTW3 )
+#endif // # if ( SUPPORT_FFTW == FFTW3 )
+#endif // # ifdef SUPPORT_FFTW
 
 // (2-5) particle
 // ============================================================================================================
