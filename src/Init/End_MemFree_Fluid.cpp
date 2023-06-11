@@ -66,15 +66,6 @@ void End_MemFree_Fluid()
 #  endif
 #  endif // FLU_SCHEME
 
-#  if ( MODEL == HYDRO )
-   delete [] h_SrcEC_TEF_lambda;     h_SrcEC_TEF_lambda = NULL;
-   delete [] h_SrcEC_TEF_alpha;      h_SrcEC_TEF_alpha  = NULL;
-   delete [] h_SrcEC_TEFc;           h_SrcEC_TEFc       = NULL;
-
-   SrcTerms.EC_TEF_lambda_DevPtr = NULL;
-   SrcTerms.EC_TEF_alpha_DevPtr  = NULL;
-   SrcTerms.EC_TEFc_DevPtr       = NULL;
-#  endif
 
 } // FUNCTION : End_MemFree_Fluid
 

@@ -9,7 +9,7 @@ extern void (*Par_Init_ByFunction_Ptr)( const long NPar_ThisRank, const long NPa
                                         real *ParType, real *AllAttribute[PAR_NATT_TOTAL] );
 #endif
 
-
+extern bool   IsInit_tcool[NLEVEL];
 
 
 //-------------------------------------------------------------------------------------------------------
@@ -317,5 +317,22 @@ void Init_GAMER( int *argc, char ***argv )
 
 #  endif // #ifdef PARTICLE
 
+
+// Initiate the source-term fields
+   if ( OPT__INIT != INIT_BY_RESTART )
+   {
+      if ( MPI_Rank == 0 )    Aux_Message( stdout, "%s ...\n", "Initiating source-term fields" );
+
+      for (int lv=0; lv<NLEVEL; lv++)
+      {
+         if ( MPI_Rank == 0 )    Aux_Message( stdout, "   Lv %2d ... ", lv );
+
+         Src_AdvanceDt( lv, Time[lv], Time[lv], 0.0, amr->FluSg[lv], amr->MagSg[lv], false, false );
+
+         if ( MPI_Rank == 0 )    Aux_Message( stdout, "done\n" );
+      } // for (int lv=0; lv<NLEVEL; lv++)
+
+      if ( MPI_Rank == 0 )    Aux_Message( stdout, "%s ... done\n", "Initiating source-term fields" );
+   } // if ( OPT__INIT != INIT_BY_RESTART )
 
 } // FUNCTION : Init_GAMER

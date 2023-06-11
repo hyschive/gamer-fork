@@ -37,11 +37,6 @@ extern real (*d_FC_Mag_Half)[NCOMP_MAG][ FLU_NXT_P1*SQR(FLU_NXT) ];
 extern real (*d_EC_Ele     )[NCOMP_MAG][ CUBE(N_EC_ELE)          ];
 #endif
 #endif // FLU_SCHEME
-#if ( MODEL == HYDRO )
-extern double  *d_SrcEC_TEF_lambda;      
-extern double  *d_SrcEC_TEF_alpha;
-extern double  *d_SrcEC_TEFc;
-#endif      
 
 #if ( MODEL != HYDRO  &&  MODEL != ELBDM )
 #  warning : DO YOU WANT TO ADD SOMETHING HERE FOR THE NEW MODEL ??
@@ -95,15 +90,6 @@ void CUAPI_MemFree_Fluid( const int GPU_NStream )
 #  endif
 #  endif // FLU_SCHEME
 
-#  if ( MODEL == HYDRO )
-   if ( d_SrcEC_TEF_lambda != NULL ) {  CUDA_CHECK_ERROR(  cudaFree( d_SrcEC_TEF_lambda )  );  d_SrcEC_TEF_lambda = NULL; }
-   if ( d_SrcEC_TEF_alpha  != NULL ) {  CUDA_CHECK_ERROR(  cudaFree( d_SrcEC_TEF_alpha  )  );  d_SrcEC_TEF_alpha  = NULL; }
-   if ( d_SrcEC_TEFc       != NULL ) {  CUDA_CHECK_ERROR(  cudaFree( d_SrcEC_TEFc       )  );  d_SrcEC_TEFc       = NULL; }
-
-   SrcTerms.EC_TEF_lambda_DevPtr = NULL;
-   SrcTerms.EC_TEF_alpha_DevPtr  = NULL;
-   SrcTerms.EC_TEFc_DevPtr       = NULL;
-#  endif
 
 #  if ( MODEL != HYDRO  &&  MODEL != ELBDM )
 #    warning : DO YOU WANT TO ADD SOMETHING HERE FOR THE NEW MODEL ??
@@ -137,11 +123,6 @@ void CUAPI_MemFree_Fluid( const int GPU_NStream )
       if ( h_Corner_Array_S [t] != NULL ) {  CUDA_CHECK_ERROR(  cudaFreeHost( h_Corner_Array_S [t] )  );  h_Corner_Array_S [t] = NULL; }
    } // for (int t=0; t<2; t++)
 
-#  if ( MODEL == HYDRO )
-   if ( h_SrcEC_TEF_lambda != NULL ) { CUDA_CHECK_ERROR( cudaFreeHost( h_SrcEC_TEF_lambda ) );  h_SrcEC_TEF_lambda = NULL; }
-   if ( h_SrcEC_TEF_alpha  != NULL ) { CUDA_CHECK_ERROR( cudaFreeHost( h_SrcEC_TEF_alpha  ) );  h_SrcEC_TEF_alpha  = NULL; }
-   if ( h_SrcEC_TEFc       != NULL ) { CUDA_CHECK_ERROR( cudaFreeHost( h_SrcEC_TEFc       ) );  h_SrcEC_TEFc       = NULL; }
-#  endif
 
 
 // destroy streams

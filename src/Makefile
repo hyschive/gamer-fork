@@ -37,11 +37,11 @@ SIMU_OPTION += -DMODEL=HYDRO
 
 # enable gravity
 # --> must define SUPPORT_FFTW=FFTW2 or FFTW3
-#SIMU_OPTION += -DGRAVITY
+SIMU_OPTION += -DGRAVITY
 
 # enable particles
 # --> must enable GRAVITY
-#SIMU_OPTION += -DPARTICLE
+SIMU_OPTION += -DPARTICLE
 
 # support Grackle, a chemistry and radiative cooling library
 # --> must set NCOMP_PASSIVE_USER according to the primordial chemistry network set by GRACKLE_PRIMORDIAL
@@ -177,7 +177,7 @@ SIMU_OPTION += -DGPU
 SIMU_OPTION += -DGPU_ARCH=TURING
 
 # debug mode
-SIMU_OPTION += -DGAMER_DEBUG
+#SIMU_OPTION += -DGAMER_DEBUG
 
 # bitwise reproducibility
 #SIMU_OPTION += -DBITWISE_REPRODUCIBILITY
@@ -701,7 +701,7 @@ GPU_FILE    += CUAPI_Asyn_SrcSolver.cu  CUSRC_SrcSolver_IterateAllCells.cu  CUSR
                CUSRC_Src_User_Template.cu  CUSRC_Src_ExactCooling.cu 
 
 CPU_FILE    += CPU_SrcSolver.cpp  CPU_SrcSolver_IterateAllCells.cpp  CPU_Src_Deleptonization.cpp \
-               CPU_Src_User_Template.cpp  CPU_Src_ExactCooling.cpp
+               CPU_Src_User_Template.cpp  CPU_Src_ExactCooling.cpp  dtSolver_ExactCooling.cpp
 
 CPU_FILE    += Src_AdvanceDt.cpp  Src_Prepare.cpp  Src_Close.cpp  Src_Init.cpp  Src_End.cpp \
                Src_WorkBeforeMajorFunc.cpp
