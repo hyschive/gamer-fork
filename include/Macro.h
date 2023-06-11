@@ -147,8 +147,11 @@
 #  define NCOMP_PASSIVE_BUILTIN1    0
 # endif
 
+// ExactCooling source term
+#  define NCOMP_PASSIVE_BUILTIN2    1
+
 // total number of built-in scalars
-#  define NCOMP_PASSIVE_BUILTIN     ( NCOMP_PASSIVE_BUILTIN0 + NCOMP_PASSIVE_BUILTIN1 )
+#  define NCOMP_PASSIVE_BUILTIN     ( NCOMP_PASSIVE_BUILTIN0 + NCOMP_PASSIVE_BUILTIN1 + NCOMP_PASSIVE_BUILTIN2 )
 
 #endif // #if ( MODEL == HYDRO )
 
@@ -244,6 +247,8 @@
 #  define PASSIVE_NEXT_IDX2   ( PASSIVE_NEXT_IDX1 )
 # endif
 
+#  define TCOOL               ( PASSIVE_NEXT_IDX2 )
+
 #endif // #if ( NCOMP_PASSIVE > 0 )
 
 // field indices of magnetic --> element of [0 ... NCOMP_MAG-1]
@@ -280,6 +285,8 @@
 #  define FLUX_NEXT_IDX2   ( FLUX_NEXT_IDX1  )
 # endif
 
+#  define FLUX_TCOOL       ( FLUX_NEXT_IDX2  )
+
 #endif // #if ( NCOMP_PASSIVE > 0 )
 
 // bitwise field indices
@@ -301,6 +308,8 @@
 # ifdef COSMIC_RAY
 #  define _CRAY               ( 1L << CRAY )
 # endif
+
+#  define _TCOOL              ( 1L << TCOOL )
 
 #endif // #if ( NCOMP_PASSIVE > 0 )
 
@@ -330,6 +339,8 @@
 # ifdef COSMIC_RAY
 #  define _FLUX_CRAY          ( 1L << FLUX_CRAY )
 # endif
+
+#  define _FLUX_TCOOL         ( 1L << FLUX_TCOOL )
 
 #endif // #if ( NFLUX_PASSIVE > 0 )
 

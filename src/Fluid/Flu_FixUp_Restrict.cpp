@@ -91,6 +91,7 @@ void Flu_FixUp_Restrict( const int FaLv, const int SonFluSg, const int FaFluSg, 
 #  else
    const bool ResMag  = false;
 #  endif
+   const long EoSVar   = _TOTAL - _TCOOL;
    const int PS1_half = PS1 / 2;
 
 
@@ -300,9 +301,9 @@ void Flu_FixUp_Restrict( const int FaLv, const int SonFluSg, const int FaFluSg, 
 #     if ( MODEL == HYDRO )
 //    apply this correction only when preparing all fluid variables or magnetic field
 #     ifdef MHD
-      if (  ( TVarCC & _TOTAL ) == _TOTAL  ||  ResMag  )
+      if (  ( TVarCC & EoSVar ) == EoSVar ||  ResMag  )
 #     else
-      if (  ( TVarCC & _TOTAL ) == _TOTAL  )
+      if (  ( TVarCC & EoSVar ) == EoSVar )
 #     endif
       for (int k=0; k<PS1; k++)
       for (int j=0; j<PS1; j++)

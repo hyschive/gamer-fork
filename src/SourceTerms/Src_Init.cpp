@@ -113,7 +113,7 @@ void Src_Init()
 
 // (2) exact cooling
 #  if ( MODEL == HYDRO )
-   if ( SrcTerms.ExactCooling)
+   if ( SrcTerms.ExactCooling )
    { 
       Src_Init_ExactCooling();
 

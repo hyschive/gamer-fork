@@ -1,7 +1,7 @@
 #include "GAMER.h"
 
 extern double (*Mis_GetTimeStep_User_Ptr)( const int lv, const double dTime_dt );
-
+extern double Mis_GetTimeStep_ExactCooling( const int lv, const double dTime_dt );
 
 
 
@@ -198,6 +198,14 @@ double Mis_GetTimeStep( const int lv, const double dTime_SyncFaLv, const double 
    if ( UseAcc ) {
    dTime[NdTime] *= dTime_dt;
    sprintf( dTime_Name[NdTime++], "%s", "Par_Acc" ); }
+#  endif
+
+
+// 1.9 CRITERION NINE : ExactCooling source term ##HYDRO ONLY##
+// =============================================================================================================
+#  if   ( MODEL == HYDRO )
+   dTime[NdTime] = 0.5 * dTime_dt * Mis_GetTimeStep_ExactCooling( lv, dTime_dt );
+   sprintf( dTime_Name[NdTime++], "%s", "ExactCooling" );               
 #  endif
 
 
