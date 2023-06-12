@@ -57,19 +57,6 @@ double E_power_inj[3];   // the injection power
 extern void GetClusterCenter( int lv, bool AdjustPos, bool AdjustVel, double Cen_old[][3], double Cen_new[][3], double Cen_Vel[][3] );
 
 static bool FirstTime = true;
-/*
-double RandomNumber(RandomNumber_t *RNG, const double Min, const double Max )
-{                   
-// thread-private variables
-#  ifdef OPENMP  
-   const int TID = omp_get_thread_num();
-#  else             
-   const int TID = 0;
-#  endif            
-   return RNG->GetValue( TID, Min, Max );                                               
-}                                               
-static RandomNumber_t *RNG = NULL;
-*/
 extern int     JetDirection_NBin;     // number of bins of the jet direction table 
 extern double *Time_table;            // the time table of jet direction 
 extern double *Theta_table[3];        // the theta table of jet direction for 3 clusters
@@ -330,8 +317,6 @@ void Flu_ResetByUser_API_ClusterMerger( const int lv, const int FluSg, const dou
    for (int c=0; c<Merger_Coll_NumHalos; c++) {
 //      double theta = Mis_InterpolateFromTable( JetDirection_NBin, Time_table, Theta_table[c], Time_interpolate );
 //      double phi   = Mis_InterpolateFromTable( JetDirection_NBin, Time_table, Phi_table[c], Time_interpolate );
-//      double theta = 10.0*M_PI/180.0;
-//      double phi = 2*M_PI*Time_interpolate/Time_period;
       Jet_Vec[c][0] = 1.0;   //cos(theta);   //sin(theta)*cos(phi);
       Jet_Vec[c][1] = 0.0;   //sin(theta)*cos(phi);   //sin(theta)*sin(phi);
       Jet_Vec[c][2] = 0.0;   //sin(theta)*sin(phi);   //cos(theta);
@@ -520,39 +505,6 @@ void Flu_ResetByUser_API_ClusterMerger( const int lv, const int FluSg, const dou
    }
    if ( lv == 0 )  dt_base = dt;
 
-/*
-// get the number of OpenMP threads
-   int NT; 
-#  ifdef OPENMP
-#  pragma omp parallel
-#  pragma omp master
-   {  NT = omp_get_num_threads();  }
-#  else
-   {  NT = 1;                      }   
-#  endif
- 
-// allocate RNG
-   RNG = new RandomNumber_t( NT );
-// set the random seed of each MPI rank
-   for (int t=0; t<NT; t++) {
-      RNG->SetSeed(t, MPI_Rank*1000+t);
-   }   
-
-   static double phi,theta; // angles which decide the jet direction 
- 
-// choose the jet direction 
-   if ( FirstTime ){
-      for (int c=0; c<Merger_Coll_NumHalos; c++) {
-         phi = RandomNumber(RNG,0.0,2*M_PI); 
-         theta = RandomNumber(RNG,0.0,M_PI); 
-         Jet_Vec[c][0] = 1.0; //sin(theta)*cos(phi);
-         Jet_Vec[c][1] = 0.0; //sin(theta)*sin(phi);
-         Jet_Vec[c][2] = 0.0; //cos(theta);
-      }
-      FirstTime = false;
-   }
-*/
-
 
 #  pragma omp parallel for private( Reset, fluid, fluid_bk, x, y, z, x0, y0, z0 ) schedule( runtime ) \
    reduction(+:CM_Bondi_SinkMass, CM_Bondi_SinkMomX, CM_Bondi_SinkMomY, CM_Bondi_SinkMomZ, CM_Bondi_SinkMomXAbs, CM_Bondi_SinkMomYAbs, CM_Bondi_SinkMomZAbs, CM_Bondi_SinkE, CM_Bondi_SinkEk, CM_Bondi_SinkEt, CM_Bondi_SinkNCell)
@@ -639,8 +591,6 @@ void Flu_ResetByUser_API_ClusterMerger( const int lv, const int FluSg, const dou
 
       }}} // i,j,k
    } // for (int PID=0; PID<amr->NPatchComma[lv][1]; PID++)
-
-//   delete RNG;
 
 
 } // FUNCTION : Flu_ResetByUser_API_ClusterMerger

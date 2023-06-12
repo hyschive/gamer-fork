@@ -632,15 +632,6 @@ void Aux_Record_ClusterMerger()
    } // if ( FirstTime )
 
 
-   // get cluster centers
-//   double Cen[3][3] = {  { NULL_REAL, NULL_REAL, NULL_REAL },
-//                         { NULL_REAL, NULL_REAL, NULL_REAL },
-//                         { NULL_REAL, NULL_REAL, NULL_REAL }  };
-//   double BH_Vel[3][3] = {  { NULL_REAL, NULL_REAL, NULL_REAL },
-//                            { NULL_REAL, NULL_REAL, NULL_REAL },
-//                            { NULL_REAL, NULL_REAL, NULL_REAL }  };
-//   GetClusterCenter( Cen, BH_Vel );
-
    double Bondi_MassBH[3] = { Bondi_MassBH1, Bondi_MassBH2, Bondi_MassBH3 };
    double Mdot_BH[3] = { Mdot_BH1, Mdot_BH2, Mdot_BH3 };
 
@@ -766,7 +757,22 @@ void GetClusterCenter( int lv, bool AdjustPos, bool AdjustVel, double Cen_old[][
 
          int N = 3000;   // Maximum particle numbers (to allocate the array size)
          int num_par[3] = {0, 0, 0};   // (each rank) number of particles inside the target region of each cluster
-         double ParX[3][N], ParY[3][N], ParZ[3][N], ParM[3][N], VelX[3][N], VelY[3][N], VelZ[3][N];  // (each rank) the position, velocity and mass of the particles within the target region
+         double **ParX = new double*[3];
+         double **ParY = new double*[3];
+         double **ParZ = new double*[3];
+         double **ParM = new double*[3];
+         double **VelX = new double*[3];
+         double **VelY = new double*[3];
+         double **VelZ = new double*[3];
+         for (int c=0; c<3; c++) {
+            ParX[c] = new double[N];
+            ParY[c] = new double[N];
+            ParZ[c] = new double[N];
+            ParM[c] = new double[N];
+            VelX[c] = new double[N];
+            VelY[c] = new double[N];
+            VelZ[c] = new double[N];
+         }
       
 //       Find the particles within the arrection radius
          for (int c=0; c<Merger_Coll_NumHalos; c++) {   
@@ -795,13 +801,27 @@ void GetClusterCenter( int lv, bool AdjustPos, bool AdjustVel, double Cen_old[][
                         VelY[c][num_par[c]] = VelY_tmp;
                         VelZ[c][num_par[c]] = VelZ_tmp;
                         num_par[c] += 1; 
+                     }
+                     if (num_par[c] >= N) {
+                         N = num_par[c] + 1;  // Increase the new maximum size if needed
+                         ParX[c] = (double*)realloc(ParX[c], N * sizeof(double));
+                         ParY[c] = (double*)realloc(ParY[c], N * sizeof(double));
+                         ParZ[c] = (double*)realloc(ParZ[c], N * sizeof(double));
+                         ParM[c] = (double*)realloc(ParM[c], N * sizeof(double));
+                         VelX[c] = (double*)realloc(VelX[c], N * sizeof(double));
+                         VelY[c] = (double*)realloc(VelY[c], N * sizeof(double));
+                         VelZ[c] = (double*)realloc(VelZ[c], N * sizeof(double));
          }  }  }  }  }
       
 //       Collect the number of target particles from each rank
          MPI_Allreduce( num_par, num_par_sum, 3, MPI_INT, MPI_SUM, MPI_COMM_WORLD );
       
          int num_Ranks;
+#        ifndef SERIAL
          MPI_Comm_size(MPI_COMM_WORLD, &num_Ranks);
+#        else
+         num_Ranks = 0;
+#        endif
          int num_par_eachRank[3][num_Ranks];
          int displs[3][num_Ranks];
          for (int c=0; c<Merger_Coll_NumHalos; c++) {
@@ -811,13 +831,20 @@ void GetClusterCenter( int lv, bool AdjustPos, bool AdjustVel, double Cen_old[][
          }
       
 //       Collect the mass, position and velocity of target particles to the root rank
-         double ParX_sum1[num_par_sum[0]], ParX_sum2[num_par_sum[1]];
-         double ParY_sum1[num_par_sum[0]], ParY_sum2[num_par_sum[1]];
-         double ParZ_sum1[num_par_sum[0]], ParZ_sum2[num_par_sum[1]];
-         double ParM_sum1[num_par_sum[0]], ParM_sum2[num_par_sum[1]];
-         double VelX_sum1[num_par_sum[0]], VelX_sum2[num_par_sum[1]];
-         double VelY_sum1[num_par_sum[0]], VelY_sum2[num_par_sum[1]];
-         double VelZ_sum1[num_par_sum[0]], VelZ_sum2[num_par_sum[1]];
+         double *ParX_sum1 = new double[num_par_sum[0]];
+         double *ParX_sum2 = new double[num_par_sum[1]];
+         double *ParY_sum1 = new double[num_par_sum[0]];
+         double *ParY_sum2 = new double[num_par_sum[1]];
+         double *ParZ_sum1 = new double[num_par_sum[0]];
+         double *ParZ_sum2 = new double[num_par_sum[1]];
+         double *ParM_sum1 = new double[num_par_sum[0]];
+         double *ParM_sum2 = new double[num_par_sum[1]];
+         double *VelX_sum1 = new double[num_par_sum[0]];
+         double *VelX_sum2 = new double[num_par_sum[1]];
+         double *VelY_sum1 = new double[num_par_sum[0]];
+         double *VelY_sum2 = new double[num_par_sum[1]];
+         double *VelZ_sum1 = new double[num_par_sum[0]];
+         double *VelZ_sum2 = new double[num_par_sum[1]];
          MPI_Gatherv( ParX[0], num_par[0], MPI_DOUBLE, ParX_sum1, num_par_eachRank[0], displs[0], MPI_DOUBLE, 0, MPI_COMM_WORLD );
          MPI_Gatherv( ParY[0], num_par[0], MPI_DOUBLE, ParY_sum1, num_par_eachRank[0], displs[0], MPI_DOUBLE, 0, MPI_COMM_WORLD );
          MPI_Gatherv( ParZ[0], num_par[0], MPI_DOUBLE, ParZ_sum1, num_par_eachRank[0], displs[0], MPI_DOUBLE, 0, MPI_COMM_WORLD );
@@ -839,7 +866,7 @@ void GetClusterCenter( int lv, bool AdjustPos, bool AdjustVel, double Cen_old[][
          if ( MPI_Rank == 0 ){
             if ( AdjustPos == true ){
                double soften = amr->dh[MAX_LEVEL]; 
-               double pote1[num_par_sum[0]];
+               double *pote1 = new double[num_par_sum[0]]; 
                for (int i=0; i<num_par_sum[0]; i++)   pote1[i] = 0.0;
 #              pragma omp for collapse( 2 ) 
                for (int i=0; i<num_par_sum[0]; i++){
@@ -858,9 +885,10 @@ void GetClusterCenter( int lv, bool AdjustPos, bool AdjustVel, double Cen_old[][
                      min_pos[0][2] = ParZ_sum1[i];
                   }
                }
+               delete[] pote1;
 
                if ( Merger_Coll_NumHalos == 2 ){
-                  double pote2[num_par_sum[1]];
+                  double *pote2 = new double[num_par_sum[1]];
                   for (int i=0; i<num_par_sum[1]; i++)   pote2[i] = 0.0;
 #                 pragma omp for collapse( 2 ) 
                   for (int i=0; i<num_par_sum[1]; i++){
@@ -878,7 +906,8 @@ void GetClusterCenter( int lv, bool AdjustPos, bool AdjustVel, double Cen_old[][
                         min_pos[1][1] = ParY_sum2[i];
                         min_pos[1][2] = ParZ_sum2[i];
                      }      
-                  } 
+                  }
+                  delete[] pote2; 
                } // if ( Merger_Coll_NumHalos == 2 )
             } // if ( AdjustPos == true )
 
@@ -915,8 +944,37 @@ void GetClusterCenter( int lv, bool AdjustPos, bool AdjustVel, double Cen_old[][
          }
          if ( count > 1  &&  sqrt(dis[0]) < dis_exp  &&  sqrt(dis[1]) < dis_exp )   IfConverge = true;
 
+         delete[] ParX_sum1;
+         delete[] ParX_sum2;
+         delete[] ParY_sum1;
+         delete[] ParY_sum2;
+         delete[] ParZ_sum1;
+         delete[] ParZ_sum2;
+         delete[] ParM_sum1;
+         delete[] ParM_sum2;
+         delete[] VelX_sum1;
+         delete[] VelX_sum2;
+         delete[] VelY_sum1;
+         delete[] VelY_sum2;
+         delete[] VelZ_sum1;
+         delete[] VelZ_sum2;
+         for (int c=0; c<3; c++) {
+            delete[] ParX[c];
+            delete[] ParY[c];
+            delete[] ParZ[c];
+            delete[] ParM[c];
+            delete[] VelX[c];
+            delete[] VelY[c];
+            delete[] VelZ[c];
+         }
+         delete[] ParX;
+         delete[] ParY;
+         delete[] ParZ;
+         delete[] ParM;
+         delete[] VelX;
+         delete[] VelY;
+         delete[] VelZ;
       } // while ( IfConverge == false )
-//      Aux_Message( stdout, "Adjust: MPI_Rank = %d, Cen_new0 = %14.8e, %14.8e, Cen_new1 = %14.8e, %14.8e, Cen_Vel0 = %14.8e, %14.8e, Cen_Vel1 = %14.8e, %14.8e, count = %d\n", MPI_Rank, min_pos[0][0], min_pos[0][1], min_pos[1][0], min_pos[1][1], DM_Vel[0][0], DM_Vel[0][1], DM_Vel[1][0], DM_Vel[1][1], count); 
    } // if ( (CurrentMaxLv  &&  AdjustPos == true) || (CurrentMaxLv  &&  AdjustVel == true) ) 
 
 
