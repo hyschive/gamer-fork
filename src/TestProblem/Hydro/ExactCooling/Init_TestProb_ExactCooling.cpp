@@ -36,40 +36,6 @@ void Validate()
    Aux_Error( ERROR_INFO, "MODEL != HYDRO !!\n" );
 #  endif
 
-// examples
-/*
-// errors
-#  if ( MODEL != HYDRO )
-   Aux_Error( ERROR_INFO, "MODEL != HYDRO !!\n" );
-#  endif
-
-#  ifndef GRAVITY
-   Aux_Error( ERROR_INFO, "GRAVITY must be enabled !!\n" );
-#  endif
-
-#  ifdef PARTICLE
-   Aux_Error( ERROR_INFO, "PARTICLE must be disabled !!\n" );
-#  endif
-
-#  ifdef GRAVITY
-   if ( OPT__BC_FLU[0] == BC_FLU_PERIODIC  ||  OPT__BC_POT == BC_POT_PERIODIC )
-      Aux_Error( ERROR_INFO, "do not use periodic BC for this test !!\n" );
-#  endif
-
-
-// warnings
-   if ( MPI_Rank == 0 )
-   {
-#     ifndef DUAL_ENERGY
-         Aux_Message( stderr, "WARNING : it's recommended to enable DUAL_ENERGY for this test !!\n" );
-#     endif
-
-      if ( FLAG_BUFFER_SIZE < 5 )
-         Aux_Message( stderr, "WARNING : it's recommended to set FLAG_BUFFER_SIZE >= 5 for this test !!\n" );
-   } // if ( MPI_Rank == 0 )
-*/
-
-
    if ( MPI_Rank == 0 )    Aux_Message( stdout, "   Validating test problem %d ... done\n", TESTPROB_ID );
 
 } // FUNCTION : Validate
@@ -182,13 +148,14 @@ void SetParameter()
 void SetGridIC( real fluid[], const double x, const double y, const double z, const double Time,
                 const int lv, double AuxArray[] )
 {
+   const double cl_X         = 0.7;      // mass-fraction of hydrogen
+   const double cl_Z         = 0.018;    // metallicity (in Zsun)
+   const double cl_mol       = 1.0/(2*cl_X+0.75*(1-cl_X-cl_Z)+cl_Z*0.5);   // mean (total) molecular weights 
 
    double Dens, MomX, MomY, MomZ, Pres, Eint, Etot;
 // Convert the input number density into mass density rho
-//   double cl_dens = (EC_Dens*Const_mp*0.61709348966) / UNIT_D;
-//   double cl_dens = (EC_Dens*1.660538921e-24*1.007947*0.61709348966) / UNIT_D;
-   double cl_dens = (EC_Dens*MU_NORM*0.61709348966) / UNIT_D;
-//   double cl_pres = EC_Dens*Const_kB*EC_Temp / UNIT_P; 
+   double cl_dens = (EC_Dens*MU_NORM*cl_mol) / UNIT_D;
+//   double cl_dens = (EC_Dens*MU_NORM*0.61709348966) / UNIT_D;
    double cl_pres = EoS_DensTemp2Pres_CPUPtr( cl_dens, EC_Temp, NULL, EoS_AuxArray_Flt, EoS_AuxArray_Int, h_EoS_Table );
 
    Dens = cl_dens;
@@ -207,14 +174,6 @@ void SetGridIC( real fluid[], const double x, const double y, const double z, co
    fluid[MOMZ] = MomZ;
    fluid[ENGY] = Etot;
 
-   double Temp_tmp;
-   Temp_tmp = (real) Hydro_Con2Temp( fluid[DENS], fluid[MOMX], fluid[MOMY], fluid[MOMZ], fluid[ENGY], fluid+NCOMP_FLUID, 
-                                     true, MIN_TEMP, 0.0, EoS_DensEint2Temp_CPUPtr, 
-                                     EoS_AuxArray_Flt, EoS_AuxArray_Int, h_EoS_Table );
-   count += 1;
-//   if ( count < 300 && count > 287 ){
-//      printf("Debugging in Init!! fluid[DENS] = %14.20e, fluid[MOMX] = %14.8e, fluid[ENGY] = %14.8e, Temp = %14.20e\n", fluid[DENS], fluid[MOMX], fluid[ENGY], Temp_tmp);
-//   }
 } // FUNCTION : SetGridIC
 
 
@@ -281,7 +240,8 @@ void Output_ExactCooling()
    Temp_nume /= count;
    Tcool_nume /= count;
 
-// Compute the analytical solution
+// (1) Compute the analytical solution for Sutherland-Dopita cooling function 
+/*
    double gsl_result, gsl_error;
    double K = -(GAMMA-1)*EC_Dens*cl_mol*cl_mol/cl_moli_mole/Const_kB;
    gsl_integration_workspace *w = gsl_integration_workspace_alloc(1000);
@@ -289,9 +249,9 @@ void Output_ExactCooling()
    F.function = &integrand;
    gsl_integration_qags(&F, EC_Temp, Temp_nume, 0, 1e-10, 1000, w, &gsl_result, &gsl_error);
    double Time_gsl = gsl_result/K;
+*/
 
-/*
-// Single branch
+// (2) Compute the analytical solution for single branch cooling function
    double Temp_anal, Tcool_anal;
    if (sqrt(EC_Temp) >= 3.2217e-27/2.0*(GAMMA-1)*EC_Dens*cl_mol*cl_mol/cl_mole/cl_moli/Const_kB*Time[0]*UNIT_T){
       Temp_anal = pow(sqrt(EC_Temp) - 3.2217e-27/2.0*(GAMMA-1)*EC_Dens*cl_mol*cl_mol/cl_mole/cl_moli/Const_kB*Time[0]*UNIT_T, 2.0);
@@ -300,9 +260,9 @@ void Output_ExactCooling()
    else   Temp_anal = MIN_TEMP;
 
    Tcool_anal = 1.0/(GAMMA-1)*EC_Dens*Const_kB*Temp_anal/((EC_Dens*cl_mol/cl_mole)*(EC_Dens*cl_mol/cl_moli)*3.2217e-27*sqrt(Temp_anal))/Const_Myr;
-*/
+
 /*
-// 2 branch
+// (3) Compute the analytical solution for 2 branch cooling function
    const int size_anal = 1001;       
    double time_anal[size_anal];
    double Temp_anal_arr[size_anal] = {0.0};
@@ -353,8 +313,8 @@ void Output_ExactCooling()
    if ( MPI_Rank == 0 ) {
       FILE *File_User = fopen( FileName, "a" );
       fprintf( File_User, "%14.7e%10d ", Time[0]*UNIT_T/Const_Myr, DumpID );
-//      fprintf( File_User, "%14.7e %14.7e %14.7e %14.7e %14.7e", Temp_nume, Temp_anal, (Temp_nume-Temp_anal)/Temp_anal, Tcool_nume, Tcool_anal );
-      fprintf( File_User, "%14.7e %14.7e %14.7e %14.7e %14.7e", Temp_nume, Time_gsl/Const_Myr, (Time[0]*UNIT_T-Time_gsl)/Time_gsl, Tcool_nume, 0.0 );
+      fprintf( File_User, "%14.7e %14.7e %14.7e %14.7e %14.7e", Temp_nume, Temp_anal, (Temp_nume-Temp_anal)/Temp_anal, Tcool_nume, Tcool_anal );
+//      fprintf( File_User, "%14.7e %14.7e %14.7e %14.7e %14.7e", Temp_nume, Time_gsl/Const_Myr, (Time[0]*UNIT_T-Time_gsl)/Time_gsl, Tcool_nume, 0.0 );
       fprintf( File_User, "\n" );
       fclose( File_User );
    }
@@ -400,9 +360,8 @@ double Lambda(double TEMP, double ZIRON){
    if (QLOG1 < -30.0)   QLOG1 = -30.0;
    QLAMBDA1 = pow(10.0, QLOG1);
 
-//   Lambdat = QLAMBDA0;
-   Lambdat = QLAMBDA0 + ZIRON * QLAMBDA1;
-//   Lambdat = 3.2217e-27 * sqrt(TEMP);
+//   Lambdat = QLAMBDA0 + ZIRON * QLAMBDA1;
+   Lambdat = 3.2217e-27 * sqrt(TEMP);
 
    return Lambdat;
 }
