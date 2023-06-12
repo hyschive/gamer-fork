@@ -175,10 +175,6 @@ static void Src_ExactCooling( real fluid[], const real B[],
    const double TEF_TN       = AuxArray_Flt[1];   // == Tref, must be high enough, but affects sampling resolution
    const double TEF_Tmin     = AuxArray_Flt[2];   // MIN temperature 
    const double TEF_dltemp   = AuxArray_Flt[3];   // sampling resolution (Kelvin), LOG!
-   const double cl_moli_mole = AuxArray_Flt[5];   
-   const double cl_mol       = AuxArray_Flt[6];   // mean (total) molecular weights 
-   const double cl_mp        = AuxArray_Flt[7];   // proton mass
-   const double cl_kB_mp     = AuxArray_Flt[8];   // kB*mp 
 
 #  ifdef __CUDACC__
    const double *TEF_lambda = SrcTerms->EC_TEF_lambda_DevPtr;
@@ -190,7 +186,7 @@ static void Src_ExactCooling( real fluid[], const real B[],
    const double *TEFc       = h_SrcEC_TEFc;
 #  endif
 
-   double Temp, Eint, Enth, Emag, Pres, rho_num, Tini, Eintf, dedtmean, Tk, lambdaTini, tcool, Ynew;
+   double Temp, Eint, Enth, Emag, Pres, Tini, Eintf, dedtmean, Tk, lambdaTini, tcool, Ynew;
    int k, knew;
    const bool CheckMinTemp_Yes = true;
 

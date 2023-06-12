@@ -75,7 +75,7 @@ SIMU_OPTION += -DRSOLVER=HLLC
 # number of user-defined passively advected scalars
 # --> set it to 0 or comment it out if none is required
 # --> useless for RTVD
-SIMU_OPTION += -DNCOMP_PASSIVE_USER=0
+SIMU_OPTION += -DNCOMP_PASSIVE_USER=1
 
 # magnetohydrodynamics
 #SIMU_OPTION += -DMHD
@@ -214,7 +214,7 @@ SIMU_OPTION += -DOPENMP
 SIMU_OPTION += -DSUPPORT_HDF5
 
 # support GNU scientific library
-#SIMU_OPTION += -DSUPPORT_GSL
+SIMU_OPTION += -DSUPPORT_GSL
 
 # support FFTW library
 # --> SUPPORT_FFTW must be defined when GRAVITY is enabled
