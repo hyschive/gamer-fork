@@ -743,12 +743,54 @@ void Load_IC_Prof_CCSN()
 void Record_CCSN()
 {
 
-// (1) shock detection
+// (1) check whether the core bounce occurs
+   if ( !CCSN_Is_PostBounce )
+   {
+      Detect_CoreBounce();
+
+      if ( CCSN_Is_PostBounce )
+      {
+//       dump the bounce time in standard output
+         if ( MPI_Rank == 0 )   Aux_Message( stdout, "Bounce time = %13.7e seconds !!\n", Time[0] * UNIT_T );
+
+//       disable the deleptonization scheme, and enable the lightbulb/leakage scheme
+         SrcTerms.Deleptonization = false;
+
+#        ifdef NEUTRINO_SCHEME
+#           if   ( NEUTRINO_SCHEME == LIGHTBULB )
+               SrcTerms.Lightbulb = true;
+               if ( MPI_Rank == 0 )   Aux_Message( stdout, "Enable the lightbulb scheme !!\n" );
+#           elif ( NEUTRINO_SCHEME == LEAKAGE )
+               SrcTerms.Leakage   = true;
+               if ( MPI_Rank == 0 )   Aux_Message( stdout, "Enable the leakage scheme !!\n" );
+#           else
+               if ( MPI_Rank == 0 )   Aux_Message( stdout, "No NEUTRINO_SCHEME specified !!\n" );
+#           endif
+#        endif
+
+         Src_Init();
+
+//       initialize the dEdt_Nu field
+         for (int lv=0; lv<NLEVEL; lv++)
+         {
+            Src_AdvanceDt( lv, Time[lv], Time[lv], 0.0, amr->FluSg[lv], amr->MagSg[lv], false, false );
+
+            Buf_GetBufferData( lv, amr->FluSg[lv], amr->MagSg[lv], NULL_INT, DATA_GENERAL, _TOTAL, _MAG, Flu_ParaBuf, USELB_YES );
+         }
+
+//       forced output data at core bounce
+         Output_DumpData( 2 );
+
+      }
+   } // if ( !CCSN_Is_PostBounce )
+
+
+// (2) shock detection
    if ( CCSN_Prob != Migration_Test  &&  CCSN_Is_PostBounce )
       Detect_Shock();
 
 
-// (2) record quantities at the center
+// (3) record quantities at the center
 #  if ( defined NEUTRINO_SCHEME  &&  NEUTRINO_SCHEME == LEAKAGE )
    if ( CCSN_Is_PostBounce )   Record_CCSN_Leakage();
 #  endif
@@ -756,7 +798,7 @@ void Record_CCSN()
    Record_CCSN_CentralQuant();
 
 
-// (3) GW signal
+// (4) GW signal
 #  ifdef GRAVITY
    if ( CCSN_GW_OUTPUT )
    {
@@ -788,40 +830,6 @@ void Record_CCSN()
       }
    } // if ( CCSN_GW_OUTPUT )
 #  endif
-
-
-// (4) check whether the core bounce occurs
-   if ( !CCSN_Is_PostBounce )
-   {
-      Detect_CoreBounce();
-
-      if ( CCSN_Is_PostBounce )
-      {
-//       dump the bounce time in standard output
-         if ( MPI_Rank == 0 )   Aux_Message( stdout, "Bounce time = %13.7e seconds !!\n", Time[0] * UNIT_T );
-
-//       disable the deleptonization scheme, and enable the lightbulb scheme
-         SrcTerms.Deleptonization = false;
-
-#        ifdef NEUTRINO_SCHEME
-#           if   ( NEUTRINO_SCHEME == LIGHTBULB )
-               SrcTerms.Lightbulb = true;
-               if ( MPI_Rank == 0 )   Aux_Message( stdout, "Enable the lightbulb scheme !!\n" );
-#           elif ( NEUTRINO_SCHEME == LEAKAGE )
-               SrcTerms.Leakage   = true;
-               if ( MPI_Rank == 0 )   Aux_Message( stdout, "Enable the leakage scheme !!\n" );
-#           else
-               if ( MPI_Rank == 0 )   Aux_Message( stdout, "No NEUTRINO_SCHEME specified !!\n" );
-#           endif
-#        endif
-
-         Src_Init();
-
-//       forced output data at core bounce
-         Output_DumpData( 2 );
-
-      }
-   } // if ( !CCSN_Is_PostBounce )
 
 } // FUNCTION : Record_CCSN()
 
