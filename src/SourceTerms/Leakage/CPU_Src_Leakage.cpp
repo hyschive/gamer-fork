@@ -46,11 +46,8 @@ double Src_Leakage_ConstructSeries( const int NBin, const double xmin, const dou
 
 extern void Src_Leakage_ComputeTau( Profile_t *Ray[], double *Edge,
                                     const int NRadius, const int NTheta, const int NPhi,
-                                    real tau_Ruff [][NTheta*NPhi][NType_Neutrino],
-                                    real chi_Ross [][NTheta*NPhi][NType_Neutrino],
-                                    real Heat_Flux[][NTheta*NPhi][NType_Neutrino],
-                                    real HeatE_Rms[][NType_Neutrino],
-                                    real HeatE_Ave[][NType_Neutrino] );
+                                    real *tau_Ruff, real *chi_Ross, real *Heat_Flux,
+                                    real *HeatE_Rms, real *HeatE_Ave );
 extern void Src_Leakage_ComputeLeak( const real Dens_Code, const real Temp_Kelv, const real Ye, const real chi[], const real tau[],
                                      const real Heat_Flux[], const real *HeatE_Rms, const real *HeatE_Ave,
                                      real *dEdt, real *dYedt, real *Lum, real *Heat, real *NetHeat,
@@ -721,11 +718,8 @@ void Src_WorkBeforeMajorFunc_Leakage( const int lv, const double TimeNew, const 
 
 // (4) compute tau_Ruff, chi_Ross, HeatE_Flux, HeatE_Rms, and HeatE_ave
    Src_Leakage_ComputeTau( Leakage_Ray, Edge, NRad, NTheta, NPhi,
-                           ( real(*) [NRay][NType_Neutrino] ) h_SrcLeakage_tau,
-                           ( real(*) [NRay][NType_Neutrino] ) h_SrcLeakage_chi,
-                           ( real(*) [NRay][NType_Neutrino] ) h_SrcLeakage_HeatFlux,
-                           ( real(*)       [NType_Neutrino] ) h_SrcLeakage_HeatERms,
-                           ( real(*)       [NType_Neutrino] ) h_SrcLeakage_HeatEAve );
+                           h_SrcLeakage_tau, h_SrcLeakage_chi, h_SrcLeakage_HeatFlux,
+                           h_SrcLeakage_HeatERms, h_SrcLeakage_HeatEAve );
 
 
 // (5) update AuxArray_Flt and AuxArray_Int

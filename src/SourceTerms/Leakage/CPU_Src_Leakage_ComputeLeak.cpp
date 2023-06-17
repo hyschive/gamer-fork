@@ -56,11 +56,8 @@ real Compute_FermiIntegral( const int order, const real eta );
 //-------------------------------------------------------------------------------------------------------
 void Src_Leakage_ComputeTau( Profile_t *Ray[], double *Edge,
                              const int NRadius, const int NTheta, const int NPhi,
-                             real tau_Ruff [][NTheta*NPhi][NType_Neutrino],
-                             real chi_Ross [][NTheta*NPhi][NType_Neutrino],
-                             real Heat_Flux[][NTheta*NPhi][NType_Neutrino],
-                             real HeatE_Rms[][NType_Neutrino],
-                             real HeatE_Ave[][NType_Neutrino] )
+                             real *tau_Ruff, real *chi_Ross, real *Heat_Flux,
+                             real *HeatE_Rms, real *HeatE_Ave )
 {
 
 #  ifdef FLOAT8
@@ -147,19 +144,23 @@ void Src_Leakage_ComputeTau( Profile_t *Ray[], double *Edge,
    const int  NRay_Mod   = NRay % MPI_NRank;
    const int  IRay_start = MPI_Rank   * NRay_Rank + (  ( MPI_Rank < NRay_Mod ) ? MPI_Rank : NRay_Mod  );
    const int  IRay_end   = IRay_start + NRay_Rank + (  ( MPI_Rank < NRay_Mod ) ? 1        : 0         );
+   const int  Stride     = NRay * NType_Neutrino;
 
    for (int i=0; i<NRadius; i++) {
    for (int j=0; j<NRay;    j++) {
 //    skip the ray handled by this Rank
       if ( j >= IRay_start  &&  j < IRay_end )   continue;
 
+      const int pivot1 = i * Stride + j * NType_Neutrino;
+      const int pivot2 = j * NType_Neutrino;
+
       for (int k=0; k<NType_Neutrino; k++)
       {
-         tau_Ruff [i][j][k] = 0.0;
-         chi_Ross [i][j][k] = 0.0;
-         Heat_Flux[i][j][k] = 0.0;
-         HeatE_Rms   [j][k] = 0.0;
-         HeatE_Ave   [j][k] = 0.0;
+         tau_Ruff [pivot1 + k] = 0.0;
+         chi_Ross [pivot1 + k] = 0.0;
+         Heat_Flux[pivot1 + k] = 0.0;
+         HeatE_Rms[pivot2 + k] = 0.0;
+         HeatE_Ave[pivot2 + k] = 0.0;
       }
    }}
 
@@ -317,9 +318,10 @@ void Src_Leakage_ComputeTau( Profile_t *Ray[], double *Edge,
 //       (3-2) use the previous tau_Ruff as the initial guess
          if ( Have_tau_USG )
          {
-            for (int i=0; i<NRadius;        i++)
-            for (int k=0; k<NType_Neutrino; k++)
-               tau[TID][i][k] = tau_Ruff[i][j][k];
+            for (int i=0; i<NRadius;        i++) {  const int pivot = i * Stride + j * NType_Neutrino;
+            for (int k=0; k<NType_Neutrino; k++) {
+               tau[TID][i][k] = tau_Ruff[pivot + k];
+            }}
          }
 
 //       (3-3) loop to get converged optical depth
@@ -449,10 +451,10 @@ void Src_Leakage_ComputeTau( Profile_t *Ray[], double *Edge,
          }
 
 //       update eta_nu and store tau with typecasting
-         for (int i=0; i<NRadius;        i++) {
+         for (int i=0; i<NRadius;        i++) {  const int pivot = i * Stride + j * NType_Neutrino;
          for (int k=0; k<NType_Neutrino; k++) {
             eta_nu  [TID][i][k] = eta_nu_loc[TID][i][k];
-            tau_Ruff[i]  [j][k] = tau       [TID][i][k];
+            tau_Ruff[pivot + k] = tau       [TID][i][k];
          }}
 
 
@@ -537,9 +539,9 @@ void Src_Leakage_ComputeTau( Profile_t *Ray[], double *Edge,
          }
 
 //       store chi with typecasting
-         for (int i=0; i<NRadius;        i++) {
+         for (int i=0; i<NRadius;        i++) {  const int pivot = i * Stride + j * NType_Neutrino;
          for (int k=0; k<NType_Neutrino; k++) {
-            chi_Ross[i][j][k] = chi[TID][i][k];
+            chi_Ross[pivot + k] = chi[TID][i][k];
          }}
 
 
@@ -549,6 +551,11 @@ void Src_Leakage_ComputeTau( Profile_t *Ray[], double *Edge,
          double Table_tau[2], Table_Data[2];
          double FermiInte[3][NType_Neutrino];
          double NS_loc      [NType_Neutrino] = { 0.0, 0.0, 0.0 };
+         real   tau_Ruff_Tmp [NType_Neutrino];
+         real   chi_Ross_Tmp [NType_Neutrino];
+         real   Heat_Flux_Tmp[NType_Neutrino];
+         real   HeatE_Rms_Tmp[NType_Neutrino];
+         real   HeatE_Ave_Tmp[NType_Neutrino];
 
 //       (5-1) measure the rms and mean energy at neutrino sphere (tau = 2/3)
          for (int k=0; k<NType_Neutrino; k++)
@@ -585,12 +592,16 @@ void Src_Leakage_ComputeTau( Profile_t *Ray[], double *Edge,
             Table_Data[1] = Temp_MeV[TID][idx_NS  ];
             Temp_MeV_Inte = Mis_InterpolateFromTable( 2, Table_tau, Table_Data, TwoThirds );
 
-            HeatE_Rms[j][k] = Temp_MeV_Inte * sqrt( FermiInte[2][k] / FermiInte[0][k] ); // (A4)
-            HeatE_Ave[j][k] = Temp_MeV_Inte *       FermiInte[2][k] / FermiInte[1][k];   // (A11)
+            HeatE_Rms_Tmp[k] = Temp_MeV_Inte * sqrt( FermiInte[2][k] / FermiInte[0][k] ); // (A4)
+            HeatE_Ave_Tmp[k] = Temp_MeV_Inte *       FermiInte[2][k] / FermiInte[1][k];   // (A11)
 
 //          sum the HeatE_Ave and NS_loc for computing the average
-            OMP_EAve [TID][k] += HeatE_Ave[j][k];
+            OMP_EAve [TID][k] += HeatE_Ave_Tmp[k];
             OMP_RadNS[TID][k] += NS_loc[k];
+
+//          store HeatE_Rms and HeatE_Ave with type casting
+            HeatE_Rms[j * NType_Neutrino + k] = HeatE_Rms_Tmp[k];
+            HeatE_Ave[j * NType_Neutrino + k] = HeatE_Ave_Tmp[k];
          }
 
 //       (5-2) leak along this ray to determine luminosity
@@ -615,16 +626,28 @@ void Src_Leakage_ComputeTau( Profile_t *Ray[], double *Edge,
             {
 //             get the change in luminosity
 //             --> the returned lum is the luminosity per volume
-               Src_Leakage_ComputeLeak( Dens_Code[TID][i], Temp_Kelv[TID][i], Ye[TID][i], chi_Ross[i][j], tau_Ruff[i][j],
-                                        Heat_Flux[i][j], HeatE_Rms[j], HeatE_Ave[j],
+               const int pivot = i * Stride + j * NType_Neutrino;
+
+               for (int k=0; k<NType_Neutrino; k++)
+               {
+                  tau_Ruff_Tmp [k] = tau_Ruff [pivot + k];
+                  chi_Ross_Tmp [k] = chi_Ross [pivot + k];
+                  Heat_Flux_Tmp[k] = Heat_Flux[pivot + k];
+               }
+
+               Src_Leakage_ComputeLeak( Dens_Code[TID][i], Temp_Kelv[TID][i], Ye[TID][i], chi_Ross_Tmp, tau_Ruff_Tmp,
+                                        Heat_Flux_Tmp, HeatE_Rms_Tmp, HeatE_Ave_Tmp,
                                         dEdt[TID]+i, dYedt[TID]+i, lum, heat, netheat,
                                         NuHeat, NuHeat_Fac, UNIT_D, &EoS );
             }
 
+
+            const int pivot = (i + 1) * Stride + j * NType_Neutrino;
+
             for (int k=0; k<NType_Neutrino-1; k++)
             {
                lum_acc          [k] += vol[i] * lum[k];
-               Heat_Flux[i+1][j][k]  = lum_acc[k] * lepton_blocking[k] / area[i];
+               Heat_Flux[pivot + k]  = lum_acc[k] * lepton_blocking[k] / area[i];
             }
          } // for (int i=0; i<NRadius-1; i++)
 
@@ -647,9 +670,9 @@ void Src_Leakage_ComputeTau( Profile_t *Ray[], double *Edge,
          fprintf( File_Leakage, "# Rad_NS_Nue    = %14.6e, Rad_NS_Nua    = %14.6e, Rad_NS_Nux    = %14.6e\n",
                                 NS_loc[0], NS_loc[1], NS_loc[2] );
          fprintf( File_Leakage, "# HeatE_Rms_Nue = %14.6e, HeatE_Rms_Nua = %14.6e, HeatE_Rms_Nux = %14.6e\n",
-                                HeatE_Rms[j][0], HeatE_Rms[j][1], HeatE_Rms[j][2] );
+                                HeatE_Rms[j * NType_Neutrino + 0], HeatE_Rms[j * NType_Neutrino + 1], HeatE_Rms[j * NType_Neutrino + 2] );
          fprintf( File_Leakage, "# HeatE_Ave_Nue = %14.6e, HeatE_Ave_Nua = %14.6e, HeatE_Ave_Nux = %14.6e\n#\n",
-                                HeatE_Ave[j][0], HeatE_Ave[j][1], HeatE_Ave[j][2] );
+                                HeatE_Ave[j * NType_Neutrino + 0], HeatE_Ave[j * NType_Neutrino + 1], HeatE_Ave[j * NType_Neutrino + 2] );
 
          fprintf( File_Leakage, "#%13s %14s %16s %16s %16s %16s %16s %16s %16s %16s %16s %16s %16s %16s %16s %16s\n",
                                 "1_Radius", "2_NCell", "3_Dens", "4_Temp", "5_Ye", "6_Eint",
@@ -663,12 +686,17 @@ void Src_Leakage_ComputeTau( Profile_t *Ray[], double *Edge,
                                 "[erg/cm^2/s]", "[erg/cm^2/s]", "[erg/g/s]", "[1/s]" );
 
          for (int i=0; i<NRadius; i++)
+         {
+            const int pivot = i * Stride + j * NType_Neutrino;
+
             fprintf( File_Leakage, "%14.6e %14ld %16.6e %16.6e %16.6e %16.6e %16.6e %16.6e %16.6e %16.6e %16.6e %16.6e %16.6e %16.6e %16.6e %16.6e\n",
                                    0.5 * (Edge_CGS[i] + Edge_CGS[i+1]), NCell[TID][i],
                                    Dens_CGS[TID][i], Temp_Kelv[TID][i], Ye[TID][i], Eint_Code[TID][i] / Dens_Code[TID][i] * SQR(UNIT_V),
-                                   tau_Ruff[i][j][0], tau_Ruff[i][j][1], tau_Ruff[i][j][2],
-                                   chi_Ross[i][j][0], chi_Ross[i][j][1], chi_Ross[i][j][2],
-                                   Heat_Flux[i][j][0] / Const_hc_MeVcm_CUBE, Heat_Flux[i][j][1] / Const_hc_MeVcm_CUBE, dEdt[TID][i], dYedt[TID][i] );
+                                   tau_Ruff[pivot + 0], tau_Ruff[pivot + 1], tau_Ruff[pivot + 2],
+                                   chi_Ross[pivot + 0], chi_Ross[pivot + 1], chi_Ross[pivot + 2],
+                                   Heat_Flux[pivot + 0] / Const_hc_MeVcm_CUBE, Heat_Flux[pivot + 1] / Const_hc_MeVcm_CUBE,
+                                   dEdt[TID][i], dYedt[TID][i] );
+         }
 
          fclose( File_Leakage );
 #        endif // #ifdef GAMER_DEBUG
