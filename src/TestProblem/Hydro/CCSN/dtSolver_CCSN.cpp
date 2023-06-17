@@ -197,6 +197,9 @@ double Mis_GetTimeStep_Leakage( const int lv, const double dTime_dt )
    double  dt_NuHeat_Inv     = -__DBL_MAX__;
    double *OMP_dt_NuHeat_Inv = new double [NT];
 
+   const double YeMin = Src_Leakage_AuxArray_Flt[8];
+   const double YeMax = Src_Leakage_AuxArray_Flt[9];
+
 
 #  pragma omp parallel
    {
@@ -277,8 +280,10 @@ double Mis_GetTimeStep_Leakage( const int lv, const double dTime_dt )
             } // if ( IsInit_dEdt_Nu[lv] ) ... else ...
 
 
-            const double dt_NuHeat_Inv_ThisCell = FMAX( FABS( dEint_Code / Eint_Code ),
-                                                        FABS( dYedt      / Ye        ) );
+            const double dYe = ( dYedt > 0.0 ) ? ( YeMax - Ye ) : ( Ye - YeMin );
+
+            const double dt_NuHeat_Inv_ThisCell = FMAX(  FABS( dEint_Code / Eint_Code ),
+                                                         FABS( dYedt      / dYe       )  );
 
 //          compare the inverse of ratio to avoid zero division, and store the maximum value
             OMP_dt_NuHeat_Inv[TID] = FMAX( OMP_dt_NuHeat_Inv[TID], dt_NuHeat_Inv_ThisCell );
