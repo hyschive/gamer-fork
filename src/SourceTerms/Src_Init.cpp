@@ -13,9 +13,6 @@ void Src_Init_Leakage();
 void (*Src_Init_User_Ptr)() = NULL;
 
 
-extern bool IsInit_dEdt_Nu[NLEVEL];
-
-
 
 
 //-------------------------------------------------------------------------------------------------------
@@ -156,13 +153,6 @@ void Src_Init()
 #     ifdef GPU
       if ( SrcTerms.User_GPUPtr  == NULL )         Aux_Error( ERROR_INFO, "SrcTerms.User_GPUPtr  == NULL !!\n" );
 #     endif
-   }
-
-
-// reset the flag in restart runs
-   if ( OPT__INIT == INIT_BY_RESTART )
-   {
-      for (int lv=0; lv<=MAX_LEVEL; lv++)   IsInit_dEdt_Nu[lv] = true;
    }
 
 

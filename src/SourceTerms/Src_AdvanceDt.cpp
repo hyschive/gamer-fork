@@ -2,11 +2,6 @@
 
 
 
-// flag for checking whether the dEdt_Nu field is initialized
-bool IsInit_dEdt_Nu[NLEVEL] = { false };
-
-
-
 
 //-------------------------------------------------------------------------------------------------------
 // Function    :  Src_AdvanceDt
@@ -44,8 +39,5 @@ void Src_AdvanceDt( const int lv, const double TimeNew, const double TimeOld, co
 // major source-term function
    InvokeSolver( SRC_SOLVER, lv, TimeNew, TimeOld, dt, NULL_REAL, SaveSg_Flu, SaveSg_Mag, NULL_INT,
                  OverlapMPI, Overlap_Sync );
-
-
-   if ( SrcTerms.Lightbulb  ||  SrcTerms.Leakage )   IsInit_dEdt_Nu[lv] = true;
 
 } // FUNCTION : Src_AdvanceDt

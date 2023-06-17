@@ -6,7 +6,7 @@
 
 #ifndef __CUDACC__
 
-extern bool   IsInit_dEdt_Nu    [NLEVEL];
+static bool   Have_tau_USG = false;
 extern double CCSN_Leakage_EAve [NType_Neutrino];
 extern double CCSN_Leakage_RadNS[NType_Neutrino];
 
@@ -67,7 +67,6 @@ void Src_Leakage_ComputeTau( Profile_t *Ray[], double *Edge,
 #  endif
    const bool   NuHeat         = SrcTerms.Leakage_NuHeat;
    const real   NuHeat_Fac     = SrcTerms.Leakage_NuHeat_Fac;
-         bool   Have_tau_USG   = IsInit_dEdt_Nu[0];
 
 
 // prepare the line element, area, and bin volume for better performance
@@ -733,6 +732,10 @@ void Src_Leakage_ComputeTau( Profile_t *Ray[], double *Edge,
       CCSN_Leakage_EAve [k] = EAve [k] / NRay;
       CCSN_Leakage_RadNS[k] = RadNS[k] / NRay;
    }
+
+
+// set Have_tau_USG to true once this function is invoked
+   Have_tau_USG = true;
 
 
 // free allocated arrays

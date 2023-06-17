@@ -2,7 +2,6 @@
 #include "NuclearEoS.h"
 
 
-extern bool   IsInit_dEdt_Nu[NLEVEL];
 extern double CCSN_NuHeat_TimeFac;
 extern double CCSN_CC_CentralDensFac;
 extern double CCSN_CC_Red_DT;
@@ -88,38 +87,12 @@ double Mis_GetTimeStep_Lightbulb( const int lv, const double dTime_dt )
 #           endif // ifdef MHD ... else ...
 
             const real Eint_Code  = Hydro_Con2Eint( Dens, Momx, Momy, Momz, Engy, true, MIN_EINT, Emag );
-                  real dEint_Code = NULL_REAL;
 
-
-            if ( IsInit_dEdt_Nu[lv] )
-            {
-//             use the stored neutrino heating/cooling rate
-#              ifdef DEDT_NU
-               dEint_Code = amr->patch[ amr->FluSg[lv] ][lv][PID]->fluid[DEDT_NU][k][j][i];
-#              endif
-            }
-
-            else
-            {
-//             call Src_Lightbulb() to compute the neutrino heating/cooling rate if not initialized yet
-               const double z = amr->patch[0][lv][PID]->EdgeL[2] + (k+0.5)*dh;
-               const double y = amr->patch[0][lv][PID]->EdgeL[1] + (j+0.5)*dh;
-               const double x = amr->patch[0][lv][PID]->EdgeL[0] + (i+0.5)*dh;
-
-//             get the input arrays
-               real fluid[FLU_NIN_S];
-
-               for (int v=0; v<FLU_NIN_S; v++)  fluid[v] = amr->patch[ amr->FluSg[lv] ][lv][PID]->fluid[v][k][j][i];
-
-
-               SrcTerms.Lightbulb_CPUPtr( fluid, B, &SrcTerms, 0.0, NULL_REAL, x, y, z, NULL_REAL, NULL_REAL,
-                                          MIN_DENS, MIN_PRES, MIN_EINT, NULL,
-                                          Src_Lightbulb_AuxArray_Flt, Src_Lightbulb_AuxArray_Int );
-
-#              ifdef DEDT_NU
-               dEint_Code = fluid[DEDT_NU];
-#              endif
-            } // if ( IsInit_dEdt_Nu[lv] ) ... else ...
+#           ifdef DEDT_NU
+            const real dEint_Code = amr->patch[ amr->FluSg[lv] ][lv][PID]->fluid[DEDT_NU][k][j][i];
+#           else
+            const real dEint_Code = NULL_REAL;
+#           endif
 
 
             const double dt_LB_Inv_ThisCell = FABS( dEint_Code / Eint_Code );
@@ -178,7 +151,7 @@ double Mis_GetTimeStep_Leakage( const int lv, const double dTime_dt )
    if ( !SrcTerms.Leakage )   return HUGE_NUMBER;
 
 // prepare leakage data at TimeNew on lv=0
-   if ( !IsInit_dEdt_Nu[lv]  &&  lv == 0 )
+   if ( lv == 0 )
    {
       const double TimeNew = amr->FluSgTime[lv][ amr->FluSg[lv] ];
 
@@ -197,8 +170,8 @@ double Mis_GetTimeStep_Leakage( const int lv, const double dTime_dt )
    double  dt_NuHeat_Inv     = -__DBL_MAX__;
    double *OMP_dt_NuHeat_Inv = new double [NT];
 
-   const double YeMin = Src_Leakage_AuxArray_Flt[8];
-   const double YeMax = Src_Leakage_AuxArray_Flt[9];
+   const real YeMin = Src_Leakage_AuxArray_Flt[8];
+   const real YeMax = Src_Leakage_AuxArray_Flt[9];
 
 
 #  pragma omp parallel
@@ -244,43 +217,17 @@ double Mis_GetTimeStep_Leakage( const int lv, const double dTime_dt )
 #           endif // ifdef MHD ... else ...
 
             const real Eint_Code  = Hydro_Con2Eint( Dens, Momx, Momy, Momz, Engy, true, MIN_EINT, Emag );
-                  real dEint_Code = NULL_REAL;
-                  real dYedt      = NULL_REAL;
 
+#           ifdef DYEDT_NU
+            const real dEint_Code = amr->patch[ amr->FluSg[lv] ][lv][PID]->fluid[DEDT_NU ][k][j][i];
+            const real dYedt      = amr->patch[ amr->FluSg[lv] ][lv][PID]->fluid[DYEDT_NU][k][j][i];
+            const real dYe        = ( dYedt > 0.0 ) ? ( YeMax - Ye ) : ( Ye - YeMin );
+#           else
+            const real dEint_Code = NULL_REAL;
+            const real dYedt      = NULL_REAL;
+            const real dYe        = NULL_REAL;
+#           endif
 
-            if ( IsInit_dEdt_Nu[lv] )
-            {
-#              ifdef DYEDT_NU
-               dEint_Code = amr->patch[ amr->FluSg[lv] ][lv][PID]->fluid[DEDT_NU ][k][j][i];
-               dYedt      = amr->patch[ amr->FluSg[lv] ][lv][PID]->fluid[DYEDT_NU][k][j][i];
-#              endif
-            }
-
-//          call Src_Leakage() to compute the neutrino heating/cooling rate if not initialized yet
-            else
-            {
-               const double z = amr->patch[0][lv][PID]->EdgeL[2] + (k+0.5)*dh;
-               const double y = amr->patch[0][lv][PID]->EdgeL[1] + (j+0.5)*dh;
-               const double x = amr->patch[0][lv][PID]->EdgeL[0] + (i+0.5)*dh;
-
-//             get the input arrays
-               real fluid[FLU_NIN_S];
-
-               for (int v=0; v<FLU_NIN_S; v++)  fluid[v] = amr->patch[ amr->FluSg[lv] ][lv][PID]->fluid[v][k][j][i];
-
-
-               SrcTerms.Leakage_CPUPtr( fluid, B, &SrcTerms, 0.0, NULL_REAL, x, y, z, NULL_REAL, NULL_REAL,
-                                        MIN_DENS, MIN_PRES, MIN_EINT, NULL,
-                                        Src_Leakage_AuxArray_Flt, Src_Leakage_AuxArray_Int );
-
-#              ifdef DYEDT_NU
-               dEint_Code = fluid[DEDT_NU];
-               dYedt = fluid[DYEDT_NU];
-#              endif
-            } // if ( IsInit_dEdt_Nu[lv] ) ... else ...
-
-
-            const double dYe = ( dYedt > 0.0 ) ? ( YeMax - Ye ) : ( Ye - YeMin );
 
             const double dt_NuHeat_Inv_ThisCell = FMAX(  FABS( dEint_Code / Eint_Code ),
                                                          FABS( dYedt      / dYe       )  );
