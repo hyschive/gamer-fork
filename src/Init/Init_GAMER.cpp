@@ -329,6 +329,12 @@ void Init_GAMER( int *argc, char ***argv )
 
       if ( MPI_Rank == 0 )    Aux_Message( stdout, "%s ...\n", "Initializing source-term fields" );
 
+//    disable source-term modules that take effects on active fields even dt=0.0
+      const bool Backup_Deleptonization = SrcTerms.Deleptonization;
+
+      SrcTerms.Deleptonization = false;
+
+
       for (int lv=0; lv<NLEVEL; lv++)
       {
          if ( MPI_Rank == 0 )    Aux_Message( stdout, "   Lv %2d ... ", lv );
@@ -343,6 +349,10 @@ void Init_GAMER( int *argc, char ***argv )
 
          if ( MPI_Rank == 0 )    Aux_Message( stdout, "done\n" );
       } // for (int lv=0; lv<NLEVEL; lv++)
+
+
+//    reset source-term modules that have been disabled
+      SrcTerms.Deleptonization = Backup_Deleptonization;
 
       if ( MPI_Rank == 0 )    Aux_Message( stdout, "%s ... done\n", "Initializing source-term fields" );
    } // if ( OPT__INIT != INIT_BY_RESTART )
