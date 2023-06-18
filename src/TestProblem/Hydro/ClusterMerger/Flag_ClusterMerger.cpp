@@ -15,7 +15,7 @@ static bool FirstTime = true;
 // Function    :  Flag_ClusterMerger
 // Description :  Flag cells for refinement for the cluster merger test problem
 //
-// Note        :  1. Linked to the function pointer "Flag_User_Ptr" by Init_TestProb_Hydro_Bondi()
+// Note        :  1. Linked to the function pointer "Flag_User_Ptr" by Init_TestProb_Hydro_ClusterMerger()
 //                2. Please turn on the runtime option "OPT__FLAG_USER"
 //
 // Parameter   :  i,j,k     : Indices of the targeted element in the patch ptr[ amr->FluSg[lv] ][lv][PID]
@@ -56,7 +56,7 @@ bool Flag_ClusterMerger( const int i, const int j, const int k, const int lv, co
    if ( FirstTime ){  
       const double dh_max = amr->dh[MAX_LEVEL];
       if ( R_acc/dh_max <= Threshold[0] ){
-         Aux_Message( stderr, "WARNING : MAX_LEVEL is less than the desired refinement level set in Input__Flag_User!!\n");
+         Aux_Message( stderr, "WARNING : MAX_LEVEL is less than the desired refinement level set in Input__Flag_User!! dh_max = %13.7e\n", dh_max);
       }
       FirstTime = false;
    }

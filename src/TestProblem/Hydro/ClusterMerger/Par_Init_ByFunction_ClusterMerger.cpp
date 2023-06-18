@@ -637,7 +637,7 @@ void Aux_Record_ClusterMerger()
 
    for (int c=0; c<Merger_Coll_NumHalos; c++){
       for (int d=0; d<3; d++){
-         BH_Vel[c][d] *= UNIT_V/(Const_km/Const_s);
+//         BH_Vel[c][d] *= UNIT_V/(Const_km/Const_s);
       }
    }
 

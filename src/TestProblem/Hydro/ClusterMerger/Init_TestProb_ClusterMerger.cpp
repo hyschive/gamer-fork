@@ -119,6 +119,7 @@ static double *JetDirection = NULL;   // jet direction[time/theta_1/phi_1/theta_
        bool   AdjustBHPos;    // (true/false) --> Adjust the BH position 
        bool   AdjustBHVel;    // (true/false) --> Adjust the BH velocity 
        double AdjustPeriod;   // the time interval of adjustment
+       int    AdjustCount = 0;  // count the number of adjustments
 // =======================================================================================
 
 // problem-specific function prototypes
@@ -143,6 +144,8 @@ int Flu_ResetByUser_Func_ClusterMerger( real fluid[], const double Emag, const d
 void Flu_ResetByUser_API_ClusterMerger( const int lv, const int FluSg, const double TimeNew, const double dt );
 
 extern void (*Flu_ResetByUser_API_Ptr)( const int lv, const int FluSg, const double TimeNew, const double dt );
+void Output_ClusterMerger();
+void Init_User_ClusterMerger();
 //extern void GetClusterCenter( int lv, double Cen_old[][3], double Cen_new[][3], double Cen_Vel[][3] ); 
 
 //-------------------------------------------------------------------------------------------------------
@@ -861,6 +864,8 @@ void Init_TestProb_Hydro_ClusterMerger()
 
    Flu_ResetByUser_Func_Ptr       = Flu_ResetByUser_Func_ClusterMerger;
    Flu_ResetByUser_API_Ptr        = Flu_ResetByUser_API_ClusterMerger;
+   Output_User_Ptr                = Output_ClusterMerger;
+   Init_User_Ptr                  = Init_User_ClusterMerger;
 
 #  ifdef MHD
    Init_Function_BField_User_Ptr  = SetBFieldIC;
@@ -955,3 +960,158 @@ void AddNewField_ClusterMerger()
 }
 
 #endif
+
+
+// Restart only: initialize the BH variables (position, velocity, mass) from particles labelled with PTYPE_CEN 
+void Init_User_ClusterMerger()
+{
+   if ( OPT__INIT == INIT_BY_RESTART ){
+
+      if ( OPT__RESTART_RESET ) {
+         printf("Error! OPT__RESTART_RESET should be disabled.\n");
+         return;
+      }    
+
+      const char FileName[] = "BH_variable.bin";
+      int TargetDumpID = DumpID-1;  //INIT_DUMPID;
+
+      FILE* File_User = fopen(FileName, "rb");
+      if ( File_User == NULL ) {
+         printf("Error opening the file \"%s\"\n", FileName);
+         return;
+      }    
+
+      if ( MPI_Rank == 0 ) {
+   
+         double BH_Mass[3] = {0.0, 0.0, 0.0};
+   
+         double Time;
+         int dumpID;
+         while (fread(&Time, sizeof(double), 1, File_User) == 1) {
+            fread(&dumpID, sizeof(int), 1, File_User);
+            printf("dumpID = %d, TargetDumpID = %d\n", dumpID, TargetDumpID);  
+            if (dumpID == TargetDumpID) {
+               for (int c=0; c<Merger_Coll_NumHalos; c++) {
+                  for (int d=0; d<3; d++)   fread(&BH_Pos[c][d], sizeof(double), 1, File_User);
+                  for (int d=0; d<3; d++)   fread(&ClusterCen[c][d], sizeof(double), 1, File_User);
+                  for (int d=0; d<3; d++)   fread(&BH_Vel[c][d], sizeof(double), 1, File_User);
+                  fread(&BH_Mass[c], sizeof(double), 1, File_User);
+               }
+               fread(&AdjustCount, sizeof(int), 1, File_User);
+               break;
+            }
+            else {
+               for (int c=0; c<Merger_Coll_NumHalos; c++) {
+                  fseek(File_User, sizeof(double) * 3, SEEK_CUR);
+                  fseek(File_User, sizeof(double) * 3, SEEK_CUR);
+                  fseek(File_User, sizeof(double) * 3, SEEK_CUR);
+                  fseek(File_User, sizeof(double), SEEK_CUR);
+               }
+               fseek(File_User, sizeof(int), SEEK_CUR);
+            }
+         }
+   
+         Bondi_MassBH1 = BH_Mass[0];
+         Bondi_MassBH2 = BH_Mass[1];
+         Bondi_MassBH3 = BH_Mass[2];
+   
+         fclose(File_User);
+
+         printf("Restarting! BH_Pos[0][0] = %23.17e, BH_Pos[0][1] = %23.17e\n", BH_Pos[0][0], BH_Pos[0][1]);  
+      }
+      for (int c=0; c<Merger_Coll_NumHalos; c++){ 
+         MPI_Bcast( BH_Pos[c], 3, MPI_DOUBLE, 0, MPI_COMM_WORLD ); 
+         MPI_Bcast( BH_Vel[c], 3, MPI_DOUBLE, 0, MPI_COMM_WORLD );
+         MPI_Bcast( ClusterCen[c], 3, MPI_DOUBLE, 0, MPI_COMM_WORLD );
+      }
+      MPI_Bcast( &Bondi_MassBH1, 1, MPI_DOUBLE, 0, MPI_COMM_WORLD ); 
+      MPI_Bcast( &Bondi_MassBH2, 1, MPI_DOUBLE, 0, MPI_COMM_WORLD ); 
+      MPI_Bcast( &Bondi_MassBH3, 1, MPI_DOUBLE, 0, MPI_COMM_WORLD ); 
+      MPI_Bcast( &AdjustCount, 1, MPI_INT, 0, MPI_COMM_WORLD ); 
+
+//      AdjustCount -= 1;
+
+/*
+      double BH_Mass[3] = { 0.0, 0.0, 0.0 };
+      for (int c=0; c<Merger_Coll_NumHalos; c++) { 
+         double Cen_Tmp[3] = { -__FLT_MAX__, -__FLT_MAX__, -__FLT_MAX__ };   // set to -inf
+         double Vel_Tmp[3] = { -__FLT_MAX__, -__FLT_MAX__, -__FLT_MAX__ };
+         double Mass_Tmp   = -__FLT_MAX__;
+         for (long p=0; p<amr->Par->NPar_AcPlusInac; p++) {
+            if ( amr->Par->Mass[p] >= (real)0.0  &&  amr->Par->Type[p] == real(PTYPE_CEN+c) ){
+               Cen_Tmp[0] = amr->Par->PosX[p];
+               Cen_Tmp[1] = amr->Par->PosY[p];
+               Cen_Tmp[2] = amr->Par->PosZ[p];
+               Vel_Tmp[0] = amr->Par->VelX[p];
+               Vel_Tmp[1] = amr->Par->VelY[p];
+               Vel_Tmp[2] = amr->Par->VelZ[p];
+               Mass_Tmp   = amr->Par->Mass[p];
+               break;
+            }
+         }
+         MPI_Allreduce( Cen_Tmp, BH_Pos[c], 3, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD );
+         MPI_Allreduce( Vel_Tmp, BH_Vel[c], 3, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD );
+         MPI_Allreduce( &Mass_Tmp, &BH_Mass[c], 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD );
+
+         for (int d=0; d<3; d++)  ClusterCen[c][d] = BH_Pos[c][d];
+      }
+
+      Bondi_MassBH1 = 7.1171793e+10/1.0e14;  //BH_Mass[0];
+      Bondi_MassBH2 = BH_Mass[1];
+      Bondi_MassBH3 = BH_Mass[2];
+
+      AdjustCount = 90;   // int(TimeNew/AdjustPeriod)-1
+*/
+   } // if ( OPT__INIT == INIT_BY_RESTART )
+
+   else   return;
+}
+
+
+
+//-------------------------------------------------------------------------------------------------------
+// Function    :  OutputClusterMerger
+// Description :  Output the BH variables (pos, vel, mass, AdjustCount) in the ClusterMerger problem
+//
+// Note        :  1. Enabled by the runtime option "OPT__OUTPUT_USER"
+//                2. Ensure restart runs can get identical values 
+//
+// Parameter   :  None
+//
+// Return      :  None
+//-------------------------------------------------------------------------------------------------------
+void Output_ClusterMerger()
+{ 
+   const char FileName[] = "BH_variable.bin";
+   static bool FirstTime = true;
+
+   if ( FirstTime ) {
+      if ( MPI_Rank == 0 ) {
+         if ( Aux_CheckFileExist(FileName) )
+            Aux_Message( stderr, "WARNING: file \"%s\" already exists !!\n", FileName );
+      }
+      FirstTime = false;             
+   } // if ( FirstTime )     
+
+   double BH_Mass[3] = { Bondi_MassBH1, Bondi_MassBH2, Bondi_MassBH3 };
+
+   if ( MPI_Rank == 0 ) {
+      FILE* File_User = fopen(FileName, "ab");
+      
+      double time = Time[0] * UNIT_T / Const_Myr;
+      fwrite(&time, sizeof(double), 1, File_User);
+      fwrite(&DumpID, sizeof(int), 1, File_User);
+
+      for (int c=0; c<Merger_Coll_NumHalos; c++) {      
+         for (int d=0; d<3; d++)   fwrite(&BH_Pos[c][d], sizeof(double), 1, File_User);
+         for (int d=0; d<3; d++)   fwrite(&ClusterCen[c][d], sizeof(double), 1, File_User);
+         for (int d=0; d<3; d++)   fwrite(&BH_Vel[c][d], sizeof(double), 1, File_User); 
+         fwrite(&BH_Mass[c], sizeof(double), 1, File_User);
+      }
+      fwrite(&AdjustCount, sizeof(int), 1, File_User);
+      fclose(File_User);
+
+      printf("Saving BH_variables! DumpID = %d, BH_Pos[0][0] = %23.17e, BH_Pos[0][1] = %23.17e\n", DumpID, BH_Pos[0][0], BH_Pos[0][1]);
+   }
+
+} // FUNCTION : Output_ClusterMerger

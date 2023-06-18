@@ -65,7 +65,7 @@ extern double *Phi_table[3];          // the phi table of jet direction for 3 cl
 extern bool   AdjustBHPos;
 extern bool   AdjustBHVel;
 extern double AdjustPeriod;
-int AdjustCount = 0;   // count the number of adjustments
+extern int AdjustCount;   // count the number of adjustments
 int merge_index = 0;   // record BH 1 merge BH 2 / BH 2 merge BH 1
 
 //-------------------------------------------------------------------------------------------------------
@@ -230,29 +230,29 @@ int Flu_ResetByUser_Func_ClusterMerger( real fluid[], const double Emag, const d
 void Flu_ResetByUser_API_ClusterMerger( const int lv, const int FluSg, const double TimeNew, const double dt )
 {
 /*
-// TEMP!!! For restart.
-   if (BH_Pos[0][0] == 0.0){                        
-      BH_Pos[0][0] = 7.4718022e+00;
-      BH_Pos[0][1] = 7.5023150e+00;
-      BH_Pos[0][2] = 7.5038495e+00;
-      BH_Pos[1][0] = 7.5331659e+00;
-      BH_Pos[1][1] = 7.5056639e+00;
-      BH_Pos[1][2] = 7.5041471e+00;
-      ClusterCen[0][0] = 7.4718022e+00;
-      ClusterCen[0][1] = 7.5023150e+00;
-      ClusterCen[0][2] = 7.5038495e+00;
-      ClusterCen[1][0] = 7.5331659e+00;
-      ClusterCen[1][1] = 7.5056639e+00;
-      ClusterCen[1][2] = 7.5041471e+00;
-      BH_Vel[0][0] = 4.4017131e+02/UNIT_V*(Const_km/Const_s); 
-      BH_Vel[0][1] = 2.1990993e+01/UNIT_V*(Const_km/Const_s);    
-      BH_Vel[0][2] = -7.8597931e+00/UNIT_V*(Const_km/Const_s);
-      BH_Vel[1][0] = -4.8891710e+02/UNIT_V*(Const_km/Const_s);
-      BH_Vel[1][1] = -2.5195094e+01/UNIT_V*(Const_km/Const_s);         
-      BH_Vel[1][2] = 5.7178019e+01/UNIT_V*(Const_km/Const_s);
-      Bondi_MassBH1 = 7.1479449e+10/1e14;
-      Bondi_MassBH2 = 7.1476139e+10/1e14;
-      AdjustCount = 389; 
+// TMP!!! For restart.
+   if ( OPT__INIT == INIT_BY_RESTART && BH_Pos[0][0] == 0.0 ){                        
+      BH_Pos[0][0] = 7.4994459e+00;
+      BH_Pos[0][1] = 7.5032802e+00;
+      BH_Pos[0][2] = 7.5010762e+00;
+//      BH_Pos[1][0] = 7.5331659e+00;
+//      BH_Pos[1][1] = 7.5056639e+00;
+//      BH_Pos[1][2] = 7.5041471e+00;
+      ClusterCen[0][0] = BH_Pos[0][0];
+      ClusterCen[0][1] = BH_Pos[0][1];
+      ClusterCen[0][2] = BH_Pos[0][2];
+//      ClusterCen[1][0] = BH_Pos[1][0];
+//      ClusterCen[1][1] = BH_Pos[1][1];
+//      ClusterCen[1][2] = BH_Pos[1][2];
+      BH_Vel[0][0] = 8.3447796e+01/UNIT_V*(Const_km/Const_s); 
+      BH_Vel[0][1] = -6.5153720e+00/UNIT_V*(Const_km/Const_s);    
+      BH_Vel[0][2] = 2.3914967e+02/UNIT_V*(Const_km/Const_s);
+//      BH_Vel[1][0] = -4.8891710e+02/UNIT_V*(Const_km/Const_s);
+//      BH_Vel[1][1] = -2.5195094e+01/UNIT_V*(Const_km/Const_s);         
+//      BH_Vel[1][2] = 5.7178019e+01/UNIT_V*(Const_km/Const_s);
+      Bondi_MassBH1 = 7.1177548e+10/1e14;
+//      Bondi_MassBH2 = 7.1476139e+10/1e14;
+      AdjustCount = 239;   // int(TimeNew/AdjustPeriod)-1 
    } 
 */
 

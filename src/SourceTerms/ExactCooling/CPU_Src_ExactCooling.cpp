@@ -217,20 +217,16 @@ static void Src_ExactCooling( real fluid[], const real B[],
    Enth = fluid[ENGY] - Eint;
    Tini = Temp;
 
-#  ifdef GAMER_DEBUG
-   if ( Temp < TEF_Tmin || Temp > TEF_TN ){
-      printf("Error! Temp = %13.7e is out of range.\n", Temp);
-   }
-#  endif
-
 // (2) Decide the index k (an interval) where Tini falls into
-   k = int((log10(Tini)-log10(TEF_Tmin))/TEF_dltemp);   
+   k = int((log10(Tini)-log10(TEF_Tmin))/TEF_dltemp);
+   if ( k < 0 || k > TEF_N-1 || Tini != Tini ){
 #  ifdef GAMER_DEBUG
-   if ( k < 0 || k > TEF_N-1 ){
-      printf( "WARNING: Array index invalid (beyond the range of 0 to TEF_N-1)!!\n" );
-      k = NULL_INT;
-   }
+      printf( "Error! Temp = %13.7e is out of range (min: %13.7e, max: %13.7e) at TimeNew = %13.7e, so the array index is invalid.\n", Tini, TEF_Tmin, TEF_TN, TimeNew );
 #  endif
+      fluid[TCOOL] = NAN;
+      fluid[ENGY]  = NAN;
+      return;
+   }
    Tk = POW(10.0, (log10(TEF_Tmin)+k*TEF_dltemp));
    lambdaTini = TEF_lambda[k] * POW((Tini/Tk), TEF_alpha[k]);
 

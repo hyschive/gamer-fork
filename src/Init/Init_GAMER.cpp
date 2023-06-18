@@ -328,7 +328,7 @@ void Init_GAMER( int *argc, char ***argv )
          if ( MPI_Rank == 0 )    Aux_Message( stdout, "   Lv %2d ... ", lv );
 
          Src_AdvanceDt( lv, Time[lv], Time[lv], 0.0, amr->FluSg[lv], amr->MagSg[lv], false, false );
-
+         Buf_GetBufferData( lv, amr->FluSg[lv], amr->MagSg[lv], NULL_INT, DATA_GENERAL, _TOTAL, _MAG, Flu_ParaBuf, USELB_YES );
          if ( MPI_Rank == 0 )    Aux_Message( stdout, "done\n" );
       } // for (int lv=0; lv<NLEVEL; lv++)
 
