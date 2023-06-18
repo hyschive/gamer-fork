@@ -66,7 +66,12 @@ extern bool   AdjustBHPos;
 extern bool   AdjustBHVel;
 extern double AdjustPeriod;
 extern int AdjustCount;   // count the number of adjustments
+extern int JetDirection_case;   // Methods for choosing the jet direction
 int merge_index = 0;   // record BH 1 merge BH 2 / BH 2 merge BH 1
+
+double ang_mom_sum[3][3] = {  { 1.0, 0.0, 0.0 },
+                              { 1.0, 0.0, 0.0 }, 
+                              { 1.0, 0.0, 0.0 } };
 
 //-------------------------------------------------------------------------------------------------------
 // Function    :  Flu_ResetByUser_Func_ClusterMerger
@@ -312,15 +317,31 @@ void Flu_ResetByUser_API_ClusterMerger( const int lv, const int FluSg, const dou
    Jet_Radius[2] = Jet_Radius3;
 
 // Set the jet direction vector
-//   double Time_period = Time_table[JetDirection_NBin-1];
-//   double Time_interpolate = fmod(TimeNew, Time_period);
-   for (int c=0; c<Merger_Coll_NumHalos; c++) {
-//      double theta = Mis_InterpolateFromTable( JetDirection_NBin, Time_table, Theta_table[c], Time_interpolate );
-//      double phi   = Mis_InterpolateFromTable( JetDirection_NBin, Time_table, Phi_table[c], Time_interpolate );
-      Jet_Vec[c][0] = 1.0;   //cos(theta);   //sin(theta)*cos(phi);
-      Jet_Vec[c][1] = 0.0;   //sin(theta)*cos(phi);   //sin(theta)*sin(phi);
-      Jet_Vec[c][2] = 0.0;   //sin(theta)*sin(phi);   //cos(theta);
+   if ( JetDirection_case == 1 ) {   // Fixed at x-axis
+      for (int c=0; c<Merger_Coll_NumHalos; c++) {
+         Jet_Vec[c][0] = 1.0;
+         Jet_Vec[c][1] = 0.0;
+         Jet_Vec[c][2] = 0.0;
+      }
    }
+   else if ( JetDirection_case == 2 ) {   // Import from table 
+      double Time_period = Time_table[JetDirection_NBin-1];
+      double Time_interpolate = fmod(TimeNew, Time_period);
+      for (int c=0; c<Merger_Coll_NumHalos; c++) { 
+         double theta = Mis_InterpolateFromTable( JetDirection_NBin, Time_table, Theta_table[c], Time_interpolate );
+         double phi   = Mis_InterpolateFromTable( JetDirection_NBin, Time_table, Phi_table[c], Time_interpolate );
+         Jet_Vec[c][0] = cos(theta);
+         Jet_Vec[c][1] = sin(theta)*cos(phi);
+         Jet_Vec[c][2] = sin(theta)*sin(phi);
+      }
+   }
+   else if ( JetDirection_case == 3 ) {   // Align with angular momentum
+      for (int c=0; c<Merger_Coll_NumHalos; c++) {
+         double ang_mom_norm = sqrt(SQR(ang_mom_sum[c][0])+SQR(ang_mom_sum[c][1])+SQR(ang_mom_sum[c][2]));
+         for (int d=0; d<3; d++)  Jet_Vec[c][d] = ang_mom_sum[c][d]/ang_mom_norm;
+      }
+   }
+
 
    const double dh       = amr->dh[lv];
    const real   dv       = CUBE(dh);
@@ -425,13 +446,13 @@ void Flu_ResetByUser_API_ClusterMerger( const int lv, const int FluSg, const dou
          }}}
       } // for (int PID=0; PID<amr->NPatchComma[lv][1]; PID++)
 
-      double rho_sum, Cs_sum, gas_vel_sum[3], ang_mom_sum[3];
+      double rho_sum, Cs_sum, gas_vel_sum[3];
       int num_sum;
       MPI_Allreduce( &num,     &num_sum,     1, MPI_INT, MPI_SUM, MPI_COMM_WORLD );
       MPI_Allreduce( &rho,     &rho_sum,     1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD );
       MPI_Allreduce( &Cs,      &Cs_sum,      1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD );
       MPI_Allreduce( gas_vel,  gas_vel_sum,  3, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD );
-      MPI_Allreduce( ang_mom,  ang_mom_sum,  3, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD );
+      MPI_Allreduce( ang_mom,  ang_mom_sum[c],  3, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD );
       MPI_Allreduce( &V_cyl_exacthalf[c], &V_cyl_exacthalf_sum[c], 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD );      
       MPI_Allreduce( &normalize[c],       &normalize_sum[c],       1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD );
 
@@ -457,8 +478,8 @@ void Flu_ResetByUser_API_ClusterMerger( const int lv, const int FluSg, const dou
          RelativeVel[c] = sqrt(v);
 
 //       decide the jet direction by angular momentum
-         double ang_mom_norm = sqrt(SQR(ang_mom_sum[0])+SQR(ang_mom_sum[1])+SQR(ang_mom_sum[2]));
-         for (int d=0; d<3; d++)  Jet_Vec[c][d] = ang_mom_sum[d]/ang_mom_norm;
+//         double ang_mom_norm = sqrt(SQR(ang_mom_sum[c][0])+SQR(ang_mom_sum[c][1])+SQR(ang_mom_sum[c][2]));
+//         for (int d=0; d<3; d++)  Jet_Vec[c][d] = ang_mom_sum[c][d]/ang_mom_norm;
       }
 
       if (V_cyl_exacthalf_sum[c] != 0)   normalize_const[c] = V_cyl_exacthalf_sum[c]/normalize_sum[c];

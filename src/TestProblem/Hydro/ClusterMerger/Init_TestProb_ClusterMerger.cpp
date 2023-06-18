@@ -120,6 +120,7 @@ static double *JetDirection = NULL;   // jet direction[time/theta_1/phi_1/theta_
        bool   AdjustBHVel;    // (true/false) --> Adjust the BH velocity 
        double AdjustPeriod;   // the time interval of adjustment
        int    AdjustCount = 0;  // count the number of adjustments
+       int    JetDirection_case;  // Methods for choosing the jet direction: 1. Fixed at x-axis; 2. Import from table (generate JetDirection.txt); 3. Align with angular momentum
 // =======================================================================================
 
 // problem-specific function prototypes
@@ -292,6 +293,7 @@ void SetParameter()
    ReadPara->Add( "AdjustBHPos",           &AdjustBHPos,            false,             Useless_bool,  Useless_bool   );
    ReadPara->Add( "AdjustBHVel",           &AdjustBHVel,            false,             Useless_bool,  Useless_bool   );
    ReadPara->Add( "AdjustPeriod",          &AdjustPeriod,            -1.0,             NoMin_double,  NoMax_double   );
+   ReadPara->Add( "JetDirection_case",     &JetDirection_case,       1,                1,             3              );
 
    ReadPara->Read( FileName );
 
@@ -462,18 +464,20 @@ void SetParameter()
       } // if ( Merger_Coll_NumHalos > 2 && Merger_Coll_IsGas3 )
 
 //    (2-1) Load the jet direction table  
-      const bool RowMajor_No  = false;    // load data into the column-major order
-      const bool AllocMem_Yes = true;     // allocate memory for JetDirection 
-      const int  NCol         = 7;        // total number of columns to load
-      const int  Col[NCol] = {0, 1, 2, 3, 4, 5, 6};  // target columns: (time, theta_1, phi_1, theta_2, phi_2, theta_3, phi_3)
+      if ( JetDirection_case == 2 ) {
+         const bool RowMajor_No  = false;    // load data into the column-major order
+         const bool AllocMem_Yes = true;     // allocate memory for JetDirection 
+         const int  NCol         = 7;        // total number of columns to load
+         const int  Col[NCol] = {0, 1, 2, 3, 4, 5, 6};  // target columns: (time, theta_1, phi_1, theta_2, phi_2, theta_3, phi_3)
 
-      JetDirection_NBin = Aux_LoadTable( JetDirection, "JetDirection.txt", NCol, Col, RowMajor_No, AllocMem_Yes );
-      Time_table = JetDirection+0*JetDirection_NBin;
-      for (int d=0; d<3; d++) {
-         Theta_table[d] = JetDirection+(1+2*d)*JetDirection_NBin;
-         Phi_table[d]   = JetDirection+(2+2*d)*JetDirection_NBin;
+         JetDirection_NBin = Aux_LoadTable( JetDirection, "JetDirection.txt", NCol, Col, RowMajor_No, AllocMem_Yes );
+         Time_table = JetDirection+0*JetDirection_NBin;
+         for (int d=0; d<3; d++) {
+            Theta_table[d] = JetDirection+(1+2*d)*JetDirection_NBin;
+            Phi_table[d]   = JetDirection+(2+2*d)*JetDirection_NBin;
+         }
+         for (int b=0; b<JetDirection_NBin; b++)   Time_table[b] *= Const_Myr/UNIT_T; 
       }
-      for (int b=0; b<JetDirection_NBin; b++)   Time_table[b] *= Const_Myr/UNIT_T; 
 
 //    (2-2) Initialize the BH position and velocity
       double ClusterCenter[3][3] = {{ Merger_Coll_PosX1, Merger_Coll_PosY1, amr->BoxCenter[2] },
