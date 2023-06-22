@@ -409,8 +409,9 @@ def load_arguments():
     parser.add_argument( "--eos", type=str, metavar="TYPE", gamer_name="EOS",
                          default="GAMMA", choices=["GAMMA", "ISOTHERMAL", "NUCLEAR", "TABULAR", "USER"],
                          depend={"model":"HYDRO"},
-                         constrain={ "ISOTHERMAL":{"barotropic":True} },
-                         help="Equation of state. Must be set when <--model=HYDRO>. Must enable <--barotropic> for ISOTHERMAL.\n"
+                         constrain={ "ISOTHERMAL":{"barotropic":True}, "NUCLEAR":{"hdf5":True} },
+                         help="Equation of state. Must be set when <--model=HYDRO>. Must enable <--barotropic> for ISOTHERMAL."+
+                              " Must set <--hdf5=true>, <--nuc_table>, and <--nuc_solver> for NUCLEAR.\n"
                        )
 
     parser.add_argument( "--barotropic", type=str2bool, metavar="BOOLEAN", gamer_name="BAROTROPIC_EOS",
@@ -418,6 +419,24 @@ def load_arguments():
                          depend={"model":"HYDRO"},
                          constrain={ True:{"eos":["ISOTHERMAL", "TABULAR", "USER"]} },
                          help="Whether or not the equation of state set by <--eos> is barotropic. Mandatory for <--eos=ISOTHEMAL>. Optional for <--eos=TABULAR> and <--eos=USER>.\n"
+                       )
+
+    parser.add_argument( "--nuc_table", type=str, metavar="TYPE", gamer_name="NUC_TABLE_MODE",
+                         default="NUC_TABLE_MODE_TEMP", choices=["NUC_TABLE_MODE_TEMP", "NUC_TABLE_MODE_ENGY"],
+                         depend={"model":"HYDRO", "eos":"NUCLEAR"},
+                         help="Nuclear EoS table default mode.\n"
+                       )
+
+    parser.add_argument( "--nuc_solver", type=str, metavar="TYPE", gamer_name="NUC_EOS_SOLVER",
+                         default="NUC_EOS_SOLVER_DIRECT", choices=["NUC_EOS_SOLVER_ORIG", "NUC_EOS_SOLVER_LUT", "NUC_EOS_SOLVER_DIRECT"],
+                         depend={"model":"HYDRO", "eos":"NUCLEAR"},
+                         help="Nuclear EoS solver. <--nuc_table=NUC_TABLE_MODE_ENGY> only supports NUC_EOS_SOLVER_LUT.\n"
+                       )
+
+    parser.add_argument( "--neutrino", type=str, metavar="TYPE", gamer_name="NEUTRINO_SCHEME",
+                         default="LIGHTBULB", choices=[NONE_STR, "LIGHTBULB", "IDSA", "M1"],
+                         depend={"model":"HYDRO", "eos":"NUCLEAR"},
+                         help="Neutrino updating scheme. Only supports LIGHTBULB for now. Must enable <--eos=NUCLEAR>.\n"
                        )
 
     # A.2 ELBDM scheme
@@ -471,6 +490,12 @@ def load_arguments():
                          depend={"gravity":True},
                          constrain={ True:{"eos":"GAMMA"} },
                          help="Comoving frame for cosmological simulations.\n"
+                       )
+
+    parser.add_argument( "--grep", type=str2bool, metavar="BOOLEAN", gamer_name="GREP",
+                         default=False,
+                         depend={"gravity":True},
+                         help="Effective general-relativistic potential. Must set OPT__EXT_POT=3 in Input__Parameter.\n"
                        )
 
     # A.4 particle
