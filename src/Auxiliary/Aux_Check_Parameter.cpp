@@ -230,17 +230,31 @@ void Aux_Check_Parameter()
       if ( OPT__TIMING_BARRIER )
          Aux_Error( ERROR_INFO, "OPT__MINIMIZE_MPI_BARRIER does NOT work with OPT__TIMING_BARRIER !!\n" );
 
-      if ( AUTO_REDUCE_DT  &&  MPI_Rank == 0 )
+      if ( MPI_Rank == 0 ) {
+      if ( AUTO_REDUCE_DT )
          Aux_Message( stderr, "WARNING : AUTO_REDUCE_DT will introduce an extra MPI barrier for OPT__MINIMIZE_MPI_BARRIER !!\n" );
-   }
+
+#     ifdef FEEDBACK
+         Aux_Message( stderr, "WARNING : OPT__MINIMIZE_MPI_BARRIER + FEEDBACK --> must ensure feedback does not need potential ghost zones !!\n" );
+#     endif
+      } // if ( MPI_Rank == 0 )
+   } // if ( OPT__MINIMIZE_MPI_BARRIER )
 
 #  ifdef BITWISE_REPRODUCIBILITY
    if ( OPT__CORR_AFTER_ALL_SYNC != CORR_AFTER_SYNC_BEFORE_DUMP  &&  OPT__CORR_AFTER_ALL_SYNC != CORR_AFTER_SYNC_EVERY_STEP )
-      Aux_Error( ERROR_INFO, "please set OPT__CORR_AFTER_ALL_SYNC to 1/2 when BITWISE_REPRODUCIBILITY is enabled !!\n" );
+      Aux_Error( ERROR_INFO, "please set OPT__CORR_AFTER_ALL_SYNC to 1/2 for BITWISE_REPRODUCIBILITY !!\n" );
 
    if ( ! OPT__FIXUP_RESTRICT )
       Aux_Error( ERROR_INFO, "must enable OPT__FIXUP_RESTRICT for BITWISE_REPRODUCIBILITY !!\n" );
+
+   if ( ! OPT__SORT_PATCH_BY_LBIDX )
+      Aux_Error( ERROR_INFO, "must enable OPT__SORT_PATCH_BY_LBIDX for BITWISE_REPRODUCIBILITY !!\n" );
+
+#  ifdef SUPPORT_FFTW
+   if ( OPT__FFTW_STARTUP != FFTW_STARTUP_ESTIMATE )
+      Aux_Error( ERROR_INFO, "must set OPT__FFTW_STARTUP=0 (FFTW_STARTUP_ESTIMATE) for BITWISE_REPRODUCIBILITY !!\n" );
 #  endif
+#  endif // #ifdef BITWISE_REPRODUCIBILITY
 
 #  if ( !defined SERIAL  &&  !defined LOAD_BALANCE )
    if ( OPT__INIT == INIT_BY_FILE )

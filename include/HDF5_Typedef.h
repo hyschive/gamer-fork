@@ -634,7 +634,10 @@ struct InputPara_t
    int    Opt__GPUID_Select;
    int    Init_Subsampling_NCell;
 #  ifdef MHD
-   int    Opt__InitBFieldByFile;
+   int    Opt__InitBFieldByVecPot;
+#  endif
+#  ifdef SUPPORT_FFTW
+   int    Opt__FFTW_Startup;
 #  endif
 
 // interpolation schemes
@@ -715,6 +718,7 @@ struct InputPara_t
    int    Opt__ManualControl;
    int    Opt__RecordUser;
    int    Opt__OptimizeAggressive;
+   int    Opt__SortPatchByLBIdx;
 
 // simulation checks
    int    Opt__Ck_Refine;
