@@ -135,7 +135,7 @@ SRC_GPU_NPGROUP              -1           # number of patch groups sent into the
 # fluid solver in HYDRO (MODEL==HYDRO only)
 GAMMA                         1.666666666667       # ratio of specific heats (i.e., adiabatic index) [5.0/3.0]
 MOLECULAR_WEIGHT              0.59242761692650336  # mean molecular weight -> currently only for post-processing [0.6]
-MU_NORM                       1.6737352238051868e-24   # m_H value,  fully consistent with yt 
+MU_NORM                       1.6737352238051868e-24   # m_H value, fully consistent with yt 
 MINMOD_COEFF                  2.0         # coefficient of the generalized MinMod limiter (1.0~2.0) [1.5]
 MINMOD_MAX_ITER               0           # maximum number of iterations to reduce MINMOD_COEFF when data reconstruction fails (0=off) [0]
 OPT__LR_LIMITER               1           # slope limiter of data reconstruction in the MHM/MHM_RP/CTU schemes:
@@ -240,6 +240,7 @@ OPT__MANUAL_CONTROL           1           # support manually dump data or stop r
                                           # (by generating the file DUMP_GAMER_DUMP or STOP_GAMER_STOP) [1]
 OPT__RECORD_USER              0           # record the user-specified info -> edit "Aux_RecordUser.cpp" [0]
 OPT__OPTIMIZE_AGGRESSIVE      0           # apply aggressive optimizations (experimental) [0]
+OPT__SORT_PATCH_BY_LBIDX      1           # sort patches to improve bitwise reproducibility [SERIAL:0, LOAD_BALACNE:1]
 
 
 # checks

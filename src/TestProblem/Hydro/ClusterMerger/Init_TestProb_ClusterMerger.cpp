@@ -462,7 +462,7 @@ void SetParameter()
          MPI_Bcast(Table_M3, Merger_NBin3, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 
       } // if ( Merger_Coll_NumHalos > 2 && Merger_Coll_IsGas3 )
-
+/*
 //    (2-1) Load the jet direction table  
       if ( JetDirection_case == 2 ) {
          const bool RowMajor_No  = false;    // load data into the column-major order
@@ -478,7 +478,7 @@ void SetParameter()
          }
          for (int b=0; b<JetDirection_NBin; b++)   Time_table[b] *= Const_Myr/UNIT_T; 
       }
-
+*/
 //    (2-2) Initialize the BH position and velocity
       double ClusterCenter[3][3] = {{ Merger_Coll_PosX1, Merger_Coll_PosY1, amr->BoxCenter[2] },
                                     { Merger_Coll_PosX2, Merger_Coll_PosY2, amr->BoxCenter[2] },
@@ -542,6 +542,23 @@ void SetParameter()
       PRINT_WARNING( "PAR_NPAR", amr->Par->NPar_Active_AllRank, FORMAT_LONG );
 
    } // if ( OPT__INIT != INIT_BY_RESTART )
+
+
+// Load the jet direction table
+   if ( JetDirection_case == 2 ) {
+      const bool RowMajor_No  = false;    // load data into the column-major order
+      const bool AllocMem_Yes = true;     // allocate memory for JetDirection 
+      const int  NCol         = 7;        // total number of columns to load
+      const int  Col[NCol] = {0, 1, 2, 3, 4, 5, 6};  // target columns: (time, theta_1, phi_1, theta_2, phi_2, theta_3, phi_3)
+ 
+      JetDirection_NBin = Aux_LoadTable( JetDirection, "JetDirection.txt", NCol, Col, RowMajor_No, AllocMem_Yes );
+      Time_table = JetDirection+0*JetDirection_NBin;
+      for (int d=0; d<3; d++) {
+         Theta_table[d] = JetDirection+(1+2*d)*JetDirection_NBin;
+         Phi_table[d]   = JetDirection+(2+2*d)*JetDirection_NBin;
+      }       
+      for (int b=0; b<JetDirection_NBin; b++)   Time_table[b] *= Const_Myr/UNIT_T;
+   }       
 
 
 // (4) reset other general-purpose parameters
@@ -981,7 +998,8 @@ void Init_User_ClusterMerger()
 
       FILE* File_User = fopen(FileName, "rb");
       if ( File_User == NULL ) {
-         printf("Error opening the file \"%s\"\n", FileName);
+//         printf("Error opening the file \"%s\"\n", FileName);
+         Aux_Error( ERROR_INFO, "Error opening the file \"%s\"\n", FileName ); 
          return;
       }    
 
