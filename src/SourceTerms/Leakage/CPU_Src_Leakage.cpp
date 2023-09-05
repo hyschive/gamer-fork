@@ -552,7 +552,13 @@ static void Src_Leakage( real fluid[], const real B[],
    }
 
 
-// (5-1) make sure the new Ye is not within 1% of the table boundary
+// (5-1) update the change rates of energy and Ye first
+#  ifdef DYEDT_NU
+   fluid[DEDT_NU ] = FABS( dEdt_Code  );
+   fluid[DYEDT_NU] = FABS( dYedt_Code );
+#  endif
+
+// (5-2) make sure the new Ye is not within 1% of the table boundary
    const real dYe = dYedt_Code * dt;
 
    if (  ( Ye + dYe < YeMin )  ||  ( Ye + dYe > YeMax )  )
@@ -565,7 +571,7 @@ static void Src_Leakage( real fluid[], const real B[],
       return;
    }
 
-// (5-2) check if the new internal energy density and Ye are allowed for the nuclear EoS table
+// (5-3) check if the new internal energy density and Ye are allowed for the nuclear EoS table
    const real Eint_Update = Eint_Code + dEdt_Code * dt;
    const real Ye_Update   = Ye + dYedt_Code * dt;
 
@@ -580,17 +586,12 @@ static void Src_Leakage( real fluid[], const real B[],
 
    const real Temp_Chk = Out[0];
 
-// (5-3) update the input array if the EoS driver successes (Temp_Chk != NAN)
+// (5-4) update the input array if the EoS driver successes (Temp_Chk != NAN)
    if ( Temp_Chk == Temp_Chk )
    {
       fluid[ENGY] = Hydro_ConEint2Etot( fluid[DENS], fluid[MOMX], fluid[MOMY], fluid[MOMZ], Eint_Update, Emag );
 #     ifdef YE
       fluid[YE  ] = Ye_Update * fluid[DENS];
-#     endif
-
-#     ifdef DYEDT_NU
-      fluid[DEDT_NU ] = FABS( dEdt_Code  );
-      fluid[DYEDT_NU] = FABS( dYedt_Code );
 #     endif
    }
 

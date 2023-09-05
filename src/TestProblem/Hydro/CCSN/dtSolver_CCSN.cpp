@@ -221,7 +221,7 @@ double Mis_GetTimeStep_Leakage( const int lv, const double dTime_dt )
 #           ifdef DYEDT_NU
             const real dEint_Code = amr->patch[ amr->FluSg[lv] ][lv][PID]->fluid[DEDT_NU ][k][j][i];
             const real dYedt      = amr->patch[ amr->FluSg[lv] ][lv][PID]->fluid[DYEDT_NU][k][j][i];
-            const real dYe        = ( dYedt > 0.0 ) ? ( YeMax - Ye ) : ( Ye - YeMin );
+            const real dYe        = FMIN(  FABS( YeMax - Ye ), FABS( Ye - YeMin )  );
 #           else
             const real dEint_Code = NULL_REAL;
             const real dYedt      = NULL_REAL;
