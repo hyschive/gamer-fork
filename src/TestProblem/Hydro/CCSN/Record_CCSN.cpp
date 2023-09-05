@@ -15,6 +15,8 @@
        double CCSN_Leakage_RadNS  [3]  = { 0.0 };
 
 extern bool   CCSN_Is_PostBounce;
+extern double CCSN_Shock_ThresFac_Pres;
+extern double CCSN_Shock_ThresFac_Vel;
 
 extern void Src_WorkBeforeMajorFunc_Leakage( const int lv, const double TimeNew, const double TimeOld, const double dt,
                                              double AuxArray_Flt[], int AuxArray_Int[] );
@@ -697,8 +699,6 @@ void Detect_Shock()
    const int VELZ    = NCOMP_PASSIVE + 3;
    const int PRES    = NCOMP_PASSIVE + 4;
 
-   const real   ThresholdFac_Pres = 0.5;
-   const real   ThresholdFac_Vel  = 0.1;
    const double BoxCenter[3]      = { amr->BoxCenter[0], amr->BoxCenter[1], amr->BoxCenter[2] };
 
 
@@ -825,8 +825,8 @@ void Detect_Shock()
                                           +     ( Fluid[VELX][kk  ][jj  ][ii+1] - Fluid[VELX][kk  ][jj  ][ii-1] )  );
 
 //             (4) examine the criteria for detecting strong shock
-               if (  ( GradP >=  ThresholdFac_Pres * Pres_Min[kk][jj][ii] )  &&
-                     ( DivV  <= -ThresholdFac_Vel  * Cs_Min  [kk][jj][ii] )      )
+               if (  ( GradP >=  CCSN_Shock_ThresFac_Pres * Pres_Min[kk][jj][ii] )  &&
+                     ( DivV  <= -CCSN_Shock_ThresFac_Vel  * Cs_Min  [kk][jj][ii] )      )
                {
                   OMP_Shock_Min   [TID]  = fmin( r, OMP_Shock_Min[TID] );
                   OMP_Shock_Max   [TID]  = fmax( r, OMP_Shock_Max[TID] );

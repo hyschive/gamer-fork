@@ -66,6 +66,9 @@ static int        CCSN_Eint_Mode;                  // Mode of obtaining internal
        double     CCSN_REF_RBase;                  // reference distance for determining a maximum refinement level based on distance from the box center (in cm)
 
        bool       CCSN_Is_PostBounce = false;      // boolean that indicates whether core bounce has occurred
+
+       double     CCSN_Shock_ThresFac_Pres;        // pressure threshold factor for detecting postbounce shock
+       double     CCSN_Shock_ThresFac_Vel;         // velocity threshold facotr for detecting postbounce shock
 // =======================================================================================
 
 
@@ -179,6 +182,8 @@ void SetParameter()
    ReadPara->Add( "CCSN_CC_Rot_Fac",          &CCSN_CC_Rot_Fac,          -1.0,          NoMin_double,     NoMax_double      );
    ReadPara->Add( "CCSN_REF_RBase",           &CCSN_REF_RBase,           1.25e7,        Eps_double,       NoMax_double      );
    ReadPara->Add( "CCSN_Is_PostBounce",       &CCSN_Is_PostBounce,       false,         Useless_bool,     Useless_bool      );
+   ReadPara->Add( "CCSN_Shock_ThresFac_Pres", &CCSN_Shock_ThresFac_Pres, 0.5,           Eps_double,       NoMax_double      );
+   ReadPara->Add( "CCSN_Shock_ThresFac_Vel" , &CCSN_Shock_ThresFac_Vel,  0.1,           Eps_double,       NoMax_double      );
 
    ReadPara->Read( FileName );
 
@@ -314,7 +319,9 @@ void SetParameter()
       if ( CCSN_Prob != Migration_Test ) {
       Aux_Message( stdout, "  radial factor for maximum refine level              = %13.7e\n", CCSN_MaxRefine_RadFac    );
       Aux_Message( stdout, "  scaling factor for lightbulb/leakage dt             = %13.7e\n", CCSN_NuHeat_TimeFac      );
-      Aux_Message( stdout, "  has core bounce occurred                            = %d\n",     CCSN_Is_PostBounce       );   }
+      Aux_Message( stdout, "  has core bounce occurred                            = %d\n",     CCSN_Is_PostBounce       );
+      Aux_Message( stdout, "  pressure threshold factor for detecting shock       = %13.7e\n", CCSN_Shock_ThresFac_Pres );
+      Aux_Message( stdout, "  velocity threshold factor for detecting shock       = %13.7e\n", CCSN_Shock_ThresFac_Vel  );   }
       if ( CCSN_Prob == Core_Collapse ) {
       if ( CCSN_CC_MaxRefine_Flag1 ) {
       Aux_Message( stdout, "  reduced maxmimum refinement lv 1                    = %d\n",     CCSN_CC_MaxRefine_LV1    );
