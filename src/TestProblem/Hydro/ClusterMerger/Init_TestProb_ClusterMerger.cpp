@@ -142,9 +142,9 @@ void AddNewField_ClusterMerger();
 
 int Flu_ResetByUser_Func_ClusterMerger( real fluid[], const double Emag, const double x, const double y, const double z,
                                         const double Time, const double dt, const int lv, double AuxArray[] );
-void Flu_ResetByUser_API_ClusterMerger( const int lv, const int FluSg, const double TimeNew, const double dt );
+void Flu_ResetByUser_API_ClusterMerger( const int lv, const int FluSg, const int MagSg, const double TimeNew, const double dt );
 
-extern void (*Flu_ResetByUser_API_Ptr)( const int lv, const int FluSg, const double TimeNew, const double dt );
+extern void (*Flu_ResetByUser_API_Ptr)( const int lv, const int FluSg, const int MagSg, const double TimeNew, const double dt );
 void Output_ClusterMerger();
 void Init_User_ClusterMerger();
 //extern void GetClusterCenter( int lv, double Cen_old[][3], double Cen_new[][3], double Cen_Vel[][3] ); 

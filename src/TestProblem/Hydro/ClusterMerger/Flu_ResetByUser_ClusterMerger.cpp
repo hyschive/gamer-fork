@@ -73,6 +73,16 @@ double ang_mom_sum[3][3] = {  { 1.0, 0.0, 0.0 },
                               { 1.0, 0.0, 0.0 }, 
                               { 1.0, 0.0, 0.0 } };
 
+
+#ifdef MHD
+extern double (*MHD_ResetByUser_VecPot_Ptr)( const double x, const double y, const double z, const double Time,
+                                             const double dt, const int lv, const char Component, double AuxArray[] );
+extern double (*MHD_ResetByUser_BField_Ptr)( const double x, const double y, const double z, const double Time,
+                                             const double dt, const int lv, const char Component, double AuxArray[], const double B_in,
+                                             const bool UseVecPot, const real *Ax, const real *Ay, const real *Az,
+                                             const int i, const int j, const int k );
+#endif
+
 //-------------------------------------------------------------------------------------------------------
 // Function    :  Flu_ResetByUser_Func_ClusterMerger
 // Description :  Function to reset the fluid field in the Bondi accretion problem
@@ -229,10 +239,11 @@ int Flu_ResetByUser_Func_ClusterMerger( real fluid[], const double Emag, const d
 //
 // Parameter   :  lv    : Target refinement level
 //                FluSg : Target fluid sandglass
+//                MagSg   : Target B field sandglass
 //                TimeNew : Current physical time (system has been updated from TimeOld to TimeNew in EvolveLevel())
 //                dt      : Time interval to advance solution (can be different from TimeNew-TimeOld in COMOVING)
 //-------------------------------------------------------------------------------------------------------
-void Flu_ResetByUser_API_ClusterMerger( const int lv, const int FluSg, const double TimeNew, const double dt )
+void Flu_ResetByUser_API_ClusterMerger( const int lv, const int FluSg, const int MagSg, const double TimeNew, const double dt )
 {
 /*
 // TMP!!! For restart.
@@ -393,7 +404,7 @@ void Flu_ResetByUser_API_ClusterMerger( const int lv, const int FluSg, const dou
             }
 
 #           ifdef MHD
-            const real Emag = MHD_GetCellCenteredBEnergyInPatch( lv, PID, i, j, k, amr->MagSg[lv] );
+            const real Emag = MHD_GetCellCenteredBEnergyInPatch( lv, PID, i, j, k, MagSg );
 #           else
             const real Emag = (real)0.0;
 #           endif
@@ -550,7 +561,7 @@ void Flu_ResetByUser_API_ClusterMerger( const int lv, const int FluSg, const dou
          }   
 
 #        ifdef MHD
-         const real Emag = MHD_GetCellCenteredBEnergyInPatch( lv, PID, i, j, k, amr->MagSg[lv] );
+         const real Emag = MHD_GetCellCenteredBEnergyInPatch( lv, PID, i, j, k, MagSg );
 #        else
          const real Emag = (real)0.0;
 #        endif
