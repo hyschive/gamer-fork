@@ -245,11 +245,16 @@ static void Src_ExactCooling( real fluid[], const real B[],
       if( Ynew < TEFc[i] ){
          knew = i;
          Temp = TEFinv( Ynew, knew, TEF_lambda, TEF_alpha, TEFc, AuxArray_Flt, AuxArray_Int );
+         if (Temp <= TEF_Tmin){
+            printf( "Error! Temp = %13.7e has reached the floor at TimeNew = %13.7e.\n", Temp, TimeNew );
+            Temp = TEF_Tmin;
+         } 
          goto label;
       }
    }
    Temp = TEF_Tmin; // reached the floor: Tn+1 < Tfloor
-   knew = 0;  
+   knew = 0; 
+   printf( "Error! Temp = %13.7e is reaching the floor at TimeNew = %13.7e.\n", Temp, TimeNew ); 
    label: // label for goto statement
 
 // (5) Calculate the new internal energy and update fluid[ENGY]
