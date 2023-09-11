@@ -89,7 +89,8 @@ void Src_Leakage_ComputeTau( Profile_t *Ray[], double *Edge,
    const int NT = 1;
 #  endif
 
-   double EAve[NType_Neutrino], RadNS[NType_Neutrino];
+   double EAve [NType_Neutrino] = { 0.0 };
+   double RadNS[NType_Neutrino] = { 0.0 };
 
    long   **NCell=NULL;
    real   **Dens_Code=NULL, **Temp_Kelv=NULL, **Ye=NULL, **Eint_Code=NULL;
@@ -362,7 +363,7 @@ void Src_Leakage_ComputeTau( Profile_t *Ray[], double *Edge,
                Yp =         Ye[TID][i]   / (  1.0 + TwoThirds * fmax( 0.0, eta_p[TID][i] )  ); // (A8)
 
 //             number fraction with Fermion blocking effects
-               if ( x_h[TID][i] < 0.05 )
+               if ( x_h[TID][i] < 0.5 )
                {
                   fac1 = exp( -eta_hat[TID][i] );
 
