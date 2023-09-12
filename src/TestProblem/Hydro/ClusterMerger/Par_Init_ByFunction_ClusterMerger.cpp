@@ -868,7 +868,6 @@ void GetClusterCenter( int lv, bool AdjustPos, bool AdjustVel, double Cen_old[][
                double soften = amr->dh[MAX_LEVEL]; 
                double *pote1 = new double[num_par_sum[0]]; 
                for (int i=0; i<num_par_sum[0]; i++)   pote1[i] = 0.0;
-#              pragma omp for collapse( 2 ) 
                for (int i=0; i<num_par_sum[0]; i++){
                   for (int j=0; j<num_par_sum[0]; j++){
                      double rel_pos = sqrt(SQR(ParX_sum1[i]-ParX_sum1[j])+SQR(ParY_sum1[i]-ParY_sum1[j])+SQR(ParZ_sum1[i]-ParZ_sum1[j]));
@@ -890,7 +889,6 @@ void GetClusterCenter( int lv, bool AdjustPos, bool AdjustVel, double Cen_old[][
                if ( Merger_Coll_NumHalos == 2 ){
                   double *pote2 = new double[num_par_sum[1]];
                   for (int i=0; i<num_par_sum[1]; i++)   pote2[i] = 0.0;
-#                 pragma omp for collapse( 2 ) 
                   for (int i=0; i<num_par_sum[1]; i++){
                      for (int j=0; j<num_par_sum[1]; j++){
                         double rel_pos = sqrt(SQR(ParX_sum2[i]-ParX_sum2[j])+SQR(ParY_sum2[i]-ParY_sum2[j])+SQR(ParZ_sum2[i]-ParZ_sum2[j]));
