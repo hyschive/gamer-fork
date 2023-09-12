@@ -141,9 +141,6 @@ void nuc_eos_C_short( real *Out, const real *In,
          real  var_mode = NULL_REAL;
          int   var_idx;
               *keyerr   = 0;
-#  if ( NUC_EOS_SOLVER != NUC_EOS_SOLVER_ORIG )
-         bool  in_aux_table = true;
-#  endif
 
 #  if ( NUC_TABLE_MODE == NUC_TABLE_MODE_TEMP )
    real lt_IG = 1.0;
@@ -184,8 +181,8 @@ void nuc_eos_C_short( real *Out, const real *In,
 #        endif
 
 #        if ( NUC_EOS_SOLVER != NUC_EOS_SOLVER_ENGY )
-         if ( leps >  table_chk[npt_chk-1]  )  {   in_aux_table = false;   }
-         if ( leps <  table_chk[        0]  )  {   in_aux_table = false;   }
+         if ( leps >  table_chk[npt_chk-1]  )  {  *keyerr = 110;           }
+         if ( leps <  table_chk[        0]  )  {  *keyerr = 111;           }
 #        else
          if ( leps >  table_chk[npt_chk-1]  )  {  *keyerr = 110;  return;  }
          if ( leps <  table_chk[        0]  )  {  *keyerr = 111;  return;  }
@@ -224,8 +221,8 @@ void nuc_eos_C_short( real *Out, const real *In,
                     var_idx  = NUC_VAR_IDX_ENTR;
 
 #        if ( NUC_EOS_SOLVER != NUC_EOS_SOLVER_ORIG )
-         if ( entr >  mode_Aux[nmode_Aux-1] )  {   in_aux_table = false;   }
-         if ( entr <  mode_Aux[          0] )  {   in_aux_table = false;   }
+         if ( entr >  mode_Aux[nmode_Aux-1] )  {  *keyerr = 130;           }
+         if ( entr <  mode_Aux[          0] )  {  *keyerr = 131;           }
 #        endif
          if ( entr != entr                  )  {  *keyerr = 132;  return;  }
       }
@@ -239,8 +236,8 @@ void nuc_eos_C_short( real *Out, const real *In,
                     var_idx  = NUC_VAR_IDX_PRES;
 
 #        if ( NUC_EOS_SOLVER != NUC_EOS_SOLVER_ORIG )
-         if ( lprs >  mode_Aux[nmode_Aux-1] )  {   in_aux_table = false;   }
-         if ( lprs <  mode_Aux[          0] )  {   in_aux_table = false;   }
+         if ( lprs >  mode_Aux[nmode_Aux-1] )  {  *keyerr = 140;           }
+         if ( lprs <  mode_Aux[          0] )  {  *keyerr = 141;           }
 #        endif
          if ( lprs != lprs                  )  {  *keyerr = 142;  return;  }
       }
@@ -255,23 +252,24 @@ void nuc_eos_C_short( real *Out, const real *In,
 #     if ( NUC_EOS_SOLVER != NUC_EOS_SOLVER_ORIG )
       const real *table_Aux = alltables_Aux + var_idx*nrho_Aux*nmode_Aux*nye_Aux;
 
-#     if   ( NUC_EOS_SOLVER == NUC_EOS_SOLVER_LUT    )
-      if ( in_aux_table )
+      if ( *keyerr == 0 )
+      {
+#        if   ( NUC_EOS_SOLVER == NUC_EOS_SOLVER_LUT    )
          findtoreps( lr, var_mode, xye, &ltoreps, table_Aux, nrho_Aux, nmode_Aux, nye_Aux, ntoreps,
                      logrho_Aux, mode_Aux, yes_Aux, logtoreps, IntScheme_Aux, keyerr );
 
-#     elif ( NUC_EOS_SOLVER == NUC_EOS_SOLVER_DIRECT )
-      if ( in_aux_table )
+#        elif ( NUC_EOS_SOLVER == NUC_EOS_SOLVER_DIRECT )
          findtoreps_direct( lr, var_mode, xye, &ltoreps, alltables, table_Aux, nrho, ntoreps, nye, nmode_Aux,
                             logrho, logtoreps, yes, mode_Aux, keymode, keyerr );
-#     endif
+#        endif
+      }
 #     endif // if ( NUC_EOS_SOLVER != NUC_EOS_SOLVER_ORIG )
 
 
 //    (b) Newton-Raphson and bisection methods (for temperature-based table only)
 #     if ( NUC_TABLE_MODE == NUC_TABLE_MODE_TEMP )
 #     if ( NUC_EOS_SOLVER != NUC_EOS_SOLVER_ORIG )
-      if ( *keyerr != 0  ||  !in_aux_table )
+      if ( *keyerr != 0 )
 #     endif
          findtemp_NR_bisection( lr, lt_IG, xye, var_mode, &ltoreps, nrho, ntoreps, nye, alltables,
                                 logrho, logtoreps, yes, keymode, keyerr, rfeps );
