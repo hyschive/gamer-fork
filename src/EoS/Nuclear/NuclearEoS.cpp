@@ -109,7 +109,11 @@ void findtemp_NR_bisection( const real lr, const real lt_IG, const real ye, cons
 //                                     120 : temp too high
 //                                     121 : temp too low
 //                                     122 : temp NaN
+//                                     130 : entr too high
+//                                     131 : entr too low
 //                                     132 : entr NaN
+//                                     140 : pres too high
+//                                     141 : pres too low
 //                                     142 : pres NaN
 //                                     150 : Ye   too high
 //                                     151 : Ye   too low
@@ -180,12 +184,14 @@ void nuc_eos_C_short( real *Out, const real *In,
                      ltoreps   = leps;
 #        endif
 
-#        if ( NUC_EOS_SOLVER != NUC_EOS_SOLVER_ENGY )
+#        if ( NUC_EOS_SOLVER != NUC_EOS_SOLVER_ORIG )
+#        if ( NUC_TABLE_MODE == NUC_TABLE_MODE_TEMP )
          if ( leps >  table_chk[npt_chk-1]  )  {  *keyerr = 110;           }
          if ( leps <  table_chk[        0]  )  {  *keyerr = 111;           }
 #        else
          if ( leps >  table_chk[npt_chk-1]  )  {  *keyerr = 110;  return;  }
          if ( leps <  table_chk[        0]  )  {  *keyerr = 111;  return;  }
+#        endif
 #        endif
          if ( leps != leps                  )  {  *keyerr = 112;  return;  }
       }
