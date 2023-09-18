@@ -184,15 +184,13 @@ void nuc_eos_C_short( real *Out, const real *In,
                      ltoreps   = leps;
 #        endif
 
-#        if ( NUC_EOS_SOLVER == NUC_EOS_SOLVER_ORIG )
-#        if ( NUC_TABLE_MODE != NUC_TABLE_MODE_TEMP )
+#        if   ( NUC_EOS_SOLVER == NUC_EOS_SOLVER_ORIG )
+#        if   ( NUC_TABLE_MODE != NUC_TABLE_MODE_TEMP )
          if ( leps >  table_chk[npt_chk-1]  )  {  *keyerr = 110;  return;  }
          if ( leps <  table_chk[        0]  )  {  *keyerr = 111;  return;  }
 #        endif
-#        endif
-
-#        if ( NUC_EOS_SOLVER != NUC_EOS_SOLVER_ORIG )
-#        if ( NUC_TABLE_MODE == NUC_TABLE_MODE_TEMP )
+#        elif ( NUC_EOS_SOLVER != NUC_EOS_SOLVER_ORIG )
+#        if   ( NUC_TABLE_MODE == NUC_TABLE_MODE_TEMP )
          if ( leps >  table_chk[npt_chk-1]  )  {  *keyerr = 110;           }
          if ( leps <  table_chk[        0]  )  {  *keyerr = 111;           }
 #        else
