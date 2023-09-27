@@ -1007,9 +1007,11 @@ void GetClusterCenter( int lv, bool AdjustPos, bool AdjustVel, double Cen_old[][
       MPI_Allreduce( Vel_Tmp, Cen_Vel[c], 3, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD );
    }
 
-   const bool TimingSendPar_No = false;
-   Par_PassParticle2Sibling( lv, TimingSendPar_No );
-   Par_PassParticle2Son_MultiPatch( lv, PAR_PASS2SON_EVOLVE, TimingSendPar_No, NULL_INT, NULL );
+   if ( CurrentMaxLv  &&  AdjustPos == true ){
+      const bool TimingSendPar_No = false;
+      Par_PassParticle2Sibling( lv, TimingSendPar_No );
+      Par_PassParticle2Son_MultiPatch( lv, PAR_PASS2SON_EVOLVE, TimingSendPar_No, NULL_INT, NULL );
+   }
 
 } // FUNCTION : GetClusterCenter
 

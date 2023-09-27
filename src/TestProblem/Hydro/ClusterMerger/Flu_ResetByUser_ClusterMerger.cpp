@@ -572,9 +572,12 @@ void Flu_ResetByUser_API_ClusterMerger( const int lv, const int FluSg, const int
 //       operations necessary only when this cell has been reset
          if ( Reset != 0 )
          {
-//          apply density and energy floors
 #           if ( MODEL == HYDRO  ||  MODEL == MHD )
-            fluid[DENS] = FMAX( fluid[DENS], (real)MIN_DENS );
+//          abort the program instead of applying a density floor 
+            if ( fluid[DENS] < MIN_DENS ) {
+               Aux_Error( ERROR_INFO, "Error: Fluid density has reached the floor!\n" );
+            }
+//          apply an energy floor
             fluid[ENGY] = Hydro_CheckMinEintInEngy( fluid[DENS], fluid[MOMX], fluid[MOMY], fluid[MOMZ], fluid[ENGY],
                                                     (real)MIN_EINT, Emag );
 
