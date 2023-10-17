@@ -69,11 +69,7 @@ Procedure for outputting new variables:
 
 
 //-------------------------------------------------------------------------------------------------------
-<<<<<<< HEAD
 // Function    :  Output_DumpData_Total_HDF5 (FormatVersion = 2471)
-=======
-// Function    :  Output_DumpData_Total_HDF5 (FormatVersion = 2470)
->>>>>>> master
 // Description :  Output all simulation data in the HDF5 format, which can be used as a restart file
 //                or loaded by YT
 //
@@ -1421,11 +1417,7 @@ void FillIn_KeyInfo( KeyInfo_t &KeyInfo, const int NFieldStored )
 
    const time_t CalTime = time( NULL );   // calendar time
 
-<<<<<<< HEAD
    KeyInfo.FormatVersion        = 2471;
-=======
-   KeyInfo.FormatVersion        = 2470;
->>>>>>> master
    KeyInfo.Model                = MODEL;
    KeyInfo.NLevel               = NLEVEL;
    KeyInfo.NCompFluid           = NCOMP_FLUID;
