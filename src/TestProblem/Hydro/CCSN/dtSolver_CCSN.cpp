@@ -65,6 +65,9 @@ double Mis_GetTimeStep_Lightbulb( const int lv, const double dTime_dt )
 #     pragma omp for schedule( runtime )
       for (int PID=0; PID<amr->NPatchComma[lv][1]; PID++)
       {
+
+         if ( amr->patch[0][lv][PID]->son != -1 )   continue;
+
          for (int k=0; k<PS1; k++)  {
          for (int j=0; j<PS1; j++)  {
          for (int i=0; i<PS1; i++)  {
@@ -190,6 +193,9 @@ double Mis_GetTimeStep_Leakage( const int lv, const double dTime_dt )
 #     pragma omp for schedule( runtime )
       for (int PID=0; PID<amr->NPatchComma[lv][1]; PID++)
       {
+
+         if ( amr->patch[0][lv][PID]->son != -1 )   continue;
+
          for (int k=0; k<PS1; k++)  {
          for (int j=0; j<PS1; j++)  {
          for (int i=0; i<PS1; i++)  {
