@@ -47,9 +47,14 @@ bool Flag_ClusterMerger( const int i, const int j, const int k, const int lv, co
    for (int c=0; c<Merger_Coll_NumHalos; c++)
    {
       double R_SQR = SQR(Pos[0]-ClusterCen[c][0])+SQR(Pos[1]-ClusterCen[c][1])+SQR(Pos[2]-ClusterCen[c][2]);
-      if (  R_SQR <= SQR(R_acc)  &&  R_acc/dh <= Threshold[0]  ){ 
+//      if (  R_SQR <= SQR(40.0*1e-3)  &&  6.0*1e-3/dh <= Threshold[0]  ){ 
+//         Flag = true;
+//         return Flag;
+//      }
+//      else if (  R_SQR <= SQR(R_acc)  &&  R_acc/dh <= Threshold[0]  ){
+      if (  R_SQR <= SQR(2*R_acc)  &&  R_acc/dh <= Threshold[0]  ){
          Flag = true;
-         return Flag;
+         return Flag;   
       }
    }
 

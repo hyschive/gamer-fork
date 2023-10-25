@@ -728,6 +728,11 @@ void GetClusterCenter( int lv, bool AdjustPos, bool AdjustVel, double Cen_old[][
    double min_pos[3][3], DM_Vel[3][3];   // The updated BH position / velocity 
    const bool CurrentMaxLv = (  NPatchTotal[lv] > 0  &&  ( lv == MAX_LEVEL || NPatchTotal[lv+1] == 0 )  );
 
+// TMP!!!!!
+//   Cen_old[0][0] = 7.475;
+//   Cen_old[0][1] = 7.490;
+//   Cen_old[0][2] = 7.502;
+
 // Initialize min_pos to be the old center
    for (int c=0; c<Merger_Coll_NumHalos; c++){
       for (int d=0; d<3; d++)   min_pos[c][d] = Cen_old[c][d];
@@ -1015,6 +1020,11 @@ void GetClusterCenter( int lv, bool AdjustPos, bool AdjustVel, double Cen_old[][
       Par_PassParticle2Son_MultiPatch( lv, PAR_PASS2SON_EVOLVE, TimingSendPar_No, NULL_INT, NULL );
    }
 
+// TMP!! Fix the BH 
+   for (int c=0; c<Merger_Coll_NumHalos; c++) {
+      for (int d=0; d<3; d++)   Cen_new[c][d] = 7.5; 
+      for (int d=0; d<3; d++)   Cen_Vel[c][d] = 0.0; 
+   }
 } // FUNCTION : GetClusterCenter
 
 #endif // #ifdef MASSIVE_PARTICLES

@@ -241,7 +241,6 @@ void Output_ExactCooling()
    Tcool_nume /= count;
 
 // (1) Compute the analytical solution for Sutherland-Dopita cooling function 
-/*
    double gsl_result, gsl_error;
    double K = -(GAMMA-1)*EC_Dens*cl_mol*cl_mol/cl_moli_mole/Const_kB;
    gsl_integration_workspace *w = gsl_integration_workspace_alloc(1000);
@@ -249,8 +248,8 @@ void Output_ExactCooling()
    F.function = &integrand;
    gsl_integration_qags(&F, EC_Temp, Temp_nume, 0, 1e-10, 1000, w, &gsl_result, &gsl_error);
    double Time_gsl = gsl_result/K;
-*/
 
+/*
 // (2) Compute the analytical solution for single branch cooling function
    double Temp_anal, Tcool_anal;
    if (sqrt(EC_Temp) >= 3.2217e-27/2.0*(GAMMA-1)*EC_Dens*cl_mol*cl_mol/cl_mole/cl_moli/Const_kB*Time[0]*UNIT_T){
@@ -260,7 +259,7 @@ void Output_ExactCooling()
    else   Temp_anal = MIN_TEMP;
 
    Tcool_anal = 1.0/(GAMMA-1)*EC_Dens*Const_kB*Temp_anal/((EC_Dens*cl_mol/cl_mole)*(EC_Dens*cl_mol/cl_moli)*3.2217e-27*sqrt(Temp_anal))/Const_Myr;
-
+*/
 /*
 // (3) Compute the analytical solution for 2 branch cooling function
    const int size_anal = 1001;       
@@ -313,8 +312,8 @@ void Output_ExactCooling()
    if ( MPI_Rank == 0 ) {
       FILE *File_User = fopen( FileName, "a" );
       fprintf( File_User, "%14.7e%10d ", Time[0]*UNIT_T/Const_Myr, DumpID );
-      fprintf( File_User, "%14.7e %14.7e %14.7e %14.7e %14.7e", Temp_nume, Temp_anal, (Temp_nume-Temp_anal)/Temp_anal, Tcool_nume, Tcool_anal );
-//      fprintf( File_User, "%14.7e %14.7e %14.7e %14.7e %14.7e", Temp_nume, Time_gsl/Const_Myr, (Time[0]*UNIT_T-Time_gsl)/Time_gsl, Tcool_nume, 0.0 );
+//      fprintf( File_User, "%14.7e %14.7e %14.7e %14.7e %14.7e", Temp_nume, Temp_anal, (Temp_nume-Temp_anal)/Temp_anal, Tcool_nume, Tcool_anal );
+      fprintf( File_User, "%14.7e %14.7e %14.7e %14.7e %14.7e", Temp_nume, Time_gsl/Const_Myr, (Time[0]*UNIT_T-Time_gsl)/Time_gsl, Tcool_nume, 0.0 );
       fprintf( File_User, "\n" );
       fclose( File_User );
    }
@@ -360,8 +359,8 @@ double Lambda(double TEMP, double ZIRON){
    if (QLOG1 < -30.0)   QLOG1 = -30.0;
    QLAMBDA1 = pow(10.0, QLOG1);
 
-//   Lambdat = QLAMBDA0 + ZIRON * QLAMBDA1;
-   Lambdat = 3.2217e-27 * sqrt(TEMP);
+   Lambdat = QLAMBDA0 + ZIRON * QLAMBDA1;
+//   Lambdat = 3.2217e-27 * sqrt(TEMP);
 
    return Lambdat;
 }
