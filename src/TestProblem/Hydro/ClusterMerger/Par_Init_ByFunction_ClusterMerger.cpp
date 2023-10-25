@@ -755,7 +755,7 @@ void GetClusterCenter( int lv, bool AdjustPos, bool AdjustVel, double Cen_old[][
             for (int d=0; d<3; d++)  Cen_new_pre[c][d] = min_pos[c][d];
          }
 
-         int N = 3000;   // Maximum particle numbers (to allocate the array size)
+         int N = 10000;   // Maximum particle numbers (to allocate the array size)
          int num_par[3] = {0, 0, 0};   // (each rank) number of particles inside the target region of each cluster
          double **ParX = new double*[3];
          double **ParY = new double*[3];
@@ -781,7 +781,8 @@ void GetClusterCenter( int lv, bool AdjustPos, bool AdjustVel, double Cen_old[][
                const double *EdgeL = amr->patch[0][lv][PID]->EdgeL;
                const double *EdgeR = amr->patch[0][lv][PID]->EdgeR;
                const double patch_pos[3] = { (EdgeL[0]+EdgeR[0])*0.5, (EdgeL[1]+EdgeR[1])*0.5, (EdgeL[2]+EdgeR[2])*0.5 };
-               if (SQR(patch_pos[0]-Cen_old[c][0])+SQR(patch_pos[1]-Cen_old[c][1])+SQR(patch_pos[2]-Cen_old[c][2]) <= SQR(4*R_acc)){
+               const double patch_d = sqrt(SQR(EdgeL[0]-EdgeR[0])+SQR(EdgeL[1]-EdgeR[1])+SQR(EdgeL[2]-EdgeR[2]))*0.5;
+               if (SQR(patch_pos[0]-Cen_new_pre[c][0])+SQR(patch_pos[1]-Cen_new_pre[c][1])+SQR(patch_pos[2]-Cen_new_pre[c][2]) <= SQR(4*R_acc+patch_d)){
                   for (int p=0; p<amr->patch[0][lv][PID]->NPar; p++) {
                      const long ParID = amr->patch[0][lv][PID]->ParList[p];
                      const real ParX_tmp = amr->Par->PosX[ParID];
@@ -791,7 +792,7 @@ void GetClusterCenter( int lv, bool AdjustPos, bool AdjustVel, double Cen_old[][
                      const real VelX_tmp = amr->Par->VelX[ParID];
                      const real VelY_tmp = amr->Par->VelY[ParID];
                      const real VelZ_tmp = amr->Par->VelZ[ParID];
-                     if ( SQR(ParX_tmp-Cen_old[c][0])+SQR(ParY_tmp-Cen_old[c][1])+SQR(ParZ_tmp-Cen_old[c][2]) <= SQR(R_acc) ){
+                     if ( SQR(ParX_tmp-Cen_new_pre[c][0])+SQR(ParY_tmp-Cen_new_pre[c][1])+SQR(ParZ_tmp-Cen_new_pre[c][2]) <= SQR(2*R_acc) ){
 //                      Record the mass, position and velocity of this particle
                         ParX[c][num_par[c]] = ParX_tmp;
                         ParY[c][num_par[c]] = ParY_tmp;
@@ -815,7 +816,7 @@ void GetClusterCenter( int lv, bool AdjustPos, bool AdjustVel, double Cen_old[][
       
 //       Collect the number of target particles from each rank
          MPI_Allreduce( num_par, num_par_sum, 3, MPI_INT, MPI_SUM, MPI_COMM_WORLD );
-      
+
          int num_Ranks;
 #        ifndef SERIAL
          MPI_Comm_size(MPI_COMM_WORLD, &num_Ranks);
@@ -942,6 +943,7 @@ void GetClusterCenter( int lv, bool AdjustPos, bool AdjustVel, double Cen_old[][
          }
          if ( count > 1  &&  sqrt(dis[0]) < dis_exp  &&  sqrt(dis[1]) < dis_exp )   IfConverge = true;
 
+//         if ( MPI_Rank == 0 )  Aux_Message( stdout, "Debugging! num_par_sum = %d, count = %d, min_pos[0][0] = %14.8e, min_pos[0][1] = %14.8e, min_pos[0][2] = %14.8e, Cen_new_pre[0][0] = %14.8e, Cen_new_pre[0][1] = %14.8e, Cen_new_pre[0][2] = %14.8e, dis[0] = %14.8e, dis[1] = %14.8e\n", num_par_sum[0], count, min_pos[0][0], min_pos[0][1], min_pos[0][2], Cen_new_pre[0][0], Cen_new_pre[0][1], Cen_new_pre[0][2], dis[0], dis[1] );   
          delete[] ParX_sum1;
          delete[] ParX_sum2;
          delete[] ParY_sum1;
