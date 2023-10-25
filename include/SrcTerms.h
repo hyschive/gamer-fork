@@ -91,6 +91,8 @@ struct SrcTerms_t
    double   *EC_TEF_lambda_DevPtr;
    double   *EC_TEF_alpha_DevPtr;
    double   *EC_TEFc_DevPtr;
+   bool      EC_subcycling;
+   double    EC_dtCoef;
 #  endif
 
 // user-specified source term
