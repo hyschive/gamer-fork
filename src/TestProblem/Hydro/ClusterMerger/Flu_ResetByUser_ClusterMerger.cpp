@@ -220,6 +220,7 @@ int Flu_ResetByUser_Func_ClusterMerger( real fluid[], const double Emag, const d
 
    } // if ( status != 0 )  
 
+//   Aux_Message( stdout, "Test if this function is called!!!" );
    return status;
 
 
@@ -245,32 +246,6 @@ int Flu_ResetByUser_Func_ClusterMerger( real fluid[], const double Emag, const d
 //-------------------------------------------------------------------------------------------------------
 void Flu_ResetByUser_API_ClusterMerger( const int lv, const int FluSg, const int MagSg, const double TimeNew, const double dt )
 {
-/*
-// TMP!!! For restart.
-   if ( OPT__INIT == INIT_BY_RESTART && BH_Pos[0][0] == 0.0 ){                        
-      BH_Pos[0][0] = 7.4994459e+00;
-      BH_Pos[0][1] = 7.5032802e+00;
-      BH_Pos[0][2] = 7.5010762e+00;
-//      BH_Pos[1][0] = 7.5331659e+00;
-//      BH_Pos[1][1] = 7.5056639e+00;
-//      BH_Pos[1][2] = 7.5041471e+00;
-      ClusterCen[0][0] = BH_Pos[0][0];
-      ClusterCen[0][1] = BH_Pos[0][1];
-      ClusterCen[0][2] = BH_Pos[0][2];
-//      ClusterCen[1][0] = BH_Pos[1][0];
-//      ClusterCen[1][1] = BH_Pos[1][1];
-//      ClusterCen[1][2] = BH_Pos[1][2];
-      BH_Vel[0][0] = 8.3447796e+01/UNIT_V*(Const_km/Const_s); 
-      BH_Vel[0][1] = -6.5153720e+00/UNIT_V*(Const_km/Const_s);    
-      BH_Vel[0][2] = 2.3914967e+02/UNIT_V*(Const_km/Const_s);
-//      BH_Vel[1][0] = -4.8891710e+02/UNIT_V*(Const_km/Const_s);
-//      BH_Vel[1][1] = -2.5195094e+01/UNIT_V*(Const_km/Const_s);         
-//      BH_Vel[1][2] = 5.7178019e+01/UNIT_V*(Const_km/Const_s);
-      Bondi_MassBH1 = 7.1177548e+10/1e14;
-//      Bondi_MassBH2 = 7.1476139e+10/1e14;
-      AdjustCount = 239;   // int(TimeNew/AdjustPeriod)-1 
-   } 
-*/
 
    double RelativeBHPos[3] = { BH_Pos[0][0]-BH_Pos[1][0], BH_Pos[0][1]-BH_Pos[1][1], BH_Pos[0][2]-BH_Pos[1][2] };
    double RelativeBHVel[3] = { BH_Vel[0][0]-BH_Vel[1][0], BH_Vel[0][1]-BH_Vel[1][1], BH_Vel[0][2]-BH_Vel[1][2] };
@@ -467,11 +442,14 @@ void Flu_ResetByUser_API_ClusterMerger( const int lv, const int FluSg, const int
       MPI_Allreduce( &V_cyl_exacthalf[c], &V_cyl_exacthalf_sum[c], 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD );      
       MPI_Allreduce( &normalize[c],       &normalize_sum[c],       1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD );
 
-      if (num_sum == 0){
+//      if ( num_sum == 0 || not CurrentMaxLv ){
+      if ( num_sum == 0 ){
          Mdot_BH[c] = 0.0;
          GasDens[c] = 0.0;
          SoundSpeed[c] = 0.0;
          RelativeVel[c] = 0.0;
+         for (int d=0; d<3; d++)  GasVel[c][d] = 0.0;
+         for (int d=0; d<3; d++)  BH_Pos[c][d] = ClusterCen[c][d];
       }
       else{
          for (int d=0; d<3; d++)  gas_vel_sum[d] /= rho_sum;
@@ -537,6 +515,7 @@ void Flu_ResetByUser_API_ClusterMerger( const int lv, const int FluSg, const int
    }
    if ( lv == 0 )  dt_base = dt;
 
+   if ( MPI_Rank == 0 && CurrentMaxLv )  Aux_Message( stdout, "Debugging! TimeNew = %14.8e, GasDens = %14.8e, SoundSpeed = %14.8e, RelativeVel = %14.8e, Edot = %14.8e\n", TimeNew, GasDens[0], SoundSpeed[0], RelativeVel[0], Edot[0] );
 
 #  pragma omp parallel for private( Reset, fluid, fluid_bk, x, y, z, x0, y0, z0 ) schedule( runtime ) \
    reduction(+:CM_Bondi_SinkMass, CM_Bondi_SinkMomX, CM_Bondi_SinkMomY, CM_Bondi_SinkMomZ, CM_Bondi_SinkMomXAbs, CM_Bondi_SinkMomYAbs, CM_Bondi_SinkMomZAbs, CM_Bondi_SinkE, CM_Bondi_SinkEk, CM_Bondi_SinkEt, CM_Bondi_SinkNCell)
@@ -567,6 +546,7 @@ void Flu_ResetByUser_API_ClusterMerger( const int lv, const int FluSg, const int
 #        endif
 
 //       reset this cell
+//         if (CurrentMaxLv)  Reset = Flu_ResetByUser_Func_ClusterMerger( fluid, Emag, x, y, z, TimeNew, dt, lv, NULL );
          Reset = Flu_ResetByUser_Func_ClusterMerger( fluid, Emag, x, y, z, TimeNew, dt, lv, NULL );
 
 //       operations necessary only when this cell has been reset
