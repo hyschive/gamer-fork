@@ -67,6 +67,7 @@ extern double E_power_inj[3];
 extern double ClusterCen[3][3];
 extern double BH_Vel[3][3];
 extern double R_acc;
+extern bool   fixBH;
 int num_par_sum[3] = {0, 0, 0};   // total number of particles inside the target region of each cluster
 // =======================================================================================
 
@@ -725,6 +726,7 @@ void Aux_Record_ClusterMerger()
 void GetClusterCenter( int lv, bool AdjustPos, bool AdjustVel, double Cen_old[][3], double Cen_new[][3], double Cen_Vel[][3] )
 {
 
+   if ( fixBH == false ){
    double min_pos[3][3], DM_Vel[3][3];   // The updated BH position / velocity 
    const bool CurrentMaxLv = (  NPatchTotal[lv] > 0  &&  ( lv == MAX_LEVEL || NPatchTotal[lv+1] == 0 )  );
 
@@ -1019,11 +1021,10 @@ void GetClusterCenter( int lv, bool AdjustPos, bool AdjustVel, double Cen_old[][
       Par_PassParticle2Sibling( lv, TimingSendPar_No );
       Par_PassParticle2Son_MultiPatch( lv, PAR_PASS2SON_EVOLVE, TimingSendPar_No, NULL_INT, NULL );
    }
-
-// TMP!! Fix the BH 
-   for (int c=0; c<Merger_Coll_NumHalos; c++) {
-      for (int d=0; d<3; d++)   Cen_new[c][d] = 7.5; 
-      for (int d=0; d<3; d++)   Cen_Vel[c][d] = 0.0; 
+   } // if ( fixBH == false )
+   else {   // if ( fixBH == true )
+      for (int d=0; d<3; d++)   Cen_new[0][d] = 7.5; 
+      for (int d=0; d<3; d++)   Cen_Vel[0][d] = 0.0; 
    }
 } // FUNCTION : GetClusterCenter
 

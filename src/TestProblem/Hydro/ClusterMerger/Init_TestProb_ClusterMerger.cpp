@@ -121,6 +121,7 @@ static double *JetDirection = NULL;   // jet direction[time/theta_1/phi_1/theta_
        double AdjustPeriod;   // the time interval of adjustment
        int    AdjustCount = 0;  // count the number of adjustments
        int    JetDirection_case;  // Methods for choosing the jet direction: 1. Fixed at x-axis; 2. Import from table (generate JetDirection.txt); 3. Align with angular momentum
+       bool   fixBH;   // fix the BH at the simulation box center and set its velocity to be zero (1 cluster only)
 // =======================================================================================
 
 // problem-specific function prototypes
@@ -294,6 +295,7 @@ void SetParameter()
    ReadPara->Add( "AdjustBHVel",           &AdjustBHVel,            false,             Useless_bool,  Useless_bool   );
    ReadPara->Add( "AdjustPeriod",          &AdjustPeriod,            -1.0,             NoMin_double,  NoMax_double   );
    ReadPara->Add( "JetDirection_case",     &JetDirection_case,       1,                1,             3              );
+   ReadPara->Add( "fixBH",                 &fixBH,                  false,             Useless_bool,  Useless_bool   );
 
    ReadPara->Read( FileName );
 
@@ -303,6 +305,16 @@ void SetParameter()
    if ( Merger_Coll_NumHalos + (int)Merger_Coll_UseMetals != NCOMP_PASSIVE_USER )
       Aux_Error( ERROR_INFO,
                  "please set NCOMP_PASSIVE_USER (currently %d) == Merger_Coll_NumHalos + Merger_Coll_UseMetals (currently %d) in the Makefile !!\n", NCOMP_PASSIVE_USER, Merger_Coll_NumHalos + (int)Merger_Coll_UseMetals );
+
+// Set the correct parameters when fixing the BH
+   if ( Merger_Coll_NumHalos != 1 && fixBH == true ){
+      fixBH = false;
+      Aux_Message( stdout, "WARNING! Reset fixBH to be false for multiple clusters!\n" );
+   }
+   if ( fixBH == true ){
+      AdjustBHPos = false;
+      AdjustBHVel = false;
+   }
 
 // convert to code units
    Merger_Coll_PosX1 *= Const_kpc / UNIT_L;
