@@ -51,6 +51,7 @@ double normalize_const[3];   // The exact normalization constant
        
 // the variables that need to be recorded
 double E_inj_exp[3] = { 0.0, 0.0, 0.0 };   // the expected amount of injected energy
+double M_inj_exp[3] = { 0.0, 0.0, 0.0 };   // the expected amount of injected gas mass
 double dt_base; 
 double E_power_inj[3];   // the injection power
 
@@ -512,6 +513,7 @@ void Flu_ResetByUser_API_ClusterMerger( const int lv, const int FluSg, const int
 
    if ( CurrentMaxLv ){
       for (int c=0; c<Merger_Coll_NumHalos; c++) E_inj_exp[c] += Edot[c]*dt;
+      for (int c=0; c<Merger_Coll_NumHalos; c++) M_inj_exp[c] += Mdot[c]*dt;
    }
    if ( lv == 0 )  dt_base = dt;
 
