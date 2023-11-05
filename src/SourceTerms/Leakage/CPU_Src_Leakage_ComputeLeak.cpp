@@ -6,7 +6,7 @@
 
 #ifndef __CUDACC__
 
-static bool   Have_tau_USG = false;
+static int    NIter_Max = 200;
 extern double CCSN_Leakage_EAve [NType_Neutrino];
 extern double CCSN_Leakage_RadNS[NType_Neutrino];
 
@@ -60,11 +60,6 @@ void Src_Leakage_ComputeTau( Profile_t *Ray[], double *Edge,
                              real *HeatE_Rms, real *HeatE_Ave )
 {
 
-#  ifdef FLOAT8
-   const double Tolerance_Leak = 1.0e-10;
-#  else
-   const double Tolerance_Leak = 1.0e-5;
-#  endif
    const bool   NuHeat         = SrcTerms.Leakage_NuHeat;
    const real   NuHeat_Fac     = SrcTerms.Leakage_NuHeat_Fac;
 
@@ -304,7 +299,7 @@ void Src_Leakage_ComputeTau( Profile_t *Ray[], double *Edge,
 
 //       (3) compute the opacity using the Ruffert scheme
          double kappa_scat_n[NType_Neutrino], kappa_scat_p[NType_Neutrino], kappa_abs_n, kappa_abs_p;
-         double Yn, Yp, Ynp, Ypn, fac1, fac2, rel_diff;
+         double Yn, Yp, Ynp, Ypn, fac1, fac2;
 
 //       (3-1) set up the initial guess of opacity and constant factors
          for (int i=0; i<NRadius; i++)
@@ -322,29 +317,18 @@ void Src_Leakage_ComputeTau( Profile_t *Ray[], double *Edge,
             kappa_abs_fac   [TID][i] = Const_Ruffert_kappa_a  * fac1; // (A11) and (A12)
          }
 
-//       (3-2) use the previous tau_Ruff as the initial guess
-         if ( Have_tau_USG )
-         {
-            for (int i=0; i<NRadius;        i++)
-            for (int k=0; k<NType_Neutrino; k++)
-               tau[TID][i][k] = tau_Ruff_3D[i][j][k];
-         }
-
-//       (3-3) loop to get converged optical depth
-         int NIter = 1, NIter_Max = 200;
+//       (3-2) loop to get converged optical depth
+         int NIter = 1;
 
          while ( NIter < NIter_Max )
          {
 //          integrate opacity to get optical depth; (A20)
-            if (  ( NIter >= 2 )  ||  !Have_tau_USG  )
+            for (int k=0; k<NType_Neutrino; k++)
             {
-               for (int k=0; k<NType_Neutrino; k++)
-               {
-                  tau[TID][NRadius-1][k] = 0.0;
+               tau[TID][NRadius-1][k] = 0.0;
 
-                  for (int i=NRadius-2; i>=0; i--)
-                     tau[TID][i][k] = tau[TID][i+1][k] + kappa_tot[TID][i][k] * ds[i];
-               }
+               for (int i=NRadius-2; i>=0; i--)
+                  tau[TID][i][k] = tau[TID][i+1][k] + kappa_tot[TID][i][k] * ds[i];
             }
 
 //          use new optical depth to update opacity
@@ -416,17 +400,17 @@ void Src_Leakage_ComputeTau( Profile_t *Ray[], double *Edge,
 
 
 //          compute the relative change in total opacity
-            rel_diff = 0.0;
+            bool IsConverged = true;
 
             for (int i=0; i<NRadius;        i++) {
             for (int k=0; k<NType_Neutrino; k++) {
-               if ( kappa_tot_old[TID][i][k] == 0.0 )   continue;
+               if ( !IsConverged )   break;
 
-               rel_diff = MAX( fabs( kappa_tot[TID][i][k] / kappa_tot_old[TID][i][k] - 1.0 ),
-                               rel_diff );
+               if (  !Mis_CompareRealValue( real(kappa_tot[TID][i][k]), real(kappa_tot_old[TID][i][k]), NULL, false )  )
+                  IsConverged = false;
             }}
 
-            if ( rel_diff < Tolerance_Leak )   break;
+            if ( IsConverged )   break;
 
 
 //          back up the current kappa
@@ -452,8 +436,8 @@ void Src_Leakage_ComputeTau( Profile_t *Ray[], double *Edge,
                                     tau[TID][i][0], tau[TID][i][1], tau[TID][i][2] );
 #           endif
 
-            Aux_Error( ERROR_INFO, "failed in finding converged opacity for Ray (%d) in %s (tolerance=%.15e, relative difference=%.15e) !!\n",
-                       j, __FUNCTION__, Tolerance_Leak, rel_diff );
+            Aux_Error( ERROR_INFO, "failed in finding converged opacity for Ray (%d) in %s !!\n",
+                       j, __FUNCTION__ );
          }
 
 //       update eta_nu and store tau with typecasting
@@ -713,10 +697,6 @@ void Src_Leakage_ComputeTau( Profile_t *Ray[], double *Edge,
       CCSN_Leakage_EAve [k] = EAve [k] / NRay;
       CCSN_Leakage_RadNS[k] = RadNS[k] / NRay;
    }
-
-
-// set Have_tau_USG to true once this function is invoked
-   Have_tau_USG = true;
 
 
 // free allocated arrays
