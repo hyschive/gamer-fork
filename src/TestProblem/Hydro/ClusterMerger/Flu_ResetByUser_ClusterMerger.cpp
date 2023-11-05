@@ -340,9 +340,9 @@ void Flu_ResetByUser_API_ClusterMerger( const int lv, const int FluSg, const int
    int    Reset;
    real   fluid[NCOMP_TOTAL], fluid_bk[NCOMP_TOTAL], fluid_Bondi[NCOMP_TOTAL];
    double x, y, z, x0, y0, z0, x2, y2, z2, x02, y02, z02;
-   double V_cyl_exacthalf[3] = { 0.0, 0.0, 0.0 };   // The exact volume of jet cylinder 
+   double V_cyl_exact[3] = { 0.0, 0.0, 0.0 };   // The exact volume of jet cylinder
    double normalize[3]   = { 0.0, 0.0, 0.0 };   // For computing the correct normalization constant
-   double V_cyl_exacthalf_sum[3], normalize_sum[3];   // for MPI_Allreduce()
+   double V_cyl_exact_sum[3], normalize_sum[3];   // for MPI_Allreduce()
 
 // reset to 0 since we only want to record the number of void cells **for one sub-step**
    for (int c=0; c<Merger_Coll_NumHalos; c++) CM_Bondi_SinkNCell[c] = 0;
@@ -423,12 +423,11 @@ void Flu_ResetByUser_API_ClusterMerger( const int lv, const int FluSg, const int
                Jet_dr_2 = 2.0*Area_2/Dis_c2v_2;
                Jet_dh_2 = sqrt( Dis_c2m_2*Dis_c2m_2 - Jet_dr_2*Jet_dr_2 );
 
-               int sign = 1*SIGN( Vec_c2m_2[0]*Jet_Vec[c][0] + Vec_c2m_2[1]*Jet_Vec[c][1] + Vec_c2m_2[2]*Jet_Vec[c][2] ); 
-               if ( sign > 0  &&  Jet_dh_2 <= Jet_HalfHeight[c]  &&  Jet_dr_2 <= Jet_Radius[c] )
-               {
-                  V_cyl_exacthalf[c] += dv;      
+               if ( Jet_dh_2 <= Jet_HalfHeight[c]  &&  Jet_dr_2 <= Jet_Radius[c] )
+               {   
+                  V_cyl_exact[c] += dv; 
                   normalize[c] += sin( Jet_WaveK[c]*Jet_dh_2 )*dv;
-               }
+               }   
             }
          }}}
       } // for (int PID=0; PID<amr->NPatchComma[lv][1]; PID++)
@@ -440,7 +439,7 @@ void Flu_ResetByUser_API_ClusterMerger( const int lv, const int FluSg, const int
       MPI_Allreduce( &Cs,      &Cs_sum,      1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD );
       MPI_Allreduce( gas_vel,  gas_vel_sum,  3, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD );
       MPI_Allreduce( ang_mom,  ang_mom_sum[c],  3, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD );
-      MPI_Allreduce( &V_cyl_exacthalf[c], &V_cyl_exacthalf_sum[c], 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD );      
+      MPI_Allreduce( &V_cyl_exact[c], &V_cyl_exact_sum[c], 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD );   
       MPI_Allreduce( &normalize[c],       &normalize_sum[c],       1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD );
 
 //      if ( num_sum == 0 || not CurrentMaxLv ){
@@ -472,8 +471,8 @@ void Flu_ResetByUser_API_ClusterMerger( const int lv, const int FluSg, const int
 //         for (int d=0; d<3; d++)  Jet_Vec[c][d] = ang_mom_sum[c][d]/ang_mom_norm;
       }
 
-      if (V_cyl_exacthalf_sum[c] != 0)   normalize_const[c] = V_cyl_exacthalf_sum[c]/normalize_sum[c];
-      else                               normalize_const[c] = 0.5*M_PI;
+      if ( V_cyl_exact_sum[c] != 0 )   normalize_const[c] = V_cyl_exact_sum[c]/normalize_sum[c];
+      else                             normalize_const[c] = 0.5*M_PI;
 
    } // for (int c=0; c<Merger_Coll_NumHalos; c++)
 
@@ -499,10 +498,10 @@ void Flu_ResetByUser_API_ClusterMerger( const int lv, const int FluSg, const int
       V_cyl[c] = M_PI*SQR(Jet_Radius[c])*2*Jet_HalfHeight[c];
 
 //    calculate the density that need to be injected
-      if ( CurrentMaxLv && V_cyl_exacthalf_sum[c] != 0){
-         M_inj[c] = Mdot[c]*dt/(2*V_cyl_exacthalf_sum[c]);
-         P_inj[c] = Pdot[c]*dt/(2*V_cyl_exacthalf_sum[c]);
-         E_inj[c] = Edot[c]*dt/(2*V_cyl_exacthalf_sum[c]);
+      if ( CurrentMaxLv && V_cyl_exact_sum[c] != 0){
+         M_inj[c] = Mdot[c]*dt/V_cyl_exact_sum[c];
+         P_inj[c] = Pdot[c]*dt/V_cyl_exact_sum[c];
+         E_inj[c] = Edot[c]*dt/V_cyl_exact_sum[c];
       }
       else{
          M_inj[c] = Mdot[c]*dt/V_cyl[c];
