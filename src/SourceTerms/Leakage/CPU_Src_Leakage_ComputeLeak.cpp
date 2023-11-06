@@ -60,6 +60,11 @@ void Src_Leakage_ComputeTau( Profile_t *Ray[], double *Edge,
                              real *HeatE_Rms, real *HeatE_Ave )
 {
 
+#  ifdef FLOAT8
+   const double Tolerance_Leak = 1.0e-10;
+#  else
+   const double Tolerance_Leak = 1.0e-5;
+#  endif
    const bool   NuHeat         = SrcTerms.Leakage_NuHeat;
    const real   NuHeat_Fac     = SrcTerms.Leakage_NuHeat_Fac;
 
@@ -307,7 +312,6 @@ void Src_Leakage_ComputeTau( Profile_t *Ray[], double *Edge,
             for (int k=0; k<NType_Neutrino; k++)
             {
                kappa_tot    [TID][i][k] = 1.0; // cm^-1
-               kappa_tot_old[TID][i][k] = 1.0; // cm^-1
             }
 
             fac1 = Dens_CGS[TID][i] * SQR( Temp_MeV[TID][i] );
@@ -322,6 +326,12 @@ void Src_Leakage_ComputeTau( Profile_t *Ray[], double *Edge,
 
          while ( NIter < NIter_Max )
          {
+//          back up the used opacity
+            for (int i=0; i<NRadius;        i++) {
+            for (int k=0; k<NType_Neutrino; k++) {
+               kappa_tot_old[TID][i][k] = kappa_tot[TID][i][k];
+            }}
+
 //          integrate opacity to get optical depth; (A20)
             for (int k=0; k<NType_Neutrino; k++)
             {
@@ -406,18 +416,13 @@ void Src_Leakage_ComputeTau( Profile_t *Ray[], double *Edge,
             for (int k=0; k<NType_Neutrino; k++) {
                if ( !IsConverged )   break;
 
-               if (  !Mis_CompareRealValue( real(kappa_tot[TID][i][k]), real(kappa_tot_old[TID][i][k]), NULL, false )  )
-                  IsConverged = false;
+               double rel_diff = fabs( kappa_tot[TID][i][k] / kappa_tot_old[TID][i][k] ) - 1.0;
+
+               if ( rel_diff > Tolerance_Leak )   IsConverged = false;
             }}
 
             if ( IsConverged )   break;
 
-
-//          back up the current kappa
-            for (int i=0; i<NRadius;        i++) {
-            for (int k=0; k<NType_Neutrino; k++) {
-               kappa_tot_old[TID][i][k] = kappa_tot[TID][i][k];
-            }}
 
             NIter++;
          } // while ( NIter < NIter_Max )
