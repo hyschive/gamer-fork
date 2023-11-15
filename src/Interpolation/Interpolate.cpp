@@ -16,7 +16,7 @@ static IntSchemeFunc_t Int_SelectScheme( const IntScheme_t IntScheme );
 static void Interpolate_Iterate( real CData[], const int CSize[3], const int CStart[3], const int CRange[3],
                                  real FData[], const int FSize[3], const int FStart[3],
                                  const int NComp, const IntScheme_t IntScheme, const bool UnwrapPhase,
-                                 const bool Monotonic[], const bool OppSign0thOrder, const bool AllCons,
+                                 const bool Monotonic[], const bool OppSign0thOrder,
                                  const IntPrim_t IntPrim, const ReduceOrFixMonoCoeff_t ReduceMonoCoeff,
                                  const real CMag[], const real FMag[][NCOMP_MAG] );
 #endif
@@ -155,7 +155,7 @@ void Interpolate( real CData[], const int CSize[3], const int CStart[3], const i
 #  if ( MODEL == HYDRO )
    if ( ReduceMonoCoeff || IntPrim )
       Interpolate_Iterate( CData, CSize, CStart, CRange, FData, FSize, FStart, NComp, IntScheme,
-                           UnwrapPhase, Monotonic, OppSign0thOrder, AllCons, IntPrim, ReduceMonoCoeff,
+                           UnwrapPhase, Monotonic, OppSign0thOrder, IntPrim, ReduceMonoCoeff,
                            CMag_IntIter, FMag_IntIter );
 
    else
@@ -206,7 +206,7 @@ void Interpolate( real CData[], const int CSize[3], const int CStart[3], const i
 //                6. Only applicable for HYDRO
 //                7. When enabling INTERP_MASK (in Macro.h), only iterate on cells with unphysical results
 //                8. Interpolate on electron fraction (i.e., fluid[YE]/fluid[DENS]) instead of electron density (i.e., fluid[YE])
-//                   when enabling INT_YE_FRAC and AllCons==true
+//                   when enabling INT_YE_FRAC
 //
 // Parameter   :  See Interpolate()
 //
@@ -215,7 +215,7 @@ void Interpolate( real CData[], const int CSize[3], const int CStart[3], const i
 void Interpolate_Iterate( real CData[], const int CSize[3], const int CStart[3], const int CRange[3],
                           real FData[], const int FSize[3], const int FStart[3],
                           const int NComp, const IntScheme_t IntScheme, const bool UnwrapPhase,
-                          const bool Monotonic[], const bool OppSign0thOrder, const bool AllCons,
+                          const bool Monotonic[], const bool OppSign0thOrder,
                           const IntPrim_t IntPrim, const ReduceOrFixMonoCoeff_t ReduceMonoCoeff,
                           const real CMag[], const real FMag[][NCOMP_MAG] )
 {
@@ -315,7 +315,7 @@ void Interpolate_Iterate( real CData[], const int CSize[3], const int CStart[3],
 
 //    convert electron density to electron fraction
 #     ifdef INT_YE_FRAC
-      if ( !FData_is_Prim && AllCons )
+      if ( !FData_is_Prim )
       {
          real *CData_Ye   = CData + CSize3D*YE;
          real *CData_Dens = CData + CSize3D*DENS;
@@ -331,7 +331,7 @@ void Interpolate_Iterate( real CData[], const int CSize[3], const int CStart[3],
 
 //    convert electron fraction back to electron density
 #     ifdef INT_YE_FRAC
-      if ( !FData_is_Prim && AllCons )
+      if ( !FData_is_Prim )
       {
          real *FData_Ye   = FData_tmp + FSize3D*YE;
          real *FData_Dens = FData_tmp + FSize3D*DENS;
