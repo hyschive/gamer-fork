@@ -319,7 +319,6 @@ void Interpolate_Iterate( real CData[], const int CSize[3], const int CStart[3],
       {
          real *CData_Ye   = CData + CSize3D*YE;
          real *CData_Dens = CData + CSize3D*DENS;
-
          for (int i=0; i<CSize3D; i++)    CData_Ye[i] /= CData_Dens[i];
       }
 #     endif
@@ -336,8 +335,12 @@ void Interpolate_Iterate( real CData[], const int CSize[3], const int CStart[3],
       {
          real *FData_Ye   = FData_tmp + FSize3D*YE;
          real *FData_Dens = FData_tmp + FSize3D*DENS;
-
          for (int i=0; i<FSize3D; i++)    FData_Ye[i] *= FData_Dens[i];
+
+//       must also convert the coarse data back so that it won't affect any follow-up calculations
+         real *CData_Ye   = CData + CSize3D*YE;
+         real *CData_Dens = CData + CSize3D*DENS;
+         for (int i=0; i<CSize3D; i++)    CData_Ye[i] *= CData_Dens[i];
       }
 #     endif
 
