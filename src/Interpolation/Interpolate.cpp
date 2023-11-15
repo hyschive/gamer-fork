@@ -2,6 +2,14 @@
 #include "CUFLU.h"
 
 
+
+// interpolate on electron fraction instead of electron density (currently only for EOS_NUCLEAR)
+#ifdef YE
+#  define INT_YE_FRAC
+#endif
+
+
+
 static IntSchemeFunc_t Int_SelectScheme( const IntScheme_t IntScheme );
 
 #if ( MODEL == HYDRO )
@@ -195,6 +203,8 @@ void Interpolate( real CData[], const int CSize[3], const int CStart[3], const i
 //                5. CData[] may be overwritten
 //                6. Only applicable for HYDRO
 //                7. When enabling INTERP_MASK (in Macro.h), only iterate on cells with unphysical results
+//                8. Interpolate on electron fraction (i.e., fluid[YE]/fluid[DENS]) instead of electron density (i.e., fluid[YE])
+//                   when enabling INT_YE_FRAC
 //
 // Parameter   :  See Interpolate()
 //
@@ -301,9 +311,36 @@ void Interpolate_Iterate( real CData[], const int CSize[3], const int CStart[3],
       }
 
 
+//    convert electron density to electron fraction
+#     ifdef INT_YE_FRAC
+      if ( !FData_is_Prim )
+      {
+         real *CData_Ye   = CData + CSize3D*YE;
+         real *CData_Dens = CData + CSize3D*DENS;
+         for (int i=0; i<CSize3D; i++)    CData_Ye[i] /= CData_Dens[i];
+      }
+#     endif
+
+
 //    4. perform interpolation
       IntSchemeFunc( CData, CSize, CStart, CRange, FData_tmp, FSize, FStart, NComp,
                      UnwrapPhase, Monotonic, IntMonoCoeff, OppSign0thOrder );
+
+
+//    convert electron fraction back to electron density
+#     ifdef INT_YE_FRAC
+      if ( !FData_is_Prim )
+      {
+         real *FData_Ye   = FData_tmp + FSize3D*YE;
+         real *FData_Dens = FData_tmp + FSize3D*DENS;
+         for (int i=0; i<FSize3D; i++)    FData_Ye[i] *= FData_Dens[i];
+
+//       must also convert the coarse data back so that it won't affect any follow-up calculations
+         real *CData_Ye   = CData + CSize3D*YE;
+         real *CData_Dens = CData + CSize3D*DENS;
+         for (int i=0; i<CSize3D; i++)    CData_Ye[i] *= CData_Dens[i];
+      }
+#     endif
 
 
       Fail_AnyCell = false;
