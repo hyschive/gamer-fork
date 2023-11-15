@@ -2,13 +2,21 @@
 #include "CUFLU.h"
 
 
+
+// interpolate on electron fraction instead of electron density (currently only for EOS_NUCLEAR)
+#ifdef YE
+#  define INT_YE_FRAC
+#endif
+
+
+
 static IntSchemeFunc_t Int_SelectScheme( const IntScheme_t IntScheme );
 
 #if ( MODEL == HYDRO )
 static void Interpolate_Iterate( real CData[], const int CSize[3], const int CStart[3], const int CRange[3],
                                  real FData[], const int FSize[3], const int FStart[3],
                                  const int NComp, const IntScheme_t IntScheme, const bool UnwrapPhase,
-                                 const bool Monotonic[], const bool OppSign0thOrder,
+                                 const bool Monotonic[], const bool OppSign0thOrder, const bool AllCons,
                                  const IntPrim_t IntPrim, const ReduceOrFixMonoCoeff_t ReduceMonoCoeff,
                                  const real CMag[], const real FMag[][NCOMP_MAG] );
 #endif
@@ -72,6 +80,8 @@ void Int_Quartic   ( real CData[], const int CSize[3], const int CStart[3], cons
 //                                  --> See Int_MinMod1D() for details
 //                AllCons         : Input fields include all conserved hydro variables (i.e., _TOTAL)
 //                                  --> For determining whether ReduceMonoCoeff and IntPrim are applicable
+//                                  --> Also for determining whether interpolating on electron fraction instead of
+//                                      electron density
 //                                  --> HYDRO only and must have NComp==NCOMP_TOTAL
 //                IntPrim         : Whether or not switch from conserved to primitive variables when interpolation fails
 //                                  --> Must enable AllCons
@@ -145,7 +155,7 @@ void Interpolate( real CData[], const int CSize[3], const int CStart[3], const i
 #  if ( MODEL == HYDRO )
    if ( ReduceMonoCoeff || IntPrim )
       Interpolate_Iterate( CData, CSize, CStart, CRange, FData, FSize, FStart, NComp, IntScheme,
-                           UnwrapPhase, Monotonic, OppSign0thOrder, IntPrim, ReduceMonoCoeff,
+                           UnwrapPhase, Monotonic, OppSign0thOrder, AllCons, IntPrim, ReduceMonoCoeff,
                            CMag_IntIter, FMag_IntIter );
 
    else
@@ -195,6 +205,8 @@ void Interpolate( real CData[], const int CSize[3], const int CStart[3], const i
 //                5. CData[] may be overwritten
 //                6. Only applicable for HYDRO
 //                7. When enabling INTERP_MASK (in Macro.h), only iterate on cells with unphysical results
+//                8. Interpolate on electron fraction (i.e., fluid[YE]/fluid[DENS]) instead of electron density (i.e., fluid[YE])
+//                   when enabling INT_YE_FRAC and AllCons==true
 //
 // Parameter   :  See Interpolate()
 //
@@ -203,7 +215,7 @@ void Interpolate( real CData[], const int CSize[3], const int CStart[3], const i
 void Interpolate_Iterate( real CData[], const int CSize[3], const int CStart[3], const int CRange[3],
                           real FData[], const int FSize[3], const int FStart[3],
                           const int NComp, const IntScheme_t IntScheme, const bool UnwrapPhase,
-                          const bool Monotonic[], const bool OppSign0thOrder,
+                          const bool Monotonic[], const bool OppSign0thOrder, const bool AllCons,
                           const IntPrim_t IntPrim, const ReduceOrFixMonoCoeff_t ReduceMonoCoeff,
                           const real CMag[], const real FMag[][NCOMP_MAG] )
 {
@@ -301,9 +313,33 @@ void Interpolate_Iterate( real CData[], const int CSize[3], const int CStart[3],
       }
 
 
+//    convert electron density to electron fraction
+#     ifdef INT_YE_FRAC
+      if ( !FData_is_Prim && AllCons )
+      {
+         real *CData_Ye   = CData + CSize3D*YE;
+         real *CData_Dens = CData + CSize3D*DENS;
+
+         for (int i=0; i<CSize3D; i++)    CData_Ye[i] /= CData_Dens[i];
+      }
+#     endif
+
+
 //    4. perform interpolation
       IntSchemeFunc( CData, CSize, CStart, CRange, FData_tmp, FSize, FStart, NComp,
                      UnwrapPhase, Monotonic, IntMonoCoeff, OppSign0thOrder );
+
+
+//    convert electron fraction back to electron density
+#     ifdef INT_YE_FRAC
+      if ( !FData_is_Prim && AllCons )
+      {
+         real *FData_Ye   = FData_tmp + FSize3D*YE;
+         real *FData_Dens = FData_tmp + FSize3D*DENS;
+
+         for (int i=0; i<FSize3D; i++)    FData_Ye[i] *= FData_Dens[i];
+      }
+#     endif
 
 
       Fail_AnyCell = false;
