@@ -80,8 +80,6 @@ void Int_Quartic   ( real CData[], const int CSize[3], const int CStart[3], cons
 //                                  --> See Int_MinMod1D() for details
 //                AllCons         : Input fields include all conserved hydro variables (i.e., _TOTAL)
 //                                  --> For determining whether ReduceMonoCoeff and IntPrim are applicable
-//                                  --> Also for determining whether interpolating on electron fraction instead of
-//                                      electron density
 //                                  --> HYDRO only and must have NComp==NCOMP_TOTAL
 //                IntPrim         : Whether or not switch from conserved to primitive variables when interpolation fails
 //                                  --> Must enable AllCons
