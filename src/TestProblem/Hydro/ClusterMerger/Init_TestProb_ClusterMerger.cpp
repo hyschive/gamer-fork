@@ -68,6 +68,7 @@ static FieldIdx_t ColorField1Idx = Idx_Undefined;
 static FieldIdx_t ColorField2Idx = Idx_Undefined;
 static FieldIdx_t ColorField3Idx = Idx_Undefined;
 
+       int    Accretion_Mode;       // 1: hot mode; 2: code mode; 3: combine (hot + cold)   
        double eta;                  // mass loading factor in jet feedback
        double eps_f;                // the radiative efficiency in jet feedback
        double eps_m;                // the fraction of total energy that goes into the thermal energy in jet feedback
@@ -106,6 +107,9 @@ static FieldIdx_t ColorField3Idx = Idx_Undefined;
        double SoundSpeed[3];        // average sound speed inside the accreiton radius
        double GasDens[3];           // average gas density inside the accreiton radius
        double RelativeVel[3];       // relative velocity between BH and gas for each cluster
+       double ColdGasMass[3];       // cold gas mass inside the accretion radius
+       double GasMass[3];           // total gas mass inside the accretion radius
+       double ParMass[3];           // total DM mass inside the accretion radius
        double ClusterCen[3][3];     // the center of each cluster
        double BH_Pos[3][3];         // BH position of each cluster
        double BH_Vel[3][3];         // BH velocity of each cluster
@@ -288,6 +292,7 @@ void SetParameter()
    ReadPara->Add( "Jet_Radius1",            &Jet_Radius1,            -1.0,             Eps_double,    NoMax_double   );
    ReadPara->Add( "Jet_Radius2",            &Jet_Radius2,            -1.0,             Eps_double,    NoMax_double   );
    ReadPara->Add( "Jet_Radius3",            &Jet_Radius3,            -1.0,             Eps_double,    NoMax_double   );
+   ReadPara->Add( "Accretion_Mode",         &Accretion_Mode,          1,               1,             3              );
    ReadPara->Add( "eta",                    &eta,                    -1.0,             NoMin_double,  NoMax_double   );
    ReadPara->Add( "eps_f",                  &eps_f,                  -1.0,             NoMin_double,  NoMax_double   );
    ReadPara->Add( "eps_m",                  &eps_m,                  -1.0,             NoMin_double,  NoMax_double   );
