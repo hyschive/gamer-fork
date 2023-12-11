@@ -682,24 +682,24 @@ void Detect_CoreBounce()
 void Detect_Shock()
 {
 
+   const int    SHK_GHOST_SIZE = 1;
+   const int    SHK_NXT        = PS1 + 2*SHK_GHOST_SIZE;
+   const int    SHK_NXT_P1     = SHK_NXT + 1;
+   const int    NPG_Max        = FLU_GPU_NPGROUP;
+   const int    Stride1        = CUBE( SHK_NXT );
+   const int    Stride2        = NCOMP_TOTAL * Stride1;
+   const int    Stride3        = NCOMP_MAG * SQR( SHK_NXT ) * SHK_NXT_P1;
+   const double BoxCenter[3]   = { amr->BoxCenter[0], amr->BoxCenter[1], amr->BoxCenter[2] };
+
+#  ifndef MHD
+   const int OPT__MAG_INT_SCHEME = INT_NONE;
+#  endif
+
 #  ifdef OPENMP
    const int NT = OMP_NTHREAD;
 #  else
    const int NT = 1;
 #  endif
-
-   const int NGhost  = 1;
-   const int PS1P2   = PS1 + 2*NGhost;
-   const int NPG_Max = FLU_GPU_NPGROUP;
-   const int TVarCC  = _DENS | _PASSIVE | _VELX | _VELY | _VELZ | _PRES;
-   const int Stride1 = CUBE( PS1P2 );
-   const int Stride2 = NCOMP_TOTAL * Stride1;
-   const int VELX    = NCOMP_PASSIVE + 1;
-   const int VELY    = NCOMP_PASSIVE + 2;
-   const int VELZ    = NCOMP_PASSIVE + 3;
-   const int PRES    = NCOMP_PASSIVE + 4;
-
-   const double BoxCenter[3]      = { amr->BoxCenter[0], amr->BoxCenter[1], amr->BoxCenter[2] };
 
 
    double Shock_Min    =  HUGE_NUMBER;
@@ -714,9 +714,15 @@ void Detect_Shock()
    double OMP_Shock_Weight[NT];
    int    OMP_Shock_Found [NT];
 
-   real *OMP_Fluid    = new real [ 8*NPG_Max*Stride2 ];
-   real *OMP_Pres_Min = new real [ 8*NPG_Max*Stride1 ];
-   real *OMP_Cs_Min   = new real [ 8*NPG_Max*Stride1 ];
+   real *OMP_Fluid    = new real [ 8*NPG_Max*NCOMP_TOTAL*CUBE(SHK_NXT) ];
+   real *OMP_Pres_Min = new real [ 8*NPG_Max*            CUBE(SHK_NXT) ];
+   real *OMP_Cs_Min   = new real [ 8*NPG_Max*            CUBE(SHK_NXT) ];
+#  ifdef MHD
+   real *OMP_Mag      = new real [ 8*NPG_Max*NCOMP_MAG  * SQR(SHK_NXT)*SHK_NXT_P1 ];
+#  else
+   real *OMP_Mag      = NULL;
+#  endif
+
 
    for (int t=0; t<NT; t++)
    {
@@ -741,11 +747,11 @@ void Detect_Shock()
       {
          const int NPG = MIN( NPG_Max, NTotal-Disp );
 
-//       (1-a) prepare the primitive and passive variables
-//             note that the data are prepared in order of density, Passive, velx, vely, velz, and pressure
-         Prepare_PatchData( lv, Time[lv], OMP_Fluid, NULL,
-                            NGhost, NPG, PID0_List+Disp, TVarCC, _NONE,
-                            OPT__FLU_INT_SCHEME, INT_NONE, UNIT_PATCH, NSIDE_26, false,
+//       (1) prepare the data
+//           --> prepare all fields to ensure monotonicity
+         Prepare_PatchData( lv, Time[lv], OMP_Fluid, OMP_Mag,
+                            SHK_GHOST_SIZE, NPG, PID0_List+Disp, _TOTAL, _MAG,
+                            OPT__FLU_INT_SCHEME, OPT__MAG_INT_SCHEME, UNIT_PATCH, NSIDE_26, false,
                             OPT__BC_FLU, BC_POT_NONE, -1.0, -1.0, -1.0, -1.0, false );
 
 
@@ -762,41 +768,66 @@ void Detect_Shock()
 
             if ( amr->patch[0][lv][PID]->son != -1 )  continue;
 
-            real (*Fluid   )[PS1P2][PS1P2][PS1P2] = ( real(*)[PS1P2][PS1P2][PS1P2] ) ( OMP_Fluid    + PID_IDX*Stride2 );
-            real (*Pres_Min)       [PS1P2][PS1P2] = ( real(*)       [PS1P2][PS1P2] ) ( OMP_Pres_Min + PID_IDX*Stride1 );
-            real (*Cs_Min  )       [PS1P2][PS1P2] = ( real(*)       [PS1P2][PS1P2] ) ( OMP_Cs_Min   + PID_IDX*Stride1 );
 
-//          (1-b) compute the sound speed and store in the density field
-            for (int k=0; k<PS1P2; k++)  {
-            for (int j=0; j<PS1P2; j++)  {
-            for (int i=0; i<PS1P2; i++)  {
+            real (*Fluid   ) [SHK_NXT][SHK_NXT][SHK_NXT] = ( real(*) [SHK_NXT][SHK_NXT][SHK_NXT] ) ( OMP_Fluid    + PID_IDX*Stride2 );
+            real (*Pres_Min)          [SHK_NXT][SHK_NXT] = ( real(*)          [SHK_NXT][SHK_NXT] ) ( OMP_Pres_Min + PID_IDX*Stride1 );
+            real (*Cs_Min  )          [SHK_NXT][SHK_NXT] = ( real(*)          [SHK_NXT][SHK_NXT] ) ( OMP_Cs_Min   + PID_IDX*Stride1 );
+#           ifdef MHD
+            real (*Mag     )[SHK_NXT_P1*SHK_NXT*SHK_NXT] = ( real(*)[SHK_NXT_P1*SHK_NXT*SHK_NXT] ) ( OMP_Mag      + PID_IDX*Stride3 );
+#           endif
 
-               real Passive[NCOMP_PASSIVE];
-               real Dens = Fluid[DENS][k][j][i];
-               real Pres = Fluid[PRES][k][j][i];
 
-               for (int v=0; v<NCOMP_PASSIVE; v++)   Passive[v] = Fluid[v+1][k][j][i];
+//          (2-a) compute the pressure and sound speed
+//                --> the sound speed and pressure are stored in the density and energy fields, respectively
+            for (int k=0; k<SHK_NXT; k++)  {
+            for (int j=0; j<SHK_NXT; j++)  {
+            for (int i=0; i<SHK_NXT; i++)  {
 
-               const real CSqr = EoS_DensPres2CSqr_CPUPtr( Dens, Pres, Passive,
+               real FluidForEoS[NCOMP_TOTAL];
+
+               for (int v=0; v<NCOMP_TOTAL; v++)   FluidForEoS[v] = Fluid[v][k][j][i];
+
+#              ifdef MHD
+               real B[NCOMP_MAG];
+               MHD_GetCellCenteredBField( B, Mag[MAGX], Mag[MAGY], Mag[MAGZ],
+                                          SHK_NXT, SHK_NXT, SHK_NXT, i, j, k );
+
+               const real Emag = 0.5*( SQR(B[MAGX]) + SQR(B[MAGY]) + SQR(B[MAGZ]) );
+#              else
+               const real Emag = NULL_REAL;
+#              endif
+
+               const real Pres = Hydro_Con2Pres( FluidForEoS[DENS], FluidForEoS[MOMX], FluidForEoS[MOMY],
+                                                 FluidForEoS[MOMZ], FluidForEoS[ENGY], FluidForEoS+NCOMP_FLUID,
+                                                 (MIN_PRES>=(real)0.0), MIN_PRES, Emag,
+                                                 EoS_DensEint2Pres_CPUPtr, EoS_AuxArray_Flt, EoS_AuxArray_Int,
+                                                 h_EoS_Table, NULL );
+
+               const real CSqr = EoS_DensPres2CSqr_CPUPtr( FluidForEoS[DENS], Pres, FluidForEoS+NCOMP_FLUID,
                                                            EoS_AuxArray_Flt, EoS_AuxArray_Int, h_EoS_Table );
 
-               Fluid[DENS][k][j][i] = SQRT( CSqr );
+//             store pressure and sound speed, and convert momentum to velocity
+               Fluid[DENS][k][j][i]  = SQRT( CSqr );
+               Fluid[MOMX][k][j][i] /= FluidForEoS[DENS];
+               Fluid[MOMY][k][j][i] /= FluidForEoS[DENS];
+               Fluid[MOMZ][k][j][i] /= FluidForEoS[DENS];
+               Fluid[ENGY][k][j][i]  = Pres;
 
             }}} // i, j, k
 
 
-//          (2) use a naive method to find the minimum of pressure and sound speed in the local 3x3 subarray
-            for (int k=NGhost; k<PS1+NGhost; k++)  {
-            for (int j=NGhost; j<PS1+NGhost; j++)  {
-            for (int i=NGhost; i<PS1+NGhost; i++)  {
+//          (2-b) use a naive method to find the minimum of pressure and sound speed in the local 3x3 subarray
+            for (int k=SHK_GHOST_SIZE; k<PS1+SHK_GHOST_SIZE; k++)  {
+            for (int j=SHK_GHOST_SIZE; j<PS1+SHK_GHOST_SIZE; j++)  {
+            for (int i=SHK_GHOST_SIZE; i<PS1+SHK_GHOST_SIZE; i++)  {
 
                real Pres_Min_Loc = HUGE_NUMBER;
                real Cs_Min_Loc   = HUGE_NUMBER;
 
-               for (int kk=k-NGhost; kk<=k+NGhost; kk++)  {
-               for (int jj=j-NGhost; jj<=j+NGhost; jj++)  {
-               for (int ii=i-NGhost; ii<=i+NGhost; ii++)  {
-                  Pres_Min_Loc = FMIN( Pres_Min_Loc, Fluid[PRES][kk][jj][ii] );
+               for (int kk=k-SHK_GHOST_SIZE; kk<=k+SHK_GHOST_SIZE; kk++)  {
+               for (int jj=j-SHK_GHOST_SIZE; jj<=j+SHK_GHOST_SIZE; jj++)  {
+               for (int ii=i-SHK_GHOST_SIZE; ii<=i+SHK_GHOST_SIZE; ii++)  {
+                  Pres_Min_Loc = FMIN( Pres_Min_Loc, Fluid[ENGY][kk][jj][ii] );
                   Cs_Min_Loc   = FMIN( Cs_Min_Loc,   Fluid[DENS][kk][jj][ii] );
                }}}
 
@@ -806,9 +837,9 @@ void Detect_Shock()
             }}} // i, j, k
 
 
-            for (int k=0; k<PS1; k++)  {  const double z = amr->patch[0][lv][PID]->EdgeL[2] + (k+0.5)*dh; const int kk = k+NGhost;
-            for (int j=0; j<PS1; j++)  {  const double y = amr->patch[0][lv][PID]->EdgeL[1] + (j+0.5)*dh; const int jj = j+NGhost;
-            for (int i=0; i<PS1; i++)  {  const double x = amr->patch[0][lv][PID]->EdgeL[0] + (i+0.5)*dh; const int ii = i+NGhost;
+            for (int k=0; k<PS1; k++)  {  const double z = amr->patch[0][lv][PID]->EdgeL[2] + (k+0.5)*dh; const int kk = k+SHK_GHOST_SIZE;
+            for (int j=0; j<PS1; j++)  {  const double y = amr->patch[0][lv][PID]->EdgeL[1] + (j+0.5)*dh; const int jj = j+SHK_GHOST_SIZE;
+            for (int i=0; i<PS1; i++)  {  const double x = amr->patch[0][lv][PID]->EdgeL[0] + (i+0.5)*dh; const int ii = i+SHK_GHOST_SIZE;
 
                const double dx = x - BoxCenter[0];
                const double dy = y - BoxCenter[1];
@@ -816,13 +847,13 @@ void Detect_Shock()
                const double r  = sqrt(  SQR( dx ) + SQR( dy ) + SQR( dz )  );
 
 //             (3) evaluate the undivided gradient of pressure and the undivided divergence of velocity
-               real GradP = (real)0.5 * (   FABS( Fluid[PRES][kk+1][jj  ][ii  ] - Fluid[PRES][kk-1][jj  ][ii  ] )
-                                          + FABS( Fluid[PRES][kk  ][jj+1][ii  ] - Fluid[PRES][kk  ][jj-1][ii  ] )
-                                          + FABS( Fluid[PRES][kk  ][jj  ][ii+1] - Fluid[PRES][kk  ][jj  ][ii-1] )  );
+               real GradP = (real)0.5 * (   FABS( Fluid[ENGY][kk+1][jj  ][ii  ] - Fluid[ENGY][kk-1][jj  ][ii  ] )
+                                          + FABS( Fluid[ENGY][kk  ][jj+1][ii  ] - Fluid[ENGY][kk  ][jj-1][ii  ] )
+                                          + FABS( Fluid[ENGY][kk  ][jj  ][ii+1] - Fluid[ENGY][kk  ][jj  ][ii-1] )  );
 
-               real DivV  = (real)0.5 * (       ( Fluid[VELZ][kk+1][jj  ][ii  ] - Fluid[VELZ][kk-1][jj  ][ii  ] )
-                                          +     ( Fluid[VELY][kk  ][jj+1][ii  ] - Fluid[VELY][kk  ][jj-1][ii  ] )
-                                          +     ( Fluid[VELX][kk  ][jj  ][ii+1] - Fluid[VELX][kk  ][jj  ][ii-1] )  );
+               real DivV  = (real)0.5 * (       ( Fluid[MOMZ][kk+1][jj  ][ii  ] - Fluid[MOMZ][kk-1][jj  ][ii  ] )
+                                          +     ( Fluid[MOMY][kk  ][jj+1][ii  ] - Fluid[MOMY][kk  ][jj-1][ii  ] )
+                                          +     ( Fluid[MOMX][kk  ][jj  ][ii+1] - Fluid[MOMX][kk  ][jj  ][ii-1] )  );
 
 //             (4) examine the criteria for detecting strong shock
                if (  ( GradP >=  CCSN_Shock_ThresFac_Pres * Pres_Min[kk][jj][ii] )  &&
@@ -847,6 +878,9 @@ void Detect_Shock()
    delete [] OMP_Fluid;
    delete [] OMP_Pres_Min;
    delete [] OMP_Cs_Min;
+#  ifdef MHD
+   delete [] OMP_Mag;
+#  endif
 
 
 // collect data over all OpenMP threads
