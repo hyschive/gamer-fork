@@ -416,7 +416,7 @@ void Src_Leakage_ComputeTau( Profile_t *Ray[], double *Edge,
             for (int k=0; k<NType_Neutrino; k++) {
                if ( !IsConverged )   break;
 
-               double rel_diff = fabs( kappa_tot[TID][i][k] / kappa_tot_old[TID][i][k] ) - 1.0;
+               double rel_diff = fabs( kappa_tot[TID][i][k] / kappa_tot_old[TID][i][k] - 1.0 );
 
                if ( rel_diff > Tolerance_Leak )   IsConverged = false;
             }}
