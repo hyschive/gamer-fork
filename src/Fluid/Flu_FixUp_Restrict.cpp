@@ -364,6 +364,7 @@ void Flu_FixUp_Restrict( const int FaLv, const int SonFluSg, const int FaFluSg, 
                               Passive,
                               CheckMinTemp_No, NULL_REAL, Emag, EoS_DensEint2Temp_CPUPtr,
                               EoS_AuxArray_Flt, EoS_AuxArray_Int, h_EoS_Table );
+
 //       check output temperature initial guess
 #        ifdef GAMER_DEBUG
          const real Temp_IG = amr->patch[FaFluSg][FaLv][FaPID]->fluid[TEMP_IG][k][j][i];
@@ -380,6 +381,7 @@ void Flu_FixUp_Restrict( const int FaLv, const int SonFluSg, const int FaFluSg, 
             printf("\n");
          }
 #        endif // #ifdef GAMER_DEBUG
+
 #        endif // #if ( EOS == EOS_NUCLEAR  &&  NUC_TABLE_MODE == NUC_TABLE_MODE_TEMP )
       } // i,j,k
 #     endif // #if ( MODEL == HYDRO )
