@@ -365,17 +365,16 @@ void Flu_FixUp_Restrict( const int FaLv, const int SonFluSg, const int FaFluSg, 
 //       check output temperature initial guess
 #        ifdef GAMER_DEBUG
          const real Temp_IG = amr->patch[FaFluSg][FaLv][FaPID]->fluid[TEMP_IG][k][j][i];
+
          if (  Hydro_CheckUnphysical( UNPHY_MODE_SING, &Temp_IG, "output temperature initial guess", ERROR_INFO, UNPHY_VERBOSE )  )
          {
-            printf( "   fluid[DENS]=%13.7e code units, fluid[MOMX]=%13.7e code units, fluid[MOMY]=%13.7e code units, fluid[MOMZ]=%13.7e code units, fluid[ENGY]=%13.7e code units\n",
-                        amr->patch[FaFluSg][FaLv][FaPID]->fluid[DENS][k][j][i],
-                        amr->patch[FaFluSg][FaLv][FaPID]->fluid[MOMX][k][j][i],
-                        amr->patch[FaFluSg][FaLv][FaPID]->fluid[MOMY][k][j][i],
-                        amr->patch[FaFluSg][FaLv][FaPID]->fluid[MOMZ][k][j][i],
-                        amr->patch[FaFluSg][FaLv][FaPID]->fluid[ENGY][k][j][i] );
-            printf( "Passive:" );
-            for (int v=0; v<NCOMP_PASSIVE; v++)  printf( " [%d]=%13.7e", v, Passive[v] );
-            printf("\n");
+            Aux_Message( stderr, "Fluid: " );
+            for (int v=0; v<NCOMP_TOTAL; v++)   Aux_Message( stderr, " [%d]=%14.7e", v, amr->patch[FaFluSg][FaLv][FaPID]->fluid[v][k][j][i] );
+            Aux_Message( stderr, "\n" );
+#           ifdef MHD
+            Aux_Message( stderr, "Emag: %14.7e\n", Emag );
+#           endif
+            MPI_Exit();
          }
 #        endif // #ifdef GAMER_DEBUG
 

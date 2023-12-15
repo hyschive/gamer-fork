@@ -297,15 +297,17 @@ void Flu_FixUp_Flux( const int lv )
 #                 ifdef GAMER_DEBUG
                   if (  Hydro_CheckUnphysical( UNPHY_MODE_SING, &CorrVal[TEMP_IG], "output temperature initial guess", ERROR_INFO, UNPHY_VERBOSE )  )
                   {
-                     printf( "   CorrVal[DENS]=%13.7e code units, CorrVal[MOMX]=%13.7e code units, CorrVal[MOMY]=%13.7e code units, CorrVal[MOMZ]=%13.7e code units, CorrVal[ENGY]=%13.7e code units\n",
-                                 CorrVal[DENS], CorrVal[MOMX], CorrVal[MOMY], CorrVal[MOMZ], CorrVal[ENGY] );
-                     printf( "Passive:" );
-                     for (int v=0; v<NCOMP_PASSIVE; v++)  printf( " [%d]=%13.7e", v, CorrVal[NCOMP_FLUID+v] );
-                     printf("\n");
+                     Aux_Message( stderr, "Fluid: " );
+                     for (int v=0; v<NCOMP_TOTAL; v++)   Aux_Message( stderr, " [%d]=%14.7e", v, CorrVal[v] );
+                     Aux_Message( stderr, "\n" );
+#                    ifdef MHD
+                     Aux_Message( stderr, "Emag: %14.7e\n", Emag );
+#                    endif
+                     MPI_Exit();
                   }
 #                 endif // #ifdef GAMER_DEBUG
 
-#                 endif
+#                 endif // if ( EOS == EOS_NUCLEAR  &&  NUC_TABLE_MODE == NUC_TABLE_MODE_TEMP )
 
 #                 endif // #ifdef BAROTROPIC_EOS ... else ...
 #                 endif // #if ( MODEL == HYDRO )
