@@ -300,9 +300,11 @@ void Flu_FixUp_Flux( const int lv )
                      Aux_Message( stderr, "Fluid: " );
                      for (int v=0; v<NCOMP_TOTAL; v++)   Aux_Message( stderr, " [%d]=%14.7e", v, CorrVal[v] );
                      Aux_Message( stderr, "\n" );
+
 #                    ifdef MHD
                      Aux_Message( stderr, "Emag: %14.7e\n", Emag );
 #                    endif
+
                      MPI_Exit();
                   }
 #                 endif // #ifdef GAMER_DEBUG
