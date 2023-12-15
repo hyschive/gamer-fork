@@ -371,9 +371,11 @@ void Flu_FixUp_Restrict( const int FaLv, const int SonFluSg, const int FaFluSg, 
             Aux_Message( stderr, "Fluid: " );
             for (int v=0; v<NCOMP_TOTAL; v++)   Aux_Message( stderr, " [%d]=%14.7e", v, amr->patch[FaFluSg][FaLv][FaPID]->fluid[v][k][j][i] );
             Aux_Message( stderr, "\n" );
+
 #           ifdef MHD
             Aux_Message( stderr, "Emag: %14.7e\n", Emag );
 #           endif
+
             MPI_Exit();
          }
 #        endif // #ifdef GAMER_DEBUG
