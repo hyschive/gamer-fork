@@ -69,6 +69,7 @@ static int        CCSN_Eint_Mode;                  // Mode of obtaining internal
 
        double     CCSN_Shock_ThresFac_Pres;        // pressure threshold factor for detecting postbounce shock
        double     CCSN_Shock_ThresFac_Vel;         // velocity threshold facotr for detecting postbounce shock
+       int        CCSN_Shock_Weight;               // weighting of each cell    for detecting postbounce shock (1:volume, 2:1/volume)
 // =======================================================================================
 
 
@@ -184,6 +185,7 @@ void SetParameter()
    ReadPara->Add( "CCSN_Is_PostBounce",       &CCSN_Is_PostBounce,       false,         Useless_bool,     Useless_bool      );
    ReadPara->Add( "CCSN_Shock_ThresFac_Pres", &CCSN_Shock_ThresFac_Pres, 0.5,           Eps_double,       NoMax_double      );
    ReadPara->Add( "CCSN_Shock_ThresFac_Vel" , &CCSN_Shock_ThresFac_Vel,  0.1,           Eps_double,       NoMax_double      );
+   ReadPara->Add( "CCSN_Shock_Weight" ,       &CCSN_Shock_Weight,        2,             1,                2                 );
 
    ReadPara->Read( FileName );
 
@@ -321,7 +323,8 @@ void SetParameter()
       Aux_Message( stdout, "  scaling factor for lightbulb/leakage dt             = %13.7e\n", CCSN_NuHeat_TimeFac      );
       Aux_Message( stdout, "  has core bounce occurred                            = %d\n",     CCSN_Is_PostBounce       );
       Aux_Message( stdout, "  pressure threshold factor for detecting shock       = %13.7e\n", CCSN_Shock_ThresFac_Pres );
-      Aux_Message( stdout, "  velocity threshold factor for detecting shock       = %13.7e\n", CCSN_Shock_ThresFac_Vel  );   }
+      Aux_Message( stdout, "  velocity threshold factor for detecting shock       = %13.7e\n", CCSN_Shock_ThresFac_Vel  );
+      Aux_Message( stdout, "  weighting of each cell    for detecting shock       = %d\n",     CCSN_Shock_Weight        ); }
       if ( CCSN_Prob == Core_Collapse ) {
       if ( CCSN_CC_MaxRefine_Flag1 ) {
       Aux_Message( stdout, "  reduced maxmimum refinement lv 1                    = %d\n",     CCSN_CC_MaxRefine_LV1    );
@@ -330,7 +333,7 @@ void SetParameter()
       Aux_Message( stdout, "  reduced maxmimum refinement lv 2                    = %d\n",     CCSN_CC_MaxRefine_LV2    );
       Aux_Message( stdout, "  central density threshold for CCSN_CC_MaxRefine_LV2 = %13.7e\n", CCSN_CC_MaxRefine_Dens2  ); }
       Aux_Message( stdout, "  central density factor for reducing dt              = %13.7e\n", CCSN_CC_CentralDensFac   );
-      Aux_Message( stdout, "  reduced dt near bounce                              = %13.7e\n", CCSN_CC_Red_DT           );   }
+      Aux_Message( stdout, "  reduced dt near bounce                              = %13.7e\n", CCSN_CC_Red_DT           ); }
       Aux_Message( stdout, "  mode for rotational profile                         = %d\n",     CCSN_CC_Rot              );
       if ( CCSN_CC_Rot == 1 ) {
       Aux_Message( stdout, "  characteristic rotational radius R_0 (in cm)        = %13.7e\n", CCSN_CC_Rot_R0           );

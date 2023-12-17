@@ -20,7 +20,8 @@ CCSN_Eint_Mode   1                                 # Mode of obtaining internal 
                                                    # ( 1=Temp Mode: Eint(dens, temp, [Ye])
                                                    #   2=Pres Mode: Eint(dens, pres, [Ye]) )
 
-CCSN_Is_PostBounce        1                           # boolean that indicates whether core bounce has occurred  [0]
+CCSN_Is_PostBounce        1                        # boolean that indicates whether core bounce has occurred  [0]
 
 CCSN_Shock_ThresFac_Pres  0.5                      # pressure threshold factor for detecting postbounce shock    [0.5]
 CCSN_Shock_ThresFac_Vel   0.1                      # velocity threshold facotr for detecting postbounce shock    [0.1]
+CCSN_Shock_Weight         2                        # weighting of each cell    for detecting postbounce shock (1:volume, 2:1/volume) [2]
