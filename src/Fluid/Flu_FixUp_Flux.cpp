@@ -292,7 +292,24 @@ void Flu_FixUp_Flux( const int lv )
                                                      CorrVal[ENGY], CorrVal+NCOMP_FLUID,
                                                      CheckMinTemp_No, NULL_REAL, Emag, EoS_DensEint2Temp_CPUPtr,
                                                      EoS_AuxArray_Flt, EoS_AuxArray_Int, h_EoS_Table );
-#                 endif
+
+//                check output temperature initial guess
+#                 ifdef GAMER_DEBUG
+                  if (  Hydro_CheckUnphysical( UNPHY_MODE_SING, &CorrVal[TEMP_IG], "output temperature initial guess", ERROR_INFO, UNPHY_VERBOSE )  )
+                  {
+                     Aux_Message( stderr, "Fluid: " );
+                     for (int v=0; v<NCOMP_TOTAL; v++)   Aux_Message( stderr, " [%d]=%14.7e", v, CorrVal[v] );
+                     Aux_Message( stderr, "\n" );
+
+#                    ifdef MHD
+                     Aux_Message( stderr, "Emag: %14.7e\n", Emag );
+#                    endif
+
+                     MPI_Exit();
+                  }
+#                 endif // #ifdef GAMER_DEBUG
+
+#                 endif // if ( EOS == EOS_NUCLEAR  &&  NUC_TABLE_MODE == NUC_TABLE_MODE_TEMP )
 
 #                 endif // #ifdef BAROTROPIC_EOS ... else ...
 #                 endif // #if ( MODEL == HYDRO )
