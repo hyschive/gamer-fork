@@ -190,52 +190,6 @@ static void Src_ExactCooling( real fluid[], const real B[],
 #  endif
 
 
-// Calculate the cooling time and decide whether to use subcycling         
-   int nsub = 1;
-   double dtsub = dt;
-   if ( subcycling ) {
-      double Emag, Temp, Tk, lambdaTini, tcool_init;
-      int k;
-      const bool CheckMinTemp_Yes = true;
-#     ifdef MHD
-      Emag  = (real)0.5*( SQR(B[MAGX]) + SQR(B[MAGY]) + SQR(B[MAGZ]) );
-#     else
-      Emag  = (real)0.0;
-#     endif
-#     ifdef __CUDACC__
-      Temp = (real) Hydro_Con2Temp( fluid[DENS], fluid[MOMX], fluid[MOMY], fluid[MOMZ], fluid[ENGY], fluid+NCOMP_FLUID, 
-                                    CheckMinTemp_Yes, TEF_Tmin, Emag, EoS->DensEint2Temp_FuncPtr, 
-                                    EoS->AuxArrayDevPtr_Flt, EoS->AuxArrayDevPtr_Int, EoS->Table ); 
-#     else
-      Temp = (real) Hydro_Con2Temp( fluid[DENS], fluid[MOMX], fluid[MOMY], fluid[MOMZ], fluid[ENGY], fluid+NCOMP_FLUID, 
-                                    CheckMinTemp_Yes, TEF_Tmin, Emag, EoS_DensEint2Temp_CPUPtr, 
-                                    EoS_AuxArray_Flt, EoS_AuxArray_Int, h_EoS_Table );
-#     endif
-
-      k = int((log10(Temp)-log10(TEF_Tmin))/TEF_dltemp);
-//    Check if the temperature is physical
-      if ( k < 0 || k > TEF_N-1 || Temp != Temp ){
-         printf( "Error! Temp = %13.7e is out of range (min: %13.7e, max: %13.7e) at TimeNew = %13.7e, so the array index is invalid.\n", Temp, TEF_Tmin, TEF_TN, TimeNew );
-         fluid[TCOOL] = NAN;
-         fluid[ENGY]  = NAN;
-         return;
-      }
-      Tk = POW(10.0, (log10(TEF_Tmin)+k*TEF_dltemp));
-      lambdaTini = TEF_lambda[k] * POW((Temp/Tk), TEF_alpha[k]);
-      tcool_init = cl_CV*Temp/(fluid[DENS]*lambdaTini);
-      fluid[TCOOL] = tcool_init; 
-            
-//    Do NOT update the internal energy if dt = 0     
-      if ( dt == 0.0 )   return;   
-
-      if ( tcool_init < dt ){
-         nsub = int(dt/tcool_init) + 1;
-         dtsub = dt/nsub;
-      }
-   }  
-// Loop over the cooling process
-   for (int isub=0; isub<nsub; isub++){
-
    double Temp, Eint, Enth, Emag, Pres, Tini, Eintf, dedtmean, Tk, lambdaTini, tcool, Ynew;
    int k, knew;
    const bool CheckMinTemp_Yes = true;
@@ -291,7 +245,7 @@ static void Src_ExactCooling( real fluid[], const real B[],
    if ( dt == 0.0 )   return;
 
 // (3) Calculate Ynew
-   Ynew  = TEF( Tini, k, TEF_lambda, TEF_alpha, TEFc, AuxArray_Flt, AuxArray_Int ) + (Tini/TEF_TN)*(TEF_lambda[TEF_N-1]/lambdaTini)*(dtsub/tcool);
+   Ynew  = TEF( Tini, k, TEF_lambda, TEF_alpha, TEFc, AuxArray_Flt, AuxArray_Int ) + (Tini/TEF_TN)*(TEF_lambda[TEF_N-1]/lambdaTini)*(dt/tcool);
 
 // (4) Find the new power law interval where Ynew resides
    for (int i=k; i>=0; i--){
@@ -338,7 +292,6 @@ static void Src_ExactCooling( real fluid[], const real B[],
       printf( "dt = %13.7e, Ynew = %13.7e, tcool = %13.7e, Temp = %13.7e\n", dt, Ynew, tcool, Temp );
    }
 #  endif // GAMER_DEBUG
-   }   // for (int isub=0; isub<nsub; isub++)
 
 } // FUNCTION : Src_ExactCooling
 
