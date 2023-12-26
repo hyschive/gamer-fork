@@ -70,6 +70,8 @@ static int        CCSN_Eint_Mode;                  // Mode of obtaining internal
        double     CCSN_Shock_ThresFac_Pres;        // pressure threshold factor for detecting postbounce shock
        double     CCSN_Shock_ThresFac_Vel;         // velocity threshold facotr for detecting postbounce shock
        int        CCSN_Shock_Weight;               // weighting of each cell    for detecting postbounce shock (1:volume, 2:1/volume)
+
+       int        CCSN_DT_YE;                      // dt criterion on Ye (1=min(Ye_max-Ye, Ye-Ye_min), 2=Ye, 3=none) [1]
 // =======================================================================================
 
 
@@ -186,6 +188,7 @@ void SetParameter()
    ReadPara->Add( "CCSN_Shock_ThresFac_Pres", &CCSN_Shock_ThresFac_Pres, 0.5,           Eps_double,       NoMax_double      );
    ReadPara->Add( "CCSN_Shock_ThresFac_Vel" , &CCSN_Shock_ThresFac_Vel,  0.1,           Eps_double,       NoMax_double      );
    ReadPara->Add( "CCSN_Shock_Weight" ,       &CCSN_Shock_Weight,        2,             1,                2                 );
+   ReadPara->Add( "CCSN_DT_YE" ,              &CCSN_DT_YE,               1,             1,                3                 );
 
    ReadPara->Read( FileName );
 
@@ -341,6 +344,7 @@ void SetParameter()
       if ( CCSN_CC_Rot == 2 )
       Aux_Message( stdout, "  multiplication factor for rotational profile        = %13.7e\n", CCSN_CC_Rot_Fac          );
       Aux_Message( stdout, "  reference distance for the maximum refinement level = %13.7e\n", CCSN_REF_RBase           );
+      Aux_Message( stdout, "  dt criterion on Ye                                  = %d\n",     CCSN_DT_YE               );
       Aux_Message( stdout, "=======================================================================================\n"  );
    }
 

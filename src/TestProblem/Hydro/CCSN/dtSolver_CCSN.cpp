@@ -6,6 +6,7 @@ extern double CCSN_NuHeat_TimeFac;
 extern double CCSN_CC_CentralDensFac;
 extern double CCSN_CC_Red_DT;
 extern double CCSN_CentralDens;
+extern int    CCSN_DT_YE;
 
 extern void Src_WorkBeforeMajorFunc_Leakage( const int lv, const double TimeNew, const double TimeOld, const double dt,
                                              double AuxArray_Flt[], int AuxArray_Int[] );
@@ -227,11 +228,18 @@ double Mis_GetTimeStep_Leakage( const int lv, const double dTime_dt )
 #           ifdef DYEDT_NU
             const real dEint_Code = amr->patch[ amr->FluSg[lv] ][lv][PID]->fluid[DEDT_NU ][k][j][i];
             const real dYedt      = amr->patch[ amr->FluSg[lv] ][lv][PID]->fluid[DYEDT_NU][k][j][i];
-            const real dYe        = FMIN(  FABS( YeMax - Ye ), FABS( Ye - YeMin )  );
+                  real dYe;
+
+            switch ( CCSN_DT_YE )
+            {
+               case 1 : dYe       = FMIN(  FABS( YeMax - Ye ), FABS( Ye - YeMin )  );   break;
+               case 2 : dYe       = Ye;                                                 break;
+               case 3 : dYe       = __FLT_MAX__;                                        break;
+            }
 #           else
             const real dEint_Code = NULL_REAL;
             const real dYedt      = NULL_REAL;
-            const real dYe        = NULL_REAL;
+                  real dYe        = NULL_REAL;
 #           endif
 
 
