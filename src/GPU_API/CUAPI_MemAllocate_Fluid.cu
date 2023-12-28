@@ -43,6 +43,14 @@ extern real (*d_FC_Mag_Half)[NCOMP_MAG][ FLU_NXT_P1*SQR(FLU_NXT) ];
 extern real (*d_EC_Ele     )[NCOMP_MAG][ CUBE(N_EC_ELE)          ];
 #endif
 #endif // FLU_SCHEME
+#if ( MODEL == HYDRO )
+extern real  *d_SrcLeakage_Radius;
+extern real  *d_SrcLeakage_tau;
+extern real  *d_SrcLeakage_chi;
+extern real  *d_SrcLeakage_HeatFlux;
+extern real  *d_SrcLeakage_HeatERms;
+extern real  *d_SrcLeakage_HeatEAve;
+#endif
 
 #if ( MODEL != HYDRO  &&  MODEL != ELBDM )
 #  warning : DO YOU WANT TO ADD SOMETHING HERE FOR THE NEW MODEL ??
@@ -98,6 +106,14 @@ int CUAPI_MemAllocate_Fluid( const int Flu_NPG, const int Pot_NPG, const int Src
    const long Flu_MemSize_S_In    = sizeof(real  )*Src_NP*FLU_NIN_S *CUBE(SRC_NXT);
    const long Flu_MemSize_S_Out   = sizeof(real  )*Src_NP*FLU_NOUT_S*CUBE(PS1);
    const long Corner_MemSize_S    = sizeof(double)*Src_NP*3;
+#  if ( MODEL == HYDRO  &&  NEUTRINO_SCHEME == LEAKAGE )
+   const long Leak_Rad_MemSize    = sizeof(real  )* SrcTerms.Leakage_NRadius;
+   const long Leak_Tau_MemSize    = sizeof(real  )*(SrcTerms.Leakage_NRadius*SrcTerms.Leakage_NTheta*SrcTerms.Leakage_NPhi*3);
+   const long Leak_Chi_MemSize    = sizeof(real  )*(SrcTerms.Leakage_NRadius*SrcTerms.Leakage_NTheta*SrcTerms.Leakage_NPhi*3);
+   const long Leak_Flux_MemSize   = sizeof(real  )*(SrcTerms.Leakage_NRadius*SrcTerms.Leakage_NTheta*SrcTerms.Leakage_NPhi*3);
+   const long Leak_ERms_MemSize   = sizeof(real  )*(                         SrcTerms.Leakage_NTheta*SrcTerms.Leakage_NPhi*3);
+   const long Leak_EAve_MemSize   = sizeof(real  )*(                         SrcTerms.Leakage_NTheta*SrcTerms.Leakage_NPhi*3);
+#  endif
 
 // the size of the global memory arrays in different models
 #  if ( FLU_SCHEME == MHM  ||  FLU_SCHEME == MHM_RP  ||  FLU_SCHEME == CTU )
@@ -167,6 +183,11 @@ int CUAPI_MemAllocate_Fluid( const int Flu_NPG, const int Pot_NPG, const int Src
       TotalSize += Corner_MemSize_S;
    }
 
+#  if ( MODEL == HYDRO  &&  NEUTRINO_SCHEME == LEAKAGE )
+   TotalSize += Leak_Rad_MemSize + Leak_Tau_MemSize + Leak_Chi_MemSize
+              + Leak_Flux_MemSize + Leak_ERms_MemSize + Leak_EAve_MemSize;
+#  endif
+
    if ( MPI_Rank == 0 )
       Aux_Message( stdout, "NOTE : total memory requirement in GPU fluid solver = %ld MB\n", TotalSize/(1<<20) );
 
@@ -227,6 +248,23 @@ int CUAPI_MemAllocate_Fluid( const int Flu_NPG, const int Pot_NPG, const int Src
    CUDA_CHECK_MALLOC(  cudaMalloc( (void**) &d_Corner_Array_S,       Corner_MemSize_S     )  );
    }
 
+#  if ( MODEL == HYDRO  &&  NEUTRINO_SCHEME == LEAKAGE )
+   CUDA_CHECK_MALLOC(  cudaMalloc( (void**) &d_SrcLeakage_Radius,    Leak_Rad_MemSize     )  );
+   CUDA_CHECK_MALLOC(  cudaMalloc( (void**) &d_SrcLeakage_tau,       Leak_Tau_MemSize     )  );
+   CUDA_CHECK_MALLOC(  cudaMalloc( (void**) &d_SrcLeakage_chi,       Leak_Chi_MemSize     )  );
+   CUDA_CHECK_MALLOC(  cudaMalloc( (void**) &d_SrcLeakage_HeatFlux,  Leak_Flux_MemSize    )  );
+   CUDA_CHECK_MALLOC(  cudaMalloc( (void**) &d_SrcLeakage_HeatERms,  Leak_ERms_MemSize    )  );
+   CUDA_CHECK_MALLOC(  cudaMalloc( (void**) &d_SrcLeakage_HeatEAve,  Leak_EAve_MemSize    )  );
+
+// store the device pointers in SrcTerms when using GPU
+   SrcTerms.Leakage_Radius_DevPtr    = d_SrcLeakage_Radius;
+   SrcTerms.Leakage_tau_DevPtr       = d_SrcLeakage_tau;
+   SrcTerms.Leakage_chi_DevPtr       = d_SrcLeakage_chi;
+   SrcTerms.Leakage_Heat_Flux_DevPtr = d_SrcLeakage_HeatFlux;
+   SrcTerms.Leakage_HeatE_Rms_DevPtr = d_SrcLeakage_HeatERms;
+   SrcTerms.Leakage_HeatE_Ave_DevPtr = d_SrcLeakage_HeatEAve;
+#  endif
+
 #  if ( MODEL != HYDRO  &&  MODEL != ELBDM )
 #     warning : DO YOU WANT TO ADD SOMETHING HERE FOR THE NEW MODEL ??
 #  endif
@@ -274,6 +312,15 @@ int CUAPI_MemAllocate_Fluid( const int Flu_NPG, const int Pot_NPG, const int Src
       CUDA_CHECK_MALLOC(  cudaMallocHost( (void**) &h_Corner_Array_S [t],  Corner_MemSize_S     )  );
       }
    } // for (int t=0; t<2; t++)
+
+#  if ( MODEL == HYDRO  &&  NEUTRINO_SCHEME == LEAKAGE )
+      CUDA_CHECK_MALLOC(  cudaMallocHost( (void**) &h_SrcLeakage_Radius,   Leak_Rad_MemSize     )  );
+      CUDA_CHECK_MALLOC(  cudaMallocHost( (void**) &h_SrcLeakage_tau,      Leak_Tau_MemSize     )  );
+      CUDA_CHECK_MALLOC(  cudaMallocHost( (void**) &h_SrcLeakage_chi,      Leak_Chi_MemSize     )  );
+      CUDA_CHECK_MALLOC(  cudaMallocHost( (void**) &h_SrcLeakage_HeatFlux, Leak_Flux_MemSize    )  );
+      CUDA_CHECK_MALLOC(  cudaMallocHost( (void**) &h_SrcLeakage_HeatERms, Leak_ERms_MemSize    )  );
+      CUDA_CHECK_MALLOC(  cudaMallocHost( (void**) &h_SrcLeakage_HeatEAve, Leak_EAve_MemSize    )  );
+#  endif
 
 
 // create streams

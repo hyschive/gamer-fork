@@ -91,10 +91,13 @@ void Flu_FixUp_Restrict( const int FaLv, const int SonFluSg, const int FaFluSg, 
 #  else
    const bool ResMag  = false;
 #  endif
+#  ifndef _DYEDT_NU
+   const long _DYEDT_NU = 0;
+#  endif
 #  ifndef _DEDT_NU
    const long _DEDT_NU = 0;
 #  endif
-   const long EoSVar   = _TOTAL - _DEDT_NU;
+   const long EoSVar   = _TOTAL - _DYEDT_NU - _DEDT_NU;
    const int  PS1_half = PS1 / 2;
 
 

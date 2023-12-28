@@ -94,6 +94,7 @@
 #define LIGHTBULB    1
 #define IDSA         2
 #define M1           3
+#define LEAKAGE      4
 
 
 // Poisson solvers
@@ -164,13 +165,22 @@
 #  define NCOMP_PASSIVE_BUILTIN1    0
 # endif
 
-// electron fraction (Ye), neutrino heating/cooling rate, and temperature initial guess (TEMP_IG)
+// electron fraction (YE), neutrino heating/cooling rate (DEDT_NU), Ye change rate (DYEDT_NU, leakage scheme only)
+// and temperature initial guess (TEMP_IG)
 # if ( EOS == EOS_NUCLEAR )
+# if ( NEUTRINO_SCHEME == LEAKAGE )
+# if ( NUC_TABLE_MODE == NUC_TABLE_MODE_TEMP )
+#  define NCOMP_PASSIVE_BUILTIN2    4
+# else
+#  define NCOMP_PASSIVE_BUILTIN2    3
+# endif
+# else
 # if ( NUC_TABLE_MODE == NUC_TABLE_MODE_TEMP )
 #  define NCOMP_PASSIVE_BUILTIN2    3
 # else
 #  define NCOMP_PASSIVE_BUILTIN2    2
 # endif
+# endif // # if ( NEUTRINO_SCHEME == LEAKAGE ) ... else ...
 # else
 #  define NCOMP_PASSIVE_BUILTIN2    0
 # endif
@@ -274,12 +284,17 @@
 
 # if ( EOS == EOS_NUCLEAR )
 #  define YE                  ( PASSIVE_NEXT_IDX2 )
-#  define DEDT_NU             ( YE - 1            )
-# if ( NUC_TABLE_MODE == NUC_TABLE_MODE_TEMP )
-#  define TEMP_IG             ( YE - 2            )
-#  define PASSIVE_NEXT_IDX3   ( YE - 3            )
+# if ( NEUTRINO_SCHEME == LEAKAGE )
+#  define DYEDT_NU            ( YE - 1            )
+#  define DEDT_NU             ( YE - 2            )
 # else
-#  define PASSIVE_NEXT_IDX3   ( YE - 2            )
+#  define DEDT_NU             ( YE - 1            )
+# endif
+# if ( NUC_TABLE_MODE == NUC_TABLE_MODE_TEMP )
+#  define TEMP_IG             ( DEDT_NU - 1       )
+#  define PASSIVE_NEXT_IDX3   ( DEDT_NU - 2       )
+# else
+#  define PASSIVE_NEXT_IDX3   ( DEDT_NU - 1       )
 # endif
 # else
 #  define PASSIVE_NEXT_IDX3   ( PASSIVE_NEXT_IDX2 )
@@ -322,16 +337,21 @@
 # endif
 
 # if ( EOS == EOS_NUCLEAR )
-#  define FLUX_YE          ( FLUX_NEXT_IDX2  )
-#  define FLUX_DEDT_NU     ( FLUX_YE - 1     )
-# if ( NUC_TABLE_MODE == NUC_TABLE_MODE_TEMP )
-#  define FLUX_TEMP_IG     ( FLUX_YE - 2     )
-#  define FLUX_NEXT_IDX3   ( FLUX_YE - 3     )
+#  define FLUX_YE          ( FLUX_NEXT_IDX2   )
+# if ( NEUTRINO_SCHEME == LEAKAGE )
+#  define FLUX_DYEDT_NU    ( FLUX_YE - 1      )
+#  define FLUX_DEDT_NU     ( FLUX_YE - 2      )
 # else
-#  define FLUX_NEXT_IDX3   ( FLUX_YE - 2     )
+#  define FLUX_DEDT_NU     ( FLUX_YE - 1      )
+# endif
+# if ( NUC_TABLE_MODE == NUC_TABLE_MODE_TEMP )
+#  define FLUX_TEMP_IG     ( FLUX_DEDT_NU - 2 )
+#  define FLUX_NEXT_IDX3   ( FLUX_DEDT_NU - 3 )
+# else
+#  define FLUX_NEXT_IDX3   ( FLUX_DEDT_NU - 2 )
 # endif
 # else
-#  define FLUX_NEXT_IDX3   ( FLUX_NEXT_IDX2  )
+#  define FLUX_NEXT_IDX3   ( FLUX_NEXT_IDX2   )
 # endif
 
 #endif // #if ( NCOMP_PASSIVE > 0 )
@@ -357,10 +377,13 @@
 # endif
 
 # if ( EOS == EOS_NUCLEAR )
-#  define _YE                 ( 1L << YE      )
-#  define _DEDT_NU            ( 1L << DEDT_NU )
+#  define _YE                 ( 1L << YE       )
+# if ( NEUTRINO_SCHEME == LEAKAGE )
+#  define _DYEDT_NU           ( 1L << DYEDT_NU )
+# endif
+#  define _DEDT_NU            ( 1L << DEDT_NU  )
 # if ( NUC_TABLE_MODE == NUC_TABLE_MODE_TEMP )
-#  define _TEMP_IG            ( 1L << TEMP_IG )
+#  define _TEMP_IG            ( 1L << TEMP_IG  )
 # endif
 # endif
 
@@ -394,10 +417,13 @@
 # endif
 
 # if ( EOS == EOS_NUCLEAR )
-#  define _FLUX_YE            ( 1L << FLUX_YE      )
-#  define _FLUX_DEDT_NU       ( 1L << FLUX_DEDT_NU )
+#  define _FLUX_YE            ( 1L << FLUX_YE       )
+# if ( NEUTRINO_SCHEME == LEAKAGE )
+#  define _FLUX_DYEDT_NU      ( 1L << FLUX_DYEDT_NU )
+# endif
+#  define _FLUX_DEDT_NU       ( 1L << FLUX_DEDT_NU  )
 # if ( NUC_TABLE_MODE == NUC_TABLE_MODE_TEMP )
-#  define _FLUX_TEMP_IG       ( 1L << FLUX_TEMP_IG )
+#  define _FLUX_TEMP_IG       ( 1L << FLUX_TEMP_IG  )
 # endif
 # endif
 
@@ -787,9 +813,11 @@
 #if ( MODEL == HYDRO )
 #  define SRC_NAUX_DLEP          8     // SrcTerms.Dlep_AuxArray_Flt/Int[]
 #  define SRC_NAUX_LIGHTBULB     2     // SrcTerms.Lightbulb_AuxArray_Flt/Int[]
+#  define SRC_NAUX_LEAKAGE      11     // SrcTerms.Leakage_AuxArray_Flt/Int[]
 #else
 #  define SRC_NAUX_DLEP          0
 #  define SRC_NAUX_LIGHTBULB     0
+#  define SRC_NAUX_LEAKAGE       0
 #endif
 #  define SRC_NAUX_USER          10    // SrcTerms.User_AuxArray_Flt/Int[]
 

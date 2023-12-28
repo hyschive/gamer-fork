@@ -2,13 +2,25 @@
 
 
        double CCSN_CentralDens;
+
        double CCSN_Rsh_Min = 0.0;
        double CCSN_Rsh_Max = 0.0;
        double CCSN_Rsh_Ave = 0.0;
+
+       double CCSN_Leakage_NetHeatGain = 0.0;
+       double CCSN_Leakage_Lum    [3]  = { 0.0 };
+       double CCSN_Leakage_Heat   [3]  = { 0.0 };
+       double CCSN_Leakage_NetHeat[3]  = { 0.0 };
+       double CCSN_Leakage_EAve   [3]  = { 0.0 };
+       double CCSN_Leakage_RadNS  [3]  = { 0.0 };
+
 extern bool   CCSN_Is_PostBounce;
 extern double CCSN_Shock_ThresFac_Pres;
 extern double CCSN_Shock_ThresFac_Vel;
 extern int    CCSN_Shock_Weight;
+
+extern void Src_WorkBeforeMajorFunc_Leakage( const int lv, const double TimeNew, const double TimeOld, const double dt,
+                                             double AuxArray_Flt[], int AuxArray_Int[] );
 
 
 
@@ -143,9 +155,23 @@ void Record_CCSN_CentralQuant()
          else
          {
              FILE *file_cent_quant = fopen( filename_central_quant, "w" );
-             fprintf( file_cent_quant, "#%14s %12s %16s %16s %16s %16s %16s %16s %16s %16s\n",
+
+             fprintf( file_cent_quant, "#%14s %12s %16s %16s %16s %16s %16s %16s %16s %16s",
                                        "1_Time [sec]", "2_Step", "3_PosX [cm]", "4_PosY [cm]", "5_PosZ [cm]",
                                        "6_Dens [g/cm^3]", "7_Ye", "8_Rsh_Min [cm]", "9_Rsh_Ave [cm]", "10_Rsh_Max [cm]" );
+
+#            if ( defined NEUTRINO_SCHEME  &&  NEUTRINO_SCHEME == LEAKAGE )
+             fprintf( file_cent_quant, " %29s %28s %28s %28s %28s %28s %28s %28s %28s %28s %28s %28s %28s %28s",
+                                       "11_Leak_NetHeat_Gain [erg/s]",
+                                       "12_Leak_Lum_Nue [erg/s]", "13_Leak_Lum_Nua [erg/s]", "14_Leak_Lum_Nux [erg/s]",
+                                       "15_Leak_Heat_Nue [erg/s]", "16_Leak_Heat_Nua [erg/s]",
+                                       "17_Leak_NetHeat_Nue [erg/s]", "18_Leak_NetHeat_Nua [erg/s]",
+                                       "19_Leak_EAve_Nue [MeV]", "20_Leak_EAve_Nua [MeV]", "21_Leak_EAve_Nux [MeV]",
+                                       "22_Leak_RadNS_Nue [cm]", "23_Leak_RadNS_Nua [cm]", "24_Leak_RadNS_Nux [cm]" );
+#            endif
+
+             fprintf( file_cent_quant, "\n" );
+
              fclose( file_cent_quant );
          }
 
@@ -169,9 +195,21 @@ void Record_CCSN_CentralQuant()
 #     endif
 
       FILE *file_cent_quant = fopen( filename_central_quant, "a" );
-      fprintf( file_cent_quant, "%15.7e %12ld %16.7e %16.7e %16.7e %16.7e %16.7e %16.7e %16.7e %16.7e\n",
+
+      fprintf( file_cent_quant, "%15.7e %12ld %16.7e %16.7e %16.7e %16.7e %16.7e %16.7e %16.7e %16.7e",
                Time[0]*UNIT_T, Step, Data_Flt[1]*UNIT_L, Data_Flt[2]*UNIT_L, Data_Flt[3]*UNIT_L,
                u[DENS]*UNIT_D, Ye, CCSN_Rsh_Min*UNIT_L, CCSN_Rsh_Ave*UNIT_L, CCSN_Rsh_Max*UNIT_L );
+
+#     if ( defined NEUTRINO_SCHEME  &&  NEUTRINO_SCHEME == LEAKAGE )
+      fprintf( file_cent_quant, " %29.7e %28.7e %28.7e %28.7e %28.7e %28.7e %28.7e %28.7e %28.7e %28.7e %28.7e %28.7e %28.7e %28.7e",
+               CCSN_Leakage_NetHeatGain, CCSN_Leakage_Lum[0], CCSN_Leakage_Lum[1], CCSN_Leakage_Lum[2],
+               CCSN_Leakage_Heat[0], CCSN_Leakage_Heat[1], CCSN_Leakage_NetHeat[0], CCSN_Leakage_NetHeat[1],
+               CCSN_Leakage_EAve[0], CCSN_Leakage_EAve[1], CCSN_Leakage_EAve[2],
+               CCSN_Leakage_RadNS[0], CCSN_Leakage_RadNS[1], CCSN_Leakage_RadNS[2] );
+#     endif
+
+      fprintf( file_cent_quant, "\n" );
+
       fclose( file_cent_quant );
 
    } // if ( MPI_Rank == 0 )
@@ -181,6 +219,180 @@ void Record_CCSN_CentralQuant()
    CCSN_CentralDens = Data_Flt[0] * UNIT_D;
 
 } // FUNCTION : Record_CCSN_CentralQuant()
+
+
+
+#if ( defined NEUTRINO_SCHEME  &&  NEUTRINO_SCHEME == LEAKAGE )
+//-------------------------------------------------------------------------------------------------------
+// Function    :  Record_CCSN_Leakage
+// Description :  Compute the net heating in the gain region, and the total luminosity,
+//                heating rate and net heating rate of the leakage scheme
+//
+// Note        :  1. Invoked by Record_CCSN_CentralQuant()
+//-------------------------------------------------------------------------------------------------------
+void Record_CCSN_Leakage()
+{
+
+   const int    NType_Neutrino = 3;
+   const double Const_hc_MeVcm_CUBE = CUBE( 1.0e-6 * 2.0 * M_PI * Const_Planck_eV * Const_c );
+
+// update leakage data at TimeNew on lv=0
+   const int    lv = 0;
+   const double TimeNew = amr->FluSgTime[lv][ amr->FluSg[lv] ];
+
+   Src_WorkBeforeMajorFunc_Leakage( lv, TimeNew, TimeNew, 0.0,
+                                    Src_Leakage_AuxArray_Flt, Src_Leakage_AuxArray_Int );
+
+// enable the record mode
+   Src_Leakage_AuxArray_Int[3] = 1;
+
+// allocate memory for per-thread arrays
+#  ifdef OPENMP
+   const int NT = OMP_NTHREAD;
+#  else
+   const int NT = 1;
+#  endif
+
+   double NetHeatGain = 0.0; // net heating rate in gain region
+   double Lum    [NType_Neutrino] = { 0.0 };
+   double Heat   [NType_Neutrino] = { 0.0 };
+   double NetHeat[NType_Neutrino] = { 0.0 };
+
+   double *OMP_NetHeatGain = new double [NT];
+   double **OMP_Lum, **OMP_Heat, **OMP_NetHeat;
+
+   Aux_AllocateArray2D( OMP_Lum,     NT, NType_Neutrino );
+   Aux_AllocateArray2D( OMP_Heat,    NT, NType_Neutrino );
+   Aux_AllocateArray2D( OMP_NetHeat, NT, NType_Neutrino );
+
+
+#  pragma omp parallel
+   {
+#     ifdef OPENMP
+      const int TID = omp_get_thread_num();
+#     else
+      const int TID = 0;
+#     endif
+
+//    initialize arrays
+      OMP_NetHeatGain[TID] = 0.0;
+
+      for (int n=0; n<NType_Neutrino; n++)
+      {
+         OMP_Lum    [TID][n] = 0.0;
+         OMP_Heat   [TID][n] = 0.0;
+         OMP_NetHeat[TID][n] = 0.0;
+      }
+
+
+//    loop over all levels
+      for (int lv=0; lv<=MAX_LEVEL; lv++)
+      {
+         if ( NPatchTotal[lv] == 0 )   continue;
+
+         const double dh     = amr->dh[lv];
+         const double dv_CGS = CUBE( dh * UNIT_L );
+
+
+#        pragma omp for schedule( static )
+         for (int PID=0; PID<amr->NPatchComma[lv][1]; PID++)
+         {
+//          skip non-leaf patches
+            if ( amr->patch[0][lv][PID]->son != -1 )   continue;
+
+            const double z0 = amr->patch[0][lv][PID]->EdgeL[2];
+            const double y0 = amr->patch[0][lv][PID]->EdgeL[1];
+            const double x0 = amr->patch[0][lv][PID]->EdgeL[0];
+
+            for (int k=0; k<PS1; k++)  {  const double z = z0 + (k+0.5)*dh;
+            for (int j=0; j<PS1; j++)  {  const double y = y0 + (j+0.5)*dh;
+            for (int i=0; i<PS1; i++)  {  const double x = x0 + (i+0.5)*dh;
+
+//             get the input arrays
+               real fluid[FLU_NIN_S];
+
+               for (int v=0; v<FLU_NIN_S; v++)  fluid[v] = amr->patch[ amr->FluSg[lv] ][lv][PID]->fluid[v][k][j][i];
+
+#              ifdef MHD
+               real B[NCOMP_MAG];
+
+               MHD_GetCellCenteredBFieldInPatch( B, lv, PID, i, j, k, amr->MagSg[lv] );
+#              else
+               real *B = NULL;
+#              endif
+
+               SrcTerms.Leakage_CPUPtr( fluid, B, &SrcTerms, 0.0, NULL_REAL, x, y, z, NULL_REAL, NULL_REAL,
+                                        MIN_DENS, MIN_PRES, MIN_EINT, NULL,
+                                        Src_Leakage_AuxArray_Flt, Src_Leakage_AuxArray_Int );
+
+               if ( fluid[DENS] > 0.0 )
+                  OMP_NetHeatGain[TID] += fluid[DENS] * dv_CGS;
+
+               OMP_Lum    [TID][0] += fluid[MOMX] * dv_CGS;
+               OMP_Lum    [TID][1] += fluid[MOMY] * dv_CGS;
+               OMP_Lum    [TID][2] += fluid[MOMZ] * dv_CGS;
+               OMP_Heat   [TID][0] += fluid[ENGY] * dv_CGS;
+#              ifdef YE
+               OMP_Heat   [TID][1] += fluid[YE  ] * dv_CGS;
+#              endif
+#              ifdef DYEDT_NU
+               OMP_NetHeat[TID][0] += fluid[DEDT_NU ] * dv_CGS;
+               OMP_NetHeat[TID][1] += fluid[DYEDT_NU] * dv_CGS;
+#              endif
+
+            }}} // i,j,k
+         } // for (int PID=0; PID<amr->NPatchComma[lv][1]; PID++)
+      } // for (int lv=0; lv<=MAX_LEVEL; lv++)
+   } // OpenMP parallel region
+
+
+// sum over all OpenMP threads
+   for (int t=0; t<NT; t++)
+   {
+      NetHeatGain += OMP_NetHeatGain[t];
+
+      for (int n=0; n<NType_Neutrino; n++)
+      {
+         Lum    [n] += OMP_Lum    [t][n];
+         Heat   [n] += OMP_Heat   [t][n];
+         NetHeat[n] += OMP_NetHeat[t][n];
+      }
+   }
+
+
+// collect data from all ranks (in-place reduction)
+#  ifndef SERIAL
+   MPI_Allreduce( MPI_IN_PLACE, &NetHeatGain, 1,              MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD );
+   MPI_Allreduce( MPI_IN_PLACE,  Lum,         NType_Neutrino, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD );
+   MPI_Allreduce( MPI_IN_PLACE,  Heat,        NType_Neutrino, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD );
+   MPI_Allreduce( MPI_IN_PLACE,  NetHeat,     NType_Neutrino, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD );
+#  endif // ifndef SERIAL
+
+
+// store the results with correction
+   CCSN_Leakage_NetHeatGain = NetHeatGain;
+
+   for (int n=0; n<NType_Neutrino; n++)
+   {
+      CCSN_Leakage_Lum    [n] = Lum    [n] / Const_hc_MeVcm_CUBE;
+      CCSN_Leakage_Heat   [n] = Heat   [n] / Const_hc_MeVcm_CUBE;
+      CCSN_Leakage_NetHeat[n] = NetHeat[n] / Const_hc_MeVcm_CUBE;
+   }
+
+
+// disable the record mode
+   Src_Leakage_AuxArray_Int[3] = 0;
+
+
+// free per-thread arrays
+   delete [] OMP_NetHeatGain;
+
+   Aux_DeallocateArray2D( OMP_Lum     );
+   Aux_DeallocateArray2D( OMP_Heat    );
+   Aux_DeallocateArray2D( OMP_NetHeat );
+
+} // FUNCTION : Record_CCSN_Leakage()
+#endif // if ( defined NEUTRINO_SCHEME  &&  NEUTRINO_SCHEME == LEAKAGE )
 
 
 
@@ -471,24 +683,24 @@ void Detect_CoreBounce()
 void Detect_Shock()
 {
 
+   const int    SHK_GHOST_SIZE = 1;
+   const int    SHK_NXT        = PS1 + 2*SHK_GHOST_SIZE;
+   const int    SHK_NXT_P1     = SHK_NXT + 1;
+   const int    NPG_Max        = FLU_GPU_NPGROUP;
+   const int    Stride1        = CUBE( SHK_NXT );
+   const int    Stride2        = NCOMP_TOTAL * Stride1;
+   const int    Stride3        = NCOMP_MAG * SQR( SHK_NXT ) * SHK_NXT_P1;
+   const double BoxCenter[3]   = { amr->BoxCenter[0], amr->BoxCenter[1], amr->BoxCenter[2] };
+
+#  ifndef MHD
+   const int OPT__MAG_INT_SCHEME = INT_NONE;
+#  endif
+
 #  ifdef OPENMP
    const int NT = OMP_NTHREAD;
 #  else
    const int NT = 1;
 #  endif
-
-   const int NGhost  = 1;
-   const int PS1P2   = PS1 + 2*NGhost;
-   const int NPG_Max = FLU_GPU_NPGROUP;
-   const int TVarCC  = _DENS | _PASSIVE | _VELX | _VELY | _VELZ | _PRES;
-   const int Stride1 = CUBE( PS1P2 );
-   const int Stride2 = NCOMP_TOTAL * Stride1;
-   const int VELX    = NCOMP_PASSIVE + 1;
-   const int VELY    = NCOMP_PASSIVE + 2;
-   const int VELZ    = NCOMP_PASSIVE + 3;
-   const int PRES    = NCOMP_PASSIVE + 4;
-
-   const double BoxCenter[3]      = { amr->BoxCenter[0], amr->BoxCenter[1], amr->BoxCenter[2] };
 
 
    double Shock_Min    =  HUGE_NUMBER;
@@ -503,9 +715,15 @@ void Detect_Shock()
    double OMP_Shock_Weight[NT];
    int    OMP_Shock_Found [NT];
 
-   real *OMP_Fluid    = new real [ 8*NPG_Max*Stride2 ];
-   real *OMP_Pres_Min = new real [ 8*NPG_Max*Stride1 ];
-   real *OMP_Cs_Min   = new real [ 8*NPG_Max*Stride1 ];
+   real *OMP_Fluid    = new real [ 8*NPG_Max*NCOMP_TOTAL*CUBE(SHK_NXT) ];
+   real *OMP_Pres_Min = new real [ 8*NPG_Max*            CUBE(SHK_NXT) ];
+   real *OMP_Cs_Min   = new real [ 8*NPG_Max*            CUBE(SHK_NXT) ];
+#  ifdef MHD
+   real *OMP_Mag      = new real [ 8*NPG_Max*NCOMP_MAG  * SQR(SHK_NXT)*SHK_NXT_P1 ];
+#  else
+   real *OMP_Mag      = NULL;
+#  endif
+
 
    for (int t=0; t<NT; t++)
    {
@@ -538,11 +756,11 @@ void Detect_Shock()
       {
          const int NPG = MIN( NPG_Max, NTotal-Disp );
 
-//       (1-a) prepare the primitive and passive variables
-//             note that the data are prepared in order of density, Passive, velx, vely, velz, and pressure
-         Prepare_PatchData( lv, Time[lv], OMP_Fluid, NULL,
-                            NGhost, NPG, PID0_List+Disp, TVarCC, _NONE,
-                            OPT__FLU_INT_SCHEME, INT_NONE, UNIT_PATCH, NSIDE_26, false,
+//       (1) prepare the data
+//           --> prepare all fields to ensure monotonicity
+         Prepare_PatchData( lv, Time[lv], OMP_Fluid, OMP_Mag,
+                            SHK_GHOST_SIZE, NPG, PID0_List+Disp, _TOTAL, _MAG,
+                            OPT__FLU_INT_SCHEME, OPT__MAG_INT_SCHEME, UNIT_PATCH, NSIDE_26, false,
                             OPT__BC_FLU, BC_POT_NONE, -1.0, -1.0, -1.0, -1.0, false );
 
 
@@ -559,41 +777,66 @@ void Detect_Shock()
 
             if ( amr->patch[0][lv][PID]->son != -1 )  continue;
 
-            real (*Fluid   )[PS1P2][PS1P2][PS1P2] = ( real(*)[PS1P2][PS1P2][PS1P2] ) ( OMP_Fluid    + PID_IDX*Stride2 );
-            real (*Pres_Min)       [PS1P2][PS1P2] = ( real(*)       [PS1P2][PS1P2] ) ( OMP_Pres_Min + PID_IDX*Stride1 );
-            real (*Cs_Min  )       [PS1P2][PS1P2] = ( real(*)       [PS1P2][PS1P2] ) ( OMP_Cs_Min   + PID_IDX*Stride1 );
 
-//          (1-b) compute the sound speed and store in the density field
-            for (int k=0; k<PS1P2; k++)  {
-            for (int j=0; j<PS1P2; j++)  {
-            for (int i=0; i<PS1P2; i++)  {
+            real (*Fluid   ) [SHK_NXT][SHK_NXT][SHK_NXT] = ( real(*) [SHK_NXT][SHK_NXT][SHK_NXT] ) ( OMP_Fluid    + PID_IDX*Stride2 );
+            real (*Pres_Min)          [SHK_NXT][SHK_NXT] = ( real(*)          [SHK_NXT][SHK_NXT] ) ( OMP_Pres_Min + PID_IDX*Stride1 );
+            real (*Cs_Min  )          [SHK_NXT][SHK_NXT] = ( real(*)          [SHK_NXT][SHK_NXT] ) ( OMP_Cs_Min   + PID_IDX*Stride1 );
+#           ifdef MHD
+            real (*Mag     )[SHK_NXT_P1*SHK_NXT*SHK_NXT] = ( real(*)[SHK_NXT_P1*SHK_NXT*SHK_NXT] ) ( OMP_Mag      + PID_IDX*Stride3 );
+#           endif
 
-               real Passive[NCOMP_PASSIVE];
-               real Dens = Fluid[DENS][k][j][i];
-               real Pres = Fluid[PRES][k][j][i];
 
-               for (int v=0; v<NCOMP_PASSIVE; v++)   Passive[v] = Fluid[v+1][k][j][i];
+//          (2-a) compute the pressure and sound speed
+//                --> the sound speed and pressure are stored in the density and energy fields, respectively
+            for (int k=0; k<SHK_NXT; k++)  {
+            for (int j=0; j<SHK_NXT; j++)  {
+            for (int i=0; i<SHK_NXT; i++)  {
 
-               const real CSqr = EoS_DensPres2CSqr_CPUPtr( Dens, Pres, Passive,
+               real FluidForEoS[NCOMP_TOTAL];
+
+               for (int v=0; v<NCOMP_TOTAL; v++)   FluidForEoS[v] = Fluid[v][k][j][i];
+
+#              ifdef MHD
+               real B[NCOMP_MAG];
+               MHD_GetCellCenteredBField( B, Mag[MAGX], Mag[MAGY], Mag[MAGZ],
+                                          SHK_NXT, SHK_NXT, SHK_NXT, i, j, k );
+
+               const real Emag = 0.5*( SQR(B[MAGX]) + SQR(B[MAGY]) + SQR(B[MAGZ]) );
+#              else
+               const real Emag = NULL_REAL;
+#              endif
+
+               const real Pres = Hydro_Con2Pres( FluidForEoS[DENS], FluidForEoS[MOMX], FluidForEoS[MOMY],
+                                                 FluidForEoS[MOMZ], FluidForEoS[ENGY], FluidForEoS+NCOMP_FLUID,
+                                                 (MIN_PRES>=(real)0.0), MIN_PRES, Emag,
+                                                 EoS_DensEint2Pres_CPUPtr, EoS_AuxArray_Flt, EoS_AuxArray_Int,
+                                                 h_EoS_Table, NULL );
+
+               const real CSqr = EoS_DensPres2CSqr_CPUPtr( FluidForEoS[DENS], Pres, FluidForEoS+NCOMP_FLUID,
                                                            EoS_AuxArray_Flt, EoS_AuxArray_Int, h_EoS_Table );
 
-               Fluid[DENS][k][j][i] = SQRT( CSqr );
+//             store pressure and sound speed, and convert momentum to velocity
+               Fluid[DENS][k][j][i]  = SQRT( CSqr );
+               Fluid[MOMX][k][j][i] /= FluidForEoS[DENS];
+               Fluid[MOMY][k][j][i] /= FluidForEoS[DENS];
+               Fluid[MOMZ][k][j][i] /= FluidForEoS[DENS];
+               Fluid[ENGY][k][j][i]  = Pres;
 
             }}} // i, j, k
 
 
-//          (2) use a naive method to find the minimum of pressure and sound speed in the local 3x3 subarray
-            for (int k=NGhost; k<PS1+NGhost; k++)  {
-            for (int j=NGhost; j<PS1+NGhost; j++)  {
-            for (int i=NGhost; i<PS1+NGhost; i++)  {
+//          (2-b) use a naive method to find the minimum of pressure and sound speed in the local 3x3 subarray
+            for (int k=SHK_GHOST_SIZE; k<PS1+SHK_GHOST_SIZE; k++)  {
+            for (int j=SHK_GHOST_SIZE; j<PS1+SHK_GHOST_SIZE; j++)  {
+            for (int i=SHK_GHOST_SIZE; i<PS1+SHK_GHOST_SIZE; i++)  {
 
                real Pres_Min_Loc = HUGE_NUMBER;
                real Cs_Min_Loc   = HUGE_NUMBER;
 
-               for (int kk=k-NGhost; kk<=k+NGhost; kk++)  {
-               for (int jj=j-NGhost; jj<=j+NGhost; jj++)  {
-               for (int ii=i-NGhost; ii<=i+NGhost; ii++)  {
-                  Pres_Min_Loc = FMIN( Pres_Min_Loc, Fluid[PRES][kk][jj][ii] );
+               for (int kk=k-SHK_GHOST_SIZE; kk<=k+SHK_GHOST_SIZE; kk++)  {
+               for (int jj=j-SHK_GHOST_SIZE; jj<=j+SHK_GHOST_SIZE; jj++)  {
+               for (int ii=i-SHK_GHOST_SIZE; ii<=i+SHK_GHOST_SIZE; ii++)  {
+                  Pres_Min_Loc = FMIN( Pres_Min_Loc, Fluid[ENGY][kk][jj][ii] );
                   Cs_Min_Loc   = FMIN( Cs_Min_Loc,   Fluid[DENS][kk][jj][ii] );
                }}}
 
@@ -603,9 +846,9 @@ void Detect_Shock()
             }}} // i, j, k
 
 
-            for (int k=0; k<PS1; k++)  {  const double z = amr->patch[0][lv][PID]->EdgeL[2] + (k+0.5)*dh; const int kk = k+NGhost;
-            for (int j=0; j<PS1; j++)  {  const double y = amr->patch[0][lv][PID]->EdgeL[1] + (j+0.5)*dh; const int jj = j+NGhost;
-            for (int i=0; i<PS1; i++)  {  const double x = amr->patch[0][lv][PID]->EdgeL[0] + (i+0.5)*dh; const int ii = i+NGhost;
+            for (int k=0; k<PS1; k++)  {  const double z = amr->patch[0][lv][PID]->EdgeL[2] + (k+0.5)*dh; const int kk = k+SHK_GHOST_SIZE;
+            for (int j=0; j<PS1; j++)  {  const double y = amr->patch[0][lv][PID]->EdgeL[1] + (j+0.5)*dh; const int jj = j+SHK_GHOST_SIZE;
+            for (int i=0; i<PS1; i++)  {  const double x = amr->patch[0][lv][PID]->EdgeL[0] + (i+0.5)*dh; const int ii = i+SHK_GHOST_SIZE;
 
                const double dx = x - BoxCenter[0];
                const double dy = y - BoxCenter[1];
@@ -613,13 +856,13 @@ void Detect_Shock()
                const double r  = sqrt(  SQR( dx ) + SQR( dy ) + SQR( dz )  );
 
 //             (3) evaluate the undivided gradient of pressure and the undivided divergence of velocity
-               real GradP = (real)0.5 * (   FABS( Fluid[PRES][kk+1][jj  ][ii  ] - Fluid[PRES][kk-1][jj  ][ii  ] )
-                                          + FABS( Fluid[PRES][kk  ][jj+1][ii  ] - Fluid[PRES][kk  ][jj-1][ii  ] )
-                                          + FABS( Fluid[PRES][kk  ][jj  ][ii+1] - Fluid[PRES][kk  ][jj  ][ii-1] )  );
+               real GradP = (real)0.5 * (   FABS( Fluid[ENGY][kk+1][jj  ][ii  ] - Fluid[ENGY][kk-1][jj  ][ii  ] )
+                                          + FABS( Fluid[ENGY][kk  ][jj+1][ii  ] - Fluid[ENGY][kk  ][jj-1][ii  ] )
+                                          + FABS( Fluid[ENGY][kk  ][jj  ][ii+1] - Fluid[ENGY][kk  ][jj  ][ii-1] )  );
 
-               real DivV  = (real)0.5 * (       ( Fluid[VELZ][kk+1][jj  ][ii  ] - Fluid[VELZ][kk-1][jj  ][ii  ] )
-                                          +     ( Fluid[VELY][kk  ][jj+1][ii  ] - Fluid[VELY][kk  ][jj-1][ii  ] )
-                                          +     ( Fluid[VELX][kk  ][jj  ][ii+1] - Fluid[VELX][kk  ][jj  ][ii-1] )  );
+               real DivV  = (real)0.5 * (       ( Fluid[MOMZ][kk+1][jj  ][ii  ] - Fluid[MOMZ][kk-1][jj  ][ii  ] )
+                                          +     ( Fluid[MOMY][kk  ][jj+1][ii  ] - Fluid[MOMY][kk  ][jj-1][ii  ] )
+                                          +     ( Fluid[MOMX][kk  ][jj  ][ii+1] - Fluid[MOMX][kk  ][jj  ][ii-1] )  );
 
 //             (4) examine the criteria for detecting strong shock
                if (  ( GradP >=  CCSN_Shock_ThresFac_Pres * Pres_Min[kk][jj][ii] )  &&
@@ -644,6 +887,9 @@ void Detect_Shock()
    delete [] OMP_Fluid;
    delete [] OMP_Pres_Min;
    delete [] OMP_Cs_Min;
+#  ifdef MHD
+   delete [] OMP_Mag;
+#  endif
 
 
 // collect data over all OpenMP threads

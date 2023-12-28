@@ -25,6 +25,9 @@ SET_GLOBAL( FieldIdx_t Idx_MomZ,          Idx_Undefined );
 SET_GLOBAL( FieldIdx_t Idx_Engy,          Idx_Undefined );
 #if ( EOS == EOS_NUCLEAR )
 SET_GLOBAL( FieldIdx_t Idx_Ye,            Idx_Undefined );
+#if ( NEUTRINO_SCHEME == LEAKAGE )
+SET_GLOBAL( FieldIdx_t Idx_dYedt_Nu,      Idx_Undefined );
+#endif
 SET_GLOBAL( FieldIdx_t Idx_dEdt_Nu,       Idx_Undefined );
 #if ( NUC_TABLE_MODE == NUC_TABLE_MODE_TEMP )
 SET_GLOBAL( FieldIdx_t Idx_Temp_IG,       Idx_Undefined );

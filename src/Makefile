@@ -98,7 +98,8 @@ SIMU_OPTION += -DEOS=EOS_GAMMA
 # --> NUC_TABLE_MODE_ENGY only supports NUC_EOS_SOLVER_LUT
 #SIMU_OPTION += -DNUC_EOS_SOLVER=NUC_EOS_SOLVER_DIRECT
 
-# neutrino updating scheme: LIGHTBULB/IDSA/M1
+# neutrino updating scheme: LIGHTBULB/IDSA/M1/LEAKAGE
+# --> IDSA and M1 are not supported yet
 #SIMU_OPTION += -DNEUTRINO_SCHEME=LIGHTBULB
 
 
@@ -439,7 +440,8 @@ CPU_FILE    += Aux_Check_Parameter.cpp  Aux_Check_Conservation.cpp  Aux_Check.cp
                Aux_GetMemInfo.cpp  Aux_Message.cpp  Aux_Record_PatchCount.cpp  Aux_TakeNote.cpp  Aux_Timing.cpp \
                Aux_Check_MemFree.cpp  Aux_Record_Performance.cpp  Aux_CheckFileExist.cpp  Aux_Array.cpp \
                Aux_Record_User.cpp  Aux_Record_CorrUnphy.cpp  Aux_SwapPointer.cpp  Aux_Check_NormalizePassive.cpp \
-               Aux_LoadTable.cpp  Aux_IsFinite.cpp  Aux_ComputeProfile.cpp  Aux_FindExtrema.cpp  Aux_PauseManually.cpp
+               Aux_LoadTable.cpp  Aux_IsFinite.cpp  Aux_ComputeProfile.cpp  Aux_FindExtrema.cpp  Aux_PauseManually.cpp \
+               Aux_ComputeRay.cpp
 
 CPU_FILE    += CPU_FluidSolver.cpp  Flu_AdvanceDt.cpp  Flu_Prepare.cpp  Flu_Close.cpp  Flu_FixUp_Flux.cpp \
                Flu_FixUp_Restrict.cpp  Flu_AllocateFluxArray.cpp  Flu_BoundaryCondition_User.cpp  Flu_ResetByUser.cpp \
@@ -668,16 +670,16 @@ endif # SUPPORT_LIBYT
 # local source terms source files
 # ------------------------------------------------------------------------------------
 GPU_FILE    += CUAPI_Asyn_SrcSolver.cu  CUSRC_SrcSolver_IterateAllCells.cu  CUSRC_Src_Deleptonization.cu \
-               CUSRC_Src_User_Template.cu  CUSRC_Src_Lightbulb.cu
+               CUSRC_Src_User_Template.cu  CUSRC_Src_Lightbulb.cu  CUSRC_Src_Leakage.cu
 
 CPU_FILE    += CPU_SrcSolver.cpp  CPU_SrcSolver_IterateAllCells.cpp  CPU_Src_Deleptonization.cpp \
-               CPU_Src_User_Template.cpp  CPU_Src_Lightbulb.cpp
+               CPU_Src_User_Template.cpp  CPU_Src_Lightbulb.cpp  CPU_Src_Leakage.cpp  CPU_Src_Leakage_ComputeLeak.cpp
 
 CPU_FILE    += Src_AdvanceDt.cpp  Src_Prepare.cpp  Src_Close.cpp  Src_Init.cpp  Src_End.cpp \
                Src_WorkBeforeMajorFunc.cpp
 
-vpath %.cu     SourceTerms  SourceTerms/User_Template  SourceTerms/Deleptonization  SourceTerms/LightBulb
-vpath %.cpp    SourceTerms  SourceTerms/User_Template  SourceTerms/Deleptonization  SourceTerms/LightBulb
+vpath %.cu     SourceTerms  SourceTerms/User_Template  SourceTerms/Deleptonization  SourceTerms/LightBulb  SourceTerms/Leakage
+vpath %.cpp    SourceTerms  SourceTerms/User_Template  SourceTerms/Deleptonization  SourceTerms/LightBulb  SourceTerms/Leakage
 
 
 # Grackle source files (included only if "SUPPORT_GRACKLE" is turned on)
