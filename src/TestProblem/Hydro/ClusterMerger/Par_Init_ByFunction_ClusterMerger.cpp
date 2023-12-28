@@ -205,6 +205,9 @@ void Par_Init_ByFunction_ClusterMerger( const long NPar_ThisRank, const long NPa
       }
 #     endif
 
+//    Reset the particle type for different clusters
+      for (long p=0; p<NPar_ThisRank_EachCluster[c]; p++)   ptype[p] = PTYPE_CLUSTER + c;
+
       if ( MPI_Rank == 0 ) Aux_Message( stdout, "done\n" );
 
       // store data to the particle repository
@@ -374,12 +377,6 @@ void Par_Init_ByFunction_ClusterMerger( const long NPar_ThisRank, const long NPa
 
 
    if ( MPI_Rank == 0 )    Aux_Message( stdout, "%s ... done\n", __FUNCTION__ );
-
-// Initialize ClusterCen
-//   double BH_Vel[3][3] = {  { NULL_REAL, NULL_REAL, NULL_REAL },
-//                            { NULL_REAL, NULL_REAL, NULL_REAL },
-//                            { NULL_REAL, NULL_REAL, NULL_REAL }  };
-//   GetClusterCenter( ClusterCen, BH_Vel);
 
 #endif // #ifdef SUPPORT_HDF5
 
@@ -803,7 +800,11 @@ void GetClusterCenter( int lv, bool AdjustPos, bool AdjustVel, double Cen_old[][
                      const real VelX_tmp = amr->Par->VelX[ParID];
                      const real VelY_tmp = amr->Par->VelY[ParID];
                      const real VelZ_tmp = amr->Par->VelZ[ParID];
-                     if ( SQR(ParX_tmp-Cen_new_pre[c][0])+SQR(ParY_tmp-Cen_new_pre[c][1])+SQR(ParZ_tmp-Cen_new_pre[c][2]) <= SQR(2*R_acc) ){
+                     bool if_cluster = false;
+                     if ( amr->Par->Type[ParID] == real(PTYPE_CLUSTER+c) || amr->Par->Type[ParID] == real(PTYPE_CEN+c) ){
+                        if_cluster = true;
+                     }
+                     if ( if_cluster && SQR(ParX_tmp-Cen_new_pre[c][0])+SQR(ParY_tmp-Cen_new_pre[c][1])+SQR(ParZ_tmp-Cen_new_pre[c][2]) <= SQR(2*R_acc) ){
 //                      Record the mass, position and velocity of this particle
                         ParX[c][num_par[c]] = ParX_tmp;
                         ParY[c][num_par[c]] = ParY_tmp;
