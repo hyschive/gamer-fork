@@ -1019,7 +1019,7 @@ void GetClusterCenter( int lv, bool AdjustPos, bool AdjustVel, double Cen_old[][
 //    use MPI_MAX since Cen_Tmp[] is initialized as -inf
       MPI_Allreduce( Cen_Tmp, Cen_new[c], 3, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD );
       MPI_Allreduce( Vel_Tmp, Cen_Vel[c], 3, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD );
-   }
+   } // for (int c=0; c<Merger_Coll_NumHalos; c++)
 
    if ( CurrentMaxLv  &&  AdjustPos == true ){
       const bool TimingSendPar_No = false;
@@ -1030,6 +1030,10 @@ void GetClusterCenter( int lv, bool AdjustPos, bool AdjustVel, double Cen_old[][
    else {   // if ( fixBH == true )
       for (int d=0; d<3; d++)   Cen_new[0][d] = 7.5; 
       for (int d=0; d<3; d++)   Cen_Vel[0][d] = 0.0; 
+   }
+
+   for (int c=0; c<Merger_Coll_NumHalos; c++) {
+      for (int d=0; d<3; d++)  Cen_old[c][d] = Cen_new[c][d];
    }
 } // FUNCTION : GetClusterCenter
 
