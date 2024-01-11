@@ -3,9 +3,11 @@
 
        double CCSN_CentralDens;
 
-       double CCSN_Rsh_Min = 0.0;
-       double CCSN_Rsh_Max = 0.0;
-       double CCSN_Rsh_Ave = 0.0;
+       double CCSN_Rsh_Min      = 0.0;
+       double CCSN_Rsh_Max      = 0.0;
+       double CCSN_Rsh_Ave      = 0.0;
+       double CCSN_Rsh_Ave_V    = 0.0;
+       double CCSN_Rsh_Ave_Vinv = 0.0;
 
        double CCSN_Leakage_NetHeatGain = 0.0;
        double CCSN_Leakage_Lum    [3]  = { 0.0 };
@@ -156,18 +158,29 @@ void Record_CCSN_CentralQuant()
          {
              FILE *file_cent_quant = fopen( filename_central_quant, "w" );
 
-             fprintf( file_cent_quant, "#%14s %12s %16s %16s %16s %16s %16s %16s %16s %16s",
-                                       "1_Time [sec]", "2_Step", "3_PosX [cm]", "4_PosY [cm]", "5_PosZ [cm]",
-                                       "6_Dens [g/cm^3]", "7_Ye", "8_Rsh_Min [cm]", "9_Rsh_Ave [cm]", "10_Rsh_Max [cm]" );
+             fprintf( file_cent_quant, "#%14s %8s %15s %15s %15s %15s %15s %15s %15s %16s %15s",
+                                       "1_Time", "2_Step", "3_PosX", "4_PosY", "5_PosZ",
+                                       "6_Dens", "7_Ye", "8_Rsh_Min", "9_Rsh_Ave_V", "10_Rsh_Ave_Vinv", "11_Rsh_Max" );
 
 #            if ( defined NEUTRINO_SCHEME  &&  NEUTRINO_SCHEME == LEAKAGE )
-             fprintf( file_cent_quant, " %29s %28s %28s %28s %28s %28s %28s %28s %28s %28s %28s %28s %28s %28s",
-                                       "11_Leak_NetHeat_Gain [erg/s]",
-                                       "12_Leak_Lum_Nue [erg/s]", "13_Leak_Lum_Nua [erg/s]", "14_Leak_Lum_Nux [erg/s]",
-                                       "15_Leak_Heat_Nue [erg/s]", "16_Leak_Heat_Nua [erg/s]",
-                                       "17_Leak_NetHeat_Nue [erg/s]", "18_Leak_NetHeat_Nua [erg/s]",
-                                       "19_Leak_EAve_Nue [MeV]", "20_Leak_EAve_Nua [MeV]", "21_Leak_EAve_Nux [MeV]",
-                                       "22_Leak_RadNS_Nue [cm]", "23_Leak_RadNS_Nua [cm]", "24_Leak_RadNS_Nux [cm]" );
+             fprintf( file_cent_quant, " %21s %16s %16s %16s %17s %17s %20s %20s %17s %17s %17s %18s %18s %18s",
+                                       "12_Leak_NetHeat_Gain", "13_Leak_Lum_Nue", "14_Leak_Lum_Nua", "15_Leak_Lum_Nux",
+                                       "16_Leak_Heat_Nue", "17_Leak_Heat_Nua", "18_Leak_NetHeat_Nue", "19_Leak_NetHeat_Nua",
+                                       "20_Leak_EAve_Nue", "21_Leak_EAve_Nua", "22_Leak_EAve_Nux",
+                                       "23_Leak_RadNS_Nue", "24_Leak_RadNS_Nua", "25_Leak_RadNS_Nux" );
+#            endif
+
+             fprintf( file_cent_quant, "\n" );
+
+             fprintf( file_cent_quant, "#%14s %8s %15s %15s %15s %15s %15s %15s %15s %16s %15s",
+                                       "[sec]", "[1]", "[cm]", "[cm]", "[cm]", "[g/cm^3]", "[1]", "[cm]", "[cm]", "[cm]", "[cm]" );
+
+#            if ( defined NEUTRINO_SCHEME  &&  NEUTRINO_SCHEME == LEAKAGE )
+             fprintf( file_cent_quant, " %21s %16s %16s %16s %17s %17s %20s %20s %17s %17s %17s %18s %18s %18s",
+                                       "[erg/s]", "[erg/s]", "[erg/s]", "[erg/s]",
+                                       "[erg/s]", "[erg/s]", "[erg/s]", "[erg/s]",
+                                       "[MeV]", "[MeV]", "[MeV]",
+                                       "[cm]", "[cm]", "[cm]" );
 #            endif
 
              fprintf( file_cent_quant, "\n" );
@@ -196,12 +209,12 @@ void Record_CCSN_CentralQuant()
 
       FILE *file_cent_quant = fopen( filename_central_quant, "a" );
 
-      fprintf( file_cent_quant, "%15.7e %12ld %16.7e %16.7e %16.7e %16.7e %16.7e %16.7e %16.7e %16.7e",
+      fprintf( file_cent_quant, "%15.7e %8ld %15.7e %15.7e %15.7e %15.7e %15.7e %15.7e %15.7e %16.7e %15.7e",
                Time[0]*UNIT_T, Step, Data_Flt[1]*UNIT_L, Data_Flt[2]*UNIT_L, Data_Flt[3]*UNIT_L,
-               u[DENS]*UNIT_D, Ye, CCSN_Rsh_Min*UNIT_L, CCSN_Rsh_Ave*UNIT_L, CCSN_Rsh_Max*UNIT_L );
+               u[DENS]*UNIT_D, Ye, CCSN_Rsh_Min*UNIT_L, CCSN_Rsh_Ave_V*UNIT_L, CCSN_Rsh_Ave_Vinv*UNIT_L, CCSN_Rsh_Max*UNIT_L );
 
 #     if ( defined NEUTRINO_SCHEME  &&  NEUTRINO_SCHEME == LEAKAGE )
-      fprintf( file_cent_quant, " %29.7e %28.7e %28.7e %28.7e %28.7e %28.7e %28.7e %28.7e %28.7e %28.7e %28.7e %28.7e %28.7e %28.7e",
+      fprintf( file_cent_quant, " %21.7e %16.7e %16.7e %16.7e %17.7e %17.7e %20.7e %20.7e %17.7e %17.7e %17.7e %18.7e %18.7e %18.7e",
                CCSN_Leakage_NetHeatGain, CCSN_Leakage_Lum[0], CCSN_Leakage_Lum[1], CCSN_Leakage_Lum[2],
                CCSN_Leakage_Heat[0], CCSN_Leakage_Heat[1], CCSN_Leakage_NetHeat[0], CCSN_Leakage_NetHeat[1],
                CCSN_Leakage_EAve[0], CCSN_Leakage_EAve[1], CCSN_Leakage_EAve[2],
@@ -703,17 +716,21 @@ void Detect_Shock()
 #  endif
 
 
-   double Shock_Min    =  HUGE_NUMBER;
-   double Shock_Max    = -HUGE_NUMBER;
-   double Shock_Ave    =  0.0;
-   double Shock_Weight =  0.0;
-   int    Shock_Found  =  false;
+   double Shock_Min         =  HUGE_NUMBER;
+   double Shock_Max         = -HUGE_NUMBER;
+   double Shock_Ave_V       =  0.0;
+   double Shock_Ave_Vinv    =  0.0;
+   double Shock_Weight_V    =  0.0;
+   double Shock_Weight_Vinv =  0.0;
+   int    Shock_Found       =  false;
 
-   double OMP_Shock_Min   [NT];
-   double OMP_Shock_Max   [NT];
-   double OMP_Shock_Ave   [NT];
-   double OMP_Shock_Weight[NT];
-   int    OMP_Shock_Found [NT];
+   double OMP_Shock_Min        [NT];
+   double OMP_Shock_Max        [NT];
+   double OMP_Shock_Ave_V      [NT];
+   double OMP_Shock_Ave_Vinv   [NT];
+   double OMP_Shock_Weight_V   [NT];
+   double OMP_Shock_Weight_Vinv[NT];
+   int    OMP_Shock_Found      [NT];
 
    real *OMP_Fluid    = new real [ 8*NPG_Max*NCOMP_TOTAL*CUBE(SHK_NXT) ];
    real *OMP_Pres_Min = new real [ 8*NPG_Max*            CUBE(SHK_NXT) ];
@@ -727,11 +744,13 @@ void Detect_Shock()
 
    for (int t=0; t<NT; t++)
    {
-      OMP_Shock_Min   [t] =  HUGE_NUMBER;
-      OMP_Shock_Max   [t] = -HUGE_NUMBER;
-      OMP_Shock_Ave   [t] = 0.0;
-      OMP_Shock_Weight[t] = 0.0;
-      OMP_Shock_Found [t] = false;
+      OMP_Shock_Min        [t] =  HUGE_NUMBER;
+      OMP_Shock_Max        [t] = -HUGE_NUMBER;
+      OMP_Shock_Ave_V      [t] = 0.0;
+      OMP_Shock_Ave_Vinv   [t] = 0.0;
+      OMP_Shock_Weight_V   [t] = 0.0;
+      OMP_Shock_Weight_Vinv[t] = 0.0;
+      OMP_Shock_Found      [t] = false;
    }
 
 
@@ -739,9 +758,11 @@ void Detect_Shock()
    {
       const double dh        = amr->dh[lv];
       const double dv        = CUBE( dh );
+      const double _dv       = 1.0 / dv;
       const int    NTotal    = amr->NPatchComma[lv][1] / 8;
             int   *PID0_List = new int [NTotal];
 
+//    obsolete!! to be removed in the future.
       double Weight;
       switch ( CCSN_Shock_Weight )
       {
@@ -868,11 +889,13 @@ void Detect_Shock()
                if (  ( GradP >=  CCSN_Shock_ThresFac_Pres * Pres_Min[kk][jj][ii] )  &&
                      ( DivV  <= -CCSN_Shock_ThresFac_Vel  * Cs_Min  [kk][jj][ii] )      )
                {
-                  OMP_Shock_Min   [TID]  = fmin( r, OMP_Shock_Min[TID] );
-                  OMP_Shock_Max   [TID]  = fmax( r, OMP_Shock_Max[TID] );
-                  OMP_Shock_Ave   [TID] += r * Weight;
-                  OMP_Shock_Weight[TID] += Weight;
-                  OMP_Shock_Found [TID]  = true;
+                  OMP_Shock_Min        [TID]  = fmin( r, OMP_Shock_Min[TID] );
+                  OMP_Shock_Max        [TID]  = fmax( r, OMP_Shock_Max[TID] );
+                  OMP_Shock_Ave_V      [TID] += r * dv;
+                  OMP_Shock_Ave_Vinv   [TID] += r * _dv;
+                  OMP_Shock_Weight_V   [TID] += dv;
+                  OMP_Shock_Weight_Vinv[TID] += _dv;
+                  OMP_Shock_Found      [TID]  = true;
                }
 
             }}} // i,j,k
@@ -895,27 +918,33 @@ void Detect_Shock()
 // collect data over all OpenMP threads
    for (int t=0; t<NT; t++)
    {
-      Shock_Min     = fmin( Shock_Min, OMP_Shock_Min[t] );
-      Shock_Max     = fmax( Shock_Max, OMP_Shock_Max[t] );
-      Shock_Ave    += OMP_Shock_Ave[t];
-      Shock_Weight += OMP_Shock_Weight[t];
-      Shock_Found  |= OMP_Shock_Found[t];
+      Shock_Min          = fmin( Shock_Min, OMP_Shock_Min[t] );
+      Shock_Max          = fmax( Shock_Max, OMP_Shock_Max[t] );
+      Shock_Ave_V       += OMP_Shock_Ave_V      [t];
+      Shock_Ave_Vinv    += OMP_Shock_Ave_Vinv   [t];
+      Shock_Weight_V    += OMP_Shock_Weight_V   [t];
+      Shock_Weight_Vinv += OMP_Shock_Weight_Vinv[t];
+      Shock_Found       |= OMP_Shock_Found      [t];
    }
 
 
 // collect data from all ranks (in-place reduction)
 #  ifndef SERIAL
-   MPI_Allreduce( MPI_IN_PLACE, &Shock_Min,    1, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD );
-   MPI_Allreduce( MPI_IN_PLACE, &Shock_Max,    1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD );
-   MPI_Allreduce( MPI_IN_PLACE, &Shock_Ave,    1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD );
-   MPI_Allreduce( MPI_IN_PLACE, &Shock_Weight, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD );
-   MPI_Allreduce( MPI_IN_PLACE, &Shock_Found,  1, MPI_INT,    MPI_BOR, MPI_COMM_WORLD );
+   MPI_Allreduce( MPI_IN_PLACE, &Shock_Min,         1, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD );
+   MPI_Allreduce( MPI_IN_PLACE, &Shock_Max,         1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD );
+   MPI_Allreduce( MPI_IN_PLACE, &Shock_Ave_V,       1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD );
+   MPI_Allreduce( MPI_IN_PLACE, &Shock_Ave_Vinv,    1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD );
+   MPI_Allreduce( MPI_IN_PLACE, &Shock_Weight_V,    1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD );
+   MPI_Allreduce( MPI_IN_PLACE, &Shock_Weight_Vinv, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD );
+   MPI_Allreduce( MPI_IN_PLACE, &Shock_Found,       1, MPI_INT,    MPI_BOR, MPI_COMM_WORLD );
 #  endif // ifndef SERIAL
 
 
 // update the shock radius
-   CCSN_Rsh_Min = ( Shock_Found ) ? Shock_Min                : 0.0;
-   CCSN_Rsh_Max = ( Shock_Found ) ? Shock_Max                : 0.0;
-   CCSN_Rsh_Ave = ( Shock_Found ) ? Shock_Ave / Shock_Weight : 0.0;
+   CCSN_Rsh_Min      = ( Shock_Found ) ? Shock_Min                          : 0.0;
+   CCSN_Rsh_Max      = ( Shock_Found ) ? Shock_Max                          : 0.0;
+   CCSN_Rsh_Ave_V    = ( Shock_Found ) ? Shock_Ave_V / Shock_Weight_V       : 0.0;
+   CCSN_Rsh_Ave_Vinv = ( Shock_Found ) ? Shock_Ave_Vinv / Shock_Weight_Vinv : 0.0;
+   CCSN_Rsh_Ave      = ( CCSN_Shock_Weight == 1 ) ? CCSN_Rsh_Ave_V : CCSN_Rsh_Ave_Vinv;
 
 } // FUNCTION : Detect_Shock()
