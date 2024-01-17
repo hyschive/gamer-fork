@@ -65,6 +65,11 @@ void Src_Leakage_ComputeTau( Profile_t *Ray[], double *Edge,
 #  else
    const double Tolerance_Leak = 1.0e-5;
 #  endif
+#  if ( NUC_TABLE_MODE == NUC_TABLE_MODE_TEMP )
+   const real   EoS_TempMin    = POW( (real)10.0, h_EoS_Table[NUC_TAB_TORE     ][0] );
+#  else
+   const real   EoS_TempMin    = POW( (real)10.0, h_EoS_Table[NUC_TAB_EORT_MODE][0] );
+#  endif
    const bool   NuHeat         = SrcTerms.Leakage_NuHeat;
    const real   NuHeat_Fac     = SrcTerms.Leakage_NuHeat_Fac;
 
@@ -212,12 +217,6 @@ void Src_Leakage_ComputeTau( Profile_t *Ray[], double *Edge,
 
 //       (1-2) fix potential undershoots near shock, adopted from FLASH
 //       --> the second-to-last value is also checked here
-#        if ( NUC_TABLE_MODE == NUC_TABLE_MODE_TEMP )
-         const real EoS_TempMin = h_EoS_Table[NUC_TAB_TORE     ][0];
-#        else
-         const real EoS_TempMin = h_EoS_Table[NUC_TAB_EORT_MODE][0];
-#        endif
-
          for (int i=1; i<NRadius-1; i++)
          {
             if ( NCell[TID][i] == 0L )   continue;
