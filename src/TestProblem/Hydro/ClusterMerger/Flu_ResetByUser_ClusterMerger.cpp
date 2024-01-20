@@ -61,10 +61,10 @@ double E_power_inj[3];   // the injection power
 extern void GetClusterCenter( int lv, bool AdjustPos, bool AdjustVel, double Cen_old[][3], double Cen_new[][3], double Cen_Vel[][3] );
 
 static bool FirstTime = true;
-extern int     JetDirection_NBin;     // number of bins of the jet direction table 
-extern double *Time_table;            // the time table of jet direction 
-extern double *Theta_table[3];        // the theta table of jet direction for 3 clusters
-extern double *Phi_table[3];          // the phi table of jet direction for 3 clusters
+extern int     JetDirection_NBin;   // number of bins of the jet direction table 
+extern double *Time_table;          // the time table of jet direction 
+extern double *Theta_table[3];      // the theta table of jet direction for 3 clusters
+extern double *Phi_table[3];        // the phi table of jet direction for 3 clusters
 
 extern bool   AdjustBHPos;
 extern bool   AdjustBHVel;
@@ -73,10 +73,9 @@ extern int AdjustCount;   // count the number of adjustments
 extern int JetDirection_case;   // Methods for choosing the jet direction
 int merge_index = 0;   // record BH 1 merge BH 2 / BH 2 merge BH 1
 
-double ang_mom_sum[3][3] = {  { 1.0, 0.0, 0.0 },
-                              { 1.0, 0.0, 0.0 }, 
-                              { 1.0, 0.0, 0.0 } };
-
+double ang_mom_sum[3][3] = { { 1.0, 0.0, 0.0 },
+                             { 1.0, 0.0, 0.0 }, 
+                             { 1.0, 0.0, 0.0 } };
 bool if_overlap = false;
 
 #ifdef MHD
@@ -352,19 +351,19 @@ void Flu_ResetByUser_API_ClusterMerger( const int lv, const int FluSg, const int
    }
 
 // variables for each rank
-   int num[3]           = { 0, 0, 0 };        // the number of cells inside the accretion radius
-   double gas_mass[3]   = { 0.0, 0.0, 0.0 };  // total gas mass inside the accretion radius
-   double rho[3]        = { 0.0, 0.0, 0.0 };  // the average density inside the accretion radius (hot gas)
-   double mass_cold[3]  = { 0.0, 0.0, 0.0 };  // cold gas mass (T < 5e5 K) inside the accretion radius
-   double Cs[3]         = { 0.0, 0.0, 0.0 };  // the average sound speed inside the accretion radius
-   double gas_vel[3][3] = {{ 0.0, 0.0, 0.0 }, // average gas velocity
+   int num[3]           = { 0, 0, 0 };         // the number of cells inside the accretion radius
+   double gas_mass[3]   = { 0.0, 0.0, 0.0 };   // total gas mass inside the accretion radius
+   double rho[3]        = { 0.0, 0.0, 0.0 };   // the average density inside the accretion radius (hot gas)
+   double mass_cold[3]  = { 0.0, 0.0, 0.0 };   // cold gas mass (T < 5e5 K) inside the accretion radius
+   double Cs[3]         = { 0.0, 0.0, 0.0 };   // the average sound speed inside the accretion radius
+   double gas_vel[3][3] = {{ 0.0, 0.0, 0.0 },  // average gas velocity
                            { 0.0, 0.0, 0.0 },
-                           { 0.0, 0.0, 0.0 }};
-   double ang_mom[3][3] = {{ 0.0, 0.0, 0.0 }, // total angular momentum inside the accretion radius
-                           { 0.0, 0.0, 0.0 },                                
                            { 0.0, 0.0, 0.0 }}; 
-   double V_cyl_exact[3] = { 0.0, 0.0, 0.0 }; // exact volume of jet cylinder
-   double normalize[3]   = { 0.0, 0.0, 0.0 }; // for computing the correct normalization constant
+   double ang_mom[3][3] = {{ 0.0, 0.0, 0.0 },  // total angular momentum inside the accretion radius
+                           { 0.0, 0.0, 0.0 },                                 
+                           { 0.0, 0.0, 0.0 }};  
+   double V_cyl_exact[3] = { 0.0, 0.0, 0.0 };  // exact volume of jet cylinder
+   double normalize[3]   = { 0.0, 0.0, 0.0 };  // for computing the correct normalization constant
    bool if_overlap_each_rank = false;
 // variables for all ranks
    int num_sum[3];
@@ -405,8 +404,8 @@ void Flu_ResetByUser_API_ClusterMerger( const int lv, const int FluSg, const int
                   double Pres = (real) Hydro_Con2Pres( fluid_acc[0], fluid_acc[1], fluid_acc[2], fluid_acc[3], fluid_acc[4], 
                                                        fluid_acc+NCOMP_FLUID, true, MIN_PRES, Emag, EoS_DensEint2Pres_CPUPtr, 
                                                        EoS_AuxArray_Flt, EoS_AuxArray_Int, h_EoS_Table, NULL );
-                  double tmp_Cs = sqrt( EoS_DensPres2CSqr_CPUPtr( fluid_acc[0], Pres, NULL, EoS_AuxArray_Flt, EoS_AuxArray_Int,
-                                        h_EoS_Table ) );
+                  double tmp_Cs = sqrt( EoS_DensPres2CSqr_CPUPtr( fluid_acc[0], Pres, NULL, EoS_AuxArray_Flt,
+                                        EoS_AuxArray_Int, h_EoS_Table ) );
                   Cs[c] += tmp_Cs;
                   for (int d=0; d<3; d++)  gas_vel[c][d] += fluid_acc[d+1]*dv;
                   num[c] += 1;  
@@ -595,8 +594,8 @@ void Flu_ResetByUser_API_ClusterMerger( const int lv, const int FluSg, const int
 #        endif
 
 //       reset this cell
-//         if (CurrentMaxLv)  Reset = Flu_ResetByUser_Func_ClusterMerger( fluid, Emag, x, y, z, TimeNew, dt, lv, NULL );
-         Reset = Flu_ResetByUser_Func_ClusterMerger( fluid, Emag, x, y, z, TimeNew, dt, lv, NULL );
+         if (CurrentMaxLv)  Reset = Flu_ResetByUser_Func_ClusterMerger( fluid, Emag, x, y, z, TimeNew, dt, lv, NULL );
+//         Reset = Flu_ResetByUser_Func_ClusterMerger( fluid, Emag, x, y, z, TimeNew, dt, lv, NULL );
 
 //       operations necessary only when this cell has been reset
          if ( Reset != 0 )

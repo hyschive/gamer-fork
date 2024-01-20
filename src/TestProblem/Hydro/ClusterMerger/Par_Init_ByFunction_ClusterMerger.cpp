@@ -665,7 +665,7 @@ void Aux_Record_ClusterMerger()
       MPI_Reduce( &CM_Bondi_SinkMomXAbs[c], &MomXAbs_Sum[c], 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD );
       MPI_Reduce( &CM_Bondi_SinkMomYAbs[c], &MomYAbs_Sum[c], 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD );
       MPI_Reduce( &CM_Bondi_SinkMomZAbs[c], &MomZAbs_Sum[c], 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD );
-      MPI_Reduce( &CM_Bondi_SinkE[c],       &E_Sum[c],      1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD );
+      MPI_Reduce( &CM_Bondi_SinkE[c],       &E_Sum[c],       1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD );
       MPI_Reduce( &CM_Bondi_SinkEk[c],      &Ek_Sum[c],      1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD );
       MPI_Reduce( &CM_Bondi_SinkEt[c],      &Et_Sum[c],      1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD );
    
@@ -790,7 +790,7 @@ void GetClusterCenter( int lv, bool AdjustPos, bool AdjustVel, double Cen_old[][
                const double *EdgeR = amr->patch[0][lv][PID]->EdgeR;
                const double patch_pos[3] = { (EdgeL[0]+EdgeR[0])*0.5, (EdgeL[1]+EdgeR[1])*0.5, (EdgeL[2]+EdgeR[2])*0.5 };
                const double patch_d = sqrt(SQR(EdgeL[0]-EdgeR[0])+SQR(EdgeL[1]-EdgeR[1])+SQR(EdgeL[2]-EdgeR[2]))*0.5;
-               if (SQR(patch_pos[0]-Cen_new_pre[c][0])+SQR(patch_pos[1]-Cen_new_pre[c][1])+SQR(patch_pos[2]-Cen_new_pre[c][2]) <= SQR(4*R_acc+patch_d)){
+               if (SQR(patch_pos[0]-Cen_new_pre[c][0])+SQR(patch_pos[1]-Cen_new_pre[c][1])+SQR(patch_pos[2]-Cen_new_pre[c][2]) <= SQR(20*R_acc+patch_d)){
                   for (int p=0; p<amr->patch[0][lv][PID]->NPar; p++) {
                      const long ParID = amr->patch[0][lv][PID]->ParList[p];
                      const real ParX_tmp = amr->Par->PosX[ParID];
@@ -804,7 +804,7 @@ void GetClusterCenter( int lv, bool AdjustPos, bool AdjustVel, double Cen_old[][
                      if ( amr->Par->Type[ParID] == real(PTYPE_CLUSTER+c) || amr->Par->Type[ParID] == real(PTYPE_CEN+c) ){
                         if_cluster = true;
                      }
-                     if ( if_cluster && SQR(ParX_tmp-Cen_new_pre[c][0])+SQR(ParY_tmp-Cen_new_pre[c][1])+SQR(ParZ_tmp-Cen_new_pre[c][2]) <= SQR(2*R_acc) ){
+                     if ( if_cluster && SQR(ParX_tmp-Cen_new_pre[c][0])+SQR(ParY_tmp-Cen_new_pre[c][1])+SQR(ParZ_tmp-Cen_new_pre[c][2]) <= SQR(10*R_acc) ){
 //                      Record the mass, position and velocity of this particle
                         ParX[c][num_par[c]] = ParX_tmp;
                         ParY[c][num_par[c]] = ParY_tmp;
@@ -955,7 +955,6 @@ void GetClusterCenter( int lv, bool AdjustPos, bool AdjustVel, double Cen_old[][
          }
          if ( count > 1  &&  sqrt(dis[0]) < dis_exp  &&  sqrt(dis[1]) < dis_exp )   IfConverge = true;
 
-//         if ( MPI_Rank == 0 )  Aux_Message( stdout, "Debugging! num_par_sum = %d, count = %d, min_pos[0][0] = %14.8e, min_pos[0][1] = %14.8e, min_pos[0][2] = %14.8e, Cen_new_pre[0][0] = %14.8e, Cen_new_pre[0][1] = %14.8e, Cen_new_pre[0][2] = %14.8e, dis[0] = %14.8e, dis[1] = %14.8e\n", num_par_sum[0], count, min_pos[0][0], min_pos[0][1], min_pos[0][2], Cen_new_pre[0][0], Cen_new_pre[0][1], Cen_new_pre[0][2], dis[0], dis[1] );   
          delete[] ParX_sum1;
          delete[] ParX_sum2;
          delete[] ParY_sum1;

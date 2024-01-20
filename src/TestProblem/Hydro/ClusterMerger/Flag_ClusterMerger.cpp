@@ -52,7 +52,7 @@ bool Flag_ClusterMerger( const int i, const int j, const int k, const int lv, co
 //         return Flag;
 //      }
 //      else if (  R_SQR <= SQR(R_acc)  &&  R_acc/dh <= Threshold[0]  ){
-      if (  R_SQR <= SQR(2*R_acc)  &&  R_acc/dh <= Threshold[0]  ){
+      if (  R_SQR <= SQR(25*R_acc)  &&  R_acc/dh <= Threshold[0]  ){
          Flag = true;
          return Flag;   
       }

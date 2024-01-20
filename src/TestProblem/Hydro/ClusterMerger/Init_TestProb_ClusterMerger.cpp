@@ -479,23 +479,7 @@ void SetParameter()
          MPI_Bcast(Table_M3, Merger_NBin3, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 
       } // if ( Merger_Coll_NumHalos > 2 && Merger_Coll_IsGas3 )
-/*
-//    (2-1) Load the jet direction table  
-      if ( JetDirection_case == 2 ) {
-         const bool RowMajor_No  = false;    // load data into the column-major order
-         const bool AllocMem_Yes = true;     // allocate memory for JetDirection 
-         const int  NCol         = 7;        // total number of columns to load
-         const int  Col[NCol] = {0, 1, 2, 3, 4, 5, 6};  // target columns: (time, theta_1, phi_1, theta_2, phi_2, theta_3, phi_3)
 
-         JetDirection_NBin = Aux_LoadTable( JetDirection, "JetDirection.txt", NCol, Col, RowMajor_No, AllocMem_Yes );
-         Time_table = JetDirection+0*JetDirection_NBin;
-         for (int d=0; d<3; d++) {
-            Theta_table[d] = JetDirection+(1+2*d)*JetDirection_NBin;
-            Phi_table[d]   = JetDirection+(2+2*d)*JetDirection_NBin;
-         }
-         for (int b=0; b<JetDirection_NBin; b++)   Time_table[b] *= Const_Myr/UNIT_T; 
-      }
-*/
 //    (2-2) Initialize the BH position and velocity
       double ClusterCenter[3][3] = {{ Merger_Coll_PosX1, Merger_Coll_PosY1, amr->BoxCenter[2] },
                                     { Merger_Coll_PosX2, Merger_Coll_PosY2, amr->BoxCenter[2] },
@@ -509,7 +493,6 @@ void SetParameter()
          for (int d=0; d<3; d++)   BH_Pos[c][d] = ClusterCen[c][d];
          for (int d=0; d<3; d++)   BH_Vel[c][d] = CenterVel[c][d];
       }
-
 
 //    (3) Determine particle number
 
@@ -561,7 +544,7 @@ void SetParameter()
    } // if ( OPT__INIT != INIT_BY_RESTART )
 
 
-// Load the jet direction table
+// (4) Load the jet direction table
    if ( JetDirection_case == 2 ) {
       const bool RowMajor_No  = false;    // load data into the column-major order
       const bool AllocMem_Yes = true;     // allocate memory for JetDirection 
@@ -578,7 +561,7 @@ void SetParameter()
    }       
 
 
-// (4) reset other general-purpose parameters
+// (5) reset other general-purpose parameters
 //     --> a helper macro PRINT_WARNING is defined in TestProb.h
    const long   End_Step_Default = __INT_MAX__;
    const double End_T_Default    = 10.0*Const_Gyr/UNIT_T;
@@ -599,7 +582,7 @@ void SetParameter()
    }
 
 
-// (4) make a note
+// (6) make a note
    if ( MPI_Rank == 0 )
    {
       Aux_Message( stdout, "=============================================================================\n" );
@@ -1015,7 +998,6 @@ void Init_User_ClusterMerger()
 
       FILE* File_User = fopen(FileName, "rb");
       if ( File_User == NULL ) {
-//         printf("Error opening the file \"%s\"\n", FileName);
          Aux_Error( ERROR_INFO, "Error opening the file \"%s\"\n", FileName ); 
          return;
       }    
@@ -1057,7 +1039,7 @@ void Init_User_ClusterMerger()
          fclose(File_User);
 
          printf("Restarting! BH_Pos[0][0] = %23.17e, BH_Pos[0][1] = %23.17e\n", BH_Pos[0][0], BH_Pos[0][1]);  
-      }
+      }  // if ( MPI_Rank == 0 )
       for (int c=0; c<Merger_Coll_NumHalos; c++){ 
          MPI_Bcast( BH_Pos[c], 3, MPI_DOUBLE, 0, MPI_COMM_WORLD ); 
          MPI_Bcast( BH_Vel[c], 3, MPI_DOUBLE, 0, MPI_COMM_WORLD );
@@ -1070,37 +1052,6 @@ void Init_User_ClusterMerger()
 
 //      AdjustCount -= 1;
 
-/*
-      double BH_Mass[3] = { 0.0, 0.0, 0.0 };
-      for (int c=0; c<Merger_Coll_NumHalos; c++) { 
-         double Cen_Tmp[3] = { -__FLT_MAX__, -__FLT_MAX__, -__FLT_MAX__ };   // set to -inf
-         double Vel_Tmp[3] = { -__FLT_MAX__, -__FLT_MAX__, -__FLT_MAX__ };
-         double Mass_Tmp   = -__FLT_MAX__;
-         for (long p=0; p<amr->Par->NPar_AcPlusInac; p++) {
-            if ( amr->Par->Mass[p] >= (real)0.0  &&  amr->Par->Type[p] == real(PTYPE_CEN+c) ){
-               Cen_Tmp[0] = amr->Par->PosX[p];
-               Cen_Tmp[1] = amr->Par->PosY[p];
-               Cen_Tmp[2] = amr->Par->PosZ[p];
-               Vel_Tmp[0] = amr->Par->VelX[p];
-               Vel_Tmp[1] = amr->Par->VelY[p];
-               Vel_Tmp[2] = amr->Par->VelZ[p];
-               Mass_Tmp   = amr->Par->Mass[p];
-               break;
-            }
-         }
-         MPI_Allreduce( Cen_Tmp, BH_Pos[c], 3, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD );
-         MPI_Allreduce( Vel_Tmp, BH_Vel[c], 3, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD );
-         MPI_Allreduce( &Mass_Tmp, &BH_Mass[c], 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD );
-
-         for (int d=0; d<3; d++)  ClusterCen[c][d] = BH_Pos[c][d];
-      }
-
-      Bondi_MassBH1 = 7.1171793e+10/1.0e14;  //BH_Mass[0];
-      Bondi_MassBH2 = BH_Mass[1];
-      Bondi_MassBH3 = BH_Mass[2];
-
-      AdjustCount = 90;   // int(TimeNew/AdjustPeriod)-1
-*/
    } // if ( OPT__INIT == INIT_BY_RESTART )
 
    else   return;
