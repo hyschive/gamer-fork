@@ -1,5 +1,6 @@
 # problem-specific runtime parameters
 Merger_Coll_NumHalos    2 # number of halos
+AGN_feedback            0 # turn on/off (1/0) AGN feedback
 
 # parameters for cluster 1
 Merger_File_Prof1       profile1_gamer.h5    # profile table of cluster 1
