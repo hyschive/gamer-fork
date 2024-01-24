@@ -5,6 +5,7 @@
 
 extern int    Merger_Coll_NumHalos, Accretion_Mode;
 extern double eta, eps_f, eps_m, R_acc, R_dep; // parameters of jet feedback
+extern bool   AGN_feedback;
 
 extern double CM_Bondi_SinkMass[3];
 extern double CM_Bondi_SinkMomX[3];
@@ -302,6 +303,7 @@ void Flu_ResetByUser_API_ClusterMerger( const int lv, const int FluSg, const int
    }
 
 
+   if ( AGN_feedback ) {
 // (3) Set the injection parameters
    double Mdot_BH[3] = { Mdot_BH1, Mdot_BH2, Mdot_BH3 };
    double Bondi_MassBH[3] = { Bondi_MassBH1, Bondi_MassBH2, Bondi_MassBH3 }; 
@@ -654,7 +656,7 @@ void Flu_ResetByUser_API_ClusterMerger( const int lv, const int FluSg, const int
 
       }}} // i,j,k
    } // for (int PID=0; PID<amr->NPatchComma[lv][1]; PID++)
-
+   } // if ( AGN_feedback )
 
 } // FUNCTION : Flu_ResetByUser_API_ClusterMerger
 

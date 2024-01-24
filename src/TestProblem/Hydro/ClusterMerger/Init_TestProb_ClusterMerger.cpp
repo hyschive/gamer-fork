@@ -10,6 +10,7 @@
 // problem-specific global variables
 // =======================================================================================
        int     Merger_Coll_NumHalos;      // number of clusters
+       bool    AGN_feedback;              // turn on/off (1/0) AGN feedback  
 static char    Merger_File_Prof1[1000];   // profile table of cluster 1
 static char    Merger_File_Prof2[1000];   // profile table of cluster 2
 static char    Merger_File_Prof3[1000];   // profile table of cluster 3
@@ -246,6 +247,7 @@ void SetParameter()
 // ReadPara->Add( "KEY_IN_THE_FILE",        &VARIABLE,               DEFAULT,          MIN,           MAX            );
 // ********************************************************************************************************************************
    ReadPara->Add( "Merger_Coll_NumHalos",   &Merger_Coll_NumHalos,   2,                1,             3              );
+   ReadPara->Add( "AGN_feedback",           &AGN_feedback,           false,            Useless_bool,  Useless_bool   );
    ReadPara->Add( "Merger_Coll_IsGas1",     &Merger_Coll_IsGas1,     true,             Useless_bool,  Useless_bool   );
    ReadPara->Add( "Merger_Coll_IsGas2",     &Merger_Coll_IsGas2,     true,             Useless_bool,  Useless_bool   );
    ReadPara->Add( "Merger_Coll_IsGas3",     &Merger_Coll_IsGas3,     true,             Useless_bool,  Useless_bool   );
@@ -588,6 +590,7 @@ void SetParameter()
       Aux_Message( stdout, "=============================================================================\n" );
       Aux_Message( stdout, "  test problem ID        = %d\n",           TESTPROB_ID );
       Aux_Message( stdout, "  number of clusters     = %d\n",           Merger_Coll_NumHalos );
+      Aux_Message( stdout, "  turn on AGN feedback   = %s\n",          (AGN_feedback)? "yes":"no" );
       if ( Merger_Coll_IsGas1 )
       Aux_Message( stdout, "  profile file 1         = %s\n",           Merger_File_Prof1 );
       Aux_Message( stdout, "  particle file 1        = %s\n",           Merger_File_Par1 );
