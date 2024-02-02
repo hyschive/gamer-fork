@@ -547,7 +547,7 @@ void SetParameter()
 
 
 // (4) Load the jet direction table
-   if ( JetDirection_case == 2 ) {
+   if ( AGN_feedback  &&  JetDirection_case == 2 ) {
       const bool RowMajor_No  = false;    // load data into the column-major order
       const bool AllocMem_Yes = true;     // allocate memory for JetDirection 
       const int  NCol         = 7;        // total number of columns to load
@@ -1014,6 +1014,7 @@ void Init_User_ClusterMerger()
          while (fread(&Time, sizeof(double), 1, File_User) == 1) {
             fread(&dumpID, sizeof(int), 1, File_User);
             printf("dumpID = %d, TargetDumpID = %d\n", dumpID, TargetDumpID);  
+            fread(&Merger_Coll_NumHalos, sizeof(int), 1, File_User);
             if (dumpID == TargetDumpID) {
                for (int c=0; c<Merger_Coll_NumHalos; c++) {
                   for (int d=0; d<3; d++)   fread(&BH_Pos[c][d], sizeof(double), 1, File_User);
@@ -1043,6 +1044,7 @@ void Init_User_ClusterMerger()
 
          printf("Restarting! BH_Pos[0][0] = %23.17e, BH_Pos[0][1] = %23.17e\n", BH_Pos[0][0], BH_Pos[0][1]);  
       }  // if ( MPI_Rank == 0 )
+      MPI_Bcast( &Merger_Coll_NumHalos, 1, MPI_INT, 0, MPI_COMM_WORLD );
       for (int c=0; c<Merger_Coll_NumHalos; c++){ 
          MPI_Bcast( BH_Pos[c], 3, MPI_DOUBLE, 0, MPI_COMM_WORLD ); 
          MPI_Bcast( BH_Vel[c], 3, MPI_DOUBLE, 0, MPI_COMM_WORLD );
@@ -1052,8 +1054,6 @@ void Init_User_ClusterMerger()
       MPI_Bcast( &Bondi_MassBH2, 1, MPI_DOUBLE, 0, MPI_COMM_WORLD ); 
       MPI_Bcast( &Bondi_MassBH3, 1, MPI_DOUBLE, 0, MPI_COMM_WORLD ); 
       MPI_Bcast( &AdjustCount, 1, MPI_INT, 0, MPI_COMM_WORLD ); 
-
-//      AdjustCount -= 1;
 
    } // if ( OPT__INIT == INIT_BY_RESTART )
 
@@ -1094,6 +1094,7 @@ void Output_ClusterMerger()
       double time = Time[0] * UNIT_T / Const_Myr;
       fwrite(&time, sizeof(double), 1, File_User);
       fwrite(&DumpID, sizeof(int), 1, File_User);
+      fwrite(&Merger_Coll_NumHalos, sizeof(int), 1, File_User);
 
       for (int c=0; c<Merger_Coll_NumHalos; c++) {      
          for (int d=0; d<3; d++)   fwrite(&BH_Pos[c][d], sizeof(double), 1, File_User);

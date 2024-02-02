@@ -57,12 +57,12 @@ eps_f                   0.001 # the radiative efficiency in jet feedback
 eps_m                   0.0 # the fraction of total energy that goes into the thermal energy in jet feedback
 R_acc                   4.0 # accretion radius: compute the accretion rate (in kpc)
 R_dep                   4.0 # radius to deplete the accreted gas (in kpc)   
-AdjustBHPos             1 # (true/false) --> Adjust the BH position 
-AdjustBHVel             0 # (true/false) --> Adjust the BH velocity 
-AdjustPeriod            10 # the time interval of adjustment (in Myr)
 JetDirection_case       1 # Methods for choosing the jet direction: 1. Fixed at x-axis; 2. Import from table (generate JetDirection.txt); 3. Align with angular momentum
-fixBH                   0 # fix the BH at the simulation box center and set its velocity to be zero (1 cluster only)
 
 # other	parameters
 Merger_Coll_UseMetals   0 # look for a metal field in the profile files [1]
 Merger_Coll_LabelCenter 1 # label the particle closest to the center of each cluster [1]
+AdjustBHPos             1 # (true/false) --> Adjust the BH position
+AdjustBHVel             0 # (true/false) --> Adjust the BH velocity
+AdjustPeriod            10 # the time interval of adjustment (in Myr)
+fixBH                   0 # fix the BH at the simulation box center and set its velocity to be zero (1 cluster only)
