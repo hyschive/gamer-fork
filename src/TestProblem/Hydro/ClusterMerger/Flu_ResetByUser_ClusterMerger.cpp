@@ -57,7 +57,6 @@ double normalize_const[3];   // The exact normalization constant
 double E_inj_exp[3] = { 0.0, 0.0, 0.0 };   // the expected amount of injected energy
 double M_inj_exp[3] = { 0.0, 0.0, 0.0 };   // the expected amount of injected gas mass
 double dt_base; 
-double E_power_inj[3];   // the injection power
 
 extern void GetClusterCenter( int lv, bool AdjustPos, bool AdjustVel, double Cen_old[][3], double Cen_new[][3], double Cen_Vel[][3] );
 
@@ -629,13 +628,11 @@ void Flu_ResetByUser_API_ClusterMerger( const int lv, const int FluSg, const int
 //          record the amount of sunk variables removed at the maximum level
             if ( CurrentMaxLv )
             {
-               double Ek[3], Ek_new[3], Et[3], Et_new[3];
-               for (int c=0; c<Merger_Coll_NumHalos; c++) { 
-                  Ek[c] = (real)0.5*( SQR(fluid_bk[MOMX]) + SQR(fluid_bk[MOMY]) + SQR(fluid_bk[MOMZ]) ) / (fluid_bk[DENS]);
-                  Ek_new[c] = (real)0.5*( SQR(fluid[MOMX]) + SQR(fluid[MOMY]) + SQR(fluid[MOMZ]) ) / fluid[DENS];
-                  Et[c] = fluid_bk[ENGY] - Ek[c] - Emag;
-                  Et_new[c] = fluid[ENGY] - Ek_new[c] - Emag;
-               } 
+               double Ek, Ek_new, Et, Et_new;
+               Ek = (real)0.5*( SQR(fluid_bk[MOMX]) + SQR(fluid_bk[MOMY]) + SQR(fluid_bk[MOMZ]) ) / (fluid_bk[DENS]);
+               Ek_new = (real)0.5*( SQR(fluid[MOMX]) + SQR(fluid[MOMY]) + SQR(fluid[MOMZ]) ) / fluid[DENS];
+               Et = fluid_bk[ENGY] - Ek - Emag;
+               Et_new = fluid[ENGY] - Ek_new - Emag;
 
                CM_Bondi_SinkMass[Reset-1]    += dv*(fluid[DENS]-fluid_bk[DENS]);
                CM_Bondi_SinkMomX[Reset-1]    += dv*(fluid[MOMX]-fluid_bk[MOMX]);
@@ -645,8 +642,8 @@ void Flu_ResetByUser_API_ClusterMerger( const int lv, const int FluSg, const int
                CM_Bondi_SinkMomYAbs[Reset-1] += dv*FABS( fluid[MOMY]-fluid_bk[MOMY] );
                CM_Bondi_SinkMomZAbs[Reset-1] += dv*FABS( fluid[MOMZ]-fluid_bk[MOMZ] );
                CM_Bondi_SinkE[Reset-1]       += dv*(fluid[ENGY]-fluid_bk[ENGY]);
-               CM_Bondi_SinkEk[Reset-1]      += dv*(Ek_new[Reset-1]-Ek[Reset-1]);
-               CM_Bondi_SinkEt[Reset-1]      += dv*(Et_new[Reset-1]-Et[Reset-1]);
+               CM_Bondi_SinkEk[Reset-1]      += dv*(Ek_new-Ek);
+               CM_Bondi_SinkEt[Reset-1]      += dv*(Et_new-Et);
                CM_Bondi_SinkNCell[Reset-1]   ++;
             }
          } // if ( Reset != 0 )

@@ -190,7 +190,7 @@ static void Src_ExactCooling( real fluid[], const real B[],
 #  endif
 
 
-   double Temp, Eint, Enth, Emag, Pres, Tini, Eintf, dedtmean, Tk, lambdaTini, tcool, Ynew;
+   double Temp, Eint, Enth, Emag, Pres, Tini, Eintf, Tk, lambdaTini, tcool, Ynew;
    int k, knew;
    const bool CheckMinTemp_Yes = true;
 
@@ -227,9 +227,9 @@ static void Src_ExactCooling( real fluid[], const real B[],
 // (2) Decide the index k (an interval) where Tini falls into
    k = int((log10(Tini)-log10(TEF_Tmin))/TEF_dltemp);
    if ( k < 0 || k > TEF_N-1 || Tini != Tini ){
-#  ifdef GAMER_DEBUG
+#     ifdef GAMER_DEBUG
       printf( "Error! Temp = %13.7e is out of range (min: %13.7e, max: %13.7e) at TimeNew = %13.7e, so the array index is invalid.\n", Tini, TEF_Tmin, TEF_TN, TimeNew );
-#  endif
+#     endif
       fluid[TCOOL] = NAN;
       fluid[ENGY]  = NAN;
       return;
@@ -277,11 +277,6 @@ static void Src_ExactCooling( real fluid[], const real B[],
    Eintf = EoS_DensPres2Eint_CPUPtr( fluid[DENS], Pres, NULL, EoS_AuxArray_Flt, EoS_AuxArray_Int, h_EoS_Table );
 #  endif                      
 
-// TMP! To check the values of those variables during cooling
-//   if ( x < 6.185 && x > 6.125 && y < 7.555 && y > 7.425 &&  z < 7.555 &&  z > 7.425 ){
-//      printf( "Debugging!! dt = %14.8e, Eint = %21.15e, Eintf = %21.15e, Enth = %14.8e, fluid[DENS] = %14.8e, fluid[MOM] = %14.8e, fluid[ENGY] = %14.8e, Temp = %14.8e, tcool = %14.8e, Ynew = %14.8e, knew = %d, TEF_alpha[knew] = %14.8e, TEF_lambda[knew] = %14.8e, TEF_lambda[TEF_N-1] = %14.8e, Yk = %14.8e, Tk = %14.8e\n", dt, Eint, Eintf, Enth, fluid[DENS], sqrt(SQR(fluid[MOMX])+SQR(fluid[MOMY])+SQR(fluid[MOMZ])), fluid[ENGY], Temp, tcool, Ynew, knew, TEF_alpha[knew], TEF_lambda[knew], TEF_lambda[TEF_N-1], TEFc[knew], Tk );
-//   }
-//   dedtmean = -(Eintf-Eint)/dt;
    fluid[ENGY] = Enth + Eintf;
 
 #  ifdef GAMER_DEBUG

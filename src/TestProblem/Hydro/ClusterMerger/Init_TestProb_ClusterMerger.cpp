@@ -1014,8 +1014,8 @@ void Init_User_ClusterMerger()
          while (fread(&Time, sizeof(double), 1, File_User) == 1) {
             fread(&dumpID, sizeof(int), 1, File_User);
             printf("dumpID = %d, TargetDumpID = %d\n", dumpID, TargetDumpID);  
-            fread(&Merger_Coll_NumHalos, sizeof(int), 1, File_User);
             if (dumpID == TargetDumpID) {
+               fread(&Merger_Coll_NumHalos, sizeof(int), 1, File_User);
                for (int c=0; c<Merger_Coll_NumHalos; c++) {
                   for (int d=0; d<3; d++)   fread(&BH_Pos[c][d], sizeof(double), 1, File_User);
                   for (int d=0; d<3; d++)   fread(&ClusterCen[c][d], sizeof(double), 1, File_User);
@@ -1026,6 +1026,7 @@ void Init_User_ClusterMerger()
                break;
             }
             else {
+               fseek(File_User, sizeof(int), SEEK_CUR);
                for (int c=0; c<Merger_Coll_NumHalos; c++) {
                   fseek(File_User, sizeof(double) * 3, SEEK_CUR);
                   fseek(File_User, sizeof(double) * 3, SEEK_CUR);
