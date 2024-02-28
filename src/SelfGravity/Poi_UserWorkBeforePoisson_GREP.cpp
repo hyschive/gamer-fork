@@ -283,15 +283,14 @@ void Poi_Prepare_GREP( const double Time, const int lv )
 
    if ( GREP_OPT_PRES == GREP_PRES_BINDATA )
    {
+#        ifdef YE
          real Passive[ NCOMP_TOTAL - NCOMP_FLUID ] = { 0.0 };
 
          for (int b=0; b<Dens_Tot->NBin; b++)
          {
             if ( Dens_Tot->NCell[b] == 0 )   continue;
 
-#           ifdef YE
             Passive[ YE - NCOMP_FLUID ] = Pres_Tot->Data[b];
-#           endif
 
 #           ifdef TEMP_IG
 //          set the initial guess of temperature to 1 MeV
@@ -304,6 +303,7 @@ void Poi_Prepare_GREP( const double Time, const int lv )
 
             Pres_Tot->Data[b] = Pres;
          }
+#        endif // ifdef YE
    } // if ( GREP_OPT_PRES == GREP_PRES_BINDATA )
 
 
@@ -378,10 +378,12 @@ void GREP_Compute_Profile( const int lv, const int Sg, const PatchType_t PatchTy
 
       case GREP_PRES_BINDATA:
       {
+#        ifdef YE
          long TVar[] = { _DENS, _VELR, _YE, _EINT };
 
          Aux_ComputeProfile( Prof_List, GREP_Prof_Center, GREP_Prof_MaxRadius, GREP_Prof_MinBinSize,
                              GREP_LOGBIN, GREP_LOGBINRATIO, RemoveEmpty_No, TVar, NVar, lv, lv, PatchType, PrepTime_No );
+#        endif
       }
       break;
 
