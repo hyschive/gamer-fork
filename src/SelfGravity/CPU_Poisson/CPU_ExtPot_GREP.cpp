@@ -109,23 +109,11 @@ void Init_GREP()
 
 
 // (3) initialize the GREP parameters
-   switch ( GREP_CENTER_METHOD )
-   {
-      case 1:
-         for (int i=0; i<3; i++)   GREP_Prof_Center[i] = amr->BoxCenter[i];
-      break;
-
-      default:
-         Aux_Error( ERROR_INFO, "incorrect parameter %s = %d !!\n", "GREP_CENTER_METHOD", GREP_CENTER_METHOD );
-   }
+//     --> GREP_Prof_Center will be reset in Poi_UserWorkBeforePoisson_GREP() at each global step
+   for (int i=0; i<3; i++)   GREP_Prof_Center[i] = amr->BoxCenter[i];
 
    GREP_Prof_MinBinSize = ( GREP_MINBINSIZE > 0.0 ) ? GREP_MINBINSIZE : amr->dh[MAX_LEVEL];
-
-   GREP_Prof_MaxRadius  = ( GREP_MAXRADIUS > 0.0 )
-                        ? GREP_MAXRADIUS
-                        : SQRT( SQR( MAX( amr->BoxSize[0] - GREP_Prof_Center[0], GREP_Prof_Center[0] ) )
-                        +       SQR( MAX( amr->BoxSize[1] - GREP_Prof_Center[1], GREP_Prof_Center[1] ) )
-                        +       SQR( MAX( amr->BoxSize[2] - GREP_Prof_Center[2], GREP_Prof_Center[2] ) ) );
+   GREP_Prof_MaxRadius  = ( GREP_MAXRADIUS  > 0.0 ) ? GREP_MAXRADIUS  : sqrt(3.0) * amr->BoxSize[0];
 
 
 // (4) allocate device and host memory for the GREP profiles in datatype of real

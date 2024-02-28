@@ -30,6 +30,7 @@ int    GREPSg     [NLEVEL];
 double GREPSgTime [NLEVEL][2];
 double GREP_Prof_Center   [3];
 
+extern bool CCSN_Is_PostBounce;
 extern real *h_ExtPotGREP;
 
 
@@ -51,6 +52,77 @@ void Poi_UserWorkBeforePoisson_GREP( const double Time, const int lv )
 
 // ignore level containing no patches
    if ( NPatchTotal[lv] == 0 )   return;
+
+// update the GREP center at each global step
+   if ( lv == 0 )
+   {
+      Extrema_t Extrema;
+
+      switch ( GREP_CENTER_METHOD )
+      {
+         case GREP_CENTER_BOX: // box center
+            for (int i=0; i<3; i++)   GREP_Prof_Center[i] = amr->BoxCenter[i];
+         break;
+
+         case GREP_CENTER_DENS: // density maximum
+         {
+            if ( ! CCSN_Is_PostBounce  &&  TESTPROB_ID == TESTPROB_HYDRO_CCSN )
+            {
+//             fixed the center to the box center during the collapse stage in CCSN simulations
+               for (int i=0; i<3; i++)   GREP_Prof_Center[i] = amr->BoxCenter[i];
+            }
+
+            else
+            {
+               Extrema.Field     = _DENS;
+               Extrema.Radius    = HUGE_NUMBER;
+               Extrema.Center[0] = amr->BoxCenter[0];
+               Extrema.Center[1] = amr->BoxCenter[1];
+               Extrema.Center[2] = amr->BoxCenter[2];
+
+               Aux_FindExtrema( &Extrema, EXTREMA_MAX, 0, TOP_LEVEL, PATCH_LEAF );
+
+               for (int i=0; i<3; i++)   GREP_Prof_Center[i] = Extrema.Coord[i];
+            } // if ( ! CCSN_Is_PostBounce  &&  TESTPROB_ID == TESTPROB_HYDRO_CCSN ) ... else ...
+         }
+         break;
+
+         case GREP_CENTER_POT: // potential minimum
+         {
+            Extrema.Field     = _POTE;
+            Extrema.Radius    = HUGE_NUMBER;
+            Extrema.Center[0] = amr->BoxCenter[0];
+            Extrema.Center[1] = amr->BoxCenter[1];
+            Extrema.Center[2] = amr->BoxCenter[2];
+
+            Aux_FindExtrema( &Extrema, EXTREMA_MIN, 0, TOP_LEVEL, PATCH_LEAF );
+
+            for (int i=0; i<3; i++)   GREP_Prof_Center[i] = Extrema.Coord[i];
+         }
+         break;
+
+         case GREP_CENTER_COM: // center of mass
+            Aux_Error( ERROR_INFO, "has not been implemented yet!!\n" );
+         break;
+
+         default:
+            Aux_Error( ERROR_INFO, "unsupported %s = %d !!\n", "GREP_CENTER_METHOD", GREP_CENTER_METHOD );
+      }
+
+
+//    shift the center to the box center if it coincides with one of the innermost cells
+      if (  GREP_CENTER_METHOD == GREP_CENTER_DENS  ||
+            GREP_CENTER_METHOD == GREP_CENTER_POT     )
+      {
+         const double Extrema_dh = amr->dh[ Extrema.Level ];
+
+         if (  fabs( GREP_Prof_Center[0] - amr->BoxCenter[0] ) < Extrema_dh  &&
+               fabs( GREP_Prof_Center[1] - amr->BoxCenter[1] ) < Extrema_dh  &&
+               fabs( GREP_Prof_Center[2] - amr->BoxCenter[2] ) < Extrema_dh    )
+            for (int i=0; i<3; i++)   GREP_Prof_Center[i] = amr->BoxCenter[i];
+      }
+   } // if ( lv == 0 )
+
 
 // compute effective GR potential
    Poi_Prepare_GREP( Time, lv );

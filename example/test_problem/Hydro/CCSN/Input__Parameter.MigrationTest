@@ -174,14 +174,14 @@ OPT__EXT_POT                  3           # add external potential    (0=off, 1=
 
 
 # GREP
-GREP_CENTER_METHOD            1           # center of radial profile                                     [1]
-                                          # (1=box center)
+GREP_CENTER_METHOD            0           # center of radial profile                                     [0]
+                                          # (0=box center, 1=density maximum, 2=potential minimum, 3=CoM)
 GREP_MAXITER                  1000        # number of iterations for constructing mass_TOV and Gamma_TOV [1000]
 GREP_LOGBIN                   1           # log/linear bins                                              [true]
                                           # (true=logarithmic, false=linear)
 GREP_LOGBINRATIO              1.0025      # ratio of adjacent log bins                                   [1.25]
 GREP_MAXRADIUS               -1.0         # maximum radius in the radial profile                         [-1.0]
-                                          # (<=0=distance of the farthest vertex to the center)
+                                          # (<=0=sqrt(3.0)*BOX_SIZE)
 GREP_MINBINSIZE              -1.0         # minimum bin size                                             [-1.0]
                                           # (<=0=use amr->dh[MAX_LEVEL])
 GREP_OPT_FIXUP                1           # fix up the profiles after grid allocation/deallocation       [1]
