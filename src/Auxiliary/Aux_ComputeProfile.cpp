@@ -404,16 +404,25 @@ void Aux_ComputeProfile( Profile_t *Prof[], const double Center[], const double 
                                                   + FluWeighting_IntT*FluidPtr_IntT[DENS][k][j][i] )*dv
                                                 :                     FluidPtr     [DENS][k][j][i]  *dv;
 
-                              const real MomR   = ( FluIntTime )
-                                                ? ( FluWeighting     *( FluidPtr     [MOMX][k][j][i]*dx +
-                                                                        FluidPtr     [MOMY][k][j][i]*dy +
-                                                                        FluidPtr     [MOMZ][k][j][i]*dz )
-                                                  + FluWeighting_IntT*( FluidPtr_IntT[MOMX][k][j][i]*dx +
-                                                                        FluidPtr_IntT[MOMY][k][j][i]*dy +
-                                                                        FluidPtr_IntT[MOMZ][k][j][i]*dz ) ) / r
-                                                :                     ( FluidPtr     [MOMX][k][j][i]*dx +
-                                                                        FluidPtr     [MOMY][k][j][i]*dy +
-                                                                        FluidPtr     [MOMZ][k][j][i]*dz )   / r;
+                              real MomR;
+                              if ( r == 0 )
+                              {
+                                 MomR = (real)0.0;
+                              }
+
+                              else
+                              {
+                                 MomR   = ( FluIntTime )
+                                        ? ( FluWeighting     *( FluidPtr     [MOMX][k][j][i]*dx +
+                                                                FluidPtr     [MOMY][k][j][i]*dy +
+                                                                FluidPtr     [MOMZ][k][j][i]*dz )
+                                          + FluWeighting_IntT*( FluidPtr_IntT[MOMX][k][j][i]*dx +
+                                                                FluidPtr_IntT[MOMY][k][j][i]*dy +
+                                                                FluidPtr_IntT[MOMZ][k][j][i]*dz ) ) / r
+                                        :                     ( FluidPtr     [MOMX][k][j][i]*dx +
+                                                                FluidPtr     [MOMY][k][j][i]*dy +
+                                                                FluidPtr     [MOMZ][k][j][i]*dz )   / r;
+                              }
 
                               OMP_Data  [p][TID][bin] += MomR*dv;    // vr*(rho*dv)
                               OMP_Weight[p][TID][bin] += Weight;
