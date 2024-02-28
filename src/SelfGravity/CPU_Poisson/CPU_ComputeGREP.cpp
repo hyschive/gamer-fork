@@ -100,7 +100,7 @@ void CPU_ComputeGREP( const int lv, const double Time, const Profile_t *DensAve,
    } // while ( ! IsConverged  &&  ( NIter++ < NIter_Max ) )
 
 
-// Troubleshooting information in case convergent solutions cannot be found.
+// troubleshooting information in case convergent solutions cannot be found.
    if ( ! IsConverged )
    {
       if ( MPI_Rank == 0 )
@@ -174,7 +174,7 @@ void CPU_ComputeGREP( const int lv, const double Time, const Profile_t *DensAve,
    Phi_eff->Data[0] = Phi_eff->Data[1] - dr * NEWTON_G * ( Mass_NW_C - Mass_TOV_C ) / SQR( Radius[0] ) ;
 
 
-// Troubleshooting information
+// troubleshooting information
 #  ifdef GAMER_DEBUG
    if ( MPI_Rank == 0 )
    {

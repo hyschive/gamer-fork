@@ -2,10 +2,10 @@
 
 
 static void Poi_Prepare_GREP( const double Time, const int lv );
-static void Compute_GREP_Profile( const int lv, const int Sg, const PatchType_t PatchType );
-static void Combine_GREP_Profile( Profile_t *Prof[][2], const int lv, const int Sg, const double PrepTime,
+static void GREP_Compute_Profile( const int lv, const int Sg, const PatchType_t PatchType );
+static void GREP_Combine_Profile( Profile_t *Prof[][2], const int lv, const int Sg, const double PrepTime,
                                   const bool RemoveEmpty );
-static void Check_GREP_Profile( Profile_t *Prof[], const int NProf );
+static void GREP_Check_Profile( Profile_t *Prof[], const int NProf );
 
 extern void SetExtPotAuxArray_GREP( double AuxArray_Flt[], int AuxArray_Int[], const double Time );
 extern void SetTempIntPara( const int lv, const int Sg_Current, const double PrepTime, const double Time0, const double Time1,
@@ -16,19 +16,19 @@ extern void ExtPot_PassData2GPU_GREP( const real *h_Table );
 #endif
 
 
-Profile_t *DensAve [NLEVEL+1][2];
-Profile_t *EngyAve [NLEVEL+1][2];
-Profile_t *VrAve   [NLEVEL+1][2];
-Profile_t *PresAve [NLEVEL+1][2];
-Profile_t *Phi_eff [NLEVEL  ][2];
+Profile_t *GREP_DensAve [NLEVEL+1][2];
+Profile_t *GREP_EngyAve [NLEVEL+1][2];
+Profile_t *GREP_VrAve   [NLEVEL+1][2];
+Profile_t *GREP_PresAve [NLEVEL+1][2];
+Profile_t *GREP_EffPot  [NLEVEL  ][2];
 
 int    GREP_LvUpdate;
 double GREP_Prof_MaxRadius;
 double GREP_Prof_MinBinSize;
 
-int    GREPSg     [NLEVEL];
-double GREPSgTime [NLEVEL][2];
-double GREP_Prof_Center   [3];
+int    GREP_Sg     [NLEVEL];
+double GREP_SgTime [NLEVEL][2];
+double GREP_Prof_Center    [3];
 
 extern bool CCSN_Is_PostBounce;
 extern real *h_ExtPotGREP;
@@ -135,12 +135,12 @@ void Poi_UserWorkBeforePoisson_GREP( const double Time, const int lv )
 // --> note the typecasting from double to real
    const int Lv      = GREP_LvUpdate;
    const int FaLv    = ( Lv > 0 ) ? Lv - 1 : Lv;
-   const int Sg_Lv   = GREPSg[Lv];
-   const int Sg_FaLv = GREPSg[FaLv];
+   const int Sg_Lv   = GREP_Sg[Lv];
+   const int Sg_FaLv = GREP_Sg[FaLv];
 
-   Profile_t *Phi_Lv_New   = Phi_eff[ Lv   ][     Sg_Lv   ];
-   Profile_t *Phi_FaLv_New = Phi_eff[ FaLv ][     Sg_FaLv ];
-   Profile_t *Phi_FaLv_Old = Phi_eff[ FaLv ][ 1 - Sg_FaLv ];
+   Profile_t *Phi_Lv_New   = GREP_EffPot[ Lv   ][     Sg_Lv   ];
+   Profile_t *Phi_FaLv_New = GREP_EffPot[ FaLv ][     Sg_FaLv ];
+   Profile_t *Phi_FaLv_Old = GREP_EffPot[ FaLv ][ 1 - Sg_FaLv ];
 
    for (int b=0; b<Phi_Lv_New->NBin; b++) {
 //    check whether the number of bins exceeds EXT_POT_GREP_NAUX_MAX
@@ -185,8 +185,7 @@ void Poi_UserWorkBeforePoisson_GREP( const double Time, const int lv )
 // Description :  Update the spherical-averaged profiles before entering the next AMR level in EvolveLevel()
 //
 // Note        :  1. Invoked by EvolveLevel() using the function pointer "Mis_UserWorkBeforeNextLevel_Ptr"
-//                2. Update the profiles to account for the Poisson and Gravity solvers,
-//                   and source terms
+//                2. Update the profiles to account for the Poisson and Gravity solvers, and source terms
 //
 // Parameter   :  lv      : Target refinement level
 //                TimeNew : Target physical time to reach
@@ -202,9 +201,9 @@ void Mis_UserWorkBeforeNextLevel_GREP( const int lv, const double TimeNew, const
          ( AdvanceCounter[lv] + 1 ) % REGRID_COUNT != 0     )   return;
 
 
-   const int Sg = GREPSg[lv];
+   const int Sg = GREP_Sg[lv];
 
-   Compute_GREP_Profile( lv, Sg, PATCH_LEAF );
+   GREP_Compute_Profile( lv, Sg, PATCH_LEAF );
 
 } // FUNCTION : Mis_UserWorkBeforeNextLevel_GREP
 
@@ -232,9 +231,9 @@ void Mis_UserWorkBeforeNextSubstep_GREP( const int lv, const double TimeNew, con
          ( NPatchTotal[lv+1] == 0 )                                          )   return;
 
 
-   const int Sg = GREPSg[lv];
+   const int Sg = GREP_Sg[lv];
 
-   Compute_GREP_Profile( lv, Sg, PATCH_LEAF );
+   GREP_Compute_Profile( lv, Sg, PATCH_LEAF );
 
 } // FUNCTION : Mis_UserWorkBeforeNextSubstep_GREP
 
@@ -246,9 +245,9 @@ void Mis_UserWorkBeforeNextSubstep_GREP( const int lv, const double TimeNew, con
 //                and compute the effective GR potential.
 //
 // Note        :  1. Invoked by Poi_UserWorkBeforePoisson_GREP()
-//                2. The contributions from     leaf patches on level=lv are stored in QUANT[    lv]
-//                                          non-leaf patches                           QUANT[NLEVEL]
-//                3. The effective GR potential is stored at Phi_eff[lv]
+//                2. The contributions from     leaf patches on level=lv are stored in GREP_*Ave[    lv]
+//                                          non-leaf patches                           GREP_*Ave[NLEVEL]
+//                3. The effective GR potential is stored at GREP_EffPot[lv]
 //
 // Parameter   :  Time : Target physical time
 //                lv   : Target refinement level
@@ -259,28 +258,28 @@ void Poi_Prepare_GREP( const double Time, const int lv )
 // compare the input time with the stored time to determine the appropriate SaveSg
    int Sg;
 
-   if      (  Mis_CompareRealValue( Time, GREPSgTime[lv][0], NULL, false )  )   Sg = 0;
-   else if (  Mis_CompareRealValue( Time, GREPSgTime[lv][1], NULL, false )  )   Sg = 1;
-   else                                                                         Sg = 1 - GREPSg[lv];
+   if      (  Mis_CompareRealValue( Time, GREP_SgTime[lv][0], NULL, false )  )   Sg = 0;
+   else if (  Mis_CompareRealValue( Time, GREP_SgTime[lv][1], NULL, false )  )   Sg = 1;
+   else                                                                          Sg = 1 - GREP_Sg[lv];
 
 
 // update the spherical-averaged profiles contributed from non-leaf and leaf patches
-   Compute_GREP_Profile( lv, Sg, PATCH_LEAF    );
-   Compute_GREP_Profile( lv, Sg, PATCH_NONLEAF );
+   GREP_Compute_Profile( lv, Sg, PATCH_LEAF    );
+   GREP_Compute_Profile( lv, Sg, PATCH_NONLEAF );
 
 
 // combine the spherical-averaged profiles
-   Combine_GREP_Profile( DensAve, lv, Sg, Time, true );
-   Combine_GREP_Profile( VrAve,   lv, Sg, Time, true );
-   Combine_GREP_Profile( PresAve, lv, Sg, Time, true );
-   Combine_GREP_Profile( EngyAve, lv, Sg, Time, true );
+   GREP_Combine_Profile( GREP_DensAve, lv, Sg, Time, true );
+   GREP_Combine_Profile( GREP_VrAve,   lv, Sg, Time, true );
+   GREP_Combine_Profile( GREP_PresAve, lv, Sg, Time, true );
+   GREP_Combine_Profile( GREP_EngyAve, lv, Sg, Time, true );
 
 
 // compute the pressure if GREP_OPT_PRES == GREP_PRES_BINDATA
-   Profile_t *Dens_Tot = DensAve[NLEVEL][Sg];
-   Profile_t *Vr_Tot   = VrAve  [NLEVEL][Sg];
-   Profile_t *Pres_Tot = PresAve[NLEVEL][Sg];
-   Profile_t *Engy_Tot = EngyAve[NLEVEL][Sg];
+   Profile_t *Dens_Tot = GREP_DensAve[NLEVEL][Sg];
+   Profile_t *Vr_Tot   = GREP_VrAve  [NLEVEL][Sg];
+   Profile_t *Pres_Tot = GREP_PresAve[NLEVEL][Sg];
+   Profile_t *Engy_Tot = GREP_EngyAve[NLEVEL][Sg];
 
    if ( GREP_OPT_PRES == GREP_PRES_BINDATA )
    {
@@ -311,24 +310,24 @@ void Poi_Prepare_GREP( const double Time, const int lv )
 // check the profiles before computing the effective GR potential
    Profile_t *GREP_Check_List[] = { Dens_Tot, Vr_Tot, Pres_Tot, Engy_Tot };
 
-   Check_GREP_Profile( GREP_Check_List, 4 );
+   GREP_Check_Profile( GREP_Check_List, 4 );
 
 
 // compute the effective GR potential
-   CPU_ComputeGREP( lv, Time, Dens_Tot, Engy_Tot, Vr_Tot, Pres_Tot, Phi_eff[lv][Sg] );
+   CPU_ComputeGREP( lv, Time, Dens_Tot, Engy_Tot, Vr_Tot, Pres_Tot, GREP_EffPot[lv][Sg] );
 
 
 // update the level, sandglass, and time
-   GREP_LvUpdate      = lv;
-   GREPSg    [lv]     = Sg;
-   GREPSgTime[lv][Sg] = Time;
+   GREP_LvUpdate       = lv;
+   GREP_Sg    [lv]     = Sg;
+   GREP_SgTime[lv][Sg] = Time;
 
 } // FUNCTION : Poi_Prepare_GREP
 
 
 
 //-------------------------------------------------------------------------------------------------------
-// Function    :  Compute_GREP_Profile
+// Function    :  GREP_Compute_Profile
 // Description :  Interface for computing the spherically averaged profiles of density, radial velocity,
 //                internal energy density, and pressure/Ye
 //
@@ -342,7 +341,7 @@ void Poi_Prepare_GREP( const double Time, const int lv )
 //                PatchType : Types of patches to be considered
 //                            --> Supported types: PATCH_LEAF, PATCH_NONLEAF
 //-------------------------------------------------------------------------------------------------------
-void Compute_GREP_Profile( const int lv, const int Sg, const PatchType_t PatchType )
+void GREP_Compute_Profile( const int lv, const int Sg, const PatchType_t PatchType )
 {
 
 // check
@@ -357,10 +356,10 @@ void Compute_GREP_Profile( const int lv, const int Sg, const PatchType_t PatchTy
    const int    NVar           = 4;
    const int    Lv_Stored      = ( PatchType == PATCH_LEAF ) ? lv : NLEVEL;
 
-   Profile_t *Dens = DensAve[Lv_Stored][Sg];
-   Profile_t *Vr   = VrAve  [Lv_Stored][Sg];
-   Profile_t *Pres = PresAve[Lv_Stored][Sg];
-   Profile_t *Engy = EngyAve[Lv_Stored][Sg];
+   Profile_t *Dens = GREP_DensAve[Lv_Stored][Sg];
+   Profile_t *Vr   = GREP_VrAve  [Lv_Stored][Sg];
+   Profile_t *Pres = GREP_PresAve[Lv_Stored][Sg];
+   Profile_t *Engy = GREP_EngyAve[Lv_Stored][Sg];
 
    Profile_t *Prof_List[] = { Dens, Vr, Pres, Engy };
 
@@ -391,12 +390,12 @@ void Compute_GREP_Profile( const int lv, const int Sg, const PatchType_t PatchTy
          Aux_Error( ERROR_INFO, "unsupported pressure computation scheme %s = %d !!\n", "GREP_OPT_PRES", GREP_OPT_PRES );
    }
 
-} // FUNCTION : Compute_GREP_Profile
+} // FUNCTION : GREP_Compute_Profile
 
 
 
 //-------------------------------------------------------------------------------------------------------
-// Function    :  Combine_GREP_Profile
+// Function    :  GREP_Combine_Profile
 // Description :  Combine the spherical-averaged profiles from leaf patches at each level
 //                and from non-leaf patches at current level, then remove any empty bins
 //
@@ -410,7 +409,7 @@ void Compute_GREP_Profile( const int lv, const int Sg, const PatchType_t PatchTy
 //                              false --> these empty bins will still be in the profile arrays with
 //                                        Data[empty_bin]=Weight[empty_bin]=NCell[empty_bin]=0
 //-------------------------------------------------------------------------------------------------------
-void Combine_GREP_Profile( Profile_t *Prof[][2], const int lv, const int Sg, const double PrepTime,
+void GREP_Combine_Profile( Profile_t *Prof[][2], const int lv, const int Sg, const double PrepTime,
                            const bool RemoveEmpty )
 {
 
@@ -443,10 +442,10 @@ void Combine_GREP_Profile( Profile_t *Prof[][2], const int lv, const int Sg, con
    {
       bool FluIntTime;
       int  FluSg, FluSg_IntT;
-      int  Sg_Lv = GREPSg[level];
+      int  Sg_Lv = GREP_Sg[level];
       real FluWeighting, FluWeighting_IntT;
 
-      SetTempIntPara( level, Sg_Lv, PrepTime, GREPSgTime[level][Sg_Lv], GREPSgTime[level][1 - Sg_Lv],
+      SetTempIntPara( level, Sg_Lv, PrepTime, GREP_SgTime[level][Sg_Lv], GREP_SgTime[level][1 - Sg_Lv],
                       FluIntTime, FluSg, FluSg_IntT, FluWeighting, FluWeighting_IntT );
 
                  Prof_Leaf      = Prof[level][FluSg];
@@ -515,12 +514,12 @@ void Combine_GREP_Profile( Profile_t *Prof[][2], const int lv, const int Sg, con
                               : Prof_NonLeaf->Radius[LastBin] + 0.5*GREP_Prof_MinBinSize;
    } // if ( RemoveEmpty )
 
-} // FUNCTION : Combine_GREP_Profile
+} // FUNCTION : GREP_Combine_Profile
 
 
 
 //-------------------------------------------------------------------------------------------------------
-// Function    :  Check_GREP_Profile
+// Function    :  GREP_Check_Profile
 // Description :  Check if there are any unphysical bins in the spherical-averaged profiles
 //
 // Note        :  1. Terminate the program if any invalid fluid variables are present
@@ -528,7 +527,7 @@ void Combine_GREP_Profile( Profile_t *Prof[][2], const int lv, const int Sg, con
 // Parameter   :  Prof  : Profile_t object array to be verified
 //                NProf : Number of input profiles
 //-------------------------------------------------------------------------------------------------------
-void Check_GREP_Profile( Profile_t *Prof[], const int NProf )
+void GREP_Check_Profile( Profile_t *Prof[], const int NProf )
 {
 
    for (int p=0; p<NProf;         p++)
@@ -539,4 +538,4 @@ void Check_GREP_Profile( Profile_t *Prof[], const int NProf )
                     Prof[p]->Data[b], p, b);
    }
 
-} // FUNCTION : Check_GREP_Profile
+} // FUNCTION : GREP_Check_Profile
