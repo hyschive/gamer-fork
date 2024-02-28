@@ -255,7 +255,7 @@ void Mis_UserWorkBeforeNextSubstep_GREP( const int lv, const double TimeNew, con
 void Poi_Prepare_GREP( const double Time, const int lv )
 {
 
-// compare the input time with the stored time to determine the appropriate SaveSg
+// compare the input time with the stored time to determine the appropriate sandglass
    int Sg;
 
    if      (  Mis_CompareRealValue( Time, GREP_SgTime[lv][0], NULL, false )  )   Sg = 0;
@@ -298,10 +298,8 @@ void Poi_Prepare_GREP( const double Time, const int lv )
             Passive[ TEMP_IG - NCOMP_FLUID ] = 1.0e6 / Const_kB_eV;
 #           endif
 
-            const real Pres = EoS_DensEint2Pres_CPUPtr( Dens_Tot->Data[b], Engy_Tot->Data[b],
-                                                        Passive, EoS_AuxArray_Flt, EoS_AuxArray_Int, h_EoS_Table );
-
-            Pres_Tot->Data[b] = Pres;
+            Pres_Tot->Data[b] = EoS_DensEint2Pres_CPUPtr( Dens_Tot->Data[b], Engy_Tot->Data[b],
+                                                          Passive, EoS_AuxArray_Flt, EoS_AuxArray_Int, h_EoS_Table );
          }
 #        endif // ifdef YE
    } // if ( GREP_OPT_PRES == GREP_PRES_BINDATA )

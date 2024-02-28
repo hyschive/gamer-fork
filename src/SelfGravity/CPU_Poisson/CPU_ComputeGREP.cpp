@@ -19,10 +19,9 @@ void CPU_ComputeGREP( const int lv, const double Time, const Profile_t *DensAve,
    const double c2          = SQR( Const_c / UNIT_V );
    const double FourPI      = 4.0 * M_PI;
    const double FourThirdPI = FourPI / 3.0;
-   const double Tolerance   = 1.e-5;
+   const double Tolerance   = 1.0e-5;
 
    int     NIter     = 0;
-   int     NIter_Max = GREP_MAXITER;
    int     NBin      = DensAve->NBin;
    double *Radius    = DensAve->Radius;
    double  MaxRadius = DensAve->MaxRadius;
@@ -61,7 +60,7 @@ void CPU_ComputeGREP( const int lv, const double Time, const Profile_t *DensAve,
 // 2. iteratively compute Mass_TOV and Gamma_TOV at the outer edge of each bin
    bool IsConverged = false;
 
-   while ( ! IsConverged  &&  ( NIter++ < NIter_Max ) )
+   while ( ! IsConverged  &&  ( NIter++ < GREP_MAXITER ) )
    {
 //    update Mass_TOV
       for (int i=0; i<NBin;   i++)   Dens_TOV[i] = Gamma_TOV[i] * ( Dens[i] + Engy[i] / c2 );
@@ -97,7 +96,7 @@ void CPU_ComputeGREP( const int lv, const double Time, const Profile_t *DensAve,
 //    backup the old Mass_TOV if not converged yet
       if ( ! IsConverged )
          for (int i=0; i<NBin; i++)   Mass_TOV_USG[i] = Mass_TOV[i];
-   } // while ( ! IsConverged  &&  ( NIter++ < NIter_Max ) )
+   } // while ( ! IsConverged  &&  ( NIter++ < GREP_MAXITER ) )
 
 
 // troubleshooting information in case convergent solutions cannot be found.
@@ -119,7 +118,7 @@ void CPU_ComputeGREP( const int lv, const double Time, const Profile_t *DensAve,
          fprintf( File_GREP, "# LogBin             : %d\n",                   DensAve->LogBin );
          fprintf( File_GREP, "# LogBinRatio        : %13.7e\n",               DensAve->LogBinRatio );
          fprintf( File_GREP, "# NBin               : %d\n",                   NBin );
-         fprintf( File_GREP, "# Maximum Iteration  : %d\n",                   NIter_Max );
+         fprintf( File_GREP, "# Maximum Iteration  : %d\n",                   GREP_MAXITER );
          fprintf( File_GREP, "# Tolerance          : %13.7e\n",               Tolerance );
          fprintf( File_GREP, "------------------------------------------------------\n" );
          fprintf( File_GREP, "%5s %9s %22s %22s %22s %22s %22s %22s %22s %22s %22s %22s\n",

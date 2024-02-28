@@ -377,8 +377,8 @@ const GREP_PresScheme_t
    GREP_PRES_INDIVCELL = 0,
    GREP_PRES_BINDATA   = 1;
 
-typedef int GREPCenter_t;
-const GREPCenter_t
+typedef int GREP_Center_t;
+const GREP_Center_t
    GREP_CENTER_BOX  = 0,
    GREP_CENTER_DENS = 1,
    GREP_CENTER_POT  = 2,
