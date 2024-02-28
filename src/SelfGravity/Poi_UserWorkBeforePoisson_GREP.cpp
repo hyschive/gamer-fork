@@ -5,6 +5,7 @@ static void Poi_Prepare_GREP( const double Time, const int lv );
 static void Compute_GREP_Profile( const int lv, const int Sg, const PatchType_t PatchType );
 static void Combine_GREP_Profile( Profile_t *Prof[][2], const int lv, const int Sg, const double PrepTime,
                                   const bool RemoveEmpty );
+static void Check_GREP_Profile( Profile_t *Prof[], const int NProf );
 
 extern void SetExtPotAuxArray_GREP( double AuxArray_Flt[], int AuxArray_Int[], const double Time );
 extern void SetTempIntPara( const int lv, const int Sg_Current, const double PrepTime, const double Time0, const double Time1,
@@ -235,6 +236,12 @@ void Poi_Prepare_GREP( const double Time, const int lv )
    } // if ( GREP_OPT_PRES == GREP_PRES_BINDATA )
 
 
+// check the profiles before computing the effective GR potential
+   Profile_t *GREP_Check_List[] = { Dens_Tot, Vr_Tot, Pres_Tot, Engy_Tot };
+
+   Check_GREP_Profile( GREP_Check_List, 4 );
+
+
 // compute the effective GR potential
    CPU_ComputeGREP( lv, Time, Dens_Tot, Engy_Tot, Vr_Tot, Pres_Tot, Phi_eff[lv][Sg] );
 
@@ -437,3 +444,27 @@ void Combine_GREP_Profile( Profile_t *Prof[][2], const int lv, const int Sg, con
    } // if ( RemoveEmpty )
 
 } // FUNCTION : Combine_GREP_Profile
+
+
+
+//-------------------------------------------------------------------------------------------------------
+// Function    :  Check_GREP_Profile
+// Description :  Check if there are any unphysical bins in the spherical-averaged profiles
+//
+// Note        :  1. Terminate the program if any invalid fluid variables are present
+//
+// Parameter   :  Prof  : Profile_t object array to be verified
+//                NProf : Number of input profiles
+//-------------------------------------------------------------------------------------------------------
+void Check_GREP_Profile( Profile_t *Prof[], const int NProf )
+{
+
+   for (int p=0; p<NProf;         p++)
+   for (int b=0; b<Prof[p]->NBin; b++)
+   {
+      if (  ! Aux_IsFinite( Prof[p]->Data[b] )  )
+         Aux_Error( ERROR_INFO, "Invalid fluid variables (%14.7e) at GREP profile (%d), bin (%d) !!\n",
+                    Prof[p]->Data[b], p, b);
+   }
+
+} // FUNCTION : Check_GREP_Profile
