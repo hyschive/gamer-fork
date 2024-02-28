@@ -286,6 +286,7 @@ extern double GREP_LOGBINRATIO;
 extern double GREP_MAXRADIUS;
 extern double GREP_MINBINSIZE;
 extern bool   GREP_OPT_FIXUP;
+extern int    GREP_OPT_PRES;
 
 
 // (2-11) source terms

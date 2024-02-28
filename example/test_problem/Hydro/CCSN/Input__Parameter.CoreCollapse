@@ -201,6 +201,8 @@ GREP_MAXRADIUS               -1.0         # maximum radius in the radial profile
 GREP_MINBINSIZE              -1.0         # minimum bin size                                             [-1.0]
                                           # (<=0=use amr->dh[MAX_LEVEL])
 GREP_OPT_FIXUP                1           # fix up the profiles after grid allocation/deallocation       [1]
+GREP_OPT_PRES                 1           # pressure computation scheme                                  [1]
+                                          # (0=individual cell, 1=binned data)
 
 
 # initialization

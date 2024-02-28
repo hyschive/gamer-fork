@@ -372,6 +372,7 @@ void Init_Load_Parameter()
    ReadPara->Add( "GREP_MAXRADIUS",            &GREP_MAXRADIUS,                  -1.0,             NoMin_double,   NoMax_double  );
    ReadPara->Add( "GREP_MINBINSIZE",           &GREP_MINBINSIZE,                 -1.0,             NoMin_double,   NoMax_double  );
    ReadPara->Add( "GREP_OPT_FIXUP",            &GREP_OPT_FIXUP,                   true,            Useless_bool,   Useless_bool  );
+   ReadPara->Add( "GREP_OPT_PRES",             &GREP_OPT_PRES,                    1,               0,              1             );
 #  endif // #ifdef GRAVITY
 
 

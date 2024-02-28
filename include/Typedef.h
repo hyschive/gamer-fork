@@ -371,6 +371,13 @@ const OptExtPot_t
    EXT_POT_GREP  = 3;
 
 
+// effective GR potential
+typedef int GREP_PresScheme_t;
+const GREP_PresScheme_t
+   GREP_PRES_INDIVCELL = 0,
+   GREP_PRES_BINDATA   = 1;
+
+
 // different usages of external potential when computing total potential on level Lv
 // --> ADD     : add external potential on Lv
 //     SUB     : subtract external potential for preparing self-gravity potential on Lv-1
