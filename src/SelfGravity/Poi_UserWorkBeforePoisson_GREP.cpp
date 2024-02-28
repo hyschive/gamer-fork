@@ -240,8 +240,8 @@ void Poi_Prepare_GREP( const double Time, const int lv )
 
 
 // compute the effective GR potential
-   CPU_ComputeGREP( DensAve[NLEVEL][Sg], EngyAve[NLEVEL][Sg], VrAve[NLEVEL][Sg], PresAve[NLEVEL][Sg],
-                    Phi_eff[lv]    [Sg] );
+   CPU_ComputeGREP( lv, Time, DensAve[NLEVEL][Sg], EngyAve[NLEVEL][Sg],
+                    VrAve[NLEVEL][Sg], PresAve[NLEVEL][Sg], Phi_eff[lv][Sg] );
 
 } // FUNCTION : Poi_Prepare_GREP
 
