@@ -5,7 +5,7 @@ static void Poi_Prepare_GREP( const double Time, const int lv );
 static void GREP_Compute_Profile( const int lv, const int Sg, const PatchType_t PatchType );
 static void GREP_Combine_Profile( Profile_t *Prof[][2], const int lv, const int Sg, const double PrepTime,
                                   const bool RemoveEmpty );
-static void GREP_Check_Profile( Profile_t *Prof[], const int NProf );
+static void GREP_Check_Profile( const int lv, Profile_t *Prof[], const int NProf );
 
 extern void SetExtPotAuxArray_GREP( double AuxArray_Flt[], int AuxArray_Int[], const double Time );
 extern void SetTempIntPara( const int lv, const int Sg_Current, const double PrepTime, const double Time0, const double Time1,
@@ -308,7 +308,7 @@ void Poi_Prepare_GREP( const double Time, const int lv )
 // check the profiles before computing the effective GR potential
    Profile_t *GREP_Check_List[] = { Dens_Tot, Vr_Tot, Pres_Tot, Engy_Tot };
 
-   GREP_Check_Profile( GREP_Check_List, 4 );
+   GREP_Check_Profile( lv, GREP_Check_List, 4 );
 
 
 // compute the effective GR potential
@@ -527,15 +527,47 @@ void GREP_Combine_Profile( Profile_t *Prof[][2], const int lv, const int Sg, con
 // Parameter   :  Prof  : Profile_t object array to be verified
 //                NProf : Number of input profiles
 //-------------------------------------------------------------------------------------------------------
-void GREP_Check_Profile( Profile_t *Prof[], const int NProf )
+void GREP_Check_Profile( const int lv, Profile_t *Prof[], const int NProf )
 {
 
-   for (int p=0; p<NProf;         p++)
-   for (int b=0; b<Prof[p]->NBin; b++)
+   const int NBin = Prof[0]->NBin;
+
+   for (int p=0; p<NProf; p++)
+   for (int b=0; b<NBin;  b++)
    {
       if (  ! Aux_IsFinite( Prof[p]->Data[b] )  )
+      {
+//       troubleshooting information
+         if ( MPI_Rank == 0 )
+         {
+            char FileName_GREP[50];
+
+            sprintf( FileName_GREP, "GREP_Lv%02d_Debug", lv );
+            FILE *File_GREP = fopen( FileName_GREP, "w" );
+
+//          metadata
+            fprintf( File_GREP, "# GREP_CENTER_METHOD : %d\n",                   GREP_CENTER_METHOD );
+            fprintf( File_GREP, "# Center             : %13.7e %13.7e %13.7e\n", Prof[0]->Center[0], Prof[0]->Center[1], Prof[0]->Center[2] );
+            fprintf( File_GREP, "# Maximum Radius     : %13.7e\n",               Prof[0]->MaxRadius );
+            fprintf( File_GREP, "# LogBin             : %d\n",                   Prof[0]->LogBin );
+            fprintf( File_GREP, "# LogBinRatio        : %13.7e\n",               Prof[0]->LogBinRatio );
+            fprintf( File_GREP, "# NBin               : %d\n",                   NBin );
+            fprintf( File_GREP, "# -----------------------------------------------\n" );
+            fprintf( File_GREP, "%5s %9s %22s %22s %22s %22s %22s\n",
+                                "# Bin", "NCell", "Radius", "Dens", "Engy", "Vr", "Pressure");
+
+//          data
+            for (int i=0; i<NBin; i++)
+            fprintf( File_GREP, "%5d %9ld %22.15e %22.15e %22.15e %22.15e %22.15e\n",
+                                i, Prof[0]->NCell[i], Prof[0]->Radius[i],
+                                Prof[0]->Data[i], Prof[1]->Data[i], Prof[2]->Data[i], Prof[3]->Data[i] );
+
+            fclose( File_GREP );
+         }
+
          Aux_Error( ERROR_INFO, "Invalid fluid variables (%14.7e) at GREP profile (%d), bin (%d) !!\n",
                     Prof[p]->Data[b], p, b);
+      }
    }
 
 } // FUNCTION : GREP_Check_Profile
