@@ -190,7 +190,7 @@ SRC_GPU_NPGROUP              -1           # number of patch groups sent into the
 
 
 # GREP
-GREP_CENTER_METHOD            0           # center of the GREP profile                                   [0]
+GREP_CENTER_METHOD            2           # center of the GREP profile                                   [2]
                                           # (0=box center, 1=density maximum, 2=potential minimum, 3=CoM)
 GREP_MAXITER                  1000        # number of iterations for constructing mass_TOV and Gamma_TOV [1000]
 GREP_LOGBIN                   1           # log/linear bins                                              [true]

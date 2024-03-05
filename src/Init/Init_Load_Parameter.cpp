@@ -365,7 +365,7 @@ void Init_Load_Parameter()
 // fix EXT_POT_TABLE_FLOAT8 to -1 for now since this option is not supported yet
    ReadPara->Add( "EXT_POT_TABLE_FLOAT8",       &EXT_POT_TABLE_FLOAT8,           -1,              -1,            -1              );
    ReadPara->Add( "OPT__GRAVITY_EXTRA_MASS",    &OPT__GRAVITY_EXTRA_MASS,         false,           Useless_bool,  Useless_bool   );
-   ReadPara->Add( "GREP_CENTER_METHOD",         &GREP_CENTER_METHOD,              0,               0,             3              );
+   ReadPara->Add( "GREP_CENTER_METHOD",         &GREP_CENTER_METHOD,              2,               0,             3              );
    ReadPara->Add( "GREP_MAXITER",               &GREP_MAXITER,                    1000,            100,           NoMax_int      );
    ReadPara->Add( "GREP_LOGBIN",                &GREP_LOGBIN,                     true,            Useless_bool,  Useless_bool   );
    ReadPara->Add( "GREP_LOGBINRATIO",           &GREP_LOGBINRATIO,                1.25,            1.0,           NoMax_double   );
