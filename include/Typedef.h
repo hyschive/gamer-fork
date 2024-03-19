@@ -374,15 +374,15 @@ const OptExtPot_t
 // effective GR potential
 typedef int GREP_PresScheme_t;
 const GREP_PresScheme_t
-   GREP_PRES_INDIVCELL = 0,
-   GREP_PRES_BINDATA   = 1;
+   GREP_PRES_INDIVCELL = 1,
+   GREP_PRES_BINDATA   = 2;
 
 typedef int GREP_Center_t;
 const GREP_Center_t
-   GREP_CENTER_BOX  = 0,
-   GREP_CENTER_DENS = 1,
-   GREP_CENTER_POT  = 2,
-   GREP_CENTER_COM  = 3;
+   GREP_CENTER_BOX  = 1,
+   GREP_CENTER_DENS = 2,
+   GREP_CENTER_POT  = 3,
+   GREP_CENTER_COM  = 4;
 
 
 // different usages of external potential when computing total potential on level Lv

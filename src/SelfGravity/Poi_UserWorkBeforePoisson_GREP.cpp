@@ -283,25 +283,25 @@ void Poi_Prepare_GREP( const double Time, const int lv )
 
    if ( GREP_OPT_PRES == GREP_PRES_BINDATA )
    {
-#        ifdef YE
-         real Passive[ NCOMP_TOTAL - NCOMP_FLUID ] = { 0.0 };
+#     ifdef YE
+      real Passive[ NCOMP_TOTAL - NCOMP_FLUID ] = { 0.0 };
 
-         for (int b=0; b<Dens_Tot->NBin; b++)
-         {
-            if ( Dens_Tot->NCell[b] == 0 )   continue;
+      for (int b=0; b<Dens_Tot->NBin; b++)
+      {
+         if ( Dens_Tot->NCell[b] == 0 )   continue;
 
-            Passive[ YE - NCOMP_FLUID ] = Pres_Tot->Data[b];
+         Passive[ YE - NCOMP_FLUID ] = Pres_Tot->Data[b];
 
-#           ifdef TEMP_IG
-//          set the initial guess of temperature to 1 MeV
+#        ifdef TEMP_IG
+//       set the initial guess of temperature to 1 MeV
 //###REVISE: implement support for Temp_IG from Aux_ComputeProfile()
-            Passive[ TEMP_IG - NCOMP_FLUID ] = 1.0e6 / Const_kB_eV;
-#           endif
+         Passive[ TEMP_IG - NCOMP_FLUID ] = 1.0e6 / Const_kB_eV;
+#        endif
 
-            Pres_Tot->Data[b] = EoS_DensEint2Pres_CPUPtr( Dens_Tot->Data[b], Engy_Tot->Data[b],
-                                                          Passive, EoS_AuxArray_Flt, EoS_AuxArray_Int, h_EoS_Table );
-         }
-#        endif // ifdef YE
+         Pres_Tot->Data[b] = EoS_DensEint2Pres_CPUPtr( Dens_Tot->Data[b], Engy_Tot->Data[b],
+                                                       Passive, EoS_AuxArray_Flt, EoS_AuxArray_Int, h_EoS_Table );
+      }
+#     endif // ifdef YE
    } // if ( GREP_OPT_PRES == GREP_PRES_BINDATA )
 
 

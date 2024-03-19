@@ -174,8 +174,8 @@ OPT__EXT_POT                  3           # add external potential    (0=off, 1=
 
 
 # GREP
-GREP_CENTER_METHOD            2           # center of the GREP profile                                   [2]
-                                          # (0=box center, 1=density maximum, 2=potential minimum, 3=CoM)
+GREP_CENTER_METHOD            3           # center of the GREP profile                                   [3]
+                                          # (1=box center, 2=density maximum, 3=potential minimum, 4=CoM)
 GREP_MAXITER                  1000        # number of iterations for constructing mass_TOV and Gamma_TOV [1000]
 GREP_LOGBIN                   1           # log/linear bins                                              [true]
                                           # (true=logarithmic, false=linear)
@@ -185,8 +185,8 @@ GREP_MAXRADIUS               -1.0         # maximum radius in the radial profile
 GREP_MINBINSIZE              -1.0         # minimum bin size                                             [-1.0]
                                           # (<=0=amr->dh[MAX_LEVEL])
 GREP_OPT_FIXUP                1           # correct the profiles after grid allocation/deallocation      [1]
-GREP_OPT_PRES                 1           # pressure computation scheme                                  [1]
-                                          # (0=individual cell, 1=binned data)
+GREP_OPT_PRES                 2           # pressure computation scheme                                  [2]
+                                          # (1=individual cell, 2=binned data)
 
 
 # initialization
