@@ -21,9 +21,7 @@ extern void **d_ExtPotGenePtr;
 extern int    GREP_LvUpdate;
 extern int    GREP_Sg     [NLEVEL];
 extern double GREP_SgTime [NLEVEL][2];
-extern double GREP_Prof_Center    [3];
-extern double GREP_Prof_MaxRadius;
-extern double GREP_Prof_MinBinSize;
+extern double GREP_Center [3];
 
 extern Profile_t *GREP_DensAve [NLEVEL+1][2];
 extern Profile_t *GREP_EngyAve [NLEVEL+1][2];
@@ -73,13 +71,11 @@ void Init_GREP_MemAllocate()
 // Function    :  Init_GREP
 // Description :  Initialize the GREP Profile_t objects and parameters
 //
-// Note        :  1. GREP_*Ave            : Profile_t objects storing the spherical-averaged profiles of
-//                                          density, energy, radial velocity, and pressure
-//                2. GREP_EffPot          : Profile_t objects storing the effective GR potential
-//                3. GREP_Sg              : Sandglass of the current profile data [0/1]
-//                4. GREP_SgTime          : Physical time of profile
-//                5. GREP_Prof_MinBinSize : Minimum bin size used to initialize the Profile_t object
-//                6. GREP_Prof_MaxRadius  : Maximum radius   used to initialize the Profile_t object
+// Note        :  1. GREP_*Ave   : Profile_t objects storing the spherically averaged profiles of
+//                                 density, energy, radial velocity, and pressure
+//                2. GREP_EffPot : Profile_t objects storing the effective GR potential
+//                3. GREP_Sg     : Sandglass of the current profile data [0/1]
+//                4. GREP_SgTime : Physical time of profile
 //-------------------------------------------------------------------------------------------------------
 void Init_GREP()
 {
@@ -108,11 +104,8 @@ void Init_GREP()
 
 
 // (3) initialize the GREP parameters
-//     --> GREP_Prof_Center will be reset in Poi_UserWorkBeforePoisson_GREP() at each global step
-   for (int i=0; i<3; i++)   GREP_Prof_Center[i] = amr->BoxCenter[i];
-
-   GREP_Prof_MinBinSize = ( GREP_MINBINSIZE > 0.0 ) ? GREP_MINBINSIZE : amr->dh[MAX_LEVEL];
-   GREP_Prof_MaxRadius  = ( GREP_MAXRADIUS  > 0.0 ) ? GREP_MAXRADIUS  : sqrt(3.0) * amr->BoxSize[0];
+//     --> GREP_Center will be reset in Poi_UserWorkBeforePoisson_GREP() at each sub-step
+   for (int i=0; i<3; i++)   GREP_Center[i] = amr->BoxCenter[i];
 
 
 // (4) allocate device and host memory for the GREP profiles in datatype of real
@@ -154,9 +147,9 @@ void SetExtPotAuxArray_GREP( double AuxArray_Flt[], int AuxArray_Int[], const do
    const int Sg_Lv   = GREP_Sg[Lv];
    const int Sg_FaLv = GREP_Sg[FaLv];
 
-   AuxArray_Flt[0] = GREP_Prof_Center[0];                       // x coordinate of the GREP profile center
-   AuxArray_Flt[1] = GREP_Prof_Center[1];                       // y coordinate of the GREP profile center
-   AuxArray_Flt[2] = GREP_Prof_Center[2];                       // z coordinate of the GREP profile center
+   AuxArray_Flt[0] = GREP_Center[0];                            // x coordinate of the GREP profile center
+   AuxArray_Flt[1] = GREP_Center[1];                            // y coordinate of the GREP profile center
+   AuxArray_Flt[2] = GREP_Center[2];                            // z coordinate of the GREP profile center
    AuxArray_Flt[3] = GREP_SgTime[ FaLv ][     Sg_FaLv ];        // new physical time of GREP on father level
    AuxArray_Flt[4] = GREP_SgTime[ FaLv ][ 1 - Sg_FaLv ];        // old physical time of GREP on father level
 

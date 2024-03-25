@@ -23,12 +23,9 @@ Profile_t *GREP_PresAve [NLEVEL+1][2];
 Profile_t *GREP_EffPot  [NLEVEL  ][2];
 
 int    GREP_LvUpdate;
-double GREP_Prof_MaxRadius;
-double GREP_Prof_MinBinSize;
-
 int    GREP_Sg     [NLEVEL];
 double GREP_SgTime [NLEVEL][2];
-double GREP_Prof_Center    [3];
+double GREP_Center [3];
 
 extern bool CCSN_Is_PostBounce;
 extern real *h_ExtPotGREP;
@@ -61,15 +58,15 @@ void Poi_UserWorkBeforePoisson_GREP( const double Time, const int lv )
       switch ( GREP_CENTER_METHOD )
       {
          case GREP_CENTER_BOX: // box center
-            for (int i=0; i<3; i++)   GREP_Prof_Center[i] = amr->BoxCenter[i];
+            for (int i=0; i<3; i++)   GREP_Center[i] = amr->BoxCenter[i];
          break;
 
          case GREP_CENTER_DENS: // density maximum
          {
             if ( ! CCSN_Is_PostBounce  &&  TESTPROB_ID == TESTPROB_HYDRO_CCSN )
             {
-//             fixed the center to the box center during the collapse stage in CCSN simulations
-               for (int i=0; i<3; i++)   GREP_Prof_Center[i] = amr->BoxCenter[i];
+//             fix the center to the box center during the collapse stage in CCSN simulations
+               for (int i=0; i<3; i++)   GREP_Center[i] = amr->BoxCenter[i];
             }
 
             else
@@ -82,7 +79,7 @@ void Poi_UserWorkBeforePoisson_GREP( const double Time, const int lv )
 
                Aux_FindExtrema( &Extrema, EXTREMA_MAX, 0, TOP_LEVEL, PATCH_LEAF );
 
-               for (int i=0; i<3; i++)   GREP_Prof_Center[i] = Extrema.Coord[i];
+               for (int i=0; i<3; i++)   GREP_Center[i] = Extrema.Coord[i];
             } // if ( ! CCSN_Is_PostBounce  &&  TESTPROB_ID == TESTPROB_HYDRO_CCSN ) ... else ...
          }
          break;
@@ -97,17 +94,17 @@ void Poi_UserWorkBeforePoisson_GREP( const double Time, const int lv )
 
             Aux_FindExtrema( &Extrema, EXTREMA_MIN, 0, TOP_LEVEL, PATCH_LEAF );
 
-            for (int i=0; i<3; i++)   GREP_Prof_Center[i] = Extrema.Coord[i];
+            for (int i=0; i<3; i++)   GREP_Center[i] = Extrema.Coord[i];
          }
          break;
 
          case GREP_CENTER_COM: // center of mass
-            Aux_Error( ERROR_INFO, "has not been implemented yet!!\n" );
+            Aux_Error( ERROR_INFO, "GREP_CENTER_COM has not been implemented yet!!\n" );
          break;
 
          default:
             Aux_Error( ERROR_INFO, "unsupported %s = %d !!\n", "GREP_CENTER_METHOD", GREP_CENTER_METHOD );
-      }
+      } // switch ( GREP_CENTER_METHOD )
 
 
 //    shift the center to the box center if it coincides with one of the innermost cells
@@ -116,10 +113,10 @@ void Poi_UserWorkBeforePoisson_GREP( const double Time, const int lv )
       {
          const double Extrema_dh = amr->dh[ Extrema.Level ];
 
-         if (  fabs( GREP_Prof_Center[0] - amr->BoxCenter[0] ) < Extrema_dh  &&
-               fabs( GREP_Prof_Center[1] - amr->BoxCenter[1] ) < Extrema_dh  &&
-               fabs( GREP_Prof_Center[2] - amr->BoxCenter[2] ) < Extrema_dh    )
-            for (int i=0; i<3; i++)   GREP_Prof_Center[i] = amr->BoxCenter[i];
+         if (  fabs( GREP_Center[0] - amr->BoxCenter[0] ) < Extrema_dh  &&
+               fabs( GREP_Center[1] - amr->BoxCenter[1] ) < Extrema_dh  &&
+               fabs( GREP_Center[2] - amr->BoxCenter[2] ) < Extrema_dh    )
+            for (int i=0; i<3; i++)   GREP_Center[i] = amr->BoxCenter[i];
       }
    } // if ( lv == 0 )
 
@@ -146,7 +143,7 @@ void Poi_UserWorkBeforePoisson_GREP( const double Time, const int lv )
 //    check whether the number of bins exceeds EXT_POT_GREP_NAUX_MAX
 //    Phi_FaLv_New and Phi_FaLv_Old have been checked earlier and are skipped here
       if ( Phi_Lv_New->NBin > EXT_POT_GREP_NAUX_MAX )
-         Aux_Error( ERROR_INFO, "Number of bins = %d > EXT_POT_GREP_NAUX_MAX = %d for GREP at lv = %d and SaveSg = %d !!\n",
+         Aux_Error( ERROR_INFO, "number of bins (%d) > EXT_POT_GREP_NAUX_MAX (%d) for GREP on level = %d and SaveSg = %d !!\n",
                     Phi_Lv_New->NBin, EXT_POT_GREP_NAUX_MAX, Lv, Sg_Lv );
 
       h_ExtPotGREP[b                          ] = (real) Phi_Lv_New   ->Data  [b];
@@ -182,7 +179,7 @@ void Poi_UserWorkBeforePoisson_GREP( const double Time, const int lv )
 
 //-------------------------------------------------------------------------------------------------------
 // Function    :  Mis_UserWorkBeforeNextLevel_GREP
-// Description :  Update the spherical-averaged profiles before entering the next AMR level in EvolveLevel()
+// Description :  Update the spherically averaged profiles before entering the next AMR level in EvolveLevel()
 //
 // Note        :  1. Invoked by EvolveLevel() using the function pointer "Mis_UserWorkBeforeNextLevel_Ptr"
 //                2. Update the profiles to account for the Poisson and Gravity solvers, and source terms
@@ -211,7 +208,7 @@ void Mis_UserWorkBeforeNextLevel_GREP( const int lv, const double TimeNew, const
 
 //-------------------------------------------------------------------------------------------------------
 // Function    :  Mis_UserWorkBeforeNextSubstep_GREP
-// Description :  Update the spherical-averaged profiles before proceeding to the next sub-step in EvolveLevel()
+// Description :  Update the spherically averaged profiles before proceeding to the next sub-step in EvolveLevel()
 //                --> After fix-up and grid refinement on lv
 //
 // Note        :  1. Invoked by EvolveLevel() using the function pointer "Mis_UserWorkBeforeNextSubstep_Ptr"
@@ -241,7 +238,7 @@ void Mis_UserWorkBeforeNextSubstep_GREP( const int lv, const double TimeNew, con
 
 //-------------------------------------------------------------------------------------------------------
 // Function    :  Poi_Prepare_GREP
-// Description :  Update the spherical-averaged profiles before Poisson and Gravity solvers,
+// Description :  Update the spherically averaged profiles before Poisson and Gravity solvers,
 //                and compute the effective GR potential.
 //
 // Note        :  1. Invoked by Poi_UserWorkBeforePoisson_GREP()
@@ -263,16 +260,18 @@ void Poi_Prepare_GREP( const double Time, const int lv )
    else                                                                          Sg = 1 - GREP_Sg[lv];
 
 
-// update the spherical-averaged profiles contributed from non-leaf and leaf patches
+// update the spherically averaged profiles contributed from non-leaf and leaf patches
    GREP_Compute_Profile( lv, Sg, PATCH_LEAF    );
    GREP_Compute_Profile( lv, Sg, PATCH_NONLEAF );
 
 
-// combine the spherical-averaged profiles
-   GREP_Combine_Profile( GREP_DensAve, lv, Sg, Time, true );
-   GREP_Combine_Profile( GREP_VrAve,   lv, Sg, Time, true );
-   GREP_Combine_Profile( GREP_PresAve, lv, Sg, Time, true );
-   GREP_Combine_Profile( GREP_EngyAve, lv, Sg, Time, true );
+// combine the spherically averaged profiles
+   const bool RemoveEmpty_Yes = true;
+
+   GREP_Combine_Profile( GREP_DensAve, lv, Sg, Time, RemoveEmpty_Yes );
+   GREP_Combine_Profile( GREP_VrAve,   lv, Sg, Time, RemoveEmpty_Yes );
+   GREP_Combine_Profile( GREP_PresAve, lv, Sg, Time, RemoveEmpty_Yes );
+   GREP_Combine_Profile( GREP_EngyAve, lv, Sg, Time, RemoveEmpty_Yes );
 
 
 // compute the pressure if GREP_OPT_PRES == GREP_PRES_BINDATA
@@ -281,20 +280,22 @@ void Poi_Prepare_GREP( const double Time, const int lv )
    Profile_t *Pres_Tot = GREP_PresAve[NLEVEL][Sg];
    Profile_t *Engy_Tot = GREP_EngyAve[NLEVEL][Sg];
 
+//###REVISE: support EOS != EOS_NUCLEAR, especially for EoS that does not need any passive scalar in EoS_DensEint2Pres_CPUPtr()
    if ( GREP_OPT_PRES == GREP_PRES_BINDATA )
    {
 #     ifdef YE
-      real Passive[ NCOMP_TOTAL - NCOMP_FLUID ] = { 0.0 };
+      real Passive[NCOMP_PASSIVE] = { 0.0 };
 
       for (int b=0; b<Dens_Tot->NBin; b++)
       {
          if ( Dens_Tot->NCell[b] == 0 )   continue;
 
+//       the Ye profile has been stored in the pressure profile temporarily
          Passive[ YE - NCOMP_FLUID ] = Pres_Tot->Data[b];
 
 #        ifdef TEMP_IG
 //       set the initial guess of temperature to 1 MeV
-//###REVISE: implement support for Temp_IG from Aux_ComputeProfile()
+//###REVISE: support Temp_IG from Aux_ComputeProfile()
          Passive[ TEMP_IG - NCOMP_FLUID ] = 1.0e6 / Const_kB_eV;
 #        endif
 
@@ -306,7 +307,7 @@ void Poi_Prepare_GREP( const double Time, const int lv )
 
 
 // check the profiles before computing the effective GR potential
-   Profile_t *GREP_Check_List[] = { Dens_Tot, Vr_Tot, Pres_Tot, Engy_Tot };
+   Profile_t *GREP_Check_List[] = { Dens_Tot, Engy_Tot, Vr_Tot, Pres_Tot };
 
    GREP_Check_Profile( lv, GREP_Check_List, 4 );
 
@@ -356,31 +357,25 @@ void GREP_Compute_Profile( const int lv, const int Sg, const PatchType_t PatchTy
 
    Profile_t *Dens = GREP_DensAve[Lv_Stored][Sg];
    Profile_t *Vr   = GREP_VrAve  [Lv_Stored][Sg];
-   Profile_t *Pres = GREP_PresAve[Lv_Stored][Sg];
    Profile_t *Engy = GREP_EngyAve[Lv_Stored][Sg];
+   Profile_t *Pres = GREP_PresAve[Lv_Stored][Sg];
 
-   Profile_t *Prof_List[] = { Dens, Vr, Pres, Engy };
-
+   Profile_t *Prof_List[] = {  Dens,    Vr,  Engy,  Pres };
+   long       TVar     [] = { _DENS, _VELR, _EINT, _NONE };
 
    switch ( GREP_OPT_PRES )
    {
-      case GREP_PRES_INDIVCELL:
+      case GREP_PRES_INDIVCELL:  // compute the pressure profile directly
       {
-         long TVar[] = { _DENS, _VELR, _PRES, _EINT };
-
-         Aux_ComputeProfile( Prof_List, GREP_Prof_Center, GREP_Prof_MaxRadius, GREP_Prof_MinBinSize,
-                             GREP_LOGBIN, GREP_LOGBINRATIO, RemoveEmpty_No, TVar, NVar, lv, lv, PatchType, PrepTime_No );
+         TVar[3] = _PRES;
       }
       break;
 
 
-      case GREP_PRES_BINDATA:
+      case GREP_PRES_BINDATA:  // compute the Ye profile and store it in GREP_PresAve[Lv_Stored][Sg] temporarily
       {
 #        ifdef YE
-         long TVar[] = { _DENS, _VELR, _YE, _EINT };
-
-         Aux_ComputeProfile( Prof_List, GREP_Prof_Center, GREP_Prof_MaxRadius, GREP_Prof_MinBinSize,
-                             GREP_LOGBIN, GREP_LOGBINRATIO, RemoveEmpty_No, TVar, NVar, lv, lv, PatchType, PrepTime_No );
+         TVar[3] = _YE;
 #        endif
       }
       break;
@@ -388,7 +383,11 @@ void GREP_Compute_Profile( const int lv, const int Sg, const PatchType_t PatchTy
 
       default:
          Aux_Error( ERROR_INFO, "unsupported pressure computation scheme %s = %d !!\n", "GREP_OPT_PRES", GREP_OPT_PRES );
-   }
+   } // switch ( GREP_OPT_PRES )
+
+
+   Aux_ComputeProfile( Prof_List, GREP_Center, GREP_MAXRADIUS, GREP_MINBINSIZE, GREP_LOGBIN,
+                       GREP_LOGBINRATIO, RemoveEmpty_No, TVar, NVar, lv, lv, PatchType, PrepTime_No );
 
 } // FUNCTION : GREP_Compute_Profile
 
@@ -396,15 +395,15 @@ void GREP_Compute_Profile( const int lv, const int Sg, const PatchType_t PatchTy
 
 //-------------------------------------------------------------------------------------------------------
 // Function    :  GREP_Combine_Profile
-// Description :  Combine the spherical-averaged profiles from leaf patches at each level
+// Description :  Combine the spherically averaged profiles from leaf patches at each level
 //                and from non-leaf patches at current level, then remove any empty bins
 //
-// Note        :  1. The total averaged profile is stored at QUANT[NLEVEL]
+// Note        :  1. The total averaged profile is stored at Prof[NLEVEL][Sg]
 //
 // Parameter   :  Prof        : Profile_t object array to be combined
 //                lv          : Target refinement level
 //                Sg          : Sandglass indicating which Profile_t object the data are stored
-//                PrepTime    : Target physical time to combine the spherical-averaged profiles
+//                PrepTime    : Target physical time to combine the spherically averaged profiles
 //                RemoveEmpty : true  --> remove empty bins from the data
 //                              false --> these empty bins will still be in the profile arrays with
 //                                        Data[empty_bin]=Weight[empty_bin]=NCell[empty_bin]=0
@@ -511,7 +510,7 @@ void GREP_Combine_Profile( Profile_t *Prof[][2], const int lv, const int Sg, con
 
       Prof_NonLeaf->MaxRadius = ( Prof_NonLeaf->LogBin )
                               ? Prof_NonLeaf->Radius[LastBin] * sqrt( Prof_NonLeaf->LogBinRatio )
-                              : Prof_NonLeaf->Radius[LastBin] + 0.5*GREP_Prof_MinBinSize;
+                              : Prof_NonLeaf->Radius[LastBin] + 0.5*GREP_MINBINSIZE;
    } // if ( RemoveEmpty )
 
 } // FUNCTION : GREP_Combine_Profile
@@ -520,7 +519,7 @@ void GREP_Combine_Profile( Profile_t *Prof[][2], const int lv, const int Sg, con
 
 //-------------------------------------------------------------------------------------------------------
 // Function    :  GREP_Check_Profile
-// Description :  Check if there are any unphysical bins in the spherical-averaged profiles
+// Description :  Check if there are any unphysical bins in the spherically averaged profiles
 //
 // Note        :  1. Terminate the program if any invalid fluid variables are present
 //
@@ -532,42 +531,42 @@ void GREP_Check_Profile( const int lv, Profile_t *Prof[], const int NProf )
 
    const int NBin = Prof[0]->NBin;
 
-   for (int p=0; p<NProf; p++)
-   for (int b=0; b<NBin;  b++)
+   if ( MPI_Rank == 0 )
    {
-      if (  ! Aux_IsFinite( Prof[p]->Data[b] )  )
+      for (int p=0; p<NProf; p++)
+      for (int b=0; b<NBin;  b++)
       {
-//       troubleshooting information
-         if ( MPI_Rank == 0 )
+         if (  ! Aux_IsFinite( Prof[p]->Data[b] )  )
          {
-            char FileName_GREP[50];
+//          troubleshooting information
+            char FileName[MAX_STRING];
 
-            sprintf( FileName_GREP, "GREP_Lv%02d_Debug", lv );
-            FILE *File_GREP = fopen( FileName_GREP, "w" );
+            sprintf( FileName, "GREP_Lv%02d_InvalidProfile", lv );
+            FILE *File = fopen( FileName, "w" );
 
 //          metadata
-            fprintf( File_GREP, "# GREP_CENTER_METHOD : %d\n",                   GREP_CENTER_METHOD );
-            fprintf( File_GREP, "# Center             : %13.7e %13.7e %13.7e\n", Prof[0]->Center[0], Prof[0]->Center[1], Prof[0]->Center[2] );
-            fprintf( File_GREP, "# Maximum Radius     : %13.7e\n",               Prof[0]->MaxRadius );
-            fprintf( File_GREP, "# LogBin             : %d\n",                   Prof[0]->LogBin );
-            fprintf( File_GREP, "# LogBinRatio        : %13.7e\n",               Prof[0]->LogBinRatio );
-            fprintf( File_GREP, "# NBin               : %d\n",                   NBin );
-            fprintf( File_GREP, "# -----------------------------------------------\n" );
-            fprintf( File_GREP, "%5s %9s %22s %22s %22s %22s %22s\n",
-                                "# Bin", "NCell", "Radius", "Dens", "Engy", "Vr", "Pressure");
+            fprintf( File, "# GREP_CENTER_METHOD : %d\n",                   GREP_CENTER_METHOD );
+            fprintf( File, "# Center             : %13.7e %13.7e %13.7e\n", Prof[0]->Center[0], Prof[0]->Center[1], Prof[0]->Center[2] );
+            fprintf( File, "# Maximum Radius     : %13.7e\n",               Prof[0]->MaxRadius );
+            fprintf( File, "# LogBin             : %d\n",                   Prof[0]->LogBin );
+            fprintf( File, "# LogBinRatio        : %13.7e\n",               Prof[0]->LogBinRatio );
+            fprintf( File, "# NBin               : %d\n",                   NBin );
+            fprintf( File, "# -----------------------------------------------\n" );
+            fprintf( File, "%5s %9s %22s %22s %22s %22s %22s\n",
+                           "# Bin", "NCell", "Radius", "Density", "Energy", "Vr", "Pressure" );
 
 //          data
             for (int i=0; i<NBin; i++)
-            fprintf( File_GREP, "%5d %9ld %22.15e %22.15e %22.15e %22.15e %22.15e\n",
-                                i, Prof[0]->NCell[i], Prof[0]->Radius[i],
-                                Prof[0]->Data[i], Prof[1]->Data[i], Prof[2]->Data[i], Prof[3]->Data[i] );
+            fprintf( File, "%5d %9ld %22.15e %22.15e %22.15e %22.15e %22.15e\n",
+                           i, Prof[0]->NCell[i], Prof[0]->Radius[i],
+                           Prof[0]->Data[i], Prof[1]->Data[i], Prof[2]->Data[i], Prof[3]->Data[i] );
 
-            fclose( File_GREP );
-         }
+            fclose( File );
 
-         Aux_Error( ERROR_INFO, "Invalid fluid variables (%14.7e) at GREP profile (%d), bin (%d) !!\n",
-                    Prof[p]->Data[b], p, b);
-      }
-   }
+            Aux_Error( ERROR_INFO, "invalid fluid variables (%14.7e) at GREP profile (%d), bin (%d) !!\n",
+                       Prof[p]->Data[b], p, b );
+         } // if (  ! Aux_IsFinite( Prof[p]->Data[b] )  )
+      } // p,b
+   } // if ( MPI_Rank == 0 )
 
 } // FUNCTION : GREP_Check_Profile

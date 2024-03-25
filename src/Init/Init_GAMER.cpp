@@ -271,7 +271,8 @@ void Init_GAMER( int *argc, char ***argv )
 
 
 //    utilize the box center as the reference point for GREP center during the initialization stage
-      const int Backup_GREP_Center = GREP_CENTER_METHOD;
+//    since the potential is not initialized yet
+      const GREP_Center_t Backup_GREP_Center = GREP_CENTER_METHOD;
 
       if ( OPT__EXT_POT == EXT_POT_GREP )   GREP_CENTER_METHOD = GREP_CENTER_BOX;
 
@@ -293,7 +294,7 @@ void Init_GAMER( int *argc, char ***argv )
       if ( MPI_Rank == 0 )    Aux_Message( stdout, "%s ... done\n", "Calculating gravitational potential" );
 
 
-//    reset the GREP center
+//    restore the GREP center
       if ( OPT__EXT_POT == EXT_POT_GREP )   GREP_CENTER_METHOD = Backup_GREP_Center;
    } // if ( OPT__SELF_GRAVITY_TYPE  ||  OPT__EXT_POT )
 #  endif // #ifdef GARVITY

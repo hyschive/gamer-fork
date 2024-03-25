@@ -400,7 +400,7 @@ void Poi_Prepare_Rho( const int lv, const double PrepTime, real h_Rho_Array_P[][
 void Poi_StorePotWithGhostZone( const int lv, const int PotSg, const bool AllPatch );
 #endif
 void CPU_ComputeGREP( const int lv, const double Time, const Profile_t *DensAve, const Profile_t *EngyAve,
-                      const Profile_t *VrAve, const Profile_t *PresAve, Profile_t *Phi_eff );
+                      const Profile_t *VrAve, const Profile_t *PresAve, Profile_t *EffPot );
 #endif // #ifdef GRAVITY
 
 

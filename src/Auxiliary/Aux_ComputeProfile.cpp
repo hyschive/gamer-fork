@@ -405,7 +405,7 @@ void Aux_ComputeProfile( Profile_t *Prof[], const double Center[], const double 
                                                 :                     FluidPtr     [DENS][k][j][i]  *dv;
 
                               real MomR;
-                              if ( r == 0 )
+                              if ( r == 0.0 )
                               {
                                  MomR = (real)0.0;
                               }

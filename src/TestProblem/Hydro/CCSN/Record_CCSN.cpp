@@ -9,7 +9,9 @@ extern bool   CCSN_Is_PostBounce;
 extern double CCSN_Shock_ThresFac_Pres;
 extern double CCSN_Shock_ThresFac_Vel;
 extern int    CCSN_Shock_Weight;
-extern double GREP_Prof_Center[3];
+#ifdef GRAVITY
+extern double GREP_Center[3];
+#endif
 
 
 
@@ -171,10 +173,21 @@ void Record_CCSN_CentralQuant()
 #     endif
 
       FILE *file_cent_quant = fopen( filename_central_quant, "a" );
-      fprintf( file_cent_quant, "%15.7e %12ld %16.7e %16.7e %16.7e %16.7e %16.7e %16.7e %16.7e %16.7e %16.7e %16.7e %16.7e\n",
+
+      fprintf( file_cent_quant, "%15.7e %12ld %16.7e %16.7e %16.7e %16.7e %16.7e %16.7e %16.7e %16.7e %16.7e",
                Time[0]*UNIT_T, Step, Data_Flt[1]*UNIT_L, Data_Flt[2]*UNIT_L, Data_Flt[3]*UNIT_L,
-               u[DENS]*UNIT_D, Ye, CCSN_Rsh_Min*UNIT_L, CCSN_Rsh_Ave*UNIT_L, CCSN_Rsh_Max*UNIT_L,
-               GREP_Prof_Center[0]*UNIT_L, GREP_Prof_Center[1]*UNIT_L, GREP_Prof_Center[2]*UNIT_L );
+               u[DENS]*UNIT_D, Ye, CCSN_Rsh_Min*UNIT_L, CCSN_Rsh_Ave*UNIT_L, CCSN_Rsh_Max*UNIT_L );
+
+#     ifdef GRAVITY
+      fprintf( file_cent_quant, " %16.7e %16.7e %16.7e",
+               GREP_Center[0]*UNIT_L, GREP_Center[1]*UNIT_L, GREP_Center[2]*UNIT_L );
+#     else
+      fprintf( file_cent_quant, " %16.7e %16.7e %16.7e",
+               NULL_REAL, NULL_REAL, NULL_REAL );
+#     endif
+
+      fprintf( file_cent_quant, "\n" );
+
       fclose( file_cent_quant );
 
    } // if ( MPI_Rank == 0 )

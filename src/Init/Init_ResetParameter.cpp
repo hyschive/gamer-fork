@@ -1027,7 +1027,7 @@ void Init_ResetParameter()
 #  endif
 
 
-// must set OPT__FFTW_STARTUP = FFTW_STARTUP_ESTIMATE for BITWISE_REPRODUCIBILITY 
+// must set OPT__FFTW_STARTUP = FFTW_STARTUP_ESTIMATE for BITWISE_REPRODUCIBILITY
 // --> even when disabling BITWISE_REPRODUCIBILITY, we still use FFTW_STARTUP_ESTIMATE
 //     by default since otherwise the FFT results can vary in each run on the level
 //     of machine precision, which can be confusing
@@ -1042,6 +1042,24 @@ void Init_ResetParameter()
       OPT__FFTW_STARTUP = FFTW_STARTUP_ESTIMATE;
       PRINT_WARNING( OPT__FFTW_STARTUP, FORMAT_INT, "when disabling BITWISE_REPRODUCIBILITY" );
 #     endif
+   }
+#  endif
+
+
+// GREP
+#  ifdef GRAVITY
+   if ( GREP_MINBINSIZE <= 0.0 )
+   {
+      GREP_MINBINSIZE = amr->dh[MAX_LEVEL];
+
+      PRINT_WARNING( GREP_MINBINSIZE, FORMAT_FLT, "" );
+   }
+
+   if ( GREP_MAXRADIUS <= 0.0 )
+   {
+      GREP_MAXRADIUS = sqrt(3.0) * amr->BoxSize[0];
+
+      PRINT_WARNING( GREP_MAXRADIUS, FORMAT_FLT, "" );
    }
 #  endif
 
