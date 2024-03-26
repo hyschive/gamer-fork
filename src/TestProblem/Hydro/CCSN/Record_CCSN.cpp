@@ -174,7 +174,7 @@ void Record_CCSN_CentralQuant()
 
       FILE *file_cent_quant = fopen( filename_central_quant, "a" );
 
-      fprintf( file_cent_quant, "%15.7e %12ld %16.7e %16.7e %16.7e %16.7e %16.7e %16.7e %16.7e %16.7e %16.7e",
+      fprintf( file_cent_quant, "%15.7e %12ld %16.7e %16.7e %16.7e %16.7e %16.7e %16.7e %16.7e %16.7e",
                Time[0]*UNIT_T, Step, Data_Flt[1]*UNIT_L, Data_Flt[2]*UNIT_L, Data_Flt[3]*UNIT_L,
                u[DENS]*UNIT_D, Ye, CCSN_Rsh_Min*UNIT_L, CCSN_Rsh_Ave*UNIT_L, CCSN_Rsh_Max*UNIT_L );
 
