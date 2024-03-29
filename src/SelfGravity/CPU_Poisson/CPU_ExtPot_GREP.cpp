@@ -19,17 +19,15 @@ extern void **d_ExtPotGenePtr;
 
        real  *h_ExtPotGREP;
 extern int    GREP_LvUpdate;
-extern int    GREPSg     [NLEVEL];
-extern double GREPSgTime [NLEVEL][2];
-extern double GREP_Prof_Center   [3];
-extern double GREP_Prof_MaxRadius;
-extern double GREP_Prof_MinBinSize;
+extern int    GREP_Sg     [NLEVEL];
+extern double GREP_SgTime [NLEVEL][2];
+extern double GREP_Center [3];
 
-extern Profile_t *DensAve [NLEVEL+1][2];
-extern Profile_t *EngyAve [NLEVEL+1][2];
-extern Profile_t *VrAve   [NLEVEL+1][2];
-extern Profile_t *PresAve [NLEVEL+1][2];
-extern Profile_t *Phi_eff [NLEVEL  ][2];
+extern Profile_t *GREP_DensAve [NLEVEL+1][2];
+extern Profile_t *GREP_EngyAve [NLEVEL+1][2];
+extern Profile_t *GREP_VrAve   [NLEVEL+1][2];
+extern Profile_t *GREP_PresAve [NLEVEL+1][2];
+extern Profile_t *GREP_EffPot  [NLEVEL  ][2];
 
        void Init_GREP_MemAllocate();
        void End_ExtPot_GREP_MemFree();
@@ -73,14 +71,11 @@ void Init_GREP_MemAllocate()
 // Function    :  Init_GREP
 // Description :  Initialize the GREP Profile_t objects and parameters
 //
-// Note        :  1. DensAve, EngyAve, VrAve, and PresAve
-//                                        : Profile_t objects storing the spherical-averaged
-//                                          density, energy, radial velocity, and pressure.
-//                2. Phi_eff              : Profile_t objects storing the GR effective potential
-//                3. GREPSg               : Sandglass of the current profile data [0/1]
-//                4. GREPSgTime           : Physical time of profile
-//                5. GREP_Prof_MinBinSize : Minimum bin size used to initialize the Profile_t object
-//                6. GREP_Prof_MaxRadius  : Maximum radius   used to initialize the Profile_t object
+// Note        :  1. GREP_*Ave   : Profile_t objects storing the spherically averaged profiles of
+//                                 density, energy, radial velocity, and pressure
+//                2. GREP_EffPot : Profile_t objects storing the effective GR potential
+//                3. GREP_Sg     : Sandglass of the current profile data [0/1]
+//                4. GREP_SgTime : Physical time of profile
 //-------------------------------------------------------------------------------------------------------
 void Init_GREP()
 {
@@ -89,43 +84,28 @@ void Init_GREP()
    for (int Sg=0; Sg<2; Sg++)
    for (int lv=0; lv<=NLEVEL; lv++)
    {
-      DensAve [lv][Sg] = new Profile_t();
-      EngyAve [lv][Sg] = new Profile_t();
-      VrAve   [lv][Sg] = new Profile_t();
-      PresAve [lv][Sg] = new Profile_t();
+      GREP_DensAve [lv][Sg] = new Profile_t();
+      GREP_EngyAve [lv][Sg] = new Profile_t();
+      GREP_VrAve   [lv][Sg] = new Profile_t();
+      GREP_PresAve [lv][Sg] = new Profile_t();
 
       if ( lv < NLEVEL )
-      Phi_eff [lv][Sg] = new Profile_t();
+      GREP_EffPot  [lv][Sg] = new Profile_t();
    }
 
 
 // (2) initialize GREP Sg and SgTime
    for (int lv=0; lv<NLEVEL; lv++)
    {
-//    GREPSg must be initialized to [0/1]. Otherwise, it will fail when determining Sg in Poi_Prepare_GREP()
-      GREPSg[lv] = 0;
-      for (int Sg=0; Sg<2; Sg++)   GREPSgTime[lv][Sg] = -__FLT_MAX__;
+//    GREP_Sg must be initialized to [0/1]. Otherwise, it will fail when determining Sg in Poi_Prepare_GREP()
+      GREP_Sg[lv] = 0;
+      for (int Sg=0; Sg<2; Sg++)   GREP_SgTime[lv][Sg] = -__FLT_MAX__;
    }
 
 
 // (3) initialize the GREP parameters
-   switch ( GREP_CENTER_METHOD )
-   {
-      case 1:
-         for (int i=0; i<3; i++)   GREP_Prof_Center[i] = amr->BoxCenter[i];
-      break;
-
-      default:
-         Aux_Error( ERROR_INFO, "incorrect parameter %s = %d !!\n", "GREP_CENTER_METHOD", GREP_CENTER_METHOD );
-   }
-
-   GREP_Prof_MinBinSize = ( GREP_MINBINSIZE > 0.0 ) ? GREP_MINBINSIZE : amr->dh[MAX_LEVEL];
-
-   GREP_Prof_MaxRadius  = ( GREP_MAXRADIUS > 0.0 )
-                        ? GREP_MAXRADIUS
-                        : SQRT( SQR( MAX( amr->BoxSize[0] - GREP_Prof_Center[0], GREP_Prof_Center[0] ) )
-                        +       SQR( MAX( amr->BoxSize[1] - GREP_Prof_Center[1], GREP_Prof_Center[1] ) )
-                        +       SQR( MAX( amr->BoxSize[2] - GREP_Prof_Center[2], GREP_Prof_Center[2] ) ) );
+//     --> GREP_Center will be reset in Poi_UserWorkBeforePoisson_GREP() at each sub-step
+   for (int i=0; i<3; i++)   GREP_Center[i] = amr->BoxCenter[i];
 
 
 // (4) allocate device and host memory for the GREP profiles in datatype of real
@@ -164,18 +144,18 @@ void SetExtPotAuxArray_GREP( double AuxArray_Flt[], int AuxArray_Int[], const do
    const int Lv   = GREP_LvUpdate;
    const int FaLv = ( Lv > 0 ) ? Lv - 1 : Lv;
 
-   const int Sg_Lv   = GREPSg[Lv];
-   const int Sg_FaLv = GREPSg[FaLv];
+   const int Sg_Lv   = GREP_Sg[Lv];
+   const int Sg_FaLv = GREP_Sg[FaLv];
 
-   AuxArray_Flt[0] = GREP_Prof_Center[0];                   // x coordinate of the GREP profile center
-   AuxArray_Flt[1] = GREP_Prof_Center[1];                   // y coordinate of the GREP profile center
-   AuxArray_Flt[2] = GREP_Prof_Center[2];                   // z coordinate of the GREP profile center
-   AuxArray_Flt[3] = GREPSgTime[ FaLv ][     Sg_FaLv ];     // new physical time of GREP on father level
-   AuxArray_Flt[4] = GREPSgTime[ FaLv ][ 1 - Sg_FaLv ];     // old physical time of GREP on father level
+   AuxArray_Flt[0] = GREP_Center[0];                            // x coordinate of the GREP profile center
+   AuxArray_Flt[1] = GREP_Center[1];                            // y coordinate of the GREP profile center
+   AuxArray_Flt[2] = GREP_Center[2];                            // z coordinate of the GREP profile center
+   AuxArray_Flt[3] = GREP_SgTime[ FaLv ][     Sg_FaLv ];        // new physical time of GREP on father level
+   AuxArray_Flt[4] = GREP_SgTime[ FaLv ][ 1 - Sg_FaLv ];        // old physical time of GREP on father level
 
-   AuxArray_Int[0] = Phi_eff[ Lv   ][     Sg_Lv   ]->NBin;  // number of bin at new physical time on current level
-   AuxArray_Int[1] = Phi_eff[ FaLv ][     Sg_FaLv ]->NBin;  // number of bin at new physical time on  father level
-   AuxArray_Int[2] = Phi_eff[ FaLv ][ 1 - Sg_FaLv ]->NBin;  // number of bin at old physical time on  father level
+   AuxArray_Int[0] = GREP_EffPot[ Lv   ][     Sg_Lv   ]->NBin;  // number of bin at new physical time on current level
+   AuxArray_Int[1] = GREP_EffPot[ FaLv ][     Sg_FaLv ]->NBin;  // number of bin at new physical time on  father level
+   AuxArray_Int[2] = GREP_EffPot[ FaLv ][ 1 - Sg_FaLv ]->NBin;  // number of bin at old physical time on  father level
 
 } // FUNCTION : SetExtPotAuxArray_GREP
 #endif // #ifndef __CUDACC__
@@ -402,13 +382,13 @@ void End_ExtPot_GREP()
    for (int Sg=0; Sg<2; Sg++)
    for (int lv=0; lv<=NLEVEL; lv++)
    {
-      DensAve [lv][Sg]->FreeMemory();
-      EngyAve [lv][Sg]->FreeMemory();
-      VrAve   [lv][Sg]->FreeMemory();
-      PresAve [lv][Sg]->FreeMemory();
+      GREP_DensAve [lv][Sg]->FreeMemory();
+      GREP_EngyAve [lv][Sg]->FreeMemory();
+      GREP_VrAve   [lv][Sg]->FreeMemory();
+      GREP_PresAve [lv][Sg]->FreeMemory();
 
       if ( lv < NLEVEL )
-      Phi_eff [lv][Sg]->FreeMemory();
+      GREP_EffPot  [lv][Sg]->FreeMemory();
    }
 
    delete [] h_ExtPotGREP;  h_ExtPotGREP = NULL;

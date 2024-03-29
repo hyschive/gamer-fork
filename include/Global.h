@@ -165,6 +165,15 @@ extern ExtPot_t CPUExtPot_Ptr;
 extern ExtAcc_t GPUExtAcc_Ptr;
 extern ExtPot_t GPUExtPot_Ptr;
 #endif
+
+extern GREP_Center_t     GREP_CENTER_METHOD;
+extern int               GREP_MAXITER;
+extern bool              GREP_LOGBIN;
+extern double            GREP_LOGBINRATIO;
+extern double            GREP_MAXRADIUS;
+extern double            GREP_MINBINSIZE;
+extern bool              GREP_OPT_FIXUP;
+extern GREP_PresScheme_t GREP_OPT_PRES;
 #endif // #ifdef GRAVITY
 
 
@@ -275,17 +284,6 @@ extern Nuc_IntScheme_t NUC_INT_SCHEME_AUX;
 extern Nuc_IntScheme_t NUC_INT_SCHEME_MAIN;
 #endif
 #endif // HYDRO
-
-
-// (2-10) GREP
-// =======================================================================================================
-extern int    GREP_CENTER_METHOD;
-extern int    GREP_MAXITER;
-extern bool   GREP_LOGBIN;
-extern double GREP_LOGBINRATIO;
-extern double GREP_MAXRADIUS;
-extern double GREP_MINBINSIZE;
-extern bool   GREP_OPT_FIXUP;
 
 
 // (2-11) source terms

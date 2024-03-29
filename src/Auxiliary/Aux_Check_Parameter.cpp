@@ -1263,6 +1263,11 @@ void Aux_Check_Parameter()
 #     error : ERROR : GREP and UNSPLIT_GRAVITY are incompatible !!
 #  endif
 
+#  if ( EOS != EOS_NUCLEAR )
+   if ( GREP_OPT_PRES == GREP_PRES_BINDATA )
+      Aux_Error( ERROR_INFO, "unsupported parameter \"%s = %d\" when EOS != EOS_NUCLEAR !!\n", "GREP_OPT_PRES", GREP_OPT_PRES );
+#  endif
+
 #  else
    if ( OPT__EXT_POT == EXT_POT_GREP )
       Aux_Error( ERROR_INFO, "must enable GREP in the Makefile for OPT__EXT_POT == EXT_POT_GREP !!\n" );

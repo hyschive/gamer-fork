@@ -160,6 +160,16 @@ ExtPot_t CPUExtPot_Ptr = NULL;
 ExtAcc_t GPUExtAcc_Ptr = NULL;
 ExtPot_t GPUExtPot_Ptr = NULL;
 #endif
+
+// GREP
+GREP_Center_t        GREP_CENTER_METHOD;
+int                  GREP_MAXITER;
+bool                 GREP_LOGBIN;
+double               GREP_LOGBINRATIO;
+double               GREP_MAXRADIUS;
+double               GREP_MINBINSIZE;
+bool                 GREP_OPT_FIXUP;
+GREP_PresScheme_t    GREP_OPT_PRES;
 #endif // #ifdef GRAVITY
 
 // (2-3) cosmological simulations
@@ -265,16 +275,7 @@ Nuc_IntScheme_t NUC_INT_SCHEME_MAIN;
 #endif
 #endif // HYDRO
 
-// (2-10) GREP
-int    GREP_CENTER_METHOD;
-int    GREP_MAXITER;
-bool   GREP_LOGBIN;
-double GREP_LOGBINRATIO;
-double GREP_MAXRADIUS;
-double GREP_MINBINSIZE;
-bool   GREP_OPT_FIXUP;
-
-// (2-11) source terms
+// (2-10) source terms
 SrcTerms_t SrcTerms;
 #if ( MODEL == HYDRO )
 double     Src_Dlep_AuxArray_Flt     [SRC_NAUX_DLEP     ];
