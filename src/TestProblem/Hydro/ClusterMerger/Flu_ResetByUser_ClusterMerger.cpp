@@ -396,15 +396,25 @@ void Flu_ResetByUser_API_ClusterMerger( const int lv, const int FluSg, const int
 //          Calculate the average density, sound speed and gas velocity inside accretion radius
             if (SQR(x2-ClusterCen[c][0])+SQR(y2-ClusterCen[c][1])+SQR(z2-ClusterCen[c][2]) <= SQR(R_acc)){
                gas_mass[c] += fluid_acc[0]*dv;
+#              ifdef DUAL_ENERGY 
+               double pres = Hydro_DensDual2Pres( fluid_acc[0], fluid_acc[DUAL], EoS_AuxArray_Flt[1], false, NULL_REAL );
+               double eint = EoS_DensPres2Eint_CPUPtr( fluid_acc[0], pres, NULL, EoS_AuxArray_Flt, EoS_AuxArray_Int, h_EoS_Table );
+               double Temp = EoS_DensEint2Temp_CPUPtr( fluid_acc[0], eint, NULL, EoS_AuxArray_Flt, EoS_AuxArray_Int, h_EoS_Table );
+#              else
                double Temp = (real) Hydro_Con2Temp( fluid_acc[0], fluid_acc[1], fluid_acc[2], fluid_acc[3], fluid_acc[4],
                                                     fluid_acc+NCOMP_FLUID, false, MIN_TEMP, Emag, EoS_DensEint2Temp_CPUPtr, 
                                                     EoS_AuxArray_Flt, EoS_AuxArray_Int, h_EoS_Table );
+#              endif
                if ( Temp <= 5e5 )   mass_cold[c] += fluid_acc[0]*dv;
                else {
                   rho[c] += fluid_acc[0]*dv;
+#                 ifdef DUAL_ENERGY
+                  double Pres = Hydro_DensDual2Pres( fluid_acc[0], fluid_acc[DUAL], EoS_AuxArray_Flt[1], true, MIN_PRES );
+#                 else
                   double Pres = (real) Hydro_Con2Pres( fluid_acc[0], fluid_acc[1], fluid_acc[2], fluid_acc[3], fluid_acc[4], 
                                                        fluid_acc+NCOMP_FLUID, true, MIN_PRES, Emag, EoS_DensEint2Pres_CPUPtr, 
                                                        EoS_AuxArray_Flt, EoS_AuxArray_Int, h_EoS_Table, NULL );
+#                 endif
                   double tmp_Cs = sqrt( EoS_DensPres2CSqr_CPUPtr( fluid_acc[0], Pres, NULL, EoS_AuxArray_Flt,
                                         EoS_AuxArray_Int, h_EoS_Table ) );
                   Cs[c] += tmp_Cs;

@@ -10,6 +10,9 @@
 #include "CUDA_CheckError.h"
 #include "CUFLU_Shared_FluUtility.cu"
 #include "CUDA_ConstMemory.h"
+#ifdef DUAL_ENERGY
+#include "CUFLU_Shared_DualEnergy.cu"
+#endif
 
 extern double *d_SrcEC_TEF_lambda;
 extern double *d_SrcEC_TEF_alpha;
@@ -192,36 +195,35 @@ static void Src_ExactCooling( real fluid[], const real B[],
 
    double Temp, Eint, Enth, Emag, Pres, Tini, Eintf, Tk, lambdaTini, tcool, Ynew;
    int k, knew;
-   const bool CheckMinTemp_Yes = true;
 
-// (1) Get the temperature and compute the old internal energy
+// (1) Compute the internal energy and temperature
 #  ifdef MHD
    Emag  = (real)0.5*( SQR(B[MAGX]) + SQR(B[MAGY]) + SQR(B[MAGZ]) );
 #  else
    Emag  = (real)0.0;
 #  endif
 
+   const bool CheckMinEint_No = false;
+   const bool CheckMinPres_No = false; 
+#  ifdef DUAL_ENERGY
 #  ifdef __CUDACC__
-   Temp = (real) Hydro_Con2Temp( fluid[DENS], fluid[MOMX], fluid[MOMY], fluid[MOMZ], fluid[ENGY], fluid+NCOMP_FLUID, 
-                                 CheckMinTemp_Yes, TEF_Tmin, Emag, EoS->DensEint2Temp_FuncPtr, 
-                                 EoS->AuxArrayDevPtr_Flt, EoS->AuxArrayDevPtr_Int, EoS->Table ); 
-#  else
-   Temp = (real) Hydro_Con2Temp( fluid[DENS], fluid[MOMX], fluid[MOMY], fluid[MOMZ], fluid[ENGY], fluid+NCOMP_FLUID, 
-                                 CheckMinTemp_Yes, TEF_Tmin, Emag, EoS_DensEint2Temp_CPUPtr, 
-                                 EoS_AuxArray_Flt, EoS_AuxArray_Int, h_EoS_Table );
-#  endif
-
-#  ifdef __CUDACC__ 
-   Pres = EoS->DensTemp2Pres_FuncPtr( fluid[DENS], Temp, NULL, EoS->AuxArrayDevPtr_Flt, EoS->AuxArrayDevPtr_Int, EoS->Table );
+   Pres = Hydro_DensDual2Pres( fluid[DENS], fluid[DUAL], EoS->AuxArrayDevPtr_Flt[1], CheckMinPres_No, NULL_REAL );
    Eint = EoS->DensPres2Eint_FuncPtr( fluid[DENS], Pres, NULL, EoS->AuxArrayDevPtr_Flt, EoS->AuxArrayDevPtr_Int, EoS->Table );
 #  else
-   Pres = EoS_DensTemp2Pres_CPUPtr( fluid[DENS], Temp, NULL, EoS_AuxArray_Flt, EoS_AuxArray_Int, h_EoS_Table );
+   Pres = Hydro_DensDual2Pres( fluid[DENS], fluid[DUAL], EoS_AuxArray_Flt[1], CheckMinPres_No, NULL_REAL );
    Eint = EoS_DensPres2Eint_CPUPtr( fluid[DENS], Pres, NULL, EoS_AuxArray_Flt, EoS_AuxArray_Int, h_EoS_Table );
 #  endif
-
-   const bool CheckMinEint_No = false;
-   Enth = fluid[ENGY] - Hydro_Con2Eint( fluid[DENS], fluid[MOMX], fluid[MOMY], fluid[MOMZ], fluid[ENGY], 
-                                        CheckMinEint_No, NULL_REAL, Emag );
+#  else
+   Eint = Hydro_Con2Eint( fluid[DENS], fluid[MOMX], fluid[MOMY], fluid[MOMZ], fluid[ENGY],
+                          CheckMinEint_No, NULL_REAL, Emag );
+#  endif
+   Enth = fluid[ENGY] - Eint;
+#  ifdef __CUDACC__
+   Temp = EoS->DensEint2Temp_FuncPtr( fluid[DENS], Eint, NULL, EoS->AuxArrayDevPtr_Flt, EoS->AuxArrayDevPtr_Int, EoS->Table );
+#  else
+   Temp = EoS_DensEint2Temp_CPUPtr( fluid[DENS], Eint, NULL, EoS_AuxArray_Flt, EoS_AuxArray_Int, h_EoS_Table );
+#  endif
+   Temp = MAX( Temp, TEF_Tmin );
    Tini = Temp;
 
 // (2) Decide the index k (an interval) where Tini falls into
@@ -278,6 +280,15 @@ static void Src_ExactCooling( real fluid[], const real B[],
 #  endif                      
 
    fluid[ENGY] = Enth + Eintf;
+
+// (6) Update fluid[DUAL]
+#  ifdef DUAL_ENERGY
+#  ifdef __CUDACC__
+   fluid[DUAL] = Hydro_DensPres2Dual( fluid[DENS], Pres, EoS->AuxArrayDevPtr_Flt[1] );
+#  else
+   fluid[DUAL] = Hydro_DensPres2Dual( fluid[DENS], Pres, EoS_AuxArray_Flt[1] );
+#  endif
+#  endif
 
 #  ifdef GAMER_DEBUG
    const real Eintff = real(Eintf);
