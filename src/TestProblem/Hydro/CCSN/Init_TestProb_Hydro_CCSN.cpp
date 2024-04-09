@@ -279,8 +279,8 @@ void SetParameter()
 
 // CCSN_Min_AngRes must be larger than CCSN_Min_AngRes
    if ( CCSN_Min_AngRes > 0.0  &&  CCSN_Max_AngRes > 0.0 )
-   if ( CCSN_Min_AngRes <= CCSN_Max_AngRes )
-      Aux_Error( ERROR_INFO, "%s = %d should be larger than %s = %d  !!\n", "CCSN_Min_AngRes", CCSN_Min_AngRes, "CCSN_Max_AngRes", CCSN_Max_AngRes );
+      if ( CCSN_Min_AngRes <= CCSN_Max_AngRes )
+         Aux_Error( ERROR_INFO, "%s = %d must be larger than %s = %d  !!\n", "CCSN_Min_AngRes", CCSN_Min_AngRes, "CCSN_Max_AngRes", CCSN_Max_AngRes );
 
 
 // (2) set the problem-specific derived parameters
