@@ -20,10 +20,12 @@ CCSN_Eint_Mode   1                                 # Mode of obtaining internal 
                                                    # ( 1=Temp Mode: Eint(dens, temp, [Ye])
                                                    #   2=Pres Mode: Eint(dens, pres, [Ye]) )
 
-CCSN_MaxRefine_RadFac     0.15                     # factor that determines the maximum refinement level based on distance from the box center  [0.15]
 CCSN_LB_TimeFac           0.10                     # factor that scales the dt constrained by lightbulb scheme  [0.1]
 
 CCSN_Is_PostBounce        0                        # boolean that indicates whether core bounce has occurred    [0]
+
+CCSN_Min_AngRes          -1.0                      # minimum angular resolution in degree [-1.0]
+CCSN_Max_AngRes          -1.0                      # maximum angular resolution in degree [-1.0]
 
 CCSN_Shock_ThresFac_Pres  0.5                      # pressure threshold factor for detecting postbounce shock   [0.5]
 CCSN_Shock_ThresFac_Vel   0.1                      # velocity threshold facotr for detecting postbounce shock   [0.1]

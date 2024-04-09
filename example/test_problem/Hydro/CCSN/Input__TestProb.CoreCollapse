@@ -35,9 +35,11 @@ CCSN_CC_Rot               2                        # mode for rotational profile
                                                    # --> analytical formula: Omega(r)=Omega_0*[R_0^2/(r^2+R_0^2)], where r is the spherical radius
 CCSN_CC_Rot_R0            1.03376e8                # characteristic radius R_0 (in cm) in the analytical rotational profile             [2.0e8]
 CCSN_CC_Rot_Omega0        2.0                      # central angular frequency Omega_0 (in rad/s) in the analytical rotational profile  [0.5]
-CCSN_CC_Rot_Fac          -1.0                      # multiplication factor for the tabular rotational profile (<=0 -> off)              [-1.0]
 
 CCSN_Is_PostBounce        0                        # boolean that indicates whether core bounce has occurred   [0]
+
+CCSN_Min_AngRes          -1.0                      # minimum angular resolution in degree [-1.0]
+CCSN_Max_AngRes          -1.0                      # maximum angular resolution in degree [-1.0]
 
 CCSN_Shock_ThresFac_Pres  0.5                      # pressure threshold factor for detecting postbounce shock  [0.5]
 CCSN_Shock_ThresFac_Vel   0.1                      # velocity threshold facotr for detecting postbounce shock  [0.1]

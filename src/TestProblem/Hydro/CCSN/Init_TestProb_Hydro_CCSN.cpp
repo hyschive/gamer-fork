@@ -55,7 +55,6 @@ static int        CCSN_Eint_Mode;                  // Mode of obtaining internal
        double     CCSN_CC_MaxRefine_Dens2;         // central density threshold that reduces the maximum refinement level 2
        double     CCSN_CC_CentralDensFac;          // factor that reduces the dt constrained by the central density (in cgs) during the core collapse
        double     CCSN_CC_Red_DT;                  // reduced time step (in s) when the central density exceeds CCSN_CC_CentralDensFac before bounce
-       double     CCSN_MaxRefine_RadFac;           // factor that determines the maximum refinement level based on distance from the box center
        double     CCSN_LB_TimeFac;                 // factor that scales the dt constrained by lightbulb scheme
        int        CCSN_CC_Rot;                     // mode for rotational profile (0:off, 1:analytical, 2:table)
                                                    // --> analytical formula: Omega(r)=Omega_0*[R_0^2/(r^2+R_0^2)], where r is the spherical radius
@@ -65,6 +64,8 @@ static int        CCSN_Eint_Mode;                  // Mode of obtaining internal
 
        bool       CCSN_Is_PostBounce = false;      // boolean that indicates whether core bounce has occurred
 
+       double     CCSN_Min_AngRes;                 // Minimum angular resolution in degree
+       double     CCSN_Max_AngRes;                 // Maximum angular resolution in degree
        double     CCSN_Shock_ThresFac_Pres;        // pressure threshold factor for detecting postbounce shock
        double     CCSN_Shock_ThresFac_Vel;         // velocity threshold facotr for detecting postbounce shock
        int        CCSN_Shock_Weight;               // weighting of each cell    for detecting postbounce shock (1:volume, 2:1/volume)
@@ -78,6 +79,7 @@ void   Detect_CoreBounce();
 void   Detect_Shock();
 double Mis_GetTimeStep_Lightbulb( const int lv, const double dTime_dt );
 double Mis_GetTimeStep_CoreCollapse( const int lv, const double dTime_dt );
+bool   Flag_Region_CCSN( const int i, const int j, const int k, const int lv, const int PID );
 bool   Flag_CoreCollapse( const int i, const int j, const int k, const int lv, const int PID, const double *Threshold );
 bool   Flag_Lightbulb( const int i, const int j, const int k, const int lv, const int PID, const double *Threshold );
 
@@ -170,13 +172,14 @@ void SetParameter()
    ReadPara->Add( "CCSN_CC_MaxRefine_Dens2",  &CCSN_CC_MaxRefine_Dens2,  1.0e12,        0.0,              NoMax_double      );
    ReadPara->Add( "CCSN_CC_CentralDensFac",   &CCSN_CC_CentralDensFac,   1.0e13,        Eps_double,       NoMax_double      );
    ReadPara->Add( "CCSN_CC_Red_DT",           &CCSN_CC_Red_DT,           1.0e-5,        Eps_double,       NoMax_double      );
-   ReadPara->Add( "CCSN_MaxRefine_RadFac",    &CCSN_MaxRefine_RadFac,    0.15,          0.0,              NoMax_double      );
    ReadPara->Add( "CCSN_LB_TimeFac",          &CCSN_LB_TimeFac,          0.1,           Eps_double,       1.0               );
    ReadPara->Add( "CCSN_CC_Rot",              &CCSN_CC_Rot,              2,             0,                2                 );
    ReadPara->Add( "CCSN_CC_Rot_R0",           &CCSN_CC_Rot_R0,           2.0e8,         Eps_double,       NoMax_double      );
    ReadPara->Add( "CCSN_CC_Rot_Omega0",       &CCSN_CC_Rot_Omega0,       0.5,           0.0,              NoMax_double      );
    ReadPara->Add( "CCSN_CC_Rot_Fac",          &CCSN_CC_Rot_Fac,          -1.0,          NoMin_double,     NoMax_double      );
    ReadPara->Add( "CCSN_Is_PostBounce",       &CCSN_Is_PostBounce,       false,         Useless_bool,     Useless_bool      );
+   ReadPara->Add( "CCSN_Min_AngRes",          &CCSN_Min_AngRes,         -1.0,           NoMin_double,     NoMax_double      );
+   ReadPara->Add( "CCSN_Max_AngRes",          &CCSN_Max_AngRes,         -1.0,           NoMin_double,     NoMax_double      );
    ReadPara->Add( "CCSN_Shock_ThresFac_Pres", &CCSN_Shock_ThresFac_Pres, 0.5,           Eps_double,       NoMax_double      );
    ReadPara->Add( "CCSN_Shock_ThresFac_Vel" , &CCSN_Shock_ThresFac_Vel,  0.1,           Eps_double,       NoMax_double      );
    ReadPara->Add( "CCSN_Shock_Weight" ,       &CCSN_Shock_Weight,        2,             1,                2                 );
@@ -274,6 +277,11 @@ void SetParameter()
          Aux_Error( ERROR_INFO, "Incorrect parameter %s = %d !!\n", "CCSN_Is_PostBounce", CCSN_Is_PostBounce );
    }
 
+// CCSN_Min_AngRes must be larger than CCSN_Min_AngRes
+   if ( CCSN_Min_AngRes > 0.0  &&  CCSN_Max_AngRes > 0.0 )
+   if ( CCSN_Min_AngRes >= CCSN_Max_AngRes )
+      Aux_Error( ERROR_INFO, "%s = %d should be larger than %s = %d  !!\n", "CCSN_Min_AngRes", CCSN_Min_AngRes, "CCSN_Max_AngRes", CCSN_Max_AngRes );
+
 
 // (2) set the problem-specific derived parameters
 
@@ -311,7 +319,6 @@ void SetParameter()
       Aux_Message( stdout, "  sampling interval of GW signals                     = %13.7e\n", CCSN_GW_DT               );
       Aux_Message( stdout, "  mode for obtaining internal energy                  = %d\n",     CCSN_Eint_Mode           );
       if ( CCSN_Prob != Migration_Test ) {
-      Aux_Message( stdout, "  radial factor for maximum refine level              = %13.7e\n", CCSN_MaxRefine_RadFac    );
       Aux_Message( stdout, "  scaling factor for lightbulb dt                     = %13.7e\n", CCSN_LB_TimeFac          );
       Aux_Message( stdout, "  has core bounce occurred                            = %d\n",     CCSN_Is_PostBounce       );
       Aux_Message( stdout, "  pressure threshold factor for detecting shock       = %13.7e\n", CCSN_Shock_ThresFac_Pres );
@@ -332,6 +339,8 @@ void SetParameter()
       Aux_Message( stdout, "  central angular frequency Omega_0 (in rad/s)        = %13.7e\n", CCSN_CC_Rot_Omega0       ); }
       if ( CCSN_CC_Rot == 2 )
       Aux_Message( stdout, "  multiplication factor for rotational profile        = %13.7e\n", CCSN_CC_Rot_Fac          );
+      Aux_Message( stdout, "  minimum angular resolution                          = %13.7e\n", CCSN_Min_AngRes          );
+      Aux_Message( stdout, "  maximum angular resolution                          = %13.7e\n", CCSN_Max_AngRes          );
       Aux_Message( stdout, "=======================================================================================\n"  );
    }
 
@@ -932,6 +941,9 @@ void Init_TestProb_Hydro_CCSN()
 #  if ( EOS == EOS_NUCLEAR  &&  NUC_TABLE_MODE == NUC_TABLE_MODE_TEMP )
    Flu_ResetByUser_Func_Ptr = Flu_ResetByUser_CCSN;
 #  endif
+
+   if ( CCSN_Prob != 0 )
+      Flag_Region_Ptr = Flag_Region_CCSN;
 
 #  ifdef MHD
    switch ( CCSN_Mag )
