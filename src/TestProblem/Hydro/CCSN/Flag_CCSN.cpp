@@ -58,14 +58,12 @@ bool Flag_CoreCollapse( const int i, const int j, const int k, const int lv, con
       MaxRefine = lv >= CCSN_CC_MaxRefine_LV2;
 
 
-// (2) check if the minimum angular resolution is reached
-   if ( CCSN_AngRes_Min > 0.0  &&  R * CCSN_AngRes_Min < dh  &&  !MaxRefine )
-      Flag = true;
+   if ( !MaxRefine ) {
+//    (2) check if the minimum angular resolution is reached
+      if ( CCSN_AngRes_Min > 0.0  &&  R * CCSN_AngRes_Min < dh )
+         Flag = true;
 
-
-// (3) always refined to highest level in the region with r < 30 km
-   if ( !MaxRefine )
-   {
+//    (3) always refined to highest level in the region with r < 30 km
 //    (3-a) always refine the innermost cells
       if ( R < amr->dh[lv] )
          Flag = true;
@@ -120,11 +118,11 @@ bool Flag_Lightbulb( const int i, const int j, const int k, const int lv, const 
 
 // TODO: fine-tune the criteria
 // (1) always refined to highest level in the region with r < 30 km
-   if      ( R * UNIT_L < 3e6 )
+   if ( R * UNIT_L < 3e6 )
       Flag = true;
 
 // (2) check if the minimum angular resolution is reached
-   if ( CCSN_AngRes_Min > 0.0  &&  R * CCSN_AngRes_Min < dh  &&  !Flag )
+   if ( !Flag  &&  CCSN_AngRes_Min > 0.0  &&  R * CCSN_AngRes_Min < dh )
       Flag = true;
 
 
@@ -164,13 +162,11 @@ bool Flag_Region_CCSN( const int i, const int j, const int k, const int lv, cons
    const double dR[3]     = { Pos[0]-Center[0], Pos[1]-Center[1], Pos[2]-Center[2] };
    const double R         = sqrt( SQR(dR[0]) + SQR(dR[1]) + SQR(dR[2]) );
 
-// check minimum angular resolution is reached
-   if ( CCSN_AngRes_Min > 0.0  &&  R * CCSN_AngRes_Min < dh )
-      return true;
 
 // check allowed maximum refine level based on angular resolution
-   if ( CCSN_AngRes_Max > 0.0  &&   2.0 * R * CCSN_AngRes_Max > dh )
-      Within = false;
+   if (  CCSN_AngRes_Max > 0.0  &&  2.0 * R * CCSN_AngRes_Max >  dh  &&
+      !( CCSN_AngRes_Min > 0.0  &&        R * CCSN_AngRes_Min >= dh )  )
+      Within = False;
 
 
    return Within;
