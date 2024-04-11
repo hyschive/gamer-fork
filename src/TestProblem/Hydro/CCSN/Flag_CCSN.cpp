@@ -166,7 +166,7 @@ bool Flag_Region_CCSN( const int i, const int j, const int k, const int lv, cons
 // check allowed maximum refine level based on angular resolution
    if (  CCSN_AngRes_Max > 0.0  &&  2.0 * R * CCSN_AngRes_Max >  dh  &&
       !( CCSN_AngRes_Min > 0.0  &&        R * CCSN_AngRes_Min >= dh )  )
-      Within = False;
+      Within = false;
 
 
    return Within;

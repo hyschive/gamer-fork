@@ -277,30 +277,29 @@ void SetParameter()
          Aux_Error( ERROR_INFO, "Incorrect parameter %s = %d !!\n", "CCSN_Is_PostBounce", CCSN_Is_PostBounce );
    }
 
-// check OPT__FLAG_REGION is enabled for CCSN_AngRes_Min/Max and convert degree to radian
+// check OPT__FLAG_REGION is enabled for CCSN_AngRes_Max and convert degree to radian
    const double DEG2RAD = M_PI/180.0;
-   if ( CCSN_AngRes_Min > 0.0 ) {
-      CCSN_AngRes_Min *= DEG2RAD;
-      if ( !OPT__FLAG_REGION )
-         Aux_Error( ERROR_INFO, "%s is disabled for %s = %13.7e!!\n", "OPT__FLAG_REGION", "CCSN_AngRes_Min", CCSN_AngRes_Min );
-   }
 
    if ( CCSN_AngRes_Max > 0.0 ) {
       CCSN_AngRes_Max *= DEG2RAD;
+      PRINT_WARNING( "CCSN_AngRes_Max", CCSN_AngRes_Max, FORMAT_DOUBLE );
+
       if ( !OPT__FLAG_REGION )
-         Aux_Error( ERROR_INFO, "%s is disabled for %s = %13.7e!!\n", "OPT__FLAG_REGION", "CCSN_AngRes_Max", CCSN_AngRes_Max );
+         Aux_Error( ERROR_INFO, "%s is disabled for %s = %13.7e  !!\n", "OPT__FLAG_REGION", "CCSN_AngRes_Max", CCSN_AngRes_Max );
    }
 
-   if (  ( CCSN_AngRes_Min > 0.0  ||  CCSN_AngRes_Max > 0.0 )  &&  !OPT__FLAG_REGION  )
-      Aux_Error( ERROR_INFO, "%s is disabled for %s = %13.7e, %s = %13.7e!!\n",
-                 "OPT__FLAG_REGION", "CCSN_AngRes_Min", CCSN_AngRes_Min, "CCSN_AngRes_Max", CCSN_AngRes_Max );
+   if ( CCSN_AngRes_Min > 0.0 ) {
+      CCSN_AngRes_Min *= DEG2RAD;
+      PRINT_WARNING( "CCSN_AngRes_Min", CCSN_AngRes_Min, FORMAT_DOUBLE );
+   }
 
    if ( CCSN_AngRes_Min > 0.0  &&  CCSN_AngRes_Max > 0.0 )
    {
       if ( CCSN_AngRes_Min <= CCSN_AngRes_Max )
          Aux_Error( ERROR_INFO, "%s = %13.7e must be larger than %s = %13.7e  !!\n", "CCSN_AngRes_Min", CCSN_AngRes_Min, "CCSN_AngRes_Max", CCSN_AngRes_Max );
-      if ( CCSN_AngRes_Min < 2.0 * CCSN_AngRes_Max )
-         Aux_Message( stdout, "WARNING : CCSN_Min_AngRes < 2.0 * CCSN_Max_AngRes: CCSN_Max_AngRes might not be strictly followed!!\n" );
+
+      if ( MPI_Rank == 0  &&  CCSN_AngRes_Min < 2.0 * CCSN_AngRes_Max )
+         Aux_Message( stdout, "WARNING : CCSN_AngRes_Min < 2.0 * CCSN_Max_AngRes: CCSN_AngRes_Max might not be strictly followed  !!\n" );
    }
 
 
@@ -360,8 +359,8 @@ void SetParameter()
       Aux_Message( stdout, "  central angular frequency Omega_0 (in rad/s)        = %13.7e\n", CCSN_CC_Rot_Omega0       ); }
       if ( CCSN_CC_Rot == 2 )
       Aux_Message( stdout, "  multiplication factor for rotational profile        = %13.7e\n", CCSN_CC_Rot_Fac          );
-      Aux_Message( stdout, "  minimum angular resolution                          = %13.7e\n", CCSN_AngRes_Min/DEG2RAD  );
-      Aux_Message( stdout, "  maximum angular resolution                          = %13.7e\n", CCSN_AngRes_Max/DEG2RAD  );
+      Aux_Message( stdout, "  minimum angular resolution (in degree)              = %13.7e\n", CCSN_AngRes_Min/DEG2RAD  );
+      Aux_Message( stdout, "  maximum angular resolution (in degree)              = %13.7e\n", CCSN_AngRes_Max/DEG2RAD  );
       Aux_Message( stdout, "=======================================================================================\n"  );
    }
 
