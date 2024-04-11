@@ -22,8 +22,8 @@ CCSN_Eint_Mode   1                                 # Mode of obtaining internal 
 
 CCSN_Is_PostBounce        1                        # boolean that indicates whether core bounce has occurred  [0]
 
-CCSN_Min_AngRes          -1.0                      # minimum angular resolution in degree [-1.0]
-CCSN_Max_AngRes          -1.0                      # maximum angular resolution in degree [-1.0]
+CCSN_AngRes_Min          -1.0                      # minimum angular resolution in degree [-1.0]
+CCSN_AngRes_Max          -1.0                      # maximum angular resolution in degree [-1.0]
 
 CCSN_Shock_ThresFac_Pres  0.5                      # pressure threshold factor for detecting postbounce shock    [0.5]
 CCSN_Shock_ThresFac_Vel   0.1                      # velocity threshold facotr for detecting postbounce shock    [0.1]

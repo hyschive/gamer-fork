@@ -64,8 +64,8 @@ static int        CCSN_Eint_Mode;                  // Mode of obtaining internal
 
        bool       CCSN_Is_PostBounce = false;      // boolean that indicates whether core bounce has occurred
 
-       double     CCSN_Min_AngRes;                 // Minimum angular resolution in degree
-       double     CCSN_Max_AngRes;                 // Maximum angular resolution in degree
+       double     CCSN_AngRes_Min;                 // minimum angular resolution in degree
+       double     CCSN_AngRes_Max;                 // maximum angular resolution in degree
        double     CCSN_Shock_ThresFac_Pres;        // pressure threshold factor for detecting postbounce shock
        double     CCSN_Shock_ThresFac_Vel;         // velocity threshold facotr for detecting postbounce shock
        int        CCSN_Shock_Weight;               // weighting of each cell    for detecting postbounce shock (1:volume, 2:1/volume)
@@ -178,8 +178,8 @@ void SetParameter()
    ReadPara->Add( "CCSN_CC_Rot_Omega0",       &CCSN_CC_Rot_Omega0,       0.5,           0.0,              NoMax_double      );
    ReadPara->Add( "CCSN_CC_Rot_Fac",          &CCSN_CC_Rot_Fac,          -1.0,          NoMin_double,     NoMax_double      );
    ReadPara->Add( "CCSN_Is_PostBounce",       &CCSN_Is_PostBounce,       false,         Useless_bool,     Useless_bool      );
-   ReadPara->Add( "CCSN_Min_AngRes",          &CCSN_Min_AngRes,         -1.0,           NoMin_double,     NoMax_double      );
-   ReadPara->Add( "CCSN_Max_AngRes",          &CCSN_Max_AngRes,         -1.0,           NoMin_double,     NoMax_double      );
+   ReadPara->Add( "CCSN_AngRes_Min",          &CCSN_AngRes_Min,         -1.0,           NoMin_double,     NoMax_double      );
+   ReadPara->Add( "CCSN_AngRes_Max",          &CCSN_AngRes_Max,         -1.0,           NoMin_double,     NoMax_double      );
    ReadPara->Add( "CCSN_Shock_ThresFac_Pres", &CCSN_Shock_ThresFac_Pres, 0.5,           Eps_double,       NoMax_double      );
    ReadPara->Add( "CCSN_Shock_ThresFac_Vel" , &CCSN_Shock_ThresFac_Vel,  0.1,           Eps_double,       NoMax_double      );
    ReadPara->Add( "CCSN_Shock_Weight" ,       &CCSN_Shock_Weight,        2,             1,                2                 );
@@ -277,10 +277,31 @@ void SetParameter()
          Aux_Error( ERROR_INFO, "Incorrect parameter %s = %d !!\n", "CCSN_Is_PostBounce", CCSN_Is_PostBounce );
    }
 
-// CCSN_Min_AngRes must be larger than CCSN_Min_AngRes
-   if ( CCSN_Min_AngRes > 0.0  &&  CCSN_Max_AngRes > 0.0 )
-      if ( CCSN_Min_AngRes <= CCSN_Max_AngRes )
-         Aux_Error( ERROR_INFO, "%s = %d must be larger than %s = %d  !!\n", "CCSN_Min_AngRes", CCSN_Min_AngRes, "CCSN_Max_AngRes", CCSN_Max_AngRes );
+// check OPT__FLAG_REGION is enabled for CCSN_AngRes_Min/Max and convert degree to radian
+   const double DEG2RAD = M_PI/180.0;
+   if ( CCSN_AngRes_Min > 0.0 ) {
+      CCSN_AngRes_Min *= DEG2RAD;
+      if ( !OPT__FLAG_REGION )
+         Aux_Error( ERROR_INFO, "%s is disabled for %s = %13.7e!!\n", "OPT__FLAG_REGION", "CCSN_AngRes_Min", CCSN_AngRes_Min );
+   }
+
+   if ( CCSN_AngRes_Max > 0.0 ) {
+      CCSN_AngRes_Max *= DEG2RAD;
+      if ( !OPT__FLAG_REGION )
+         Aux_Error( ERROR_INFO, "%s is disabled for %s = %13.7e!!\n", "OPT__FLAG_REGION", "CCSN_AngRes_Max", CCSN_AngRes_Max );
+   }
+
+   if (  ( CCSN_AngRes_Min > 0.0  ||  CCSN_AngRes_Max > 0.0 )  &&  !OPT__FLAG_REGION  )
+      Aux_Error( ERROR_INFO, "%s is disabled for %s = %13.7e, %s = %13.7e!!\n",
+                 "OPT__FLAG_REGION", "CCSN_AngRes_Min", CCSN_AngRes_Min, "CCSN_AngRes_Max", CCSN_AngRes_Max );
+
+   if ( CCSN_AngRes_Min > 0.0  &&  CCSN_AngRes_Max > 0.0 )
+   {
+      if ( CCSN_AngRes_Min <= CCSN_AngRes_Max )
+         Aux_Error( ERROR_INFO, "%s = %13.7e must be larger than %s = %13.7e  !!\n", "CCSN_AngRes_Min", CCSN_AngRes_Min, "CCSN_AngRes_Max", CCSN_AngRes_Max );
+      if ( CCSN_AngRes_Min < 2.0 * CCSN_AngRes_Max )
+         Aux_Message( stdout, "WARNING : CCSN_Min_AngRes < 2.0 * CCSN_Max_AngRes: CCSN_Max_AngRes might not be strictly followed!!\n" );
+   }
 
 
 // (2) set the problem-specific derived parameters
@@ -339,8 +360,8 @@ void SetParameter()
       Aux_Message( stdout, "  central angular frequency Omega_0 (in rad/s)        = %13.7e\n", CCSN_CC_Rot_Omega0       ); }
       if ( CCSN_CC_Rot == 2 )
       Aux_Message( stdout, "  multiplication factor for rotational profile        = %13.7e\n", CCSN_CC_Rot_Fac          );
-      Aux_Message( stdout, "  minimum angular resolution                          = %13.7e\n", CCSN_Min_AngRes          );
-      Aux_Message( stdout, "  maximum angular resolution                          = %13.7e\n", CCSN_Max_AngRes          );
+      Aux_Message( stdout, "  minimum angular resolution                          = %13.7e\n", CCSN_AngRes_Min/DEG2RAD  );
+      Aux_Message( stdout, "  maximum angular resolution                          = %13.7e\n", CCSN_AngRes_Max/DEG2RAD  );
       Aux_Message( stdout, "=======================================================================================\n"  );
    }
 
@@ -942,7 +963,7 @@ void Init_TestProb_Hydro_CCSN()
    Flu_ResetByUser_Func_Ptr = Flu_ResetByUser_CCSN;
 #  endif
 
-   if ( CCSN_Prob != 0 )
+   if ( CCSN_Prob != Migration_Test )
       Flag_Region_Ptr = Flag_Region_CCSN;
 
 #  ifdef MHD

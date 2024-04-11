@@ -1,9 +1,6 @@
 #include "GAMER.h"
 
 
-static double RAD2DEG = 5.729577951308232e1;
-
-
 extern bool   CCSN_CC_MaxRefine_Flag1;
 extern bool   CCSN_CC_MaxRefine_Flag2;
 extern int    CCSN_CC_MaxRefine_LV1;
@@ -12,8 +9,8 @@ extern double CCSN_CC_MaxRefine_Dens1;
 extern double CCSN_CC_MaxRefine_Dens2;
 extern double CCSN_CentralDens;
 
-extern double CCSN_Min_AngRes;
-extern double CCSN_Max_AngRes;
+extern double CCSN_AngRes_Min;
+extern double CCSN_AngRes_Max;
 
 
 
@@ -46,11 +43,12 @@ bool Flag_CoreCollapse( const int i, const int j, const int k, const int lv, con
    const double Pos   [3] = { amr->patch[0][lv][PID]->EdgeL[0] + (i+0.5)*dh,
                               amr->patch[0][lv][PID]->EdgeL[1] + (j+0.5)*dh,
                               amr->patch[0][lv][PID]->EdgeL[2] + (k+0.5)*dh  };
-   const double Center[3] = { 0.5*amr->BoxSize[0], 0.5*amr->BoxSize[1], 0.5*amr->BoxSize[2] };
+   const double Center[3] = { amr->BoxCenter[0], amr->BoxCenter[1], amr->BoxCenter[2] };
    const double dR[3]     = { Pos[0]-Center[0], Pos[1]-Center[1], Pos[2]-Center[2] };
    const double R         = sqrt( SQR(dR[0]) + SQR(dR[1]) + SQR(dR[2]) );
 
    const double CentralDens = CCSN_CentralDens / UNIT_D;
+
 
 // (1) check if the allowed maximum level is reached
    if      ( CCSN_CC_MaxRefine_Flag1  &&  CentralDens < CCSN_CC_MaxRefine_Dens1 / UNIT_D )
@@ -60,22 +58,22 @@ bool Flag_CoreCollapse( const int i, const int j, const int k, const int lv, con
       MaxRefine = lv >= CCSN_CC_MaxRefine_LV2;
 
 
-// (2) always refined to highest level in the region with r < 30 km
+// (2) check if the minimum angular resolution is reached
+   if ( CCSN_AngRes_Min > 0.0  &&  R * CCSN_AngRes_Min < dh  &&  !MaxRefine )
+      Flag = true;
+
+
+// (3) always refined to highest level in the region with r < 30 km
    if ( !MaxRefine )
    {
-//    (2-a) always refine the innermost cells
+//    (3-a) always refine the innermost cells
       if ( R < amr->dh[lv] )
          Flag = true;
 
-//    (2-b) refine the region with r < 30 km
+//    (3-b) refine the region with r < 30 km
       if ( R * UNIT_L < 3e6 )
          Flag = true;
    }
-
-// (3) check if the minimum angular resolution (in degree) is reached
-   if ( CCSN_Min_AngRes > 0.0  && !MaxRefine  &&  !Flag )
-      if ( R * CCSN_Min_AngRes < dh * RAD2DEG )
-         Flag = true;
 
 
    return Flag;
@@ -113,7 +111,7 @@ bool Flag_Lightbulb( const int i, const int j, const int k, const int lv, const 
    const double Pos   [3] = { amr->patch[0][lv][PID]->EdgeL[0] + (i+0.5)*dh,
                               amr->patch[0][lv][PID]->EdgeL[1] + (j+0.5)*dh,
                               amr->patch[0][lv][PID]->EdgeL[2] + (k+0.5)*dh  };
-   const double Center[3] = { 0.5*amr->BoxSize[0], 0.5*amr->BoxSize[1], 0.5*amr->BoxSize[2] };
+   const double Center[3] = { amr->BoxCenter[0], amr->BoxCenter[1], amr->BoxCenter[2] };
    const double dR[3]     = { Pos[0]-Center[0], Pos[1]-Center[1], Pos[2]-Center[2] };
    const double R         = sqrt( SQR(dR[0]) + SQR(dR[1]) + SQR(dR[2]) );
 
@@ -125,14 +123,9 @@ bool Flag_Lightbulb( const int i, const int j, const int k, const int lv, const 
    if      ( R * UNIT_L < 3e6 )
       Flag = true;
 
-// (2) density is larger than the threshold in Input__Flag_User
-   else if ( Rho[k][j][i] < Threshold[0] )
-      Flag = false;
-
-// (3) check if the minimum angular resolution (in degree) is reached
-   if ( CCSN_Min_AngRes > 0.0  &&  !Flag )
-      if ( R * CCSN_Min_AngRes < dh * RAD2DEG )
-         Flag = true;
+// (2) check if the minimum angular resolution is reached
+   if ( CCSN_AngRes_Min > 0.0  &&  R * CCSN_AngRes_Min < dh  &&  !Flag )
+      Flag = true;
 
 
    return Flag;
@@ -167,22 +160,17 @@ bool Flag_Region_CCSN( const int i, const int j, const int k, const int lv, cons
    bool Within = true;
 
 
-   const double Center[3] = { 0.5*amr->BoxSize[0], 0.5*amr->BoxSize[1], 0.5*amr->BoxSize[2] };
+   const double Center[3] = { amr->BoxCenter[0], amr->BoxCenter[1], amr->BoxCenter[2] };
    const double dR[3]     = { Pos[0]-Center[0], Pos[1]-Center[1], Pos[2]-Center[2] };
    const double R         = sqrt( SQR(dR[0]) + SQR(dR[1]) + SQR(dR[2]) );
 
-// check minimum angular resolution (in degree) is reached
-   if ( CCSN_Min_AngRes > 0.0 )
-      if ( R * CCSN_Min_AngRes < dh * RAD2DEG )
-         return true;
+// check minimum angular resolution is reached
+   if ( CCSN_AngRes_Min > 0.0  &&  R * CCSN_AngRes_Min < dh )
+      return true;
 
-// check allowed maximum refine level based on angular resolution (in degree)
-   if ( CCSN_Max_AngRes > 0.0 )
-   {
-      if ( 2.0 * R * CCSN_Max_AngRes > dh * RAD2DEG )   Within = false;
-
-      if ( !Within )   return Within;
-   }
+// check allowed maximum refine level based on angular resolution
+   if ( CCSN_AngRes_Max > 0.0  &&   2.0 * R * CCSN_AngRes_Max > dh )
+      Within = false;
 
 
    return Within;
