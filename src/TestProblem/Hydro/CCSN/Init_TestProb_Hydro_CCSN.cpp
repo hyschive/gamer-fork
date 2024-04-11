@@ -285,7 +285,7 @@ void SetParameter()
       PRINT_WARNING( "CCSN_AngRes_Max", CCSN_AngRes_Max, FORMAT_DOUBLE );
 
       if ( !OPT__FLAG_REGION )
-         Aux_Error( ERROR_INFO, "%s is disabled for %s = %13.7e  !!\n", "OPT__FLAG_REGION", "CCSN_AngRes_Max", CCSN_AngRes_Max );
+         Aux_Error( ERROR_INFO, "%s is disabled for %s = %13.7e !!\n", "OPT__FLAG_REGION", "CCSN_AngRes_Max", CCSN_AngRes_Max );
    }
 
    if ( CCSN_AngRes_Min > 0.0 ) {
@@ -296,10 +296,10 @@ void SetParameter()
    if ( CCSN_AngRes_Min > 0.0  &&  CCSN_AngRes_Max > 0.0 )
    {
       if ( CCSN_AngRes_Min <= CCSN_AngRes_Max )
-         Aux_Error( ERROR_INFO, "%s = %13.7e must be larger than %s = %13.7e  !!\n", "CCSN_AngRes_Min", CCSN_AngRes_Min, "CCSN_AngRes_Max", CCSN_AngRes_Max );
+         Aux_Error( ERROR_INFO, "%s = %13.7e must be larger than %s = %13.7e !!\n", "CCSN_AngRes_Min", CCSN_AngRes_Min, "CCSN_AngRes_Max", CCSN_AngRes_Max );
 
       if ( MPI_Rank == 0  &&  CCSN_AngRes_Min < 2.0 * CCSN_AngRes_Max )
-         Aux_Message( stdout, "WARNING : CCSN_AngRes_Min < 2.0 * CCSN_Max_AngRes: CCSN_AngRes_Max might not be strictly followed  !!\n" );
+         Aux_Message( stdout, "WARNING : CCSN_AngRes_Min < 2.0 * CCSN_Max_AngRes: CCSN_AngRes_Max might not be strictly followed !!\n" );
    }
 
 
