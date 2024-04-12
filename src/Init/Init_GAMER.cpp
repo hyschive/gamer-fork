@@ -9,7 +9,7 @@ extern void (*Par_Init_ByFunction_Ptr)( const long NPar_ThisRank, const long NPa
                                         real *ParType, real *AllAttribute[PAR_NATT_TOTAL] );
 #endif
 
-
+extern bool   IsInit_tcool[NLEVEL];
 
 
 //-------------------------------------------------------------------------------------------------------

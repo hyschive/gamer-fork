@@ -37,10 +37,11 @@ SIMU_OPTION += -DMODEL=HYDRO
 
 # enable gravity
 # --> must define SUPPORT_FFTW=FFTW2 or FFTW3
-#SIMU_OPTION += -DGRAVITY
+SIMU_OPTION += -DGRAVITY
 
 # enable particles
-#SIMU_OPTION += -DPARTICLE
+# --> must enable GRAVITY
+SIMU_OPTION += -DPARTICLE
 
 # support Grackle, a chemistry and radiative cooling library
 # --> must set NCOMP_PASSIVE_USER according to the primordial chemistry network set by GRACKLE_PRIMORDIAL
@@ -55,7 +56,7 @@ ifeq "$(filter -DMODEL=HYDRO, $(SIMU_OPTION))" "-DMODEL=HYDRO"
 # hydrodynamic scheme: RTVD/MHM/MHM_RP/CTU
 # --> must be set when MODEL=HYDRO
 # --> MHD only supports MHM, MHM_RP and CTU
-SIMU_OPTION += -DFLU_SCHEME=CTU
+SIMU_OPTION += -DFLU_SCHEME=MHM
 
 # scheme of spatial data reconstruction: PLM/PPM (piecewise-linear/piecewise-parabolic)
 # --> useless for RTVD
@@ -65,7 +66,7 @@ SIMU_OPTION += -DLR_SCHEME=PPM
 # --> pure hydro: EXACT/ROE/HLLE/HLLC(*); MHD: ROE/HLLE/HLLD(*);
 #                 (recommended solvers are highlighted by *)
 # --> useless for RTVD
-SIMU_OPTION += -DRSOLVER=ROE
+SIMU_OPTION += -DRSOLVER=HLLC
 
 # dual energy formalism: DE_ENPY/DE_EINT (evolve entropy or internal energy)
 # --> DE_EINT is not supported yet; useless for RTVD
@@ -74,7 +75,7 @@ SIMU_OPTION += -DRSOLVER=ROE
 # number of user-defined passively advected scalars
 # --> set it to 0 or comment it out if none is required
 # --> useless for RTVD
-SIMU_OPTION += -DNCOMP_PASSIVE_USER=0
+SIMU_OPTION += -DNCOMP_PASSIVE_USER=1
 
 # magnetohydrodynamics
 #SIMU_OPTION += -DMHD
@@ -170,7 +171,7 @@ SIMU_OPTION += -DPATCH_SIZE=8
 
 # GPU acceleration
 # --> must set GPU_ARCH as well
-#SIMU_OPTION += -DGPU
+SIMU_OPTION += -DGPU
 
 # GPU architecture: FERMI/KEPLER/MAXWELL/PASCAL/VOLTA/TURING/AMPERE
 SIMU_OPTION += -DGPU_ARCH=TURING
@@ -193,11 +194,11 @@ SIMU_OPTION += -DTIMING
 
 # serial mode (in which no MPI libraries are required)
 # --> must disable LOAD_BALANCE
-SIMU_OPTION += -DSERIAL
+#SIMU_OPTION += -DSERIAL
 
 # load-balance parallelization: HILBERT
 # --> must disable SERIAL
-#SIMU_OPTION += -DLOAD_BALANCE=HILBERT
+SIMU_OPTION += -DLOAD_BALANCE=HILBERT
 
 # overlap MPI communication with computation
 # --> NOT supported yet; must enable LOAD_BALANCE
@@ -210,16 +211,16 @@ SIMU_OPTION += -DOPENMP
 #SIMU_OPTION += -DLAOHU
 
 # support HDF5 format
-#SIMU_OPTION += -DSUPPORT_HDF5
+SIMU_OPTION += -DSUPPORT_HDF5
 
 # support GNU scientific library
-#SIMU_OPTION += -DSUPPORT_GSL
+SIMU_OPTION += -DSUPPORT_GSL
 
 # support FFTW library
 # --> SUPPORT_FFTW must be defined when GRAVITY is enabled
 # --> use FFTW3 for fftw3 support
 #     use FFTW2 for fftw2 support
-#SIMU_OPTION += -DSUPPORT_FFTW=FFTW3
+SIMU_OPTION += -DSUPPORT_FFTW=FFTW3
 
 
 # support yt inline analysis
@@ -250,56 +251,55 @@ SIMU_OPTION += -DRANDOM_NUMBER=RNG_GNU_EXT
 
 # intel
 # -------------------------------------------------------------------------------
-# CXX         = icpc                                      # serial compiler
-##CXX         = $(MPI_PATH)/bin/mpicxx                    # MPI compiler
-##CXX         = CC                                        # cray wrapper script
-# CXXFLAG     = -g -O3                                    # general flags
-##CXXFLAG     = -g -O3 -std=c++11 #-gxx-name=YOUR_G++
-##CXXFLAG     = -g -fast
-# CXXFLAG    += -w1                                       # warning flags
-# CXXFLAG    += -fp-model precise                         # disable optimizations that are not value-safe
-# OPENMPFLAG  = -fopenmp                                  # openmp flag
-# LIB         = -limf                                     # libraries and linker flags
-#
-## for debug only
-#ifeq "$(filter -DGAMER_DEBUG, $(SIMU_OPTION))" "-DGAMER_DEBUG"
-##CXXFLAG    += -fstack-protector-all
-##LIB        += -lssp
-#endif
-#
-## suppress warning when OpenMP is disabled
-#ifeq "$(filter -DOPENMP, $(SIMU_OPTION))" ""
-# CXXFLAG    += -Wno-unknown-pragmas -diag-disable 3180
-#endif
-
-
-# gnu
-# -------------------------------------------------------------------------------
- CXX         = g++                                       # serial compiler
-#CXX         = $(MPI_PATH)/bin/mpicxx                    # MPI compiler
+#CXX         = icpc                                      # serial compiler
+ CXX         = $(MPI_PATH)/bin/mpicxx                    # MPI compiler
 #CXX         = CC                                        # cray wrapper script
  CXXFLAG     = -g -O3                                    # general flags
-#CXXFLAG     = -g -O3 -std=c++11
-#CXXFLAG     = -g -Ofast
- CXXFLAG    += -Wall -Wextra                             # warning flags
- CXXFLAG    += -Wno-unused-variable -Wno-unused-parameter \
-               -Wno-maybe-uninitialized -Wno-unused-but-set-variable \
-               -Wno-unused-result -Wno-unused-function \
-               -Wno-implicit-fallthrough -Wno-parentheses
+#CXXFLAG     = -g -O3 -std=c++11 #-gxx-name=YOUR_G++
+#CXXFLAG     = -g -fast
+ CXXFLAG    += -w1                                       # warning flags
  OPENMPFLAG  = -fopenmp                                  # openmp flag
- LIB         =                                           # libraries and linker flags
+ LIB         = -limf                                     # libraries and linker flags
 
 # for debug only
 ifeq "$(filter -DGAMER_DEBUG, $(SIMU_OPTION))" "-DGAMER_DEBUG"
 #CXXFLAG    += -fstack-protector-all
-#CXXFLAG    += -fsanitize=undefined -fsanitize=address
-#LIB        += -fsanitize=undefined -fsanitize=address
+#LIB        += -lssp
 endif
 
 # suppress warning when OpenMP is disabled
 ifeq "$(filter -DOPENMP, $(SIMU_OPTION))" ""
- CXXFLAG    += -Wno-unknown-pragmas
+ CXXFLAG    += -Wno-unknown-pragmas -diag-disable 3180
 endif
+
+
+# gnu
+# -------------------------------------------------------------------------------
+# CXX         = g++                                       # serial compiler
+##CXX         = $(MPI_PATH)/bin/mpicxx                    # MPI compiler
+##CXX         = CC                                        # cray wrapper script
+# CXXFLAG     = -g -O3                                    # general flags
+##CXXFLAG     = -g -O3 -std=c++11
+##CXXFLAG     = -g -Ofast
+# CXXFLAG    += -Wall -Wextra                             # warning flags
+# CXXFLAG    += -Wno-unused-variable -Wno-unused-parameter \
+#               -Wno-maybe-uninitialized -Wno-unused-but-set-variable \
+#               -Wno-unused-result -Wno-unused-function \
+#	       -Wno-implicit-fallthrough -Wno-parentheses
+# OPENMPFLAG  = -fopenmp                                  # openmp flag
+# LIB         =                                           # libraries and linker flags
+#
+## for debug only
+#ifeq "$(filter -DGAMER_DEBUG, $(SIMU_OPTION))" "-DGAMER_DEBUG"
+##CXXFLAG    += -fstack-protector-all
+##CXXFLAG    += -fsanitize=undefined -fsanitize=address
+##LIB        += -fsanitize=undefined -fsanitize=address
+#endif
+#
+## suppress warning when OpenMP is disabled
+#ifeq "$(filter -DOPENMP, $(SIMU_OPTION))" ""
+# CXXFLAG    += -Wno-unknown-pragmas
+#endif
 
 
 # CUDA
@@ -316,24 +316,24 @@ endif
 #######################################################################################################
 
 # template
-CUDA_PATH    :=
-FFTW2_PATH   :=
-FFTW3_PATH   :=
-MPI_PATH     :=
-HDF5_PATH    :=
-GRACKLE_PATH :=
-GSL_PATH     :=
-LIBYT_PATH   :=
+#CUDA_PATH    :=
+#FFTW_PATH    :=
+#MPI_PATH     :=
+#HDF5_PATH    :=
+#GRACKLE_PATH :=
+#GSL_PATH     :=
+#LIBYT_PATH   :=
 
 # NTU-eureka (default: openmpi-intel)
-#CUDA_PATH    := /software/cuda/default
+CUDA_PATH    := /software/cuda/default
+#FFTW_PATH    := /software/fftw/default
 #FFTW2_PATH   := /software/fftw/default
-#FFTW3_PATH   := /software/fftw/default3
-#MPI_PATH     := /software/openmpi/default
-#HDF5_PATH    := /software/hdf5/default
-#GRACKLE_PATH :=
-#GSL_PATH     := /software/gsl/default
-#LIBYT_PATH   :=
+FFTW3_PATH   := /software/fftw/3.3.10-intel-2022.0.1-openmpi-4.1.1-ucx_mt
+MPI_PATH     := /software/openmpi/default
+HDF5_PATH    := /software/hdf5/default
+GRACKLE_PATH :=
+GSL_PATH     := /software/gsl/default
+LIBYT_PATH   :=
 
 # NTU-hulk (openmpi-intel-qlc)
 #CUDA_PATH    := /opt/gpu/cuda/4.2
@@ -645,16 +645,16 @@ endif # SUPPORT_LIBYT
 # local source terms source files
 # ------------------------------------------------------------------------------------
 GPU_FILE    += CUAPI_Asyn_SrcSolver.cu  CUSRC_SrcSolver_IterateAllCells.cu  CUSRC_Src_Deleptonization.cu \
-               CUSRC_Src_User_Template.cu
+               CUSRC_Src_User_Template.cu  CUSRC_Src_ExactCooling.cu 
 
 CPU_FILE    += CPU_SrcSolver.cpp  CPU_SrcSolver_IterateAllCells.cpp  CPU_Src_Deleptonization.cpp \
-               CPU_Src_User_Template.cpp
+               CPU_Src_User_Template.cpp  CPU_Src_ExactCooling.cpp  dtSolver_ExactCooling.cpp
 
 CPU_FILE    += Src_AdvanceDt.cpp  Src_Prepare.cpp  Src_Close.cpp  Src_Init.cpp  Src_End.cpp \
                Src_WorkBeforeMajorFunc.cpp
 
-vpath %.cu     SourceTerms  SourceTerms/User_Template  SourceTerms/Deleptonization
-vpath %.cpp    SourceTerms  SourceTerms/User_Template  SourceTerms/Deleptonization
+vpath %.cu     SourceTerms  SourceTerms/User_Template  SourceTerms/Deleptonization  SourceTerms/ExactCooling
+vpath %.cpp    SourceTerms  SourceTerms/User_Template  SourceTerms/Deleptonization  SourceTerms/ExactCooling
 
 
 # Grackle source files (included only if "SUPPORT_GRACKLE" is turned on)

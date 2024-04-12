@@ -26,7 +26,7 @@ SIMU_OPTION += -DSUPPORT_HDF5
 # siimulation parameters
 #######################################################################################################
 NLEVEL        := 10        # level : 0 ~ NLEVEL-1
-MAX_PATCH     := 2000000   # maximum number of patches in each level
+MAX_PATCH     := 1000000   # maximum number of patches in each level
 
 NLEVEL        := $(strip $(NLEVEL))
 MAX_PATCH     := $(strip $(MAX_PATCH))

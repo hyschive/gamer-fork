@@ -147,8 +147,11 @@
 #  define NCOMP_PASSIVE_BUILTIN1    0
 # endif
 
+// ExactCooling source term
+#  define NCOMP_PASSIVE_BUILTIN2    1
+
 // total number of built-in scalars
-#  define NCOMP_PASSIVE_BUILTIN     ( NCOMP_PASSIVE_BUILTIN0 + NCOMP_PASSIVE_BUILTIN1 )
+#  define NCOMP_PASSIVE_BUILTIN     ( NCOMP_PASSIVE_BUILTIN0 + NCOMP_PASSIVE_BUILTIN1 + NCOMP_PASSIVE_BUILTIN2 )
 
 #endif // #if ( MODEL == HYDRO )
 
@@ -244,6 +247,8 @@
 #  define PASSIVE_NEXT_IDX2   ( PASSIVE_NEXT_IDX1 )
 # endif
 
+#  define TCOOL               ( PASSIVE_NEXT_IDX2 )
+
 #endif // #if ( NCOMP_PASSIVE > 0 )
 
 // field indices of magnetic --> element of [0 ... NCOMP_MAG-1]
@@ -280,6 +285,8 @@
 #  define FLUX_NEXT_IDX2   ( FLUX_NEXT_IDX1  )
 # endif
 
+#  define FLUX_TCOOL       ( FLUX_NEXT_IDX2  )
+
 #endif // #if ( NCOMP_PASSIVE > 0 )
 
 // bitwise field indices
@@ -301,6 +308,8 @@
 # ifdef COSMIC_RAY
 #  define _CRAY               ( 1L << CRAY )
 # endif
+
+#  define _TCOOL              ( 1L << TCOOL )
 
 #endif // #if ( NCOMP_PASSIVE > 0 )
 
@@ -330,6 +339,8 @@
 # ifdef COSMIC_RAY
 #  define _FLUX_CRAY          ( 1L << FLUX_CRAY )
 # endif
+
+#  define _FLUX_TCOOL         ( 1L << FLUX_TCOOL )
 
 #endif // #if ( NFLUX_PASSIVE > 0 )
 
@@ -506,7 +517,7 @@
 // particle type macros
 
 // number of particle types (default: 4)
-#  define  PAR_NTYPE                6
+#  define  PAR_NTYPE                8
 
 // particle type indices (must be in the range 0<=index<PAR_NTYPE)
 #  define  PTYPE_TRACER          (real)0
@@ -514,6 +525,7 @@
 #  define  PTYPE_DARK_MATTER     (real)2
 #  define  PTYPE_STAR            (real)3
 #  define  PTYPE_CEN             (real)4
+#  define  PTYPE_CLUSTER         (real)6
 
 # ifdef GRAVITY
 #  define MASSIVE_PARTICLES
@@ -719,8 +731,10 @@
 #  define SRC_NAUX_DLEP          5     // SrcTerms.Dlep_AuxArray_Flt/Int[]
 #  define SRC_DLEP_PROF_NVAR     6     // SrcTerms.Dlep_Profile_DataDevPtr[]/RadiusDevPtr[]
 #  define SRC_DLEP_PROF_NBINMAX  4000
+#  define SRC_NAUX_EC            10     // SrcTerms.EC_AuxArray_Flt/Int[]
 #else
 #  define SRC_NAUX_DLEP          0
+#  define SRC_NAUX_EC            0
 #endif
 #  define SRC_NAUX_USER          10    // SrcTerms.User_AuxArray_Flt/Int[]
 
