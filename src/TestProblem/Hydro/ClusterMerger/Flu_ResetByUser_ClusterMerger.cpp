@@ -408,13 +408,9 @@ void Flu_ResetByUser_API_ClusterMerger( const int lv, const int FluSg, const int
                if ( Temp <= 5e5 )   mass_cold[c] += fluid_acc[0]*dv;
                else {
                   rho[c] += fluid_acc[0]*dv;
-#                 ifdef DUAL_ENERGY
-                  double Pres = Hydro_DensDual2Pres( fluid_acc[0], fluid_acc[DUAL], EoS_AuxArray_Flt[1], true, MIN_PRES );
-#                 else
-                  double Pres = (real) Hydro_Con2Pres( fluid_acc[0], fluid_acc[1], fluid_acc[2], fluid_acc[3], fluid_acc[4], 
-                                                       fluid_acc+NCOMP_FLUID, true, MIN_PRES, Emag, EoS_DensEint2Pres_CPUPtr, 
-                                                       EoS_AuxArray_Flt, EoS_AuxArray_Int, h_EoS_Table, NULL );
-#                 endif
+                  double Pres = EoS_DensTemp2Pres_CPUPtr( fluid_acc[0], Temp, NULL, 
+                                                          EoS_AuxArray_Flt, EoS_AuxArray_Int, h_EoS_Table );
+                  Pres = Hydro_CheckMinPres( Pres, MIN_PRES );
                   double tmp_Cs = sqrt( EoS_DensPres2CSqr_CPUPtr( fluid_acc[0], Pres, NULL, EoS_AuxArray_Flt,
                                         EoS_AuxArray_Int, h_EoS_Table ) );
                   Cs[c] += tmp_Cs;

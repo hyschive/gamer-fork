@@ -49,6 +49,7 @@ double TEF( double TEMP, int k, const double TEF_lambda[], const double TEF_alph
 GPU_DEVICE static
 double TEFinv( double Y, int k, const double TEF_lambda[], const double TEF_alpha[], const double TEFc[],
                const double AuxArray_Flt[], const int AuxArray_Int[] );
+real Hydro_CheckMinTemp( const real InTemp, const real MinTemp );
 
 
 /********************************************************
@@ -197,12 +198,6 @@ static void Src_ExactCooling( real fluid[], const real B[],
    int k, knew;
 
 // (1) Compute the internal energy and temperature
-#  ifdef MHD
-   Emag  = (real)0.5*( SQR(B[MAGX]) + SQR(B[MAGY]) + SQR(B[MAGZ]) );
-#  else
-   Emag  = (real)0.0;
-#  endif
-
    const bool CheckMinEint_No = false;
    const bool CheckMinPres_No = false; 
 #  ifdef DUAL_ENERGY
@@ -214,6 +209,11 @@ static void Src_ExactCooling( real fluid[], const real B[],
    Eint = EoS_DensPres2Eint_CPUPtr( fluid[DENS], Pres, NULL, EoS_AuxArray_Flt, EoS_AuxArray_Int, h_EoS_Table );
 #  endif
 #  else
+#  ifdef MHD
+   Emag  = (real)0.5*( SQR(B[MAGX]) + SQR(B[MAGY]) + SQR(B[MAGZ]) );
+#  else
+   Emag  = (real)0.0;
+#  endif
    Eint = Hydro_Con2Eint( fluid[DENS], fluid[MOMX], fluid[MOMY], fluid[MOMZ], fluid[ENGY],
                           CheckMinEint_No, NULL_REAL, Emag );
 #  endif
@@ -223,7 +223,7 @@ static void Src_ExactCooling( real fluid[], const real B[],
 #  else
    Temp = EoS_DensEint2Temp_CPUPtr( fluid[DENS], Eint, NULL, EoS_AuxArray_Flt, EoS_AuxArray_Int, h_EoS_Table );
 #  endif
-   Temp = MAX( Temp, TEF_Tmin );
+   Temp = Hydro_CheckMinTemp( Temp, TEF_Tmin );
    Tini = Temp;
 
 // (2) Decide the index k (an interval) where Tini falls into
