@@ -53,7 +53,7 @@ static int        CCSN_Eint_Mode;                  // Mode of obtaining internal
        int        CCSN_CC_MaxRefine_LV2;           // reduced maximum refinement level 2 to this value
        double     CCSN_CC_MaxRefine_Dens1;         // central density threshold that reduces the maximum refinement level 1
        double     CCSN_CC_MaxRefine_Dens2;         // central density threshold that reduces the maximum refinement level 2
-       double     CCSN_MaxRefine_Rad;              // radius within to refine to the allowed maximum leve
+       double     CCSN_MaxRefine_Rad;              // radius in km within which to refine to the maximum allowed level
        double     CCSN_CC_CentralDensFac;          // factor that reduces the dt constrained by the central density (in cgs) during the core collapse
        double     CCSN_CC_Red_DT;                  // reduced time step (in s) when the central density exceeds CCSN_CC_CentralDensFac before bounce
        double     CCSN_LB_TimeFac;                 // factor that scales the dt constrained by lightbulb scheme
@@ -237,7 +237,7 @@ void SetParameter()
 
 // check OPT__FLAG_REGION is disabled for the migration test
    if ( CCSN_Prob == Migration_Test  &&  OPT__FLAG_REGION )
-      Aux_Error( ERROR_INFO, "%s is enabled for %s = %s !!\n", "OPT__FLAG_REGION", "CCSN_Prob", Migration_Test );
+      Aux_Error( ERROR_INFO, "%s is not supported for %s = %s !!\n", "OPT__FLAG_REGION", "CCSN_Prob", Migration_Test );
 
    if (  ( CCSN_Is_PostBounce == 0 )  &&  ( CCSN_Prob == Post_Bounce )  )
       Aux_Error( ERROR_INFO, "Incorrect parameter %s = %d !!\n", "CCSN_Is_PostBounce", CCSN_Is_PostBounce );
@@ -299,14 +299,9 @@ void SetParameter()
       PRINT_WARNING( "CCSN_AngRes_Min", CCSN_AngRes_Min, FORMAT_DOUBLE );
    }
 
-   if ( CCSN_AngRes_Min > 0.0  &&  CCSN_AngRes_Max > 0.0 )
-   {
-      if ( CCSN_AngRes_Min <= CCSN_AngRes_Max )
-         Aux_Error( ERROR_INFO, "%s = %13.7e must be larger than %s = %13.7e !!\n", "CCSN_AngRes_Min", CCSN_AngRes_Min, "CCSN_AngRes_Max", CCSN_AngRes_Max );
-
-      if ( MPI_Rank == 0  &&  CCSN_AngRes_Min < 2.0 * CCSN_AngRes_Max )
-         Aux_Message( stdout, "WARNING : CCSN_AngRes_Min (%13.7e) < 2.0 * CCSN_AngRes_Max (%13.7e) --> CCSN_AngRes_Max might not be strictly followed !!\n", CCSN_AngRes_Min, 2.0*CCSN_AngRes_Max );
-   }
+   if ( CCSN_AngRes_Min > 0.0  &&  CCSN_AngRes_Max > 0.0  &&
+        CCSN_AngRes_Min < 2.0 * CCSN_AngRes_Max )
+         Aux_Error( ERROR_INFO, "CCSN_AngRes_Min (%13.7e) must be larger than 2.0 * CCSN_AngRes_Max (%13.7e) !!\n", CCSN_AngRes_Min, CCSN_AngRes_Max );
 
 
 // (2) set the problem-specific derived parameters
@@ -332,42 +327,42 @@ void SetParameter()
    if ( MPI_Rank == 0 )
    {
       Aux_Message( stdout, "=======================================================================================\n"  );
-      Aux_Message( stdout, "  test problem ID                                            = %d\n",     TESTPROB_ID              );
-      Aux_Message( stdout, "  target CCSN problem                                        = %s\n",     CCSN_Name                );
-      Aux_Message( stdout, "  initial profile                                            = %s\n",     CCSN_Prof_File           );
+      Aux_Message( stdout, "  test problem ID                                                    = %d\n",     TESTPROB_ID              );
+      Aux_Message( stdout, "  target CCSN problem                                                = %s\n",     CCSN_Name                );
+      Aux_Message( stdout, "  initial profile                                                    = %s\n",     CCSN_Prof_File           );
 #     ifdef MHD
-      Aux_Message( stdout, "  magnetic field profile                                     = %d\n",     CCSN_Mag                 );
-      Aux_Message( stdout, "  magnetic field strength                                    = %13.7e\n", CCSN_Mag_B0              );
-      Aux_Message( stdout, "  dependence of magnetic field on density                    = %13.7e\n", CCSN_Mag_np              );
-      Aux_Message( stdout, "  characteristic radius of magnetic field                    = %13.7e\n", CCSN_Mag_R0              );
+      Aux_Message( stdout, "  magnetic field profile                                             = %d\n",     CCSN_Mag                 );
+      Aux_Message( stdout, "  magnetic field strength                                            = %13.7e\n", CCSN_Mag_B0              );
+      Aux_Message( stdout, "  dependence of magnetic field on density                            = %13.7e\n", CCSN_Mag_np              );
+      Aux_Message( stdout, "  characteristic radius of magnetic field                            = %13.7e\n", CCSN_Mag_R0              );
 #     endif
-      Aux_Message( stdout, "  output GW signals                                          = %d\n",     CCSN_GW_OUTPUT           );
-      Aux_Message( stdout, "  sampling interval of GW signals                            = %13.7e\n", CCSN_GW_DT               );
-      Aux_Message( stdout, "  mode for obtaining internal energy                         = %d\n",     CCSN_Eint_Mode           );
+      Aux_Message( stdout, "  output GW signals                                                  = %d\n",     CCSN_GW_OUTPUT           );
+      Aux_Message( stdout, "  sampling interval of GW signals                                    = %13.7e\n", CCSN_GW_DT               );
+      Aux_Message( stdout, "  mode for obtaining internal energy                                 = %d\n",     CCSN_Eint_Mode           );
       if ( CCSN_Prob != Migration_Test ) {
-      Aux_Message( stdout, "  scaling factor for lightbulb dt                            = %13.7e\n", CCSN_LB_TimeFac          );
-      Aux_Message( stdout, "  has core bounce occurred                                   = %d\n",     CCSN_Is_PostBounce       );
-      Aux_Message( stdout, "  pressure threshold factor for detecting shock              = %13.7e\n", CCSN_Shock_ThresFac_Pres );
-      Aux_Message( stdout, "  velocity threshold factor for detecting shock              = %13.7e\n", CCSN_Shock_ThresFac_Vel  );
-      Aux_Message( stdout, "  weighting of each cell    for detecting shock              = %d\n",     CCSN_Shock_Weight        ); }
+      Aux_Message( stdout, "  scaling factor for lightbulb dt                                    = %13.7e\n", CCSN_LB_TimeFac          );
+      Aux_Message( stdout, "  has core bounce occurred                                           = %d\n",     CCSN_Is_PostBounce       );
+      Aux_Message( stdout, "  pressure threshold factor for detecting shock                      = %13.7e\n", CCSN_Shock_ThresFac_Pres );
+      Aux_Message( stdout, "  velocity threshold factor for detecting shock                      = %13.7e\n", CCSN_Shock_ThresFac_Vel  );
+      Aux_Message( stdout, "  weighting of each cell    for detecting shock                      = %d\n",     CCSN_Shock_Weight        ); }
       if ( CCSN_Prob == Core_Collapse ) {
       if ( CCSN_CC_MaxRefine_Flag1 ) {
-      Aux_Message( stdout, "  reduced maxmimum refinement lv 1                           = %d\n",     CCSN_CC_MaxRefine_LV1    );
-      Aux_Message( stdout, "  central density threshold for CCSN_CC_MaxRefine_LV1        = %13.7e\n", CCSN_CC_MaxRefine_Dens1  ); }
+      Aux_Message( stdout, "  reduced maxmimum refinement lv 1                                   = %d\n",     CCSN_CC_MaxRefine_LV1    );
+      Aux_Message( stdout, "  central density threshold for CCSN_CC_MaxRefine_LV1                = %13.7e\n", CCSN_CC_MaxRefine_Dens1  ); }
       if ( CCSN_CC_MaxRefine_Flag2 ) {
-      Aux_Message( stdout, "  reduced maxmimum refinement lv 2                           = %d\n",     CCSN_CC_MaxRefine_LV2    );
-      Aux_Message( stdout, "  central density threshold for CCSN_CC_MaxRefine_LV2        = %13.7e\n", CCSN_CC_MaxRefine_Dens2  ); }
-      Aux_Message( stdout, "  central density factor for reducing dt                     = %13.7e\n", CCSN_CC_CentralDensFac   );
-      Aux_Message( stdout, "  reduced dt near bounce                                     = %13.7e\n", CCSN_CC_Red_DT           ); }
-      Aux_Message( stdout, "  mode for rotational profile                                = %d\n",     CCSN_CC_Rot              );
+      Aux_Message( stdout, "  reduced maxmimum refinement lv 2                                   = %d\n",     CCSN_CC_MaxRefine_LV2    );
+      Aux_Message( stdout, "  central density threshold for CCSN_CC_MaxRefine_LV2                = %13.7e\n", CCSN_CC_MaxRefine_Dens2  ); }
+      Aux_Message( stdout, "  central density factor for reducing dt                             = %13.7e\n", CCSN_CC_CentralDensFac   );
+      Aux_Message( stdout, "  reduced dt near bounce                                             = %13.7e\n", CCSN_CC_Red_DT           ); }
+      Aux_Message( stdout, "  mode for rotational profile                                        = %d\n",     CCSN_CC_Rot              );
       if ( CCSN_CC_Rot == 1 ) {
-      Aux_Message( stdout, "  characteristic rotational radius R_0 (in cm)               = %13.7e\n", CCSN_CC_Rot_R0           );
-      Aux_Message( stdout, "  central angular frequency Omega_0 (in rad/s)               = %13.7e\n", CCSN_CC_Rot_Omega0       ); }
+      Aux_Message( stdout, "  characteristic rotational radius R_0 (in cm)                       = %13.7e\n", CCSN_CC_Rot_R0           );
+      Aux_Message( stdout, "  central angular frequency Omega_0 (in rad/s)                       = %13.7e\n", CCSN_CC_Rot_Omega0       ); }
       if ( CCSN_CC_Rot == 2 )
-      Aux_Message( stdout, "  multiplication factor for rotational profile               = %13.7e\n", CCSN_CC_Rot_Fac          );
-      Aux_Message( stdout, "  radius within to refine to the allowed maximum level in km = %13.7e\n", CCSN_MaxRefine_Rad       );
-      Aux_Message( stdout, "  minimum angular resolution (in degrees)                    = %13.7e\n", CCSN_AngRes_Min/Deg2Rad  );
-      Aux_Message( stdout, "  maximum angular resolution (in degrees)                    = %13.7e\n", CCSN_AngRes_Max/Deg2Rad  );
+      Aux_Message( stdout, "  multiplication factor for rotational profile                       = %13.7e\n", CCSN_CC_Rot_Fac          );
+      Aux_Message( stdout, "  radius within which to refine to the maximum allowed level (in km) = %13.7e\n", CCSN_MaxRefine_Rad       );
+      Aux_Message( stdout, "  minimum angular resolution (in degrees)                            = %13.7e\n", CCSN_AngRes_Min/Deg2Rad  );
+      Aux_Message( stdout, "  maximum angular resolution (in degrees)                            = %13.7e\n", CCSN_AngRes_Max/Deg2Rad  );
       Aux_Message( stdout, "=======================================================================================\n"  );
    }
 

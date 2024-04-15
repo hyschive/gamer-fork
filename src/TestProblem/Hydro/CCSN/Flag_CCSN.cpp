@@ -117,8 +117,12 @@ bool Flag_Lightbulb( const int i, const int j, const int k, const int lv, const 
    const real (*Rho )[PS1][PS1] = amr->patch[ amr->FluSg[lv] ][lv][PID]->fluid[DENS];
 
 
-// TODO: fine-tune the criteria
 // (1) always refine to the highest level in the region within r < CCSN_MaxRefine_Rad
+// (1-a) always refine the innermost cells
+   if ( R < amr->dh[lv] )
+      Flag = true;
+
+// (1-b) refine the region within r < CCSN_MaxRefine_Rad
    if ( R * UNIT_L < CCSN_MaxRefine_Rad )
       Flag = true;
 
@@ -165,8 +169,7 @@ bool Flag_Region_CCSN( const int i, const int j, const int k, const int lv, cons
 
 
 // check the maximum allowed refinement level based on angular resolution
-   if (  CCSN_AngRes_Max > 0.0  &&  2.0 * R * CCSN_AngRes_Max > dh  &&
-      !( CCSN_AngRes_Min > 0.0  &&        R * CCSN_AngRes_Min < dh )  )
+   if ( CCSN_AngRes_Max > 0.0  &&  2.0 * R * CCSN_AngRes_Max > dh )
       Within = false;
 
 

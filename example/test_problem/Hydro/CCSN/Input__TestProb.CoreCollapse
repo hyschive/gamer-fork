@@ -38,7 +38,7 @@ CCSN_CC_Rot_Fac          -1.0                      # multiplication factor for t
 
 CCSN_Is_PostBounce        0                        # boolean that indicates whether core bounce has occurred   [0]
 
-CCSN_MaxRefine_Rad        3.0e6                    # radius within to refine to the allowed maximum level in km [3.0e6]
+CCSN_MaxRefine_Rad        3.0e6                    # radius in km within which to refine to the maximum allowed level [3.0e6]
 CCSN_AngRes_Min          -1.0                      # minimum angular resolution in degrees (<=0=off) [-1.0]
 CCSN_AngRes_Max          -1.0                      # maximum angular resolution in degrees (<=0=off) [-1.0]
 
