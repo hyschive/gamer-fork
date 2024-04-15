@@ -9,6 +9,7 @@ extern double CCSN_CC_MaxRefine_Dens1;
 extern double CCSN_CC_MaxRefine_Dens2;
 extern double CCSN_CentralDens;
 
+extern double CCSN_MaxRefine_Rad;
 extern double CCSN_AngRes_Min;
 extern double CCSN_AngRes_Max;
 
@@ -63,13 +64,13 @@ bool Flag_CoreCollapse( const int i, const int j, const int k, const int lv, con
       if ( CCSN_AngRes_Min > 0.0  &&  R * CCSN_AngRes_Min < dh )
          Flag = true;
 
-//    (3) always refined to highest level in the region with r < 30 km
+//    (3) always refine to the highest level in the region within r < CCSN_MaxRefine_Rad
 //    (3-a) always refine the innermost cells
       if ( R < amr->dh[lv] )
          Flag = true;
 
-//    (3-b) refine the region with r < 30 km
-      if ( R * UNIT_L < 3e6 )
+//    (3-b) refine the region within r < CCSN_MaxRefine_Rad
+      if ( R * UNIT_L < CCSN_MaxRefine_Rad )
          Flag = true;
    }
 
@@ -117,12 +118,12 @@ bool Flag_Lightbulb( const int i, const int j, const int k, const int lv, const 
 
 
 // TODO: fine-tune the criteria
-// (1) always refined to highest level in the region with r < 30 km
-   if ( R * UNIT_L < 3e6 )
+// (1) always refine to the highest level in the region within r < CCSN_MaxRefine_Rad
+   if ( R * UNIT_L < CCSN_MaxRefine_Rad )
       Flag = true;
 
 // (2) check if the minimum angular resolution is reached
-   if ( !Flag  &&  CCSN_AngRes_Min > 0.0  &&  R * CCSN_AngRes_Min < dh )
+   if ( CCSN_AngRes_Min > 0.0  &&  R * CCSN_AngRes_Min < dh )
       Flag = true;
 
 
@@ -163,9 +164,9 @@ bool Flag_Region_CCSN( const int i, const int j, const int k, const int lv, cons
    const double R         = sqrt( SQR(dR[0]) + SQR(dR[1]) + SQR(dR[2]) );
 
 
-// check allowed maximum refine level based on angular resolution
-   if (  CCSN_AngRes_Max > 0.0  &&  2.0 * R * CCSN_AngRes_Max >  dh  &&
-      !( CCSN_AngRes_Min > 0.0  &&        R * CCSN_AngRes_Min >= dh )  )
+// check the maximum allowed refinement level based on angular resolution
+   if (  CCSN_AngRes_Max > 0.0  &&  2.0 * R * CCSN_AngRes_Max > dh  &&
+      !( CCSN_AngRes_Min > 0.0  &&        R * CCSN_AngRes_Min < dh )  )
       Within = false;
 
 
