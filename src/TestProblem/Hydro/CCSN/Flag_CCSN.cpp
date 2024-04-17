@@ -49,9 +49,9 @@ bool Flag_CoreCollapse( const int i, const int j, const int k, const int lv, con
                            amr->patch[0][lv][PID]->EdgeL[1] + (j+0.5)*dh,
                            amr->patch[0][lv][PID]->EdgeL[2] + (k+0.5)*dh  };
 #  ifdef GRAVITY
-   const double dR [3] = { Pos[0]-GREP_Center[0], Pos[1]-GREP_Center[1], Pos[2]-GREP_Center[2] };
+   const double dR [3] = { Pos[0]-GREP_Center[0],    Pos[1]-GREP_Center[1],    Pos[2]-GREP_Center[2]    };
 #  else
-   const double dR [3] = { NULL };
+   const double dR [3] = { Pos[0]-amr->BoxCenter[0], Pos[1]-amr->BoxCenter[1], Pos[2]-amr->BoxCenter[2] };
 #  endif
    const double R      = sqrt( SQR(dR[0]) + SQR(dR[1]) + SQR(dR[2]) );
 
@@ -118,9 +118,9 @@ bool Flag_Lightbulb( const int i, const int j, const int k, const int lv, const 
                            amr->patch[0][lv][PID]->EdgeL[1] + (j+0.5)*dh,
                            amr->patch[0][lv][PID]->EdgeL[2] + (k+0.5)*dh  };
 #  ifdef GRAVITY
-   const double dR [3] = { Pos[0]-GREP_Center[0], Pos[1]-GREP_Center[1], Pos[2]-GREP_Center[2] };
+   const double dR [3] = { Pos[0]-GREP_Center[0],    Pos[1]-GREP_Center[1],    Pos[2]-GREP_Center[2]    };
 #  else
-   const double dR [3] = { NULL };
+   const double dR [3] = { Pos[0]-amr->BoxCenter[0], Pos[1]-amr->BoxCenter[1], Pos[2]-amr->BoxCenter[2] };
 #  endif
    const double R = sqrt( SQR(dR[0]) + SQR(dR[1]) + SQR(dR[2]) );
 
@@ -172,9 +172,9 @@ bool Flag_Region_CCSN( const int i, const int j, const int k, const int lv, cons
 
 
 #  ifdef GRAVITY
-   const double dR[3] = { Pos[0]-GREP_Center[0], Pos[1]-GREP_Center[1], Pos[2]-GREP_Center[2] };
+   const double dR [3] = { Pos[0]-GREP_Center[0],    Pos[1]-GREP_Center[1],    Pos[2]-GREP_Center[2]    };
 #  else
-   const double dR[3] = { NULL };
+   const double dR [3] = { Pos[0]-amr->BoxCenter[0], Pos[1]-amr->BoxCenter[1], Pos[2]-amr->BoxCenter[2] };
 #  endif
    const double R     = sqrt( SQR(dR[0]) + SQR(dR[1]) + SQR(dR[2]) );
 
