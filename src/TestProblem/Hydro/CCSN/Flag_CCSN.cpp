@@ -57,9 +57,6 @@ bool Flag_CoreCollapse( const int i, const int j, const int k, const int lv, con
 
    const double CentralDens = CCSN_CentralDens / UNIT_D;
 
-   for (int i=0; i<3; i++)
-      Aux_Message( stdout, "Pos[%d] = %10.8E  Center[%d] = %10.8E\n", i, Pos[i], i, GREP_Center[i] );
-
 
 // (1) check if the allowed maximum level is reached
    if      ( CCSN_CC_MaxRefine_Flag1  &&  CentralDens < CCSN_CC_MaxRefine_Dens1 / UNIT_D )
