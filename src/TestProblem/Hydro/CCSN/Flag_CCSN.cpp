@@ -1,6 +1,8 @@
 #include "GAMER.h"
 
 
+extern double GREP_Center[3];
+
 extern bool   CCSN_CC_MaxRefine_Flag1;
 extern bool   CCSN_CC_MaxRefine_Flag2;
 extern int    CCSN_CC_MaxRefine_LV1;
@@ -44,7 +46,7 @@ bool Flag_CoreCollapse( const int i, const int j, const int k, const int lv, con
    const double Pos   [3] = { amr->patch[0][lv][PID]->EdgeL[0] + (i+0.5)*dh,
                               amr->patch[0][lv][PID]->EdgeL[1] + (j+0.5)*dh,
                               amr->patch[0][lv][PID]->EdgeL[2] + (k+0.5)*dh  };
-   const double Center[3] = { amr->BoxCenter[0], amr->BoxCenter[1], amr->BoxCenter[2] };
+   const double Center[3] = { GREP_Center[0], GREP_Center[1], GREP_Center[2] };
    const double dR[3]     = { Pos[0]-Center[0], Pos[1]-Center[1], Pos[2]-Center[2] };
    const double R         = sqrt( SQR(dR[0]) + SQR(dR[1]) + SQR(dR[2]) );
 
@@ -110,7 +112,7 @@ bool Flag_Lightbulb( const int i, const int j, const int k, const int lv, const 
    const double Pos   [3] = { amr->patch[0][lv][PID]->EdgeL[0] + (i+0.5)*dh,
                               amr->patch[0][lv][PID]->EdgeL[1] + (j+0.5)*dh,
                               amr->patch[0][lv][PID]->EdgeL[2] + (k+0.5)*dh  };
-   const double Center[3] = { amr->BoxCenter[0], amr->BoxCenter[1], amr->BoxCenter[2] };
+   const double Center[3] = { GREP_Center[0], GREP_Center[1], GREP_Center[2] };
    const double dR[3]     = { Pos[0]-Center[0], Pos[1]-Center[1], Pos[2]-Center[2] };
    const double R         = sqrt( SQR(dR[0]) + SQR(dR[1]) + SQR(dR[2]) );
 
@@ -163,7 +165,7 @@ bool Flag_Region_CCSN( const int i, const int j, const int k, const int lv, cons
    bool Within = true;
 
 
-   const double Center[3] = { amr->BoxCenter[0], amr->BoxCenter[1], amr->BoxCenter[2] };
+   const double Center[3] = { GREP_Center[0], GREP_Center[1], GREP_Center[2] };
    const double dR[3]     = { Pos[0]-Center[0], Pos[1]-Center[1], Pos[2]-Center[2] };
    const double R         = sqrt( SQR(dR[0]) + SQR(dR[1]) + SQR(dR[2]) );
 
