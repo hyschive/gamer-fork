@@ -301,7 +301,7 @@ void SetParameter()
 
    if ( CCSN_AngRes_Min > 0.0  &&  CCSN_AngRes_Max > 0.0  &&
         CCSN_AngRes_Min < 2.0 * CCSN_AngRes_Max )
-         Aux_Error( ERROR_INFO, "CCSN_AngRes_Min (%13.7e) must be larger than 2.0 * CCSN_AngRes_Max (%13.7e) !!\n", CCSN_AngRes_Min, CCSN_AngRes_Max );
+      Aux_Error( ERROR_INFO, "CCSN_AngRes_Min (%13.7e) must be larger than 2.0 * CCSN_AngRes_Max (%13.7e) !!\n", CCSN_AngRes_Min, CCSN_AngRes_Max );
 
 
 // (2) set the problem-specific derived parameters

@@ -1,7 +1,9 @@
 #include "GAMER.h"
 
 
+#ifdef GRAVITY
 extern double GREP_Center[3];
+#endif
 
 extern bool   CCSN_CC_MaxRefine_Flag1;
 extern bool   CCSN_CC_MaxRefine_Flag2;
@@ -42,15 +44,21 @@ bool Flag_CoreCollapse( const int i, const int j, const int k, const int lv, con
    bool Flag      = false;
    bool MaxRefine = false;
 
-   const double dh        = amr->dh[lv];
-   const double Pos   [3] = { amr->patch[0][lv][PID]->EdgeL[0] + (i+0.5)*dh,
-                              amr->patch[0][lv][PID]->EdgeL[1] + (j+0.5)*dh,
-                              amr->patch[0][lv][PID]->EdgeL[2] + (k+0.5)*dh  };
-   const double Center[3] = { GREP_Center[0], GREP_Center[1], GREP_Center[2] };
-   const double dR[3]     = { Pos[0]-Center[0], Pos[1]-Center[1], Pos[2]-Center[2] };
-   const double R         = sqrt( SQR(dR[0]) + SQR(dR[1]) + SQR(dR[2]) );
+   const double dh     = amr->dh[lv];
+   const double Pos[3] = { amr->patch[0][lv][PID]->EdgeL[0] + (i+0.5)*dh,
+                           amr->patch[0][lv][PID]->EdgeL[1] + (j+0.5)*dh,
+                           amr->patch[0][lv][PID]->EdgeL[2] + (k+0.5)*dh  };
+#  ifdef GRAVITY
+   const double dR [3] = { Pos[0]-GREP_Center[0], Pos[1]-GREP_Center[1], Pos[2]-GREP_Center[2] };
+#  else
+   const double dR [3] = { NULL };
+#  endif
+   const double R      = sqrt( SQR(dR[0]) + SQR(dR[1]) + SQR(dR[2]) );
 
    const double CentralDens = CCSN_CentralDens / UNIT_D;
+
+   for (int i=0; i<3; i++)
+      Aux_Message( stdout, "Pos[%d] = %10.8E  Center[%d] = %10.8E\n", i, Pos[i], i, GREP_Center[i] );
 
 
 // (1) check if the allowed maximum level is reached
@@ -108,15 +116,16 @@ bool Flag_Lightbulb( const int i, const int j, const int k, const int lv, const 
 
    bool Flag = false;
 
-   const double dh        = amr->dh[lv];
-   const double Pos   [3] = { amr->patch[0][lv][PID]->EdgeL[0] + (i+0.5)*dh,
-                              amr->patch[0][lv][PID]->EdgeL[1] + (j+0.5)*dh,
-                              amr->patch[0][lv][PID]->EdgeL[2] + (k+0.5)*dh  };
-   const double Center[3] = { GREP_Center[0], GREP_Center[1], GREP_Center[2] };
-   const double dR[3]     = { Pos[0]-Center[0], Pos[1]-Center[1], Pos[2]-Center[2] };
-   const double R         = sqrt( SQR(dR[0]) + SQR(dR[1]) + SQR(dR[2]) );
-
-   const real (*Rho )[PS1][PS1] = amr->patch[ amr->FluSg[lv] ][lv][PID]->fluid[DENS];
+   const double dh     = amr->dh[lv];
+   const double Pos[3] = { amr->patch[0][lv][PID]->EdgeL[0] + (i+0.5)*dh,
+                           amr->patch[0][lv][PID]->EdgeL[1] + (j+0.5)*dh,
+                           amr->patch[0][lv][PID]->EdgeL[2] + (k+0.5)*dh  };
+#  ifdef GRAVITY
+   const double dR [3] = { Pos[0]-GREP_Center[0], Pos[1]-GREP_Center[1], Pos[2]-GREP_Center[2] };
+#  else
+   const double dR [3] = { NULL };
+#  endif
+   const double R = sqrt( SQR(dR[0]) + SQR(dR[1]) + SQR(dR[2]) );
 
 
 // (1) always refine to the highest level in the region within r < CCSN_MaxRefine_Rad
@@ -165,9 +174,12 @@ bool Flag_Region_CCSN( const int i, const int j, const int k, const int lv, cons
    bool Within = true;
 
 
-   const double Center[3] = { GREP_Center[0], GREP_Center[1], GREP_Center[2] };
-   const double dR[3]     = { Pos[0]-Center[0], Pos[1]-Center[1], Pos[2]-Center[2] };
-   const double R         = sqrt( SQR(dR[0]) + SQR(dR[1]) + SQR(dR[2]) );
+#  ifdef GRAVITY
+   const double dR[3] = { Pos[0]-GREP_Center[0], Pos[1]-GREP_Center[1], Pos[2]-GREP_Center[2] };
+#  else
+   const double dR[3] = { NULL };
+#  endif
+   const double R     = sqrt( SQR(dR[0]) + SQR(dR[1]) + SQR(dR[2]) );
 
 
 // check the maximum allowed refinement level based on angular resolution
