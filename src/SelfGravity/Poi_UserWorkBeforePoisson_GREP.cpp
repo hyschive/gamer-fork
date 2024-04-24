@@ -25,7 +25,6 @@ Profile_t *GREP_EffPot  [NLEVEL  ][2];
 int    GREP_LvUpdate;
 int    GREP_Sg     [NLEVEL];
 double GREP_SgTime [NLEVEL][2];
-double GREP_Center [3];
 
 extern bool CCSN_Is_PostBounce;
 extern real *h_ExtPotGREP;
@@ -100,6 +99,9 @@ void Poi_UserWorkBeforePoisson_GREP( const double Time, const int lv )
 
          case GREP_CENTER_COM: // center of mass
             Aux_Error( ERROR_INFO, "GREP_CENTER_COM has not been implemented yet!!\n" );
+         break;
+
+         case GREP_CENTER_RESTART: // GREP center from RESTART data
          break;
 
          default:

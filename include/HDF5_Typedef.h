@@ -74,6 +74,7 @@ struct KeyInfo_t
    double dTime_AllLv[NLEVEL];
 #  ifdef GRAVITY
    double AveDens_Init;             // AveDensity_Init
+   double GREP_Center[3];           // GREP center
 #  endif
 
    char  *CodeVersion;

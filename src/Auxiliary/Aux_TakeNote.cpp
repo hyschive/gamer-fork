@@ -1253,7 +1253,10 @@ void Aux_TakeNote()
       fprintf( Note, "GREP_MAXRADIUS                  %13.7e\n",  GREP_MAXRADIUS          );
       fprintf( Note, "GREP_MINBINSIZE                 %13.7e\n",  GREP_MINBINSIZE         );
       fprintf( Note, "GREP_OPT_FIXUP                  %d\n",      GREP_OPT_FIXUP          );
-      fprintf( Note, "GREP_OPT_PRES                   %d\n",      GREP_OPT_PRES           ); }
+      fprintf( Note, "GREP_OPT_PRES                   %d\n",      GREP_OPT_PRES           );
+      fprintf( Note, "GREP_Center_X                   %20.14e\n", GREP_Center[0]          );
+      fprintf( Note, "GREP_Center_Y                   %20.14e\n", GREP_Center[1]          );
+      fprintf( Note, "GREP_Center_Z                   %20.14e\n", GREP_Center[2]          ); }
       fprintf( Note, "AveDensity_Init                 %13.7e\n",  AveDensity_Init         );
       fprintf( Note, "***********************************************************************************\n" );
       fprintf( Note, "\n\n");

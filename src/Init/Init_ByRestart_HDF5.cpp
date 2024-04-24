@@ -215,6 +215,7 @@ void Init_ByRestart_HDF5( const char *FileName )
    LoadField( "dTime_AllLv",           KeyInfo.dTime_AllLv,          H5_SetID_KeyInfo, H5_TypeID_KeyInfo, NonFatal,  NullPtr,              -1, NonFatal );
 #  ifdef GRAVITY
    LoadField( "AveDens_Init",         &KeyInfo.AveDens_Init,         H5_SetID_KeyInfo, H5_TypeID_KeyInfo,    Fatal,  NullPtr,              -1, NonFatal );
+   LoadField( "GREP_Center",           KeyInfo.GREP_Center,          H5_SetID_KeyInfo, H5_TypeID_KeyInfo, NonFatal,  NullPtr,              -1, NonFatal );
 #  endif
 
 // must initialize all char* pointers as NULL so that we can safely free them later
@@ -264,6 +265,11 @@ void Init_ByRestart_HDF5( const char *FileName )
       AveDensity_Init = KeyInfo.AveDens_Init;
 #     endif
    }
+
+// 1-5-3. reset GREP center
+#  ifdef GRAVITY
+   for (int i=0; i<3; i++)  GREP_Center[i] = KeyInfo.GREP_Center[i];
+#  endif
 
 
 // 1-6. set parameters in levels that do not exist in the input file

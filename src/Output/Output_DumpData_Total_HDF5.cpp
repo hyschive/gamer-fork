@@ -1430,6 +1430,8 @@ void FillIn_KeyInfo( KeyInfo_t &KeyInfo, const int NFieldStored )
 #  ifdef GRAVITY
    KeyInfo.AveDens_Init         = AveDensity_Init;
    KeyInfo.Gravity              = 1;
+   for (int d=0; d<3; d++)
+      KeyInfo.GREP_Center[d]    = GREP_Center[d];
 #  else
    KeyInfo.Gravity              = 0;
 #  endif
@@ -2615,6 +2617,7 @@ void GetCompound_KeyInfo( hid_t &H5_TypeID )
    H5Tinsert( H5_TypeID, "dTime_AllLv",          HOFFSET(KeyInfo_t,dTime_AllLv         ), H5_TypeID_Arr_NLvDouble );
 #  ifdef GRAVITY
    H5Tinsert( H5_TypeID, "AveDens_Init",         HOFFSET(KeyInfo_t,AveDens_Init        ), H5T_NATIVE_DOUBLE       );
+   H5Tinsert( H5_TypeID, "GREP_Center",          HOFFSET(KeyInfo_t,GREP_Center         ), H5_TypeID_Arr_3Double   );
 #  endif
 
    H5Tinsert( H5_TypeID, "CodeVersion",          HOFFSET(KeyInfo_t,CodeVersion         ), H5_TypeID_VarStr        );

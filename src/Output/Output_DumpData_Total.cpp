@@ -712,6 +712,7 @@ void Output_DumpData_Total( const char *FileName )
 
 #     ifndef GRAVITY
       const double AveDensity_Init     = NULL_REAL;
+      const double GREP_Center[3]      = { NULL_REAL };
 #     endif
 #     ifdef PARTICLE
       const long   NParAllRank         = amr->Par->NPar_Active_AllRank;
@@ -728,6 +729,7 @@ void Output_DumpData_Total( const char *FileName )
       fwrite( NDataPatch_Total,           sizeof(int),                NLEVEL,             File );
       fwrite( AdvanceCounter,             sizeof(long),               NLEVEL,             File );
       fwrite( &AveDensity_Init,           sizeof(double),                  1,             File );
+      fwrite( GREP_Center,                sizeof(double),                  3,             File );
       fwrite( &NParAllRank,               sizeof(long),                    1,             File );
       fwrite( &FileOffset_Particle,       sizeof(long),                    1,             File );
       fwrite( dTime_AllLv,                sizeof(double),             NLEVEL,             File );

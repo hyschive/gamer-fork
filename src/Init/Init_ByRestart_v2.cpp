@@ -223,6 +223,7 @@ void Init_ByRestart()
 
 #  ifdef GRAVITY
    fread( &AveDensity_Init,               sizeof(double),           1, File );
+   fread( GREP_Center,                    sizeof(double),           3, File );
 #  else
    fseek( File, sizeof(double), SEEK_CUR );
 #  endif

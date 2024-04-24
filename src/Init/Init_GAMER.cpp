@@ -274,7 +274,14 @@ void Init_GAMER( int *argc, char ***argv )
 //    since the potential is not initialized yet
       const GREP_Center_t Backup_GREP_Center = GREP_CENTER_METHOD;
 
-      if ( OPT__EXT_POT == EXT_POT_GREP )   GREP_CENTER_METHOD = GREP_CENTER_BOX;
+      if ( OPT__EXT_POT == EXT_POT_GREP )
+      {
+         if ( OPT__INIT == INIT_BY_RESTART )
+            GREP_CENTER_METHOD = GREP_CENTER_RESTART;
+
+         else
+            GREP_CENTER_METHOD = GREP_CENTER_BOX;
+      }
 
 
       for (int lv=0; lv<NLEVEL; lv++)

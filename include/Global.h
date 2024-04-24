@@ -174,6 +174,7 @@ extern double            GREP_MAXRADIUS;
 extern double            GREP_MINBINSIZE;
 extern bool              GREP_OPT_FIXUP;
 extern GREP_PresScheme_t GREP_OPT_PRES;
+extern double            GREP_Center[3];
 #endif // #ifdef GRAVITY
 
 
