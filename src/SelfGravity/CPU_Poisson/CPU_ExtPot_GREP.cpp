@@ -21,7 +21,6 @@ extern void **d_ExtPotGenePtr;
 extern int    GREP_LvUpdate;
 extern int    GREP_Sg     [NLEVEL];
 extern double GREP_SgTime [NLEVEL][2];
-extern double GREP_Center [3];
 
 extern Profile_t *GREP_DensAve [NLEVEL+1][2];
 extern Profile_t *GREP_EngyAve [NLEVEL+1][2];

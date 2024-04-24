@@ -9,10 +9,6 @@ extern bool   CCSN_Is_PostBounce;
 extern double CCSN_Shock_ThresFac_Pres;
 extern double CCSN_Shock_ThresFac_Vel;
 extern int    CCSN_Shock_Weight;
-#ifdef GRAVITY
-extern double GREP_Center[3];
-#endif
-
 
 
 

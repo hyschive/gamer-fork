@@ -169,10 +169,11 @@ void Init_ByRestart_v1( const char FileName[] )
    if ( FormatVersion >= 1200 ) {
 #  ifdef GRAVITY
    fread( &AveDensity_Init, sizeof(double),           1, File );
-   fread( GREP_Center,      sizeof(double),           3, File ); }
+   fread( GREP_Center,      sizeof(double),           3, File );
 #  else
    fseek( File, sizeof(double), SEEK_CUR );
 #  endif
+   }
 
 
 // set parameters in levels that do not exist in the input file

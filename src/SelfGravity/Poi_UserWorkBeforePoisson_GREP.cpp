@@ -56,6 +56,9 @@ void Poi_UserWorkBeforePoisson_GREP( const double Time, const int lv )
 
       switch ( GREP_CENTER_METHOD )
       {
+         case GREP_CENTER_NONE: // GREP center is not assigned
+         break;
+
          case GREP_CENTER_BOX: // box center
             for (int i=0; i<3; i++)   GREP_Center[i] = amr->BoxCenter[i];
          break;
@@ -99,9 +102,6 @@ void Poi_UserWorkBeforePoisson_GREP( const double Time, const int lv )
 
          case GREP_CENTER_COM: // center of mass
             Aux_Error( ERROR_INFO, "GREP_CENTER_COM has not been implemented yet!!\n" );
-         break;
-
-         case GREP_CENTER_RESTART: // GREP center from RESTART data
          break;
 
          default:

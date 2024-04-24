@@ -1,10 +1,6 @@
 #include "GAMER.h"
 
 
-#ifdef GRAVITY
-extern double GREP_Center[3];
-#endif
-
 extern bool   CCSN_CC_MaxRefine_Flag1;
 extern bool   CCSN_CC_MaxRefine_Flag2;
 extern int    CCSN_CC_MaxRefine_LV1;

@@ -712,7 +712,7 @@ void Output_DumpData_Total( const char *FileName )
 
 #     ifndef GRAVITY
       const double AveDensity_Init     = NULL_REAL;
-      const double GREP_Center[3]      = { NULL_REAL };
+      const double GREP_Center[3]      = { NULL_REAL, NULL_REAL, NULL_REAL };
 #     endif
 #     ifdef PARTICLE
       const long   NParAllRank         = amr->Par->NPar_Active_AllRank;
