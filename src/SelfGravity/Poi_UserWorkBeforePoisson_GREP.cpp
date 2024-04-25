@@ -56,7 +56,7 @@ void Poi_UserWorkBeforePoisson_GREP( const double Time, const int lv )
 
       switch ( GREP_CENTER_METHOD )
       {
-         case GREP_CENTER_NONE:
+         case GREP_CENTER_NONE: // restart file
          break;
 
          case GREP_CENTER_BOX: // box center
