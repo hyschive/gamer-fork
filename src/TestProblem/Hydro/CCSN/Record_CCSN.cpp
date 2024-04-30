@@ -23,7 +23,6 @@ void Record_CCSN_CentralQuant()
 {
 
    const char   filename_central_quant[] = "Record__CentralQuant";
-   const double BoxCenter[3]             = { amr->BoxCenter[0], amr->BoxCenter[1], amr->BoxCenter[2] };
 
 // allocate memory for per-thread arrays
 #  ifdef OPENMP
@@ -208,7 +207,6 @@ void Record_CCSN_GWSignal()
 {
 
    const char   filename_QuadMom_2nd[ ] = "Record__QuadMom_2nd";
-   const double BoxCenter           [3] = { amr->BoxCenter[0], amr->BoxCenter[1], amr->BoxCenter[2] };
 
 // allocate memory for per-thread arrays
 #  ifdef OPENMP
@@ -268,9 +266,9 @@ void Record_CCSN_GWSignal()
             for (int j=0; j<PS1; j++)  {  const double y = amr->patch[0][lv][PID]->EdgeL[1] + (j+0.5)*dh; const int jj = j + GRA_GHOST_SIZE;
             for (int i=0; i<PS1; i++)  {  const double x = amr->patch[0][lv][PID]->EdgeL[0] + (i+0.5)*dh; const int ii = i + GRA_GHOST_SIZE;
 
-               const double dx = x - BoxCenter[0];
-               const double dy = y - BoxCenter[1];
-               const double dz = z - BoxCenter[2];
+               const double dx = x - GREP_Center[0];
+               const double dy = y - GREP_Center[1];
+               const double dz = z - GREP_Center[2];
                const double r  = sqrt(  SQR( dx ) + SQR( dy ) + SQR( dz )  );
 
                const double dens  = amr->patch[ amr->FluSg[lv] ][lv][PID]->fluid[DENS][k][j][i];
@@ -389,7 +387,6 @@ void Detect_CoreBounce()
 
 
 // (2) criterion 2: any cells within 30km has entropy larger than 3
-   const double BoxCenter[3] = { amr->BoxCenter[0], amr->BoxCenter[1], amr->BoxCenter[2] };
 
 // allocate memory for per-thread arrays
 #  ifdef OPENMP
@@ -426,9 +423,9 @@ void Detect_CoreBounce()
             for (int j=0; j<PS1; j++)  {  const double y = amr->patch[0][lv][PID]->EdgeL[1] + (j+0.5)*dh;
             for (int i=0; i<PS1; i++)  {  const double x = amr->patch[0][lv][PID]->EdgeL[0] + (i+0.5)*dh;
 
-               const double x0 = x - BoxCenter[0];
-               const double y0 = y - BoxCenter[1];
-               const double z0 = z - BoxCenter[2];
+               const double x0 = x - GREP_Center[0];
+               const double y0 = y - GREP_Center[1];
+               const double z0 = z - GREP_Center[2];
                const double r  = sqrt(  SQR( x0 ) + SQR( y0 ) + SQR( z0 )  );
 
 //             ignore cells outside 30km
@@ -499,8 +496,6 @@ void Detect_Shock()
    const int VELY    = NCOMP_PASSIVE + 2;
    const int VELZ    = NCOMP_PASSIVE + 3;
    const int PRES    = NCOMP_PASSIVE + 4;
-
-   const double BoxCenter[3]      = { amr->BoxCenter[0], amr->BoxCenter[1], amr->BoxCenter[2] };
 
 
    double Shock_Min    =  HUGE_NUMBER;
@@ -619,9 +614,9 @@ void Detect_Shock()
             for (int j=0; j<PS1; j++)  {  const double y = amr->patch[0][lv][PID]->EdgeL[1] + (j+0.5)*dh; const int jj = j+NGhost;
             for (int i=0; i<PS1; i++)  {  const double x = amr->patch[0][lv][PID]->EdgeL[0] + (i+0.5)*dh; const int ii = i+NGhost;
 
-               const double dx = x - BoxCenter[0];
-               const double dy = y - BoxCenter[1];
-               const double dz = z - BoxCenter[2];
+               const double dx = x - GREP_Center[0];
+               const double dy = y - GREP_Center[1];
+               const double dz = z - GREP_Center[2];
                const double r  = sqrt(  SQR( dx ) + SQR( dy ) + SQR( dz )  );
 
 //             (3) evaluate the undivided gradient of pressure and the undivided divergence of velocity
