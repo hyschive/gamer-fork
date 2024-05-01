@@ -53,7 +53,7 @@ static int        CCSN_Eint_Mode;                  // Mode of obtaining internal
        int        CCSN_CC_MaxRefine_LV2;           // reduced maximum refinement level 2 to this value
        double     CCSN_CC_MaxRefine_Dens1;         // central density threshold that reduces the maximum refinement level 1
        double     CCSN_CC_MaxRefine_Dens2;         // central density threshold that reduces the maximum refinement level 2
-       double     CCSN_MaxRefine_Rad;              // radius in km within which to refine to the maximum allowed level
+       double     CCSN_MaxRefine_Rad;              // radius in cm within which to refine to the maximum allowed level
        double     CCSN_CC_CentralDensFac;          // factor that reduces the dt constrained by the central density (in cgs) during the core collapse
        double     CCSN_CC_Red_DT;                  // reduced time step (in s) when the central density exceeds CCSN_CC_CentralDensFac before bounce
        double     CCSN_LB_TimeFac;                 // factor that scales the dt constrained by lightbulb scheme
@@ -360,7 +360,7 @@ void SetParameter()
       Aux_Message( stdout, "  central angular frequency Omega_0 (in rad/s)                       = %13.7e\n", CCSN_CC_Rot_Omega0       ); }
       if ( CCSN_CC_Rot == 2 )
       Aux_Message( stdout, "  multiplication factor for rotational profile                       = %13.7e\n", CCSN_CC_Rot_Fac          );
-      Aux_Message( stdout, "  radius within which to refine to the maximum allowed level (in km) = %13.7e\n", CCSN_MaxRefine_Rad       );
+      Aux_Message( stdout, "  radius within which to refine to the maximum allowed level (in cm) = %13.7e\n", CCSN_MaxRefine_Rad       );
       Aux_Message( stdout, "  minimum angular resolution (in degrees)                            = %13.7e\n", CCSN_AngRes_Min/Deg2Rad  );
       Aux_Message( stdout, "  maximum angular resolution (in degrees)                            = %13.7e\n", CCSN_AngRes_Max/Deg2Rad  );
       Aux_Message( stdout, "=======================================================================================\n"  );
