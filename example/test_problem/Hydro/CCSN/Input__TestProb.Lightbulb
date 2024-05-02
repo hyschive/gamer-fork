@@ -24,7 +24,7 @@ CCSN_LB_TimeFac           0.10                     # factor that scales the dt c
 
 CCSN_Is_PostBounce        0                        # boolean that indicates whether core bounce has occurred    [0]
 
-CCSN_MaxRefine_Rad        3.0e6                    # radius in km within which to refine to the maximum allowed level [3.0e6]
+CCSN_MaxRefine_Rad        3.0e6                    # radius in cm within which to refine to the maximum allowed level [3.0e6]
 CCSN_AngRes_Min          -1.0                      # minimum angular resolution in degrees (<=0=off) [-1.0]
 CCSN_AngRes_Max          -1.0                      # maximum angular resolution in degrees (<=0=off) [-1.0]
 
