@@ -379,6 +379,7 @@ const GREP_PresScheme_t
 
 typedef int GREP_Center_t;
 const GREP_Center_t
+   GREP_CENTER_NONE = 0,
    GREP_CENTER_BOX  = 1,
    GREP_CENTER_DENS = 2,
    GREP_CENTER_POT  = 3,

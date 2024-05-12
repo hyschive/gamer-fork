@@ -53,9 +53,9 @@ static int        CCSN_Eint_Mode;                  // Mode of obtaining internal
        int        CCSN_CC_MaxRefine_LV2;           // reduced maximum refinement level 2 to this value
        double     CCSN_CC_MaxRefine_Dens1;         // central density threshold that reduces the maximum refinement level 1
        double     CCSN_CC_MaxRefine_Dens2;         // central density threshold that reduces the maximum refinement level 2
+       double     CCSN_MaxRefine_Rad;              // radius in cm within which to refine to the maximum allowed level
        double     CCSN_CC_CentralDensFac;          // factor that reduces the dt constrained by the central density (in cgs) during the core collapse
        double     CCSN_CC_Red_DT;                  // reduced time step (in s) when the central density exceeds CCSN_CC_CentralDensFac before bounce
-       double     CCSN_MaxRefine_RadFac;           // factor that determines the maximum refinement level based on distance from the box center
        double     CCSN_LB_TimeFac;                 // factor that scales the dt constrained by lightbulb scheme
        int        CCSN_CC_Rot;                     // mode for rotational profile (0:off, 1:analytical, 2:table)
                                                    // --> analytical formula: Omega(r)=Omega_0*[R_0^2/(r^2+R_0^2)], where r is the spherical radius
@@ -65,6 +65,8 @@ static int        CCSN_Eint_Mode;                  // Mode of obtaining internal
 
        bool       CCSN_Is_PostBounce = false;      // boolean that indicates whether core bounce has occurred
 
+       double     CCSN_AngRes_Min;                 // minimum angular resolution in degree
+       double     CCSN_AngRes_Max;                 // maximum angular resolution in degree
        double     CCSN_Shock_ThresFac_Pres;        // pressure threshold factor for detecting postbounce shock
        double     CCSN_Shock_ThresFac_Vel;         // velocity threshold facotr for detecting postbounce shock
        int        CCSN_Shock_Weight;               // weighting of each cell    for detecting postbounce shock (1:volume, 2:1/volume)
@@ -78,6 +80,7 @@ void   Detect_CoreBounce();
 void   Detect_Shock();
 double Mis_GetTimeStep_Lightbulb( const int lv, const double dTime_dt );
 double Mis_GetTimeStep_CoreCollapse( const int lv, const double dTime_dt );
+bool   Flag_Region_CCSN( const int i, const int j, const int k, const int lv, const int PID );
 bool   Flag_CoreCollapse( const int i, const int j, const int k, const int lv, const int PID, const double *Threshold );
 bool   Flag_Lightbulb( const int i, const int j, const int k, const int lv, const int PID, const double *Threshold );
 
@@ -170,13 +173,15 @@ void SetParameter()
    ReadPara->Add( "CCSN_CC_MaxRefine_Dens2",  &CCSN_CC_MaxRefine_Dens2,  1.0e12,        0.0,              NoMax_double      );
    ReadPara->Add( "CCSN_CC_CentralDensFac",   &CCSN_CC_CentralDensFac,   1.0e13,        Eps_double,       NoMax_double      );
    ReadPara->Add( "CCSN_CC_Red_DT",           &CCSN_CC_Red_DT,           1.0e-5,        Eps_double,       NoMax_double      );
-   ReadPara->Add( "CCSN_MaxRefine_RadFac",    &CCSN_MaxRefine_RadFac,    0.15,          0.0,              NoMax_double      );
    ReadPara->Add( "CCSN_LB_TimeFac",          &CCSN_LB_TimeFac,          0.1,           Eps_double,       1.0               );
    ReadPara->Add( "CCSN_CC_Rot",              &CCSN_CC_Rot,              2,             0,                2                 );
    ReadPara->Add( "CCSN_CC_Rot_R0",           &CCSN_CC_Rot_R0,           2.0e8,         Eps_double,       NoMax_double      );
    ReadPara->Add( "CCSN_CC_Rot_Omega0",       &CCSN_CC_Rot_Omega0,       0.5,           0.0,              NoMax_double      );
    ReadPara->Add( "CCSN_CC_Rot_Fac",          &CCSN_CC_Rot_Fac,          -1.0,          NoMin_double,     NoMax_double      );
    ReadPara->Add( "CCSN_Is_PostBounce",       &CCSN_Is_PostBounce,       false,         Useless_bool,     Useless_bool      );
+   ReadPara->Add( "CCSN_MaxRefine_Rad",       &CCSN_MaxRefine_Rad,       3.0e6,         Eps_double,       NoMax_double      );
+   ReadPara->Add( "CCSN_AngRes_Min",          &CCSN_AngRes_Min,         -1.0,           NoMin_double,     NoMax_double      );
+   ReadPara->Add( "CCSN_AngRes_Max",          &CCSN_AngRes_Max,         -1.0,           NoMin_double,     NoMax_double      );
    ReadPara->Add( "CCSN_Shock_ThresFac_Pres", &CCSN_Shock_ThresFac_Pres, 0.5,           Eps_double,       NoMax_double      );
    ReadPara->Add( "CCSN_Shock_ThresFac_Vel" , &CCSN_Shock_ThresFac_Vel,  0.1,           Eps_double,       NoMax_double      );
    ReadPara->Add( "CCSN_Shock_Weight" ,       &CCSN_Shock_Weight,        2,             1,                2                 );
@@ -230,6 +235,10 @@ void SetParameter()
    if ( CCSN_Prob == Migration_Test )
       CCSN_Is_PostBounce = 1;
 
+// check OPT__FLAG_REGION is disabled for the migration test
+   if ( CCSN_Prob == Migration_Test  &&  OPT__FLAG_REGION )
+      Aux_Error( ERROR_INFO, "%s is not supported for %s = %s !!\n", "OPT__FLAG_REGION", "CCSN_Prob", Migration_Test );
+
    if (  ( CCSN_Is_PostBounce == 0 )  &&  ( CCSN_Prob == Post_Bounce )  )
       Aux_Error( ERROR_INFO, "Incorrect parameter %s = %d !!\n", "CCSN_Is_PostBounce", CCSN_Is_PostBounce );
 
@@ -274,6 +283,26 @@ void SetParameter()
          Aux_Error( ERROR_INFO, "Incorrect parameter %s = %d !!\n", "CCSN_Is_PostBounce", CCSN_Is_PostBounce );
    }
 
+// check OPT__FLAG_REGION is enabled for CCSN_AngRes_Max and convert degree to radian
+   const double Deg2Rad = M_PI/180.0;
+
+   if ( CCSN_AngRes_Max > 0.0 ) {
+      CCSN_AngRes_Max *= Deg2Rad;
+      PRINT_WARNING( "CCSN_AngRes_Max", CCSN_AngRes_Max, FORMAT_DOUBLE );
+
+      if ( !OPT__FLAG_REGION )
+         Aux_Error( ERROR_INFO, "%s is disabled for %s = %13.7e !!\n", "OPT__FLAG_REGION", "CCSN_AngRes_Max", CCSN_AngRes_Max );
+   }
+
+   if ( CCSN_AngRes_Min > 0.0 ) {
+      CCSN_AngRes_Min *= Deg2Rad;
+      PRINT_WARNING( "CCSN_AngRes_Min", CCSN_AngRes_Min, FORMAT_DOUBLE );
+   }
+
+   if ( CCSN_AngRes_Min > 0.0  &&  CCSN_AngRes_Max > 0.0  &&
+        CCSN_AngRes_Min < 2.0 * CCSN_AngRes_Max )
+      Aux_Error( ERROR_INFO, "CCSN_AngRes_Min (%13.7e) must be larger than 2.0 * CCSN_AngRes_Max (%13.7e) !!\n", CCSN_AngRes_Min, CCSN_AngRes_Max );
+
 
 // (2) set the problem-specific derived parameters
 
@@ -298,40 +327,42 @@ void SetParameter()
    if ( MPI_Rank == 0 )
    {
       Aux_Message( stdout, "=======================================================================================\n"  );
-      Aux_Message( stdout, "  test problem ID                                     = %d\n",     TESTPROB_ID              );
-      Aux_Message( stdout, "  target CCSN problem                                 = %s\n",     CCSN_Name                );
-      Aux_Message( stdout, "  initial profile                                     = %s\n",     CCSN_Prof_File           );
+      Aux_Message( stdout, "  test problem ID                                                    = %d\n",     TESTPROB_ID              );
+      Aux_Message( stdout, "  target CCSN problem                                                = %s\n",     CCSN_Name                );
+      Aux_Message( stdout, "  initial profile                                                    = %s\n",     CCSN_Prof_File           );
 #     ifdef MHD
-      Aux_Message( stdout, "  magnetic field profile                              = %d\n",     CCSN_Mag                 );
-      Aux_Message( stdout, "  magnetic field strength                             = %13.7e\n", CCSN_Mag_B0              );
-      Aux_Message( stdout, "  dependence of magnetic field on density             = %13.7e\n", CCSN_Mag_np              );
-      Aux_Message( stdout, "  characteristic radius of magnetic field             = %13.7e\n", CCSN_Mag_R0              );
+      Aux_Message( stdout, "  magnetic field profile                                             = %d\n",     CCSN_Mag                 );
+      Aux_Message( stdout, "  magnetic field strength                                            = %13.7e\n", CCSN_Mag_B0              );
+      Aux_Message( stdout, "  dependence of magnetic field on density                            = %13.7e\n", CCSN_Mag_np              );
+      Aux_Message( stdout, "  characteristic radius of magnetic field                            = %13.7e\n", CCSN_Mag_R0              );
 #     endif
-      Aux_Message( stdout, "  output GW signals                                   = %d\n",     CCSN_GW_OUTPUT           );
-      Aux_Message( stdout, "  sampling interval of GW signals                     = %13.7e\n", CCSN_GW_DT               );
-      Aux_Message( stdout, "  mode for obtaining internal energy                  = %d\n",     CCSN_Eint_Mode           );
+      Aux_Message( stdout, "  output GW signals                                                  = %d\n",     CCSN_GW_OUTPUT           );
+      Aux_Message( stdout, "  sampling interval of GW signals                                    = %13.7e\n", CCSN_GW_DT               );
+      Aux_Message( stdout, "  mode for obtaining internal energy                                 = %d\n",     CCSN_Eint_Mode           );
       if ( CCSN_Prob != Migration_Test ) {
-      Aux_Message( stdout, "  radial factor for maximum refine level              = %13.7e\n", CCSN_MaxRefine_RadFac    );
-      Aux_Message( stdout, "  scaling factor for lightbulb dt                     = %13.7e\n", CCSN_LB_TimeFac          );
-      Aux_Message( stdout, "  has core bounce occurred                            = %d\n",     CCSN_Is_PostBounce       );
-      Aux_Message( stdout, "  pressure threshold factor for detecting shock       = %13.7e\n", CCSN_Shock_ThresFac_Pres );
-      Aux_Message( stdout, "  velocity threshold factor for detecting shock       = %13.7e\n", CCSN_Shock_ThresFac_Vel  );
-      Aux_Message( stdout, "  weighting of each cell    for detecting shock       = %d\n",     CCSN_Shock_Weight        ); }
+      Aux_Message( stdout, "  scaling factor for lightbulb dt                                    = %13.7e\n", CCSN_LB_TimeFac          );
+      Aux_Message( stdout, "  has core bounce occurred                                           = %d\n",     CCSN_Is_PostBounce       );
+      Aux_Message( stdout, "  pressure threshold factor for detecting shock                      = %13.7e\n", CCSN_Shock_ThresFac_Pres );
+      Aux_Message( stdout, "  velocity threshold factor for detecting shock                      = %13.7e\n", CCSN_Shock_ThresFac_Vel  );
+      Aux_Message( stdout, "  weighting of each cell    for detecting shock                      = %d\n",     CCSN_Shock_Weight        ); }
       if ( CCSN_Prob == Core_Collapse ) {
       if ( CCSN_CC_MaxRefine_Flag1 ) {
-      Aux_Message( stdout, "  reduced maxmimum refinement lv 1                    = %d\n",     CCSN_CC_MaxRefine_LV1    );
-      Aux_Message( stdout, "  central density threshold for CCSN_CC_MaxRefine_LV1 = %13.7e\n", CCSN_CC_MaxRefine_Dens1  ); }
+      Aux_Message( stdout, "  reduced maxmimum refinement lv 1                                   = %d\n",     CCSN_CC_MaxRefine_LV1    );
+      Aux_Message( stdout, "  central density threshold for CCSN_CC_MaxRefine_LV1                = %13.7e\n", CCSN_CC_MaxRefine_Dens1  ); }
       if ( CCSN_CC_MaxRefine_Flag2 ) {
-      Aux_Message( stdout, "  reduced maxmimum refinement lv 2                    = %d\n",     CCSN_CC_MaxRefine_LV2    );
-      Aux_Message( stdout, "  central density threshold for CCSN_CC_MaxRefine_LV2 = %13.7e\n", CCSN_CC_MaxRefine_Dens2  ); }
-      Aux_Message( stdout, "  central density factor for reducing dt              = %13.7e\n", CCSN_CC_CentralDensFac   );
-      Aux_Message( stdout, "  reduced dt near bounce                              = %13.7e\n", CCSN_CC_Red_DT           ); }
-      Aux_Message( stdout, "  mode for rotational profile                         = %d\n",     CCSN_CC_Rot              );
+      Aux_Message( stdout, "  reduced maxmimum refinement lv 2                                   = %d\n",     CCSN_CC_MaxRefine_LV2    );
+      Aux_Message( stdout, "  central density threshold for CCSN_CC_MaxRefine_LV2                = %13.7e\n", CCSN_CC_MaxRefine_Dens2  ); }
+      Aux_Message( stdout, "  central density factor for reducing dt                             = %13.7e\n", CCSN_CC_CentralDensFac   );
+      Aux_Message( stdout, "  reduced dt near bounce                                             = %13.7e\n", CCSN_CC_Red_DT           ); }
+      Aux_Message( stdout, "  mode for rotational profile                                        = %d\n",     CCSN_CC_Rot              );
       if ( CCSN_CC_Rot == 1 ) {
-      Aux_Message( stdout, "  characteristic rotational radius R_0 (in cm)        = %13.7e\n", CCSN_CC_Rot_R0           );
-      Aux_Message( stdout, "  central angular frequency Omega_0 (in rad/s)        = %13.7e\n", CCSN_CC_Rot_Omega0       ); }
+      Aux_Message( stdout, "  characteristic rotational radius R_0 (in cm)                       = %13.7e\n", CCSN_CC_Rot_R0           );
+      Aux_Message( stdout, "  central angular frequency Omega_0 (in rad/s)                       = %13.7e\n", CCSN_CC_Rot_Omega0       ); }
       if ( CCSN_CC_Rot == 2 )
-      Aux_Message( stdout, "  multiplication factor for rotational profile        = %13.7e\n", CCSN_CC_Rot_Fac          );
+      Aux_Message( stdout, "  multiplication factor for rotational profile                       = %13.7e\n", CCSN_CC_Rot_Fac          );
+      Aux_Message( stdout, "  radius within which to refine to the maximum allowed level (in cm) = %13.7e\n", CCSN_MaxRefine_Rad       );
+      Aux_Message( stdout, "  minimum angular resolution (in degrees)                            = %13.7e\n", CCSN_AngRes_Min/Deg2Rad  );
+      Aux_Message( stdout, "  maximum angular resolution (in degrees)                            = %13.7e\n", CCSN_AngRes_Max/Deg2Rad  );
       Aux_Message( stdout, "=======================================================================================\n"  );
    }
 
@@ -926,12 +957,14 @@ void Init_TestProb_Hydro_CCSN()
 // set the function pointers of various problem-specific routines
    Init_Function_User_Ptr   = SetGridIC;
    Flag_User_Ptr            = Flag_CCSN;
+   Flag_Region_Ptr          = Flag_Region_CCSN;
    Aux_Record_User_Ptr      = Record_CCSN;
    End_User_Ptr             = End_CCSN;
    Mis_GetTimeStep_User_Ptr = Mis_GetTimeStep_CCSN;
 #  if ( EOS == EOS_NUCLEAR  &&  NUC_TABLE_MODE == NUC_TABLE_MODE_TEMP )
    Flu_ResetByUser_Func_Ptr = Flu_ResetByUser_CCSN;
 #  endif
+
 
 #  ifdef MHD
    switch ( CCSN_Mag )

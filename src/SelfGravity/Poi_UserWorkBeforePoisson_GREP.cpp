@@ -25,7 +25,6 @@ Profile_t *GREP_EffPot  [NLEVEL  ][2];
 int    GREP_LvUpdate;
 int    GREP_Sg     [NLEVEL];
 double GREP_SgTime [NLEVEL][2];
-double GREP_Center [3];
 
 extern bool CCSN_Is_PostBounce;
 extern real *h_ExtPotGREP;
@@ -57,6 +56,9 @@ void Poi_UserWorkBeforePoisson_GREP( const double Time, const int lv )
 
       switch ( GREP_CENTER_METHOD )
       {
+         case GREP_CENTER_NONE: // restart file
+         break;
+
          case GREP_CENTER_BOX: // box center
             for (int i=0; i<3; i++)   GREP_Center[i] = amr->BoxCenter[i];
          break;

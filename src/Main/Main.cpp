@@ -170,6 +170,7 @@ double               GREP_MAXRADIUS;
 double               GREP_MINBINSIZE;
 bool                 GREP_OPT_FIXUP;
 GREP_PresScheme_t    GREP_OPT_PRES;
+double               GREP_Center[3];
 #endif // #ifdef GRAVITY
 
 // (2-3) cosmological simulations

@@ -1048,6 +1048,11 @@ void Init_ResetParameter()
 
 // GREP
 #  ifdef GRAVITY
+// initialize GREP center to the box center
+   GREP_Center[0] = amr->BoxCenter[0];
+   GREP_Center[1] = amr->BoxCenter[1];
+   GREP_Center[2] = amr->BoxCenter[2];
+
    if ( GREP_MINBINSIZE <= 0.0 )
    {
       GREP_MINBINSIZE = amr->dh[MAX_LEVEL];
