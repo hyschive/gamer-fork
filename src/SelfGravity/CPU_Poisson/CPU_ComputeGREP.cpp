@@ -1,6 +1,9 @@
 #include "GAMER.h"
 
 
+#define LinearInterp( x, xa, xb, ya, yb )   (  (ya) + ((yb) - (ya)) * ((x) - (xa)) / ((xb) - (xa))  )
+
+
 
 
 //-------------------------------------------------------------------------------------------------------
@@ -30,7 +33,7 @@ void CPU_ComputeGREP( const int lv, const double Time, const Profile_t *DensAve,
    const double _c2         = 1.0 / c2;
    const double FourPI      = 4.0 * M_PI;
    const double FourThirdPI = FourPI / 3.0;
-   const double Tolerance   = 1.0e-5;
+   const double Tolerance   = 1.0e-10;
 
    int     NIter     = 0;
    int     NBin      = DensAve->NBin;
@@ -41,59 +44,77 @@ void CPU_ComputeGREP( const int lv, const double Time, const Profile_t *DensAve,
    double *Vr        = VrAve  ->Data;
    double *Pres      = PresAve->Data;
 
+   double *Weight       = new double [NBin];  // volume of each bin
+   double *Edge_L       = new double [NBin];  // left edge of each bin
+   double *Vr_L         = new double [NBin];  // radial velocity at the left edge of each bin
    double *Mass_NW      = new double [NBin];  // enclosed Newtonian mass for \bar_Phi(r)     in Eq. (7)
    double *Mass_TOV     = new double [NBin];  // enclosed TOV mass       for \bar_Phi(r)_TOV in Eq. (7)
    double *Mass_TOV_USG = new double [NBin];  // enclosed TOV mass in the previous iteration
    double *Dens_TOV     = new double [NBin];  // empirical TOV density                          Eq. (4)
    double *Gamma_TOV    = new double [NBin];  // metric function                                Eq. (5)
-   double *dVol         = new double [NBin];  // volume    of each bin
-   double *EdgeL        = new double [NBin];  // left edge of each bin
 
-   for (int i=0; i<NBin;   i++)   Mass_TOV_USG[i] = 0.0;
-   for (int i=0; i<NBin;   i++)   Gamma_TOV   [i] = 1.0;
+// (1) preparation stage
+   for (int i=0; i<NBin; i++)   Mass_TOV_USG[i] = 0.0;
+   for (int i=0; i<NBin; i++)   Gamma_TOV   [i] = 1.0;
 
-                                  EdgeL       [0] = 0.0;
-   for (int i=1; i<NBin;   i++)   EdgeL       [i] = ( GREP_LOGBIN ) ? sqrt( Radius[i-1] * Radius[i] )
-                                                                    : 0.5*( Radius[i-1] + Radius[i] );
+                                Edge_L[0] = 0.0;
+   for (int i=1; i<NBin; i++)   Edge_L[i] = ( GREP_LOGBIN ) ? sqrt( Radius[i] * Radius[i-1] )
+                                                            : 0.5*( Radius[i] + Radius[i-1] );
 
-   for (int i=0; i<NBin-1; i++)   dVol        [i] = FourThirdPI * ( CUBE( EdgeL[i+1] ) - CUBE( EdgeL[i]      ) );
-                                  dVol   [NBin-1] = FourThirdPI * ( CUBE( MaxRadius  ) - CUBE( EdgeL[NBin-1] ) );
+// find the maximum radius that the stored weights are reliable
+   for (int d=0; d<3; d++)
+   {
+      MaxRadius = MIN(  MIN( amr->BoxSize[d] - DensAve->Center[d], DensAve->Center[d] ),
+                        MaxRadius  );
+   }
+
+// update the weight
+   for (int i=0; i<NBin-1; i++)
+   {
+      Weight[i] = ( Edge_L[i+1] > MaxRadius )
+                ? 4.0 * M_PI * ( CUBE(Edge_L[i+1]) - CUBE(Edge_L[i]) ) / 3.0
+                : DensAve->Weight[i];
+   }
+
+   Weight[NBin-1] = 4.0 * M_PI * ( CUBE(DensAve->MaxRadius) - CUBE(Edge_L[NBin-1]) ) / 3.0;
+
+// compute the mass of each bin
+   for (int i=0; i<NBin; i++)   Mass_NW[i] = Weight[i] * Dens[i];
+
+// interpolate the radial velocity at the bin edge
+                                Vr_L[0] = 0.0;
+   for (int i=1; i<NBin; i++)   Vr_L[i] = LinearInterp( Edge_L[i], Radius[i-1], Radius[i],
+                                                        Mass_NW[i-1] * Vr[i-1], Mass_NW[i] * Vr[i] )
+                                        / LinearInterp( Edge_L[i], Radius[i-1], Radius[i],
+                                                        Mass_NW[i-1],           Mass_NW[i]         );
+
+// compute the enclosed Newtonian mass, defined at the right edge of each bin
+   for (int i=1; i<NBin; i++)   Mass_NW[i] += Mass_NW[i-1];
 
 
-// 1. compute Mass_NW at the outer edge of each bin
-                                  Mass_NW     [0] = dVol     [0] * Dens[0];
-   for (int i=1; i<NBin-1; i++)   Mass_NW     [i] = dVol     [i] * ( 0.5 * Dens[i] + 0.25 * ( Dens[i-1] + Dens[i+1] ) );
-                                  Mass_NW[NBin-1] = dVol[NBin-1] * Dens[NBin-1];
-
-   for (int i=1; i<NBin;   i++)   Mass_NW[i] += Mass_NW[i-1];
-
-
-// 2. iteratively compute Mass_TOV and Gamma_TOV at the outer edge of each bin
+// (2) iteratively compute Mass_TOV and Gamma_TOV, defined at the right edge of each bin
+//     --> exclude the last bin since it is not used later
    bool IsConverged = false;
 
    while ( ! IsConverged  &&  ( NIter++ < GREP_MAXITER ) )
    {
 //    update Mass_TOV
-      for (int i=0; i<NBin;   i++)   Dens_TOV[i] = Gamma_TOV[i] * ( Dens[i] + Engy[i] * _c2 );
+//    --> include the last bin here for troubleshooting information
+      for (int i=0; i<NBin;   i++)   Dens_TOV[i]  = Gamma_TOV[i] * ( Dens[i] + Engy[i] * _c2 );
 
-                                     Mass_TOV     [0] = dVol     [0] * Dens_TOV[0];
-      for (int i=1; i<NBin-1; i++)   Mass_TOV     [i] = dVol     [i] * ( 0.5 * Dens_TOV[i] + 0.25 * ( Dens_TOV[i-1] + Dens_TOV[i+1] ) );
-                                     Mass_TOV[NBin-1] = dVol[NBin-1] * Dens_TOV[NBin-1];
-
-      for (int i=1; i<NBin  ; i++)   Mass_TOV[i] += Mass_TOV[i-1];
+      for (int i=0; i<NBin;   i++)   Mass_TOV[i]  = Weight[i] * Dens_TOV[i];
+      for (int i=1; i<NBin;   i++)   Mass_TOV[i] += Mass_TOV[i-1];
 
 //    update Gamma_TOV
-      for (int i=0; i<NBin-1; i++)   Gamma_TOV     [i] = 1.0 + ( 0.25 * SQR( Vr[i] + Vr[i+1] )
-                                                               - 2.0  * NEWTON_G * Mass_TOV[i]      / EdgeL[i+1]  ) * _c2;
-                                     Gamma_TOV[NBin-1] = 1.0 + (        SQR( Vr[NBin-1] )
-                                                               - 2.0  * NEWTON_G * Mass_TOV[NBin-1] / MaxRadius   ) * _c2;
+      for (int i=0; i<NBin-1; i++)   Gamma_TOV[i] = 1.0 + (  SQR( Vr_L[i+1] )
+                                                           - 2.0  * NEWTON_G * Mass_TOV[i] / Edge_L[i+1]  ) * _c2;
 
-      for (int i=0; i<NBin;   i++)   Gamma_TOV[i] = sqrt( MAX( TINY_NUMBER, Gamma_TOV[i] ) );
+      for (int i=0; i<NBin-1; i++)   Gamma_TOV[i] = sqrt( MAX( TINY_NUMBER, Gamma_TOV[i] ) );
 
 //    check whether the Mass_TOV is converged
       IsConverged = true;
 
-      for (int i=0; i<NBin; i++)
+      for (int i=0; i<NBin-1; i++)
       {
          double RelErr = fabs( Mass_TOV_USG[i] - Mass_TOV[i] ) / Mass_TOV[i];
 
@@ -151,7 +172,7 @@ void CPU_ComputeGREP( const int lv, const double Time, const Profile_t *DensAve,
    } // if ( ! IsConverged )
 
 
-// 3. compute the effective GR potential at the bin center
+// (3) compute the effective GR potential, defined at the left edge of each bin
    EffPot->NBin        = DensAve->NBin;
    EffPot->LogBin      = DensAve->LogBin;
    EffPot->LogBinRatio = DensAve->LogBinRatio;
@@ -159,29 +180,32 @@ void CPU_ComputeGREP( const int lv, const double Time, const Profile_t *DensAve,
    EffPot->AllocateMemory();
 
    for (int d=0; d<3;    d++)   EffPot->Center[d] = DensAve->Center[d];
-   for (int b=0; b<NBin; b++)   EffPot->Radius[b] = DensAve->Radius[b];
+   for (int b=0; b<NBin; b++)   EffPot->Radius[b] = Edge_L[b];
 
-// set the outer boundary condition of the potential to -G * M_out / r_out
-   EffPot->Data[NBin-1] = -NEWTON_G * ( Mass_TOV[NBin-1] - Mass_NW[NBin-1] ) / Radius[NBin-1];
+// set the outer boundary condition of the potential to -GM/r at the left edge of last bin
+   EffPot->Data[NBin-1] = -NEWTON_G * ( Mass_TOV[NBin-2] - Mass_NW[NBin-2] ) / EffPot->Radius[NBin-1];
 
    for (int i=NBin-2; i>0; i--)
    {
-      double dr         = Radius[i] - Radius[i+1];
-      double Mass_NW_C  = 0.5 * ( Mass_NW[i] + Mass_NW[i-1] );
-      double Mass_TOV_C = ( 0.5 * ( Mass_TOV[i] + Mass_TOV[i-1] ) + FourPI * CUBE( Radius[i] ) * Pres[i] * _c2 )
-                        * ( 1.0 + ( Engy[i] + Pres[i] ) / ( Dens[i] * c2 ) )
-                        / SQR( 0.5 * ( Gamma_TOV[i] + Gamma_TOV[i-1] ) );
+      const double dr = EffPot->Radius[i] - EffPot->Radius[i+1];
+
+//    compute the integrand using data at the bin center
+//    --> approximate the Mass_NW, Mass_TOV, and Gamma_TOV at the bin center via linear interpolation
+      const double ratio = ( Radius[i] - Edge_L[i] ) / ( Edge_L[i+1] - Edge_L[i] );
+
+      double Mass_NW_C   = Mass_NW  [i-1] + ratio * ( Mass_NW  [i] - Mass_NW  [i-1] );
+      double Mass_TOV_C  = Mass_TOV [i-1] + ratio * ( Mass_TOV [i] - Mass_TOV [i-1] );
+      double Gamma_TOV_C = Gamma_TOV[i-1] + ratio * ( Gamma_TOV[i] - Gamma_TOV[i-1] );
+
+      Mass_TOV_C = ( Mass_TOV_C + FourPI * CUBE( Radius[i] ) * Pres[i] * _c2 )
+                 * ( 1.0 + ( Engy[i] + Pres[i] ) / ( Dens[i] * c2 ) ) / SQR( Gamma_TOV_C );
+
 
       EffPot->Data[i] = EffPot->Data[i+1] - dr * NEWTON_G * ( Mass_NW_C - Mass_TOV_C ) / SQR( Radius[i] );
    }
 
-   double dr         = Radius[0] - Radius[1];
-   double Mass_NW_C  = Mass_NW[0];
-   double Mass_TOV_C = ( Mass_TOV[0] + FourPI * CUBE( Radius[0] ) * Pres[0] * _c2 )
-                     * ( 1.0 + ( Engy[0] + Pres[0] ) / ( Dens[0] * c2 ) )
-                     / SQR( Gamma_TOV[0] );
-
-   EffPot->Data[0] = EffPot->Data[1] - dr * NEWTON_G * ( Mass_NW_C - Mass_TOV_C ) / SQR( Radius[0] ) ;
+// set the potential for the innermost bin
+   EffPot->Data[0] = EffPot->Data[1];
 
 
 // troubleshooting information
@@ -204,15 +228,22 @@ void CPU_ComputeGREP( const int lv, const double Time, const Profile_t *DensAve,
       fprintf( File, "# Number of Iterations : %d\n",                   NIter );
       fprintf( File, "# NBin                 : %d\n",                   NBin );
       fprintf( File, "# -------------------------------------------------\n" );
-      fprintf( File, "%5s %9s %22s %22s %22s %22s %22s %22s %22s %22s %23s\n",
-                     "# Bin", "NCell", "Radius", "Density", "Energy", "Vr", "Pressure",
+      fprintf( File, "%5s %9s %22s %22s %22s %22s %22s %22s %22s %22s %22s %23s\n",
+                     "# Bin", "NCell", "Bin_Center", "Bin_Edge", "Density", "Energy", "Vr", "Pressure",
                      "Mass_NW", "Mass_TOV", "Gamma_TOV", "Eff_Pot");
 
 //    data
-      for (int i=0; i<NBin; i++)
-      fprintf( File, "%5d %9ld %22.15e %22.15e %22.15e %22.15e %22.15e %22.15e %22.15e %22.15e %23.15e\n",
-                     i, DensAve->NCell[i], Radius[i], Dens[i], Engy[i], Vr[i], Pres[i],
-                     Mass_NW[i], Mass_TOV[i], Gamma_TOV[i], EffPot->Data[i] );
+//    --> Dens, Engy, Vr, Pres         are defined at the bin center
+//    --> Mass_NW, Mass_TOV, Gamma_TOV are defined at the right edge
+//    --> EffPot                       is  defined at the left  edge
+      fprintf( File, "%5d %9ld %22.15e %22.15e %22.15e %22.15e %22.15e %22.15e %22.15e %22.15e %22.15e %23.15e\n",
+                     0, DensAve->NCell[0], Radius[0], Edge_L[0], Dens[0], Engy[0], Vr[0], Pres[0],
+                     NULL_REAL,    NULL_REAL,     NULL_REAL,      EffPot->Data[0] );
+
+      for (int i=1; i<NBin; i++)
+      fprintf( File, "%5d %9ld %22.15e %22.15e %22.15e %22.15e %22.15e %22.15e %22.15e %22.15e %22.15e %23.15e\n",
+                     i, DensAve->NCell[i], Radius[i], Edge_L[i], Dens[i], Engy[i], Vr[i], Pres[i],
+                     Mass_NW[i-1], Mass_TOV[i-1], Gamma_TOV[i-1], EffPot->Data[i] );
 
       fclose( File );
    }
@@ -220,12 +251,13 @@ void CPU_ComputeGREP( const int lv, const double Time, const Profile_t *DensAve,
 
 
 // free memory
+   delete [] Weight;
+   delete [] Edge_L;
+   delete [] Vr_L;
    delete [] Mass_NW;
    delete [] Mass_TOV;
    delete [] Mass_TOV_USG;
    delete [] Dens_TOV;
    delete [] Gamma_TOV;
-   delete [] dVol;
-   delete [] EdgeL;
 
 } // FUNCTION : CPU_ComputeGREP
