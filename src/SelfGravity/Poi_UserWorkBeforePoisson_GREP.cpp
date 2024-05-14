@@ -308,6 +308,16 @@ void Poi_Prepare_GREP( const double Time, const int lv )
    } // if ( GREP_OPT_PRES == GREP_PRES_BINDATA )
 
 
+// subtract the energy shift from the profile of internal energy density
+#  if ( EOS == EOS_NUCLEAR )
+   const real sEint2CGS        = EoS_AuxArray_Flt[NUC_AUX_VSQR2CGS];
+   const real EnergyShift_Code = EoS_AuxArray_Flt[NUC_AUX_ESHIFT  ] / sEint2CGS;
+
+   for (int b=0; b<Engy_Tot->NBin; b++)
+      Engy_Tot->Data[b] -= EnergyShift_Code * Dens_Tot->Data[b];
+#  endif
+
+
 // check the profiles before computing the effective GR potential
    Profile_t *GREP_Check_List[] = { Dens_Tot, Engy_Tot, Vr_Tot, Pres_Tot };
 
