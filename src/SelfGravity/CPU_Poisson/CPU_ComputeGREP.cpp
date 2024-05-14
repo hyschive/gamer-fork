@@ -72,11 +72,11 @@ void CPU_ComputeGREP( const int lv, const double Time, const Profile_t *DensAve,
    for (int i=0; i<NBin-1; i++)
    {
       Weight[i] = ( Edge_L[i+1] > MaxRadius )
-                ? 4.0 * M_PI * ( CUBE(Edge_L[i+1]) - CUBE(Edge_L[i]) ) / 3.0
+                ? FourThirdPI * ( CUBE(Edge_L[i+1]) - CUBE(Edge_L[i]) )
                 : DensAve->Weight[i];
    }
 
-   Weight[NBin-1] = 4.0 * M_PI * ( CUBE(DensAve->MaxRadius) - CUBE(Edge_L[NBin-1]) ) / 3.0;
+   Weight[NBin-1] = FourThirdPI * ( CUBE(DensAve->MaxRadius) - CUBE(Edge_L[NBin-1]) );
 
 // compute the mass of each bin
    for (int i=0; i<NBin; i++)   Mass_NW[i] = Weight[i] * Dens[i];
