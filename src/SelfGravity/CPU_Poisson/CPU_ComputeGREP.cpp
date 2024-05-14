@@ -16,7 +16,7 @@
 //                4. Ref: Marek et al., 2006, A&A, 445, 273 (arXiv: 0502161), sec. 2, case A
 //
 // Parameter   :  lv      : Current AMR level
-//                Time    : Current physical time at the refinement level=lv
+//                Time    : Current physical time at the specified level
 //                DensAve : Profile_t object storing the spherically averaged profile of density
 //                EngyAve : Profile_t object storing the spherically averaged profile of internal energy density
 //                VrAve   : Profile_t object storing the spherically averaged profile of radial velocity
@@ -93,7 +93,7 @@ void CPU_ComputeGREP( const int lv, const double Time, const Profile_t *DensAve,
 
 
 // (2) iteratively compute Mass_TOV and Gamma_TOV, defined at the right edge of each bin
-//     --> exclude the last bin since it is not used later
+//     --> ignore the last bin since it is not used later
    bool IsConverged = false;
 
    while ( ! IsConverged  &&  ( NIter++ < GREP_MAXITER ) )
@@ -234,8 +234,8 @@ void CPU_ComputeGREP( const int lv, const double Time, const Profile_t *DensAve,
 
 //    data
 //    --> Dens, Engy, Vr, Pres         are defined at the bin center
-//    --> Mass_NW, Mass_TOV, Gamma_TOV are defined at the right edge
-//    --> EffPot                       is  defined at the left  edge
+//        Mass_NW, Mass_TOV, Gamma_TOV are defined at the right edge
+//        EffPot                       is  defined at the left  edge
       fprintf( File, "%5d %9ld %22.15e %22.15e %22.15e %22.15e %22.15e %22.15e %22.15e %22.15e %22.15e %23.15e\n",
                      0, DensAve->NCell[0], Radius[0], Edge_L[0], Dens[0], Engy[0], Vr[0], Pres[0],
                      NULL_REAL,    NULL_REAL,     NULL_REAL,      EffPot->Data[0] );
