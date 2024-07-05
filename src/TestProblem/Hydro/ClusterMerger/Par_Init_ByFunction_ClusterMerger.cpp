@@ -770,14 +770,14 @@ void GetClusterCenter( int lv, bool AdjustPos, bool AdjustVel, double Cen_old[][
 
          int N = 10000;   // Maximum particle numbers (to allocate the array size)
          int num_par[3] = {0, 0, 0};   // (each rank) number of particles inside the target region of each cluster
-         double **ParX = new double*[3];
-         double **ParY = new double*[3];
-         double **ParZ = new double*[3];
-         double **ParM = new double*[3];
-         double **VelX = new double*[3];
-         double **VelY = new double*[3];
-         double **VelZ = new double*[3];
-         for (int c=0; c<3; c++) {
+         double **ParX = new double*[Merger_Coll_NumHalos];
+         double **ParY = new double*[Merger_Coll_NumHalos];
+         double **ParZ = new double*[Merger_Coll_NumHalos];
+         double **ParM = new double*[Merger_Coll_NumHalos];
+         double **VelX = new double*[Merger_Coll_NumHalos];
+         double **VelY = new double*[Merger_Coll_NumHalos];
+         double **VelZ = new double*[Merger_Coll_NumHalos];
+         for (int c=0; c<Merger_Coll_NumHalos; c++) {
             ParX[c] = new double[N];
             ParY[c] = new double[N];
             ParZ[c] = new double[N];
@@ -834,123 +834,96 @@ void GetClusterCenter( int lv, bool AdjustPos, bool AdjustVel, double Cen_old[][
 //       Collect the number of target particles from each rank
          MPI_Allreduce( num_par, num_par_sum, 3, MPI_INT, MPI_SUM, MPI_COMM_WORLD );
 
-         int num_Ranks;
-#        ifndef SERIAL
-         MPI_Comm_size(MPI_COMM_WORLD, &num_Ranks);
-#        else
-         num_Ranks = 0;
-#        endif
-         int num_par_eachRank[3][num_Ranks];
-         int displs[3][num_Ranks];
+         int num_par_eachRank[3][MPI_NRank];
+         int displs[3][MPI_NRank];
          for (int c=0; c<Merger_Coll_NumHalos; c++) {
             MPI_Allgather( &num_par[c], 1, MPI_INT, num_par_eachRank[c], 1, MPI_INT, MPI_COMM_WORLD );
             displs[c][0] = 0;
-            for (int i=1; i<num_Ranks; i++)  displs[c][i] = displs[c][i-1] + num_par_eachRank[c][i-1];
+            for (int i=1; i<MPI_NRank; i++)  displs[c][i] = displs[c][i-1] + num_par_eachRank[c][i-1];
          }
       
 //       Collect the mass, position and velocity of target particles to the root rank
-         double *ParX_sum1 = new double[num_par_sum[0]];
-         double *ParX_sum2 = new double[num_par_sum[1]];
-         double *ParY_sum1 = new double[num_par_sum[0]];
-         double *ParY_sum2 = new double[num_par_sum[1]];
-         double *ParZ_sum1 = new double[num_par_sum[0]];
-         double *ParZ_sum2 = new double[num_par_sum[1]];
-         double *ParM_sum1 = new double[num_par_sum[0]];
-         double *ParM_sum2 = new double[num_par_sum[1]];
-         double *VelX_sum1 = new double[num_par_sum[0]];
-         double *VelX_sum2 = new double[num_par_sum[1]];
-         double *VelY_sum1 = new double[num_par_sum[0]];
-         double *VelY_sum2 = new double[num_par_sum[1]];
-         double *VelZ_sum1 = new double[num_par_sum[0]];
-         double *VelZ_sum2 = new double[num_par_sum[1]];
-         MPI_Gatherv( ParX[0], num_par[0], MPI_DOUBLE, ParX_sum1, num_par_eachRank[0], displs[0], MPI_DOUBLE, 0, MPI_COMM_WORLD );
-         MPI_Gatherv( ParY[0], num_par[0], MPI_DOUBLE, ParY_sum1, num_par_eachRank[0], displs[0], MPI_DOUBLE, 0, MPI_COMM_WORLD );
-         MPI_Gatherv( ParZ[0], num_par[0], MPI_DOUBLE, ParZ_sum1, num_par_eachRank[0], displs[0], MPI_DOUBLE, 0, MPI_COMM_WORLD );
-         MPI_Gatherv( ParM[0], num_par[0], MPI_DOUBLE, ParM_sum1, num_par_eachRank[0], displs[0], MPI_DOUBLE, 0, MPI_COMM_WORLD );
-         MPI_Gatherv( VelX[0], num_par[0], MPI_DOUBLE, VelX_sum1, num_par_eachRank[0], displs[0], MPI_DOUBLE, 0, MPI_COMM_WORLD );
-         MPI_Gatherv( VelY[0], num_par[0], MPI_DOUBLE, VelY_sum1, num_par_eachRank[0], displs[0], MPI_DOUBLE, 0, MPI_COMM_WORLD );
-         MPI_Gatherv( VelZ[0], num_par[0], MPI_DOUBLE, VelZ_sum1, num_par_eachRank[0], displs[0], MPI_DOUBLE, 0, MPI_COMM_WORLD );
-         if ( Merger_Coll_NumHalos == 2 ){
-            MPI_Gatherv( ParX[1], num_par[1], MPI_DOUBLE, ParX_sum2, num_par_eachRank[1], displs[1], MPI_DOUBLE, 0, MPI_COMM_WORLD );
-            MPI_Gatherv( ParY[1], num_par[1], MPI_DOUBLE, ParY_sum2, num_par_eachRank[1], displs[1], MPI_DOUBLE, 0, MPI_COMM_WORLD );
-            MPI_Gatherv( ParZ[1], num_par[1], MPI_DOUBLE, ParZ_sum2, num_par_eachRank[1], displs[1], MPI_DOUBLE, 0, MPI_COMM_WORLD );
-            MPI_Gatherv( ParM[1], num_par[1], MPI_DOUBLE, ParM_sum2, num_par_eachRank[1], displs[1], MPI_DOUBLE, 0, MPI_COMM_WORLD );
-            MPI_Gatherv( VelX[1], num_par[1], MPI_DOUBLE, VelX_sum2, num_par_eachRank[1], displs[1], MPI_DOUBLE, 0, MPI_COMM_WORLD );
-            MPI_Gatherv( VelY[1], num_par[1], MPI_DOUBLE, VelY_sum2, num_par_eachRank[1], displs[1], MPI_DOUBLE, 0, MPI_COMM_WORLD );
-            MPI_Gatherv( VelZ[1], num_par[1], MPI_DOUBLE, VelZ_sum2, num_par_eachRank[1], displs[1], MPI_DOUBLE, 0, MPI_COMM_WORLD );
+         double **ParX_sum = new double*[Merger_Coll_NumHalos];
+         double **ParY_sum = new double*[Merger_Coll_NumHalos];
+         double **ParZ_sum = new double*[Merger_Coll_NumHalos];
+         double **ParM_sum = new double*[Merger_Coll_NumHalos];
+         double **VelX_sum = new double*[Merger_Coll_NumHalos];
+         double **VelY_sum = new double*[Merger_Coll_NumHalos];
+         double **VelZ_sum = new double*[Merger_Coll_NumHalos];
+         for (int c=0; c<Merger_Coll_NumHalos; c++) {
+            ParX_sum[c] = new double[num_par_sum[c]];
+            ParY_sum[c] = new double[num_par_sum[c]];
+            ParZ_sum[c] = new double[num_par_sum[c]];
+            ParM_sum[c] = new double[num_par_sum[c]];
+            VelX_sum[c] = new double[num_par_sum[c]];
+            VelY_sum[c] = new double[num_par_sum[c]];
+            VelZ_sum[c] = new double[num_par_sum[c]];
          }
-      
+         for (int c=0; c<Merger_Coll_NumHalos; c++) {
+            MPI_Allgatherv( ParX[c], num_par[c], MPI_DOUBLE, ParX_sum[c], num_par_eachRank[c], displs[c], MPI_DOUBLE, MPI_COMM_WORLD );
+            MPI_Allgatherv( ParY[c], num_par[c], MPI_DOUBLE, ParY_sum[c], num_par_eachRank[c], displs[c], MPI_DOUBLE, MPI_COMM_WORLD );
+            MPI_Allgatherv( ParZ[c], num_par[c], MPI_DOUBLE, ParZ_sum[c], num_par_eachRank[c], displs[c], MPI_DOUBLE, MPI_COMM_WORLD );
+            MPI_Allgatherv( ParM[c], num_par[c], MPI_DOUBLE, ParM_sum[c], num_par_eachRank[c], displs[c], MPI_DOUBLE, MPI_COMM_WORLD );
+            MPI_Allgatherv( VelX[c], num_par[c], MPI_DOUBLE, VelX_sum[c], num_par_eachRank[c], displs[c], MPI_DOUBLE, MPI_COMM_WORLD );
+            MPI_Allgatherv( VelY[c], num_par[c], MPI_DOUBLE, VelY_sum[c], num_par_eachRank[c], displs[c], MPI_DOUBLE, MPI_COMM_WORLD );
+            MPI_Allgatherv( VelZ[c], num_par[c], MPI_DOUBLE, VelZ_sum[c], num_par_eachRank[c], displs[c], MPI_DOUBLE, MPI_COMM_WORLD );
+         }
+
 //       Compute potential and find the minimum position, and calculate the average DM velocity on the root rank
-         if ( MPI_Rank == 0 ){
-            if ( AdjustPos == true ){
-               double soften = amr->dh[MAX_LEVEL]; 
-               double *pote1 = new double[num_par_sum[0]]; 
-               for (int i=0; i<num_par_sum[0]; i++)   pote1[i] = 0.0;
-               for (int i=0; i<num_par_sum[0]; i++){
-                  for (int j=0; j<num_par_sum[0]; j++){
-                     double rel_pos = sqrt(SQR(ParX_sum1[i]-ParX_sum1[j])+SQR(ParY_sum1[i]-ParY_sum1[j])+SQR(ParZ_sum1[i]-ParZ_sum1[j]));
-                     if ( rel_pos > soften )   pote1[i] += -NEWTON_G*ParM_sum1[j]/rel_pos; 
-                     else if  ( rel_pos <= soften && i != j )   pote1[i] += -NEWTON_G*ParM_sum1[j]/soften;
-                  }
-               }
-               double Pote_min1 = 0.0;
-               for (int i=0; i<num_par_sum[0]; i++){
-                  if ( pote1[i] < Pote_min1 ){
-                     Pote_min1 = pote1[i];
-                     min_pos[0][0] = ParX_sum1[i];
-                     min_pos[0][1] = ParY_sum1[i];
-                     min_pos[0][2] = ParZ_sum1[i];
-                  }
-               }
-               delete[] pote1;
+         if ( AdjustPos == true ){
+            double soften = amr->dh[MAX_LEVEL];
+            for (int c=0; c<Merger_Coll_NumHalos; c++) {
+               double *pote = new double[num_par_sum[c]];
 
-               if ( Merger_Coll_NumHalos == 2 ){
-                  double *pote2 = new double[num_par_sum[1]];
-                  for (int i=0; i<num_par_sum[1]; i++)   pote2[i] = 0.0;
-                  for (int i=0; i<num_par_sum[1]; i++){
-                     for (int j=0; j<num_par_sum[1]; j++){
-                        double rel_pos = sqrt(SQR(ParX_sum2[i]-ParX_sum2[j])+SQR(ParY_sum2[i]-ParY_sum2[j])+SQR(ParZ_sum2[i]-ParZ_sum2[j]));
-                        if ( rel_pos > soften )   pote2[i] += -NEWTON_G*ParM_sum2[j]/rel_pos; 
-                        else if  ( rel_pos <= soften && i != j )   pote2[i] += -NEWTON_G*ParM_sum2[j]/soften;
-                     }      
-                  } 
-                  double Pote_min2 = 0.0;
-                  for (int i=0; i<num_par_sum[1]; i++){
-                     if ( pote2[i] < Pote_min2 ){
-                        Pote_min2 = pote2[i];
-                        min_pos[1][0] = ParX_sum2[i];
-                        min_pos[1][1] = ParY_sum2[i];
-                        min_pos[1][2] = ParZ_sum2[i];
-                     }      
+//             Distribute MPI jobs
+               int par_per_rank = num_par_sum[c]/MPI_NRank;
+               int remainder = num_par_sum[c]%MPI_NRank;
+               int start = MPI_Rank*par_per_rank + MIN(MPI_Rank, remainder);
+               int end = start + par_per_rank + (MPI_Rank < remainder ? 1 : 0);
+               double *pote_local = new double[end-start];
+    
+#              pragma omp parallel for schedule(static)
+               for (int i=start; i<end; i++){
+                  pote_local[i-start] = 0.0;
+                  for (int j=0; j<num_par_sum[c]; j++){
+                     double rel_pos = sqrt(SQR(ParX_sum[c][i]-ParX_sum[c][j])+SQR(ParY_sum[c][i]-ParY_sum[c][j])+SQR(ParZ_sum[c][i]-ParZ_sum[c][j]));
+                     if ( rel_pos > soften )   pote_local[i-start] += ParM_sum[c][j]/rel_pos; 
+                     else if  ( rel_pos <= soften && i != j )   pote_local[i-start] += ParM_sum[c][j]/soften;
                   }
-                  delete[] pote2; 
-               } // if ( Merger_Coll_NumHalos == 2 )
-            } // if ( AdjustPos == true )
+                  pote_local[i-start] *= -NEWTON_G;
+               }
+               int recvcounts[MPI_NRank], displs[MPI_NRank];
+               for (int i=0; i<MPI_NRank; i++)  recvcounts[i] = (i < remainder ? par_per_rank+1 : par_per_rank);
+               displs[0] = 0;
+               for (int i=1; i<MPI_NRank; i++)  displs[i] = displs[i-1] + recvcounts[i-1]; 
+               MPI_Allgatherv( pote_local, end-start, MPI_DOUBLE, pote, recvcounts, displs, MPI_DOUBLE, MPI_COMM_WORLD );
 
-//          Calculate the average DM velocity
-            if ( AdjustVel == true ){ 
-               for (int d=0; d<3; d++)  DM_Vel[0][d] = 0.0;
-               for (int i=0; i<num_par_sum[0]; i++){
-                  DM_Vel[0][0] += VelX_sum1[i]; 
-                  DM_Vel[0][1] += VelY_sum1[i]; 
-                  DM_Vel[0][2] += VelZ_sum1[i]; 
+               double Pote_min = 0.0;
+               for (int i=0; i<num_par_sum[c]; i++){
+                  if ( pote[i] < Pote_min ){
+                     Pote_min = pote[i];
+                     min_pos[c][0] = ParX_sum[c][i];
+                     min_pos[c][1] = ParY_sum[c][i];
+                     min_pos[c][2] = ParZ_sum[c][i];
+                  }
                }
-               for (int d=0; d<3; d++)  DM_Vel[0][d] /= num_par_sum[0];
-               if ( Merger_Coll_NumHalos == 2 ){   
-                  for (int d=0; d<3; d++)  DM_Vel[1][d] = 0.0;
-                  for (int i=0; i<num_par_sum[1]; i++){
-                     DM_Vel[1][0] += VelX_sum2[i]; 
-                     DM_Vel[1][1] += VelY_sum2[i]; 
-                     DM_Vel[1][2] += VelZ_sum2[i]; 
-                  }  
-                  for (int d=0; d<3; d++)  DM_Vel[1][d] /= num_par_sum[1];
+               delete[] pote;
+               delete[] pote_local;
+            } // for (int c=0; c<Merger_Coll_NumHalos; c++)
+         } // if ( AdjustPos == true )
+
+//       Calculate the average DM velocity
+         if ( AdjustVel == true ){
+            for (int c=0; c<Merger_Coll_NumHalos; c++) {
+               for (int d=0; d<3; d++)  DM_Vel[c][d] = 0.0;
+               for (int i=0; i<num_par_sum[c]; i++){
+                  DM_Vel[c][0] += VelX_sum[c][i]; 
+                  DM_Vel[c][1] += VelY_sum[c][i]; 
+                  DM_Vel[c][2] += VelZ_sum[c][i]; 
                }
-            } // if ( AdjustVel == true )
-         } // if ( MPI_Rank == 0 )
-      
-//       Broadcast the results to all ranks
-         for (int c=0; c<Merger_Coll_NumHalos; c++)   MPI_Bcast( min_pos[c], 3, MPI_DOUBLE, 0, MPI_COMM_WORLD );
-         for (int c=0; c<Merger_Coll_NumHalos; c++)   MPI_Bcast( DM_Vel[c],  3, MPI_DOUBLE, 0, MPI_COMM_WORLD );   
+               for (int d=0; d<3; d++)  DM_Vel[c][d] /= num_par_sum[c];
+            }
+         } // if ( AdjustVel == true )
 
 //       Iterate the above calculation until the output BH positions become close enough
          count += 1;
@@ -960,21 +933,23 @@ void GetClusterCenter( int lv, bool AdjustPos, bool AdjustVel, double Cen_old[][
          }
          if ( count > 1  &&  sqrt(dis[0]) < dis_exp  &&  sqrt(dis[1]) < dis_exp )   IfConverge = true;
 
-         delete[] ParX_sum1;
-         delete[] ParX_sum2;
-         delete[] ParY_sum1;
-         delete[] ParY_sum2;
-         delete[] ParZ_sum1;
-         delete[] ParZ_sum2;
-         delete[] ParM_sum1;
-         delete[] ParM_sum2;
-         delete[] VelX_sum1;
-         delete[] VelX_sum2;
-         delete[] VelY_sum1;
-         delete[] VelY_sum2;
-         delete[] VelZ_sum1;
-         delete[] VelZ_sum2;
-         for (int c=0; c<3; c++) {
+         for (int c=0; c<Merger_Coll_NumHalos; c++) {
+            delete[] ParX_sum[c];
+            delete[] ParY_sum[c];
+            delete[] ParZ_sum[c];
+            delete[] ParM_sum[c];
+            delete[] VelX_sum[c];
+            delete[] VelY_sum[c];
+            delete[] VelZ_sum[c];
+         }
+         delete[] ParX_sum;
+         delete[] ParY_sum;
+         delete[] ParZ_sum;
+         delete[] ParM_sum;
+         delete[] VelX_sum;
+         delete[] VelY_sum;
+         delete[] VelZ_sum;
+         for (int c=0; c<Merger_Coll_NumHalos; c++) {
             delete[] ParX[c];
             delete[] ParY[c];
             delete[] ParZ[c];
