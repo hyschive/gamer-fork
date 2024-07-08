@@ -1,0 +1,17 @@
+# problem-specific runtime parameters
+ComputeCorrelation      1                        # compute correlation function
+
+# parameters for correlation function (only useful when ComputeCorrelation=1)
+dr_min_corr             0.00234224               # granule_diameter
+RadiusMax_corr          0.04                     # 0.5*BoxSize
+LogBin_corr             1                        # use log bin
+LogBinRatio_corr        1.1940617521534918       # 16 log bins -> exp((log(RadiusMax_corr)-log(dr_min_corr))/16)
+dr_min_prof             0.00058606               # 0.25*granule_diameter
+FilePath_corr           ./Record__Correlation    # output path for correlation function text files
+MinLv                   0                        # do statistics from MinLv to MaxLv (default=0)
+MaxLv                   0                        # do statistics from MinLv to MaxLv (default=MAX_LEVEL)
+ReComputeCorrelation    0                        # use the simulation time of RESTART as initial time for computing time correlation; only available for RESTART
+StepInitial             0                        # inital step for recording correlation function (default=0)
+StepInterval            1                        # interval for recording correlation function (only for OutputCorrelationMode=0) (default=1)
+StepEnd                 200                      # end step for recording correlation function (only for OutputCorrelationMode=0) (default=NoMax_int)
+RemoveEmpty_prof        0                        # remove 0 sample bins; false: Data[empty_bin]=Weight[empty_bin]=NCell[empty_bin]=0 (profile)
