@@ -153,7 +153,6 @@ void Flu_ResetByUser_API_ClusterMerger( const int lv, const int FluSg, const int
 extern void (*Flu_ResetByUser_API_Ptr)( const int lv, const int FluSg, const int MagSg, const double TimeNew, const double dt );
 void Output_ClusterMerger();
 void Init_User_ClusterMerger();
-//extern void GetClusterCenter( int lv, double Cen_old[][3], double Cen_new[][3], double Cen_Vel[][3] ); 
 
 //-------------------------------------------------------------------------------------------------------
 // Function    :  Validate
@@ -382,9 +381,6 @@ void SetParameter()
                Read_Profile_ClusterMerger(filename1, "/fields/metallicity", Table_M1);
             else
                for ( int i; i < Merger_NBin1; i++ ) Table_M1[i] = 0.0;
-
-			// NO truncate gas density 
-
             // convert to code units (assuming the input units are cgs)
             for ( int b=0; b<Merger_NBin1; b++ ) {
                Table_R1[b] *= Unit_R1/UNIT_L;
@@ -424,9 +420,6 @@ void SetParameter()
                Read_Profile_ClusterMerger(filename2, "/fields/metallicity", Table_M2);
             else
                for ( int i; i < Merger_NBin2; i++ ) Table_M2[i] = 0.0;
-
-			// NO truncate gas density 
-
             // convert to code units (assuming the input units are cgs)
             for ( int b=0; b<Merger_NBin2; b++ ) {
                Table_R2[b] *= Unit_R2/UNIT_L;
@@ -884,7 +877,6 @@ void Init_TestProb_Hydro_ClusterMerger()
    Aux_Record_User_Ptr            = Aux_Record_ClusterMerger;
    Par_Init_ByFunction_Ptr        = Par_Init_ByFunction_ClusterMerger;
    Init_Field_User_Ptr            = AddNewField_ClusterMerger;
-   //Par_Init_Attribute_User_Ptr    = AddNewParticleAttribute_ClusterMerger;
 
    Flu_ResetByUser_Func_Ptr       = Flu_ResetByUser_Func_ClusterMerger;
    Flu_ResetByUser_API_Ptr        = Flu_ResetByUser_API_ClusterMerger;

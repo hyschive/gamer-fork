@@ -300,8 +300,6 @@ void Par_Init_ByFunction_ClusterMerger( const long NPar_ThisRank, const long NPa
          ParPos[d][p] += ClusterCenter1[d];
    }
 
-   // NO reset particle mass 
-
    for (long p=NPar_ThisRank_EachCluster[0]; p<NPar_ThisRank_EachCluster[0]+NPar_ThisRank_EachCluster[1]; p++) {
       if ( (int)ParType[p] != PTYPE_TRACER ) {
          ParVelX[p] += Merger_Coll_VelX2;
@@ -310,9 +308,6 @@ void Par_Init_ByFunction_ClusterMerger( const long NPar_ThisRank, const long NPa
       for (int d=0; d<3; d++)
          ParPos[d][p] += ClusterCenter2[d];
    }
-
-   // NO reset particle mass
-
 
    for (long p=NPar_ThisRank_EachCluster[0]+NPar_ThisRank_EachCluster[1]; p<NPar_ThisRank; p++) {
       if ( (int)ParType[p] != PTYPE_TRACER ) {

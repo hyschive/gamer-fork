@@ -117,7 +117,7 @@ int Flu_ResetByUser_Func_ClusterMerger( real fluid[], const double Emag, const d
 {
    const double Pos[3]  = { x, y, z };
 
-// (1) SMBH Accretion
+// (1) SMBH Accretion (note: gas depletion is currently disabled)
 
    double dr2[3][3], r2[3];
    const double V_dep = 4.0/3.0*M_PI*pow(R_dep,3.0); // the region to remove gas
@@ -602,7 +602,6 @@ void Flu_ResetByUser_API_ClusterMerger( const int lv, const int FluSg, const int
 
 //       reset this cell
          if (CurrentMaxLv)  Reset = Flu_ResetByUser_Func_ClusterMerger( fluid, Emag, x, y, z, TimeNew, dt, lv, NULL );
-//         Reset = Flu_ResetByUser_Func_ClusterMerger( fluid, Emag, x, y, z, TimeNew, dt, lv, NULL );
 
 //       operations necessary only when this cell has been reset
          if ( Reset != 0 )
