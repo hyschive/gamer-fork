@@ -6,6 +6,7 @@ extern void SetTempIntPara( const int lv, const int Sg_0, const double PrepTime,
 
 
 
+
 //-------------------------------------------------------------------------------------------------------
 // Function    :  Aux_ComputeProfile_with_Sigma
 // Description :  Compute the average radial profile of target field(s) along with its standard deviation at each bin
@@ -24,7 +25,6 @@ extern void SetTempIntPara( const int lv, const int Sg_0, const double PrepTime,
 //                3. Support hybrid OpenMP/MPI parallelization
 //                   --> All ranks will share the same profile data after invoking this function
 //                4. Use cell volume as the weighting of each cell
-//                   --> Will support other weighting functions in the future
 //                5. Support computing multiple fields
 //                   --> The order of fields to be returned follows TVarBitIdx[]
 //

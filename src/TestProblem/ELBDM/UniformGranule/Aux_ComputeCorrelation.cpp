@@ -239,9 +239,10 @@ void Aux_ComputeCorrelation( Profile_t *Correlation[], const Profile_with_Sigma_
 //    get the total number of radial bins and the corresponding maximum radius
       if ( LogBin )
       {
-//         Correlation[p]->NBin      = int( log(r_max_input/dr_min)/log(LogBinRatio) ) + 2;
+//       MaxRadius will be smaller than r_max_input if Correlation[p]->NBin = int( log(r_max_input/dr_min)/log(LogBinRatio) ) + 1;
+//                 will be greater than r_max_input if Correlation[p]->NBin = int( log(r_max_input/dr_min)/log(LogBinRatio) ) + 2;
          Correlation[p]->NBin      = int( log(r_max_input/dr_min)/log(LogBinRatio) ) + 1;
-         Correlation[p]->MaxRadius = dr_min*pow( LogBinRatio, Correlation[p]->NBin-1 );  // MaxRadius will smaller than r_max_input if Correlation[p]->NBin      = int( log(r_max_input/dr_min)/log(LogBinRatio) ) + 1; will be larger than r_max_input if Correlation[p]->NBin      = int( log(r_max_input/dr_min)/log(LogBinRatio) ) + 2;
+         Correlation[p]->MaxRadius = dr_min*pow( LogBinRatio, Correlation[p]->NBin-1 );
       }
 
       else // linear bin
@@ -295,7 +296,6 @@ void Aux_ComputeCorrelation( Profile_t *Correlation[], const Profile_with_Sigma_
    const bool   Periodic[3] = { OPT__BC_FLU[0] == BC_FLU_PERIODIC,
                                 OPT__BC_FLU[2] == BC_FLU_PERIODIC,
                                 OPT__BC_FLU[4] == BC_FLU_PERIODIC };
-//   if ( MPI_Rank==0 )  printf(" r_max2 = %14.7e \n", r_max2);
 
 #  pragma omp parallel
    {
@@ -316,7 +316,6 @@ void Aux_ComputeCorrelation( Profile_t *Correlation[], const Profile_with_Sigma_
 
 //    allocate passive scalar arrays
       real *Passive      = new real [NCOMP_PASSIVE];
-//      real *Passive_IntT = new real [NCOMP_PASSIVE];
 
 //    loop over all target levels
       for (int lv=MinLv; lv<=MaxLv; lv++)
@@ -338,15 +337,6 @@ void Aux_ComputeCorrelation( Profile_t *Correlation[], const Profile_with_Sigma_
          real MagWeighting, MagWeighting_IntT;
 #        endif
 
-/*       does not support _POTE yet
-#        ifdef GRAVITY
-         bool PotIntTime = false;
-         int  PotSg      = amr->PotSg[lv];
-         int  PotSg_IntT;
-         real PotWeighting, PotWeighting_IntT;
-#        endif
-*/
-
          if ( PrepTime >= 0.0 )
          {
 //          fluid
@@ -360,17 +350,6 @@ void Aux_ComputeCorrelation( Profile_t *Correlation[], const Profile_with_Sigma_
             SetTempIntPara( lv, MagSg0, PrepTime, amr->MagSgTime[lv][MagSg0], amr->MagSgTime[lv][1-MagSg0],
                             MagIntTime, MagSg, MagSg_IntT, MagWeighting, MagWeighting_IntT );
 #           endif
-
-/*
-//          does not support _POTE yet
-//          potential
-#           ifdef GRAVITY
-            if ( InclPot ) {
-            const int PotSg0 = amr->PotSg[lv];
-            SetTempIntPara( lv, PotSg0, PrepTime, amr->PotSgTime[lv][PotSg0], amr->PotSgTime[lv][1-PotSg0],
-                            PotIntTime, PotSg, PotSg_IntT, PotWeighting, PotWeighting_IntT );
-#           endif
-*/
          }
 
 
@@ -390,23 +369,10 @@ void Aux_ComputeCorrelation( Profile_t *Correlation[], const Profile_with_Sigma_
                if ( PatchType == PATCH_NONLEAF )                                 continue;
             }
 
-
             const real (*FluidPtr)[PS1][PS1][PS1] = amr->patch[ FluSg ][lv][PID]->fluid;
-/*          does not support _POTE yet
-#           ifdef GRAVITY
-            const real (*PotPtr  )[PS1][PS1]      = amr->patch[ PotSg ][lv][PID]->pot;
-#           endif
-*/
 
 //          pointer for temporal interpolation
             const real (*FluidPtr_IntT)[PS1][PS1][PS1] = ( FluIntTime ) ? amr->patch[ FluSg_IntT ][lv][PID]->fluid : NULL;
-/*          does not support _POTE yet
-#           ifdef GRAVITY
-            const real (*PotPtr_IntT  )[PS1][PS1]      = ( PotIntTime ) ? amr->patch[ PotSg_IntT ][lv][PID]->pot   : NULL;
-#           endif
-*/
-
-
             const double x0 = amr->patch[0][lv][PID]->EdgeL[0] + 0.5*dh - Center[0];
             const double y0 = amr->patch[0][lv][PID]->EdgeL[1] + 0.5*dh - Center[1];
             const double z0 = amr->patch[0][lv][PID]->EdgeL[2] + 0.5*dh - Center[2];
@@ -475,201 +441,17 @@ void Aux_ComputeCorrelation( Profile_t *Correlation[], const Profile_with_Sigma_
                         else
                             OMP_Data  [p][TID][bin] += delta*delta_passive/mean_value[p]/mean_value[p]*Weight;
 
-//                        OMP_Data  [p][TID][bin] += delta*Weight;
                         OMP_Weight[p][TID][bin] += Weight;
                         OMP_NCell [p][TID][bin] ++;
                      }
-
-/*                   does not support other fields yet
-//                   other fields
-                     else
-                     {
-                        switch ( TVarBitIdx[p] )
-                        {
-//                         does not support _POTE yet
-//                         gravitational potential
-#                          ifdef GRAVITY
-                           case _POTE:
-                           {
-                              const real Weight = ( FluIntTime )    // weighted by cell mass
-                                                ? ( FluWeighting     *FluidPtr     [DENS][k][j][i]
-                                                  + FluWeighting_IntT*FluidPtr_IntT[DENS][k][j][i] )*dv
-                                                :                     FluidPtr     [DENS][k][j][i]  *dv;
-
-
-                              real delta  = ( PotIntTime )
-                                                ? ( PotWeighting     *PotPtr     [k][j][i]
-                                                  + PotWeighting_IntT*PotPtr_IntT[k][j][i] )
-                                                       :                     PotPtr     [k][j][i]  ;
-//                              real delta_passive = amr->patch[0][lv][PID]->fluid[ *(Passive_idx[p]) ][k][j][i];
-                              real delta_passive = Passive[p];
-                              delta         -= mean_value[p];
-                              delta_passive -= mean_value[p];
-
-                              if (std_value[p]>(real)0.)
-                                  OMP_Data  [p][TID][bin] += delta*delta_passive/std_value[p]/std_value[p]*Weight;
-                              else
-                                  OMP_Data  [p][TID][bin] += delta*delta_passive/mean_value[p]/mean_value[p]*Weight;
-
-                              OMP_Weight[p][TID][bin] += Weight;
-                              OMP_NCell [p][TID][bin] ++;
-                           }
-                           break;
-#                          endif
-*/
-
-
-//                         derived fields
-/*
-#                          if ( MODEL == HYDRO )
-                           case _VELR:
-                           {
-                              const real Weight = ( FluIntTime )    // weighted by cell mass
-                                                ? ( FluWeighting     *FluidPtr     [DENS][k][j][i]
-                                                  + FluWeighting_IntT*FluidPtr_IntT[DENS][k][j][i] )*dv
-                                                :                     FluidPtr     [DENS][k][j][i]  *dv;
-
-                              const real MomR   = ( FluIntTime )
-                                                ? ( FluWeighting     *( FluidPtr     [MOMX][k][j][i]*dx +
-                                                                        FluidPtr     [MOMY][k][j][i]*dy +
-                                                                        FluidPtr     [MOMZ][k][j][i]*dz )
-                                                  + FluWeighting_IntT*( FluidPtr_IntT[MOMX][k][j][i]*dx +
-                                                                        FluidPtr_IntT[MOMY][k][j][i]*dy +
-                                                                        FluidPtr_IntT[MOMZ][k][j][i]*dz ) ) / r
-                                                :                     ( FluidPtr     [MOMX][k][j][i]*dx +
-                                                                        FluidPtr     [MOMY][k][j][i]*dy +
-                                                                        FluidPtr     [MOMZ][k][j][i]*dz )   / r;
-
-                              OMP_Data  [p][TID][bin] += MomR*dv;    // vr*(rho*dv)
-                              OMP_Weight[p][TID][bin] += Weight;
-                              OMP_NCell [p][TID][bin] ++;
-                           }
-                           break;
-
-                           case _PRES:
-                           {
-                              const bool CheckMinPres_No = false;
-                              const real Weight          = dv;
-#                             ifdef MHD
-                              const real Emag            = MHD_GetCellCenteredBEnergyInPatch( lv, PID, i, j, k, MagSg      );
-                              const real Emag_IntT       = ( MagIntTime )
-                                                         ? MHD_GetCellCenteredBEnergyInPatch( lv, PID, i, j, k, MagSg_IntT )
-                                                         : NULL_REAL;
-#                             else
-                              const real Emag            = NULL_REAL;
-                              const real Emag_IntT       = NULL_REAL;
-#                             endif
-                              const real Pres = ( FluIntTime )
-                                              ?   FluWeighting     *Hydro_Con2Pres( FluidPtr     [DENS][k][j][i],
-                                                                                    FluidPtr     [MOMX][k][j][i],
-                                                                                    FluidPtr     [MOMY][k][j][i],
-                                                                                    FluidPtr     [MOMZ][k][j][i],
-                                                                                    FluidPtr     [ENGY][k][j][i],
-                                                                                    Passive,
-                                                                                    CheckMinPres_No, NULL_REAL, Emag,
-                                                                                    EoS_DensEint2Pres_CPUPtr, EoS_AuxArray_Flt,
-                                                                                    EoS_AuxArray_Int, h_EoS_Table, NULL )
-                                                + FluWeighting_IntT*Hydro_Con2Pres( FluidPtr_IntT[DENS][k][j][i],
-                                                                                    FluidPtr_IntT[MOMX][k][j][i],
-                                                                                    FluidPtr_IntT[MOMY][k][j][i],
-                                                                                    FluidPtr_IntT[MOMZ][k][j][i],
-                                                                                    FluidPtr_IntT[ENGY][k][j][i],
-                                                                                    Passive_IntT,
-                                                                                    CheckMinPres_No, NULL_REAL, Emag_IntT,
-                                                                                    EoS_DensEint2Pres_CPUPtr, EoS_AuxArray_Flt,
-                                                                                    EoS_AuxArray_Int, h_EoS_Table, NULL )
-                                              :                     Hydro_Con2Pres( FluidPtr     [DENS][k][j][i],
-                                                                                    FluidPtr     [MOMX][k][j][i],
-                                                                                    FluidPtr     [MOMY][k][j][i],
-                                                                                    FluidPtr     [MOMZ][k][j][i],
-                                                                                    FluidPtr     [ENGY][k][j][i],
-                                                                                    Passive,
-                                                                                    CheckMinPres_No, NULL_REAL, Emag,
-                                                                                    EoS_DensEint2Pres_CPUPtr, EoS_AuxArray_Flt,
-                                                                                    EoS_AuxArray_Int, h_EoS_Table, NULL );
-
-                              OMP_Data  [p][TID][bin] += Pres*Weight;
-                              OMP_Weight[p][TID][bin] += Weight;
-                              OMP_NCell [p][TID][bin] ++;
-                           }
-                           break;
-
-                           case _EINT:
-                           {
-                              const real Weight = dv;
-                              const real Dens   = FluidPtr[DENS][k][j][i];
-
-//                            use the dual-energy variable to calculate the internal energy directly, if applicable
-#                             ifdef DUAL_ENERGY
-
-#                             if   ( DUAL_ENERGY == DE_ENPY )
-                              const bool CheckMinPres_No = false;
-                              const real Enpy = FluidPtr[DUAL][k][j][i];
-                              const real Pres = Hydro_DensDual2Pres( Dens, Enpy, EoS_AuxArray_Flt[1],
-                                                                     CheckMinPres_No, NULL_REAL );
-                              const real Eint = EoS_DensPres2Eint_CPUPtr( Dens, Pres, Passive, EoS_AuxArray_Flt,
-                                                                          EoS_AuxArray_Int, h_EoS_Table );
-#                             elif ( DUAL_ENERGY == DE_EINT )
-#                             error : DE_EINT is NOT supported yet !!
-#                             endif
-
-#                             else // #ifdef DUAL_ENERGY
-
-                              const bool CheckMinEint_No = false;
-                              const real MomX            = FluidPtr[MOMX][k][j][i];
-                              const real MomY            = FluidPtr[MOMY][k][j][i];
-                              const real MomZ            = FluidPtr[MOMZ][k][j][i];
-                              const real Etot            = FluidPtr[ENGY][k][j][i];
-#                             ifdef MHD
-                              const real Emag            = MHD_GetCellCenteredBEnergyInPatch( lv, PID, i, j, k, MagSg      );
-                              const real Emag_IntT       = ( MagIntTime )
-                                                         ? MHD_GetCellCenteredBEnergyInPatch( lv, PID, i, j, k, MagSg_IntT )
-                                                         : NULL_REAL;
-#                             else
-                              const real Emag            = NULL_REAL;
-                              const real Emag_IntT       = NULL_REAL;
-#                             endif
-                              const real Eint = ( FluIntTime )
-                                              ?   FluWeighting     *Hydro_Con2Eint( FluidPtr     [DENS][k][j][i],
-                                                                                    FluidPtr     [MOMX][k][j][i],
-                                                                                    FluidPtr     [MOMY][k][j][i],
-                                                                                    FluidPtr     [MOMZ][k][j][i],
-                                                                                    FluidPtr     [ENGY][k][j][i],
-                                                                                    CheckMinEint_No, NULL_REAL, Emag )
-                                                + FluWeighting_IntT*Hydro_Con2Eint( FluidPtr_IntT[DENS][k][j][i],
-                                                                                    FluidPtr_IntT[MOMX][k][j][i],
-                                                                                    FluidPtr_IntT[MOMY][k][j][i],
-                                                                                    FluidPtr_IntT[MOMZ][k][j][i],
-                                                                                    FluidPtr_IntT[ENGY][k][j][i],
-                                                                                    CheckMinEint_No, NULL_REAL, Emag_IntT )
-                                              :                     Hydro_Con2Eint( FluidPtr     [DENS][k][j][i],
-                                                                                    FluidPtr     [MOMX][k][j][i],
-                                                                                    FluidPtr     [MOMY][k][j][i],
-                                                                                    FluidPtr     [MOMZ][k][j][i],
-                                                                                    FluidPtr     [ENGY][k][j][i],
-                                                                                    CheckMinEint_No, NULL_REAL, Emag );
-#                             endif // #ifdef DUAL_ENERGY ... else
-
-                              OMP_Data  [p][TID][bin] += Eint*Weight;
-                              OMP_Weight[p][TID][bin] += Weight;
-                              OMP_NCell [p][TID][bin] ++;
-                           }
-                           break;
-#                          endif // HYDRO
-
-                           default:
-                              Aux_Error( ERROR_INFO, "unsupported field (%ld) !!\n", TVarBitIdx[p] );
-                              exit( 1 );
-                        } // switch ( TVarBitIdx[p] )
-                     } // if ( TFluIntIdx[p] != IdxUndef ) ... else ...
-*/
                   } // for (int p=0; p<NProf; p++)
                } // if ( r2 < r_max2 )
             }}} // i,j,k
          } // for (int PID=0; PID<amr->NPatchComma[lv][1]; PID++)
       } // for (int lv=MinLv; lv<=MaxLv; lv++)
 
-      delete [] Passive;         Passive      = NULL;
+      delete [] Passive;
+      Passive = NULL;
 
    } // OpenMP parallel region
 

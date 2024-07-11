@@ -85,7 +85,7 @@ struct Profile_with_Sigma_t
    // Method      :  AllocateMemory
    // Description :  Allocate member arrays
    //
-   // Note        :  1. Invoked by Aux_ComputeProfile()
+   // Note        :  1. Invoked by Aux_ComputeProfile_with_Sigma()
    //                2. No data initialization is done here
    //
    // Parameter   :  None
@@ -117,7 +117,7 @@ struct Profile_with_Sigma_t
    // Method      :  FreeMemory
    // Description :  Free the memory allocated by AllocateMemory()
    //
-   // Note        :  Invoked by ~Profile()
+   // Note        :  Invoked by ~Profile_with_Sigma()
    //
    // Parameter   :  None
    //

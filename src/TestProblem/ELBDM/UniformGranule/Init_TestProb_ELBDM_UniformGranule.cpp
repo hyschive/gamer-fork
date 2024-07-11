@@ -6,6 +6,7 @@ static void Init_Load_StepTable( void );
 static void AddNewField_ELBDM_UniformGranule( void );
 static void Init_User_ELBDM_UniformGranule( void );
 static void Do_CF( void );
+static void End_UniformGranule( void );
 
 void Aux_ComputeProfile_with_Sigma( Profile_with_Sigma_t *Prof[], const double Center[], const double r_max_input, const double dr_min,
                                     const bool LogBin, const double LogBinRatio, const bool RemoveEmpty, const long TVarBitIdx[],
@@ -21,30 +22,30 @@ void Aux_ComputeCorrelation( Profile_t *Correlation[], const Profile_with_Sigma_
 // problem-specific global variables
 // =======================================================================================
 static FieldIdx_t Idx_Dens0 = Idx_Undefined;  // field index for storing the **initial** density
-static double   Center[3];                    // use CoM coordinate of the whole halo as center
-static double   dr_min_prof;                  // bin size of correlation function statistics (minimum size if logarithic bin) (profile)
-static double   LogBinRatio_prof;             // ratio of bin size growing rate for logarithmic bin (profile)
-static double   RadiusMax_prof;               // maximum radius for correlation function statistics (profile)
-static double   dr_min_corr;                  // bin size of correlation function statistics (minimum size if logarithic bin) (correlation)
-static double   LogBinRatio_corr;             // ratio of bin size growing rate for logarithmic bin (correlation)
-static double   RadiusMax_corr;               // maximum radius for correlation function statistics (correlation)
 static bool     ComputeCorrelation;           // flag for compute correlation
 static bool     ReComputeCorrelation;         // flag for recompute correlation for restart; use the simulation time of RESTART as initial time for computing time correlation; only available for RESTART
-static bool     LogBin_prof;                  // logarithmic bin or not (profile)
-static bool     RemoveEmpty_prof;             // remove 0 sample bins; false: Data[empty_bin]=Weight[empty_bin]=NCell[empty_bin]=0 (profile)
-static bool     LogBin_corr;                  // logarithmic bin or not (correlation)
-static bool     RemoveEmpty_corr;             // remove 0 sample bins; false: Data[empty_bin]=Weight[empty_bin]=NCell[empty_bin]=0 (correlation)
+static char     FilePath_corr[MAX_STRING];    // output path for correlation function text files
 static int      MinLv;                        // do statistics from MinLv to MaxLv
 static int      MaxLv;                        // do statistics from MinLv to MaxLv
 static int      StepInitial;                  // inital step for recording correlation function
 static int      StepInterval;                 // interval for recording correlation function
 static int      StepEnd;                      // end step for recording correlation function
-static char     FilePath_corr[MAX_STRING];    // output path for correlation function text files
+static double   Center[3];                    // use CoM as center
+static double   RadiusMax_prof;               // maximum radius for correlation function statistics (profile)
+static double   dr_min_prof;                  // bin size of correlation function statistics (minimum size if logarithic bin) (profile)
+static bool     LogBin_prof;                  // logarithmic bin or not (profile)
+static double   LogBinRatio_prof;             // ratio of bin size growing rate for logarithmic bin (profile)
+static bool     RemoveEmpty_prof;             // remove 0 sample bins; false: Data[empty_bin]=Weight[empty_bin]=NCell[empty_bin]=0 (profile)
+static double   RadiusMax_corr;               // maximum radius for correlation function statistics (correlation)
+static double   dr_min_corr;                  // bin size of correlation function statistics (minimum size if logarithic bin) (correlation)
+static bool     LogBin_corr;                  // logarithmic bin or not (correlation)
+static double   LogBinRatio_corr;             // ratio of bin size growing rate for logarithmic bin (correlation)
+static bool     RemoveEmpty_corr;             // remove 0 sample bins; false: Data[empty_bin]=Weight[empty_bin]=NCell[empty_bin]=0 (correlation)
 
-static Profile_with_Sigma_t  Prof_Dens_initial;                      // pointer to save initial density profile
-static Profile_with_Sigma_t *Prof[] = { &Prof_Dens_initial };
-static Profile_t             Correlation_Dens;                       // pointer to save density correlation function
-static Profile_t            *Correlation[] = { &Correlation_Dens };
+static Profile_with_Sigma_t *Prof_Dens_initial = new Profile_with_Sigma_t(); // pointer to save initial density profile
+static Profile_with_Sigma_t *Prof[1]           = { Prof_Dens_initial };
+static Profile_t            *Correlation_Dens  = new Profile_t();            // pointer to save density correlation function
+static Profile_t            *Correlation[1]    = { Correlation_Dens };
 // =======================================================================================
 
 //-------------------------------------------------------------------------------------------------------
@@ -85,7 +86,6 @@ void Validate()
 
 
 
-// replace HYDRO by the target model (e.g., MHD/ELBDM) and also check other compilation flags if necessary (e.g., GRAVITY/PARTICLE)
 #if ( MODEL == ELBDM  && defined GRAVITY )
 //-------------------------------------------------------------------------------------------------------
 // Function    :  SetParameter
@@ -120,20 +120,19 @@ void SetParameter()
 // ReadPara->Add( "KEY_IN_THE_FILE",          &VARIABLE,                DEFAULT,       MIN,              MAX               );
 // ********************************************************************************************************************************
    ReadPara->Add( "ComputeCorrelation",       &ComputeCorrelation,      false,         Useless_bool,     Useless_bool      );
-   ReadPara->Add( "dr_min_corr",              &dr_min_corr,             Eps_double,    Eps_double,       NoMax_double      );
-   ReadPara->Add( "LogBinRatio_corr",         &LogBinRatio_corr,        1.0,           Eps_double,       NoMax_double      );
-   ReadPara->Add( "RadiusMax_corr",           &RadiusMax_corr,          Eps_double,    Eps_double,       NoMax_double      );
-   ReadPara->Add( "LogBin_corr",              &LogBin_corr,             false,         Useless_bool,     Useless_bool      );
-   ReadPara->Add( "RemoveEmpty_corr",         &RemoveEmpty_corr,        false,         Useless_bool,     Useless_bool      );
-   ReadPara->Add( "dr_min_prof",              &dr_min_prof,             Eps_double,    Eps_double,       NoMax_double      );
+   ReadPara->Add( "ReComputeCorrelation",     &ReComputeCorrelation,    false,         Useless_bool,     Useless_bool      );
+   ReadPara->Add( "FilePath_corr",            FilePath_corr,            Useless_str,   Useless_str,      Useless_str       );
    ReadPara->Add( "MinLv",                    &MinLv,                   0,             0,                MAX_LEVEL         );
    ReadPara->Add( "MaxLv",                    &MaxLv,                   MAX_LEVEL,     0,                MAX_LEVEL         );
    ReadPara->Add( "StepInitial",              &StepInitial,             0,             0,                NoMax_int         );
    ReadPara->Add( "StepInterval",             &StepInterval,            1,             1,                NoMax_int         );
    ReadPara->Add( "StepEnd",                  &StepEnd,                 NoMax_int,     0,                NoMax_int         );
-   ReadPara->Add( "FilePath_corr",            FilePath_corr,            Useless_str,   Useless_str,      Useless_str       );
-   if ( OPT__INIT == INIT_BY_RESTART )
-      ReadPara->Add( "ReComputeCorrelation", &ReComputeCorrelation,     false,         Useless_bool,     Useless_bool      );
+   ReadPara->Add( "RadiusMax_corr",           &RadiusMax_corr,          Eps_double,    Eps_double,       NoMax_double      );
+   ReadPara->Add( "dr_min_corr",              &dr_min_corr,             Eps_double,    Eps_double,       NoMax_double      );
+   ReadPara->Add( "LogBin_corr",              &LogBin_corr,             false,         Useless_bool,     Useless_bool      );
+   ReadPara->Add( "LogBinRatio_corr",         &LogBinRatio_corr,        1.0,           Eps_double,       NoMax_double      );
+   ReadPara->Add( "RemoveEmpty_corr",         &RemoveEmpty_corr,        false,         Useless_bool,     Useless_bool      );
+   ReadPara->Add( "dr_min_prof",              &dr_min_prof,             Eps_double,    Eps_double,       NoMax_double      );
 
    ReadPara->Read( FileName );
 
@@ -142,11 +141,11 @@ void SetParameter()
 // (1-2) set the default values
    if (ComputeCorrelation)
    {
-       if ( dr_min_corr <=Eps_double )          dr_min_corr = 1e-3*0.5*amr->BoxSize[0];
+       if ( dr_min_corr <=Eps_double )          dr_min_corr = 1e-2*0.5*amr->BoxSize[0];
        if ( RadiusMax_corr<=Eps_double )        RadiusMax_corr = 0.5*amr->BoxSize[0];
        if ( LogBinRatio_corr<=1.0 )             LogBinRatio_corr = 2.0;
 
-       if ( dr_min_prof <=Eps_double )          dr_min_prof = dr_min_corr;
+       if ( dr_min_prof <=Eps_double )          dr_min_prof = 0.25*dr_min_corr;
        RadiusMax_prof                           = RadiusMax_corr * 1.05;   // assigned by Test Problem
        LogBinRatio_prof                         = 1.0;                     // hard-coded by Test Problem (no effect)
        LogBin_prof                              = false;                   // hard-coded by Test Problem
@@ -200,28 +199,28 @@ void SetParameter()
 // (4) make a note
    if ( MPI_Rank == 0 )
    {
-      Aux_Message( stdout, "=================================================================================\n" );
-      Aux_Message( stdout, "  test problem ID                             = %d\n",         TESTPROB_ID           );
-      Aux_Message( stdout, "  compute correlation                         = %d\n"    , ComputeCorrelation        );
+      Aux_Message(    stdout, "==============================================================================\n" );
+      Aux_Message(    stdout, "  test problem ID                             = %d\n"    , TESTPROB_ID            );
+      Aux_Message(    stdout, "  compute correlation                         = %d\n"    , ComputeCorrelation     );
       if (ComputeCorrelation)
       {
-         Aux_Message( stdout, "  histogram bin size  (correlation)           = %13.7e\n", dr_min_corr            );
-         Aux_Message( stdout, "  log bin ratio       (correlation)           = %13.7e\n", LogBinRatio_corr       );
          Aux_Message( stdout, "  radius maximum      (correlation)           = %13.7e\n", RadiusMax_corr         );
+         Aux_Message( stdout, "  histogram bin size  (correlation)           = %13.7e\n", dr_min_corr            );
          Aux_Message( stdout, "  use logarithmic bin (correlation)           = %d\n"    , LogBin_corr            );
+         Aux_Message( stdout, "  log bin ratio       (correlation)           = %13.7e\n", LogBinRatio_corr       );
          Aux_Message( stdout, "  remove empty bin    (correlation)           = %d\n"    , RemoveEmpty_corr       );
-         Aux_Message( stdout, "  histogram bin size  (profile)               = %13.7e\n", dr_min_prof            );
-         Aux_Message( stdout, "  log bin ratio       (profile, no effect)    = %13.7e\n", LogBinRatio_prof       );
          Aux_Message( stdout, "  radius maximum      (profile, assigned)     = %13.7e\n", RadiusMax_prof         );
-         Aux_Message( stdout, "  use logarithmic bin (profile, assigned)     = %d\n"    , LogBin_prof            );
-         Aux_Message( stdout, "  remove empty bin    (profile, assigned)     = %d\n"    , RemoveEmpty_prof       );
+         Aux_Message( stdout, "  histogram bin size  (profile)               = %13.7e\n", dr_min_prof            );
+         Aux_Message( stdout, "  use logarithmic bin (profile, hard-coded)   = %d\n"    , LogBin_prof            );
+         Aux_Message( stdout, "  log bin ratio       (profile, no effect)    = %13.7e\n", LogBinRatio_prof       );
+         Aux_Message( stdout, "  remove empty bin    (profile, hard-coded)   = %d\n"    , RemoveEmpty_prof       );
          Aux_Message( stdout, "  minimum level                               = %d\n"    , MinLv                  );
          Aux_Message( stdout, "  maximum level                               = %d\n"    , MaxLv                  );
          Aux_Message( stdout, "  file path for correlation text file         = %s\n"    , FilePath_corr          );
          if ( OPT__INIT == INIT_BY_RESTART )
-         Aux_Message( stdout, "  re-compute correlation using restart time as initial time = %d\n", ReComputeCorrelation );
+         Aux_Message( stdout, "  re-compute correlation using restart time   = %d\n"    , ReComputeCorrelation   );
       }
-      Aux_Message( stdout, "=================================================================================\n" );
+      Aux_Message(    stdout, "==============================================================================\n" );
    }
 
    if ( MPI_Rank == 0 )    Aux_Message( stdout, "   Setting runtime parameters ... done\n" );
@@ -242,14 +241,14 @@ void SetParameter()
 //
 // Return      :  None
 //-------------------------------------------------------------------------------------------------------
-static void AddNewField_ELBDM_UniformGranule(void)
+static void AddNewField_ELBDM_UniformGranule( void )
 {
 
 #  if ( NCOMP_PASSIVE_USER > 0 )
    Idx_Dens0 = AddField( "Dens0", FIXUP_FLUX_NO, FIXUP_REST_NO, NORMALIZE_NO, INTERP_FRAC_NO );
 #  endif
 
-} // FUNCTION : AddNewField_ELBDM_Halo_Stability_Test
+} // FUNCTION : AddNewField_ELBDM_UniformGranule
 
 //-------------------------------------------------------------------------------------------------------
 // Function    :  Init_User_ELBDM_UniformGranule
@@ -262,7 +261,7 @@ static void AddNewField_ELBDM_UniformGranule(void)
 //
 // Return      :  None
 //-------------------------------------------------------------------------------------------------------
-static void Init_User_ELBDM_UniformGranule(void)
+static void Init_User_ELBDM_UniformGranule( void )
 {
 
 #  if ( NCOMP_PASSIVE_USER > 0 )
@@ -343,13 +342,19 @@ static void Init_User_ELBDM_UniformGranule(void)
           fclose(output_initial_prof);
        }
    }
-#  endif
+#  endif // #if ( NCOMP_PASSIVE_USER > 0 )
 
 } // FUNCTION : Init_User_ELBDM_UniformGranule
 
-#endif // #if ( MODEL == ELBDM )
+#endif // #if ( MODEL == ELBDM  && defined GRAVITY )
 
-
+//-------------------------------------------------------------------------------------------------------
+// Function    :  Do_CF
+// Description :  Compute the correlation function
+//
+// Note        :  1. Linked to the function pointer "Aux_Record_User_Ptr"
+//                2. Please turn on the runtime option "OPT__RECORD_USER"
+//-------------------------------------------------------------------------------------------------------
 static void Do_CF( void )
 {
 // Compute correlation if ComputeCorrelation flag is true
@@ -373,12 +378,25 @@ static void Do_CF( void )
             fclose(output_correlation);
          }
       }
-   }  // end of if ComputeCorrelation
-}
-
+   }  // if (ComputeCorrelation)
+} // FUNCTION : Do_CF
 
 //-------------------------------------------------------------------------------------------------------
-// Function    :  Init_TestProb_Template
+// Function    :  End_UniformGranule
+// Description :  Free memory before terminating the program
+//
+// Note        :  1. Linked to the function pointer "End_User_Ptr" to replace "End_User()"
+//-------------------------------------------------------------------------------------------------------
+void End_UniformGranule()
+{
+
+   delete Prof_Dens_initial;
+   delete Correlation_Dens;
+
+} // FUNCTION : End_UniformGranule
+
+//-------------------------------------------------------------------------------------------------------
+// Function    :  Init_TestProb_ELBDM_UniformGranule
 // Description :  Test problem initializer
 //
 // Note        :  None
@@ -405,6 +423,7 @@ void Init_TestProb_ELBDM_UniformGranule()
    Init_Field_User_Ptr    = AddNewField_ELBDM_UniformGranule;
    Init_User_Ptr          = Init_User_ELBDM_UniformGranule;
    Aux_Record_User_Ptr    = Do_CF;
+   End_User_Ptr           = End_UniformGranule;
 #  endif // #if ( MODEL == ELBDM )
 
    if ( MPI_Rank == 0 )    Aux_Message( stdout, "%s ... done\n", __FUNCTION__ );
