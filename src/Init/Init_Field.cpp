@@ -121,7 +121,7 @@ void Init_Field()
    Idx_dEdt_Nu = AddField( "dEdt_Nu", FIXUP_FLUX_YES, FIXUP_REST_YES, NORMALIZE_NO, INTERP_FRAC_NO  );
    if ( Idx_dEdt_Nu != DEDT_NU )    Aux_Error( ERROR_INFO, "inconsistent Idx_dEdt_Nu (%d != %d) !!\n", Idx_dEdt_Nu, DEDT_NU );
 
-   Idx_Ye      = AddField( "Ye"     , FIXUP_FLUX_YES, FIXUP_REST_YES  NORMALIZE_NO, INTERP_FRAC_YES );
+   Idx_Ye      = AddField( "Ye"     , FIXUP_FLUX_YES, FIXUP_REST_YES, NORMALIZE_NO, INTERP_FRAC_YES );
    if ( Idx_Ye      != YE      )    Aux_Error( ERROR_INFO, "inconsistent Idx_Ye      (%d != %d) !!\n", Idx_Ye,      YE );
 #  endif
 
