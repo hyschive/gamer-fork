@@ -177,7 +177,10 @@ static void Src_Deleptonization( real fluid[], const real B[],
 // Deleptonization
    const real Dens_Code = fluid[DENS];
    const real Dens_CGS  = Dens_Code * Dens2CGS;
-   const real Eint_Code = Hydro_Con2Eint( fluid[DENS], fluid[MOMX], fluid[MOMY], fluid[MOMZ], fluid[ENGY], true, MinEint, Emag );
+   const real Eint_Code = Hydro_Con2Eint( fluid[DENS], fluid[MOMX], fluid[MOMY], fluid[MOMZ], fluid[ENGY],
+                                          true, MinEint, Emag, EoS->GuessHTilde_FuncPtr,
+                                          EoS->HTilde2Temp_FuncPtr, EoS->AuxArrayDevPtr_Flt,
+                                          EoS->AuxArrayDevPtr_Int, EoS->Table );
          real Eint_Update;
          real Entr = NULL_REAL;
 #  ifdef YE

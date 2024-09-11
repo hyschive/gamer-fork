@@ -590,7 +590,8 @@ int Flu_ResetByUser_Riemann( real fluid[], const double Emag, const double x, co
    const bool CheckMinTemp_No = false;
    fluid[TEMP_IG] = Hydro_Con2Temp( fluid[DENS], fluid[MOMX], fluid[MOMY], fluid[MOMZ], fluid[ENGY],
                                     fluid+NCOMP_FLUID, CheckMinTemp_No, NULL_REAL, Emag,
-                                    EoS_DensEint2Temp_CPUPtr, EoS_AuxArray_Flt, EoS_AuxArray_Int, h_EoS_Table );
+                                    EoS_DensEint2Temp_CPUPtr, EoS_GuessHTilde_CPUPtr,
+                                    EoS_HTilde2Temp_CPUPtr, EoS_AuxArray_Flt, EoS_AuxArray_Int, h_EoS_Table );
 
    return true;
 

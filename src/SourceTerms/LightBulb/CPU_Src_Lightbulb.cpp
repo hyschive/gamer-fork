@@ -146,7 +146,9 @@ static void Src_Lightbulb( real fluid[], const real B[],
 
    const real Dens_Code = fluid[DENS];
    const real Eint_Code = Hydro_Con2Eint( fluid[DENS], fluid[MOMX], fluid[MOMY], fluid[MOMZ], fluid[ENGY],
-                                          true, MinEint, Emag );
+                                          true, MinEint, Emag, EoS->GuessHTilde_FuncPtr,
+                                          EoS->HTilde2Temp_FuncPtr, EoS->AuxArrayDevPtr_Flt,
+                                          EoS->AuxArrayDevPtr_Int, EoS->Table );
 #  ifdef YE
    const real Ye           = fluid[YE] / fluid[DENS];
 #  else

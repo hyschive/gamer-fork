@@ -309,6 +309,7 @@ void Flu_FixUp_Flux( const int lv, const long TVar )
                                                      CorrVal[MOMX], CorrVal[MOMY], CorrVal[MOMZ],
                                                      CorrVal[ENGY], CorrVal+NCOMP_FLUID,
                                                      CheckMinTemp_No, NULL_REAL, Emag, EoS_DensEint2Temp_CPUPtr,
+                                                     EoS_GuessHTilde_CPUPtr, EoS_HTilde2Temp_CPUPtr,
                                                      EoS_AuxArray_Flt, EoS_AuxArray_Int, h_EoS_Table );
 
 //                check output temperature initial guess
