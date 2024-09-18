@@ -112,7 +112,7 @@ double Mis_GetTimeStep_Lightbulb( const int lv, const double dTime_dt )
 
 
                SrcTerms.Lightbulb_CPUPtr( fluid, B, &SrcTerms, 0.0, NULL_REAL, x, y, z, NULL_REAL, NULL_REAL,
-                                          MIN_DENS, MIN_PRES, MIN_EINT, NULL,
+                                          MIN_DENS, MIN_PRES, MIN_EINT, &EoS,
                                           Src_Lightbulb_AuxArray_Flt, Src_Lightbulb_AuxArray_Int );
 
 #              ifdef DEDT_NU
