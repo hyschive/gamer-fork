@@ -88,7 +88,7 @@ OPT__FLAG_ENGY_DENSITY        0           # flag: energy density (Input_Flag_Eng
 OPT__FLAG_INTERFERENCE        1           # flag: interference level (Input__Flag_Interference) [0] ##ELBDM ONLY##
 OPT__FLAG_SPECTRAL            1           # flag: spectral refinement (Input__Flag_Spectral) [0] ##ELBDM ONLY##
 OPT__FLAG_USER                0           # flag: user-defined (Input__Flag_User) -> edit "Flag_User.cpp" [0]
-OPT__FLAG_REGION              0           # flag: specify the regions **allowed** to be refined -> edit "Flag_Region.cpp" [0]
+OPT__FLAG_REGION              1           # flag: specify the regions **allowed** to be refined -> edit "Flag_Region.cpp" [0]
 OPT__FLAG_NPAR_PATCH          0           # flag: # of particles per patch (Input__Flag_NParPatch): (0=off, 1=itself, 2=itself+siblings) [0]
 OPT__FLAG_NPAR_CELL           0           # flag: # of particles per cell  (Input__Flag_NParCell) [0]
 OPT__FLAG_PAR_MASS_CELL       0           # flag: total particle mass per cell (Input__Flag_ParMassCell) [0]
