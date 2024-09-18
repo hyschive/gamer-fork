@@ -361,7 +361,10 @@ void Flu_FixUp_Restrict( const int FaLv, const int SonFluSg, const int FaFluSg, 
 #        ifdef GAMER_DEBUG
          const real Temp_IG = amr->patch[FaFluSg][FaLv][FaPID]->fluid[TEMP_IG][k][j][i];
 
-         if (  Hydro_CheckUnphysical( UNPHY_MODE_SING, &Temp_IG, "output temperature initial guess", ERROR_INFO, UNPHY_VERBOSE )  )
+         if (  Hydro_IsUnphysical( UNPHY_MODE_SING, &Temp_IG, "output temperature initial guess", (real)0.0,
+                                   __FLT_MAX__, Emag, EoS_DensEint2Pres_CPUPtr, EoS_GuessHTilde_CPUPtr,
+                                   EoS_HTilde2Temp_CPUPtr, EoS_AuxArray_Flt, EoS_AuxArray_Int,
+                                   h_EoS_Table, ERROR_INFO, UNPHY_VERBOSE )  )
          {
             Aux_Message( stderr, "Fluid: " );
             for (int v=0; v<NCOMP_TOTAL; v++)   Aux_Message( stderr, " [%d]=%14.7e", v, amr->patch[FaFluSg][FaLv][FaPID]->fluid[v][k][j][i] );
