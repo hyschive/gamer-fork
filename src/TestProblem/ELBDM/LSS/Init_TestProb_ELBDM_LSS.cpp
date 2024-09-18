@@ -4,7 +4,14 @@
 
 // problem-specific global variables
 // =======================================================================================
-static int LSS_InitMode;   // initialization mode: 1=density-only, 2=real and imaginary parts or phase and density
+static int  LSS_InitMode;   // initialization mode: 1=density-only, 2=real and imaginary parts or phase and density
+static double ZoomIn_Center_x;  // x coordinate of refinement region center
+static double ZoomIn_Center_y;  // y coordinate of refinement region center
+static double ZoomIn_Center_z;  // z coordinate of refinement region center
+static int ZoomIn_Lvlim;        // maximum refinement level outside of the zoom-in box
+static int Max_snap = 30;       // number of changes the zoom-in box. could be changed here if a higher freqeuncy is required.
+static real ZoomIn_a[30], ZoomIn_Lx[30], ZoomIn_Ly[30], ZoomIn_Lz[30];  // arrays that take the table of scale factor, length in x, y and z-axis
+
 // =======================================================================================
 
 
@@ -90,11 +97,39 @@ void SetParameter()
 // ReadPara->Add( "KEY_IN_THE_FILE",   &VARIABLE,              DEFAULT,       MIN,              MAX               );
 // ********************************************************************************************************************************
    ReadPara->Add( "LSS_InitMode",      &LSS_InitMode,          1,             1,                2                 );
+   ReadPara->Add( "ZoomIn_Center_x",   &ZoomIn_Center_x,       NoDef_double,  0.0,              NoMax_double      );
+   ReadPara->Add( "ZoomIn_Center_y",   &ZoomIn_Center_y,       NoDef_double,  0.0,              NoMax_double      );
+   ReadPara->Add( "ZoomIn_Center_z",   &ZoomIn_Center_z,       NoDef_double,  0.0,              NoMax_double      );
+   ReadPara->Add( "ZoomIn_Lvlim",      &ZoomIn_Lvlim,                 9,             0,                9      );
 
    ReadPara->Read( FileName );
 
    delete ReadPara;
 
+   // load Zoom-in Lagrangian Box Volumne at different redshifts
+
+   if ( OPT__FLAG_REGION ){
+     char *input_line = NULL;
+     size_t len = 0;
+     int n;
+     FILE *File_zoom;
+     File_zoom = fopen( "Input__ZoominBox", "r" );
+
+     getline( &input_line, &len, File_zoom );
+     for (int s=0; s<Max_snap; s++){
+       n = getline( &input_line, &len, File_zoom );
+       if (n != -1)
+	 sscanf(input_line, "%f%f%f%f", &ZoomIn_a[s], &ZoomIn_Lx[s], &ZoomIn_Ly[s], &ZoomIn_Lz[s]);
+       else{
+	 ZoomIn_a[s]  = 0.0;
+	 ZoomIn_Lx[s] = ZoomIn_Lx[s-1];
+	 ZoomIn_Ly[s] = ZoomIn_Ly[s-1];
+	 ZoomIn_Lz[s] = ZoomIn_Lz[s-1];
+       }
+     }
+     fclose( File_zoom );
+   } //    if ( OPT__FLAG_REGION ){
+   
 // (1-2) set the default values
 
 // (1-3) check the runtime parameters
@@ -133,6 +168,71 @@ void SetParameter()
 
 } // FUNCTION : SetParameter
 
+//-------------------------------------------------------------------------------------------------------
+// Function    :  Flag_Region_LSS
+// Description :  Template for checking if the element (i,j,k) of the input patch is within
+//                the regions allowed to be refined
+//
+// Note        :  1. Invoked by Flag_Check() using the function pointer "Flag_Region_Ptr",
+//                   which must be set by a test problem initializer
+//                2. Enabled by the runtime option "OPT__FLAG_REGION"
+//
+// Parameter   :  i,j,k       : Indices of the target element in the patch ptr[0][lv][PID]
+//                lv          : Refinement level of the target patch
+//                PID         : ID of the target patch
+//
+// Return      :  "true/false"  if the input cell "is/is not" within the region allowed for refinement
+//-------------------------------------------------------------------------------------------------------
+bool Flag_Region_LSS( const int i, const int j, const int k, const int lv, const int PID )
+{
+
+   const double dh     = amr->dh[lv];                                         // cell size
+   const double Pos[3] = { amr->patch[0][lv][PID]->EdgeL[0] + (i+0.5)*dh,     // x,y,z position
+                           amr->patch[0][lv][PID]->EdgeL[1] + (j+0.5)*dh,
+                           amr->patch[0][lv][PID]->EdgeL[2] + (k+0.5)*dh  };
+
+   bool Within = true;
+
+   real ZoomIn_BoxLx, ZoomIn_BoxLy, ZoomIn_BoxLz;
+   for (int s=0; s<Max_snap; s++){
+     if (Time[0] > ZoomIn_a[s]){
+       ZoomIn_BoxLx = ZoomIn_Lx[s]; 
+       ZoomIn_BoxLy = ZoomIn_Ly[s]; 
+       ZoomIn_BoxLz = ZoomIn_Lz[s];
+       break;
+     }
+   }
+// put the target region below
+// ##########################################################################################################
+
+   const double Center[3] = { ZoomIn_Center_x, ZoomIn_Center_y, ZoomIn_Center_z };
+
+   double Pos_x = Pos[0];
+   double Pos_y = Pos[1];
+   double Pos_z = Pos[2];
+
+   // deal with periodic BC
+   if ( Pos[0]-Center[0] >  0.5*amr->BoxSize[0] ) Pos_x = Pos[0] - amr->BoxSize[0];
+   if ( Pos[0]-Center[0] < -0.5*amr->BoxSize[0] ) Pos_x = Pos[0] + amr->BoxSize[0];
+   if ( Pos[1]-Center[1] >  0.5*amr->BoxSize[1] ) Pos_y = Pos[1] - amr->BoxSize[1];
+   if ( Pos[1]-Center[1] < -0.5*amr->BoxSize[1] ) Pos_y = Pos[1] + amr->BoxSize[1];
+   if ( Pos[2]-Center[2] >  0.5*amr->BoxSize[2] ) Pos_z = Pos[2] - amr->BoxSize[2];
+   if ( Pos[2]-Center[2] < -0.5*amr->BoxSize[2] ) Pos_z = Pos[2] + amr->BoxSize[2];
+
+   const double dR[3]     = { Pos_x-Center[0], Pos_y-Center[1], Pos_z-Center[2] };
+   //   Within = R <= MaxR; // this is for spherical
+   
+   
+   Within = (abs(dR[0]) < ZoomIn_BoxLx/2) && 
+            (abs(dR[1]) < ZoomIn_BoxLy/2) && 
+            (abs(dR[2]) < ZoomIn_BoxLz/2) || (
+	    (lv < ZoomIn_Lvlim));
+// ##########################################################################################################
+
+
+   return Within;
+
+} // FUNCTION : Flag_Region_LSS
 
 
 //-------------------------------------------------------------------------------------------------------
@@ -216,6 +316,8 @@ void Init_ByFile_ELBDM_LSS( real fluid_out[], const real fluid_in[], const int n
                     "LSS_InitMode", LSS_InitMode );
    } // switch ( LSS_InitMode )
 
+   
+
 #  if ( ELBDM_SCHEME == ELBDM_HYBRID )
    if ( amr->use_wave_flag[lv] ) {
 #  endif
@@ -261,6 +363,8 @@ void Init_TestProb_ELBDM_LSS()
 
 
    Init_ByFile_User_Ptr = Init_ByFile_ELBDM_LSS;
+   if ( OPT__FLAG_REGION )   Flag_Region_Ptr      = Flag_Region_LSS; // option: OPT__FLAG_REGION;             example: Refing/Flag_Region.cpp
+
 #  endif // #if ( MODEL == ELBDM )
 
 
