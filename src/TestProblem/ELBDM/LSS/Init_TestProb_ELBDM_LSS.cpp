@@ -219,9 +219,7 @@ bool Flag_Region_LSS( const int i, const int j, const int k, const int lv, const
    if ( Pos[2]-Center[2] >  0.5*amr->BoxSize[2] ) Pos_z = Pos[2] - amr->BoxSize[2];
    if ( Pos[2]-Center[2] < -0.5*amr->BoxSize[2] ) Pos_z = Pos[2] + amr->BoxSize[2];
 
-   const double dR[3]     = { Pos_x-Center[0], Pos_y-Center[1], Pos_z-Center[2] };
-   //   Within = R <= MaxR; // this is for spherical
-   
+   const double dR[3]     = { Pos_x-Center[0], Pos_y-Center[1], Pos_z-Center[2] };   
    
    Within = (abs(dR[0]) < ZoomIn_BoxLx/2) && 
             (abs(dR[1]) < ZoomIn_BoxLy/2) && 
