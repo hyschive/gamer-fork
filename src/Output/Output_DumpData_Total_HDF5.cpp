@@ -260,7 +260,6 @@ Procedure for outputting new variables:
 //                2422 : 2020/10/26 --> output NEUTRINO_SCHEME
 //                2466 : 2020/11/02 --> output NUC_TABLE
 //                2467 : 2020/12/06 --> output GREP runtime parameters and EXT_POT_GREP_NAUX_MAX
-//                2468 : 2020/10/29 --> output the parameters of external potential table
 //                2469 : 2022/09/25 --> remove SRC_DLEP_PROF_NVAR and SRC_DLEP_PROF_NBINMAX that no longer exist
 //-------------------------------------------------------------------------------------------------------
 void Output_DumpData_Total_HDF5( const char *FileName )
