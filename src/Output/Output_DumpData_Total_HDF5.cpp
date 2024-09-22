@@ -69,7 +69,7 @@ Procedure for outputting new variables:
 
 
 //-------------------------------------------------------------------------------------------------------
-// Function    :  Output_DumpData_Total_HDF5 (FormatVersion = 2479)
+// Function    :  Output_DumpData_Total_HDF5 (FormatVersion = 2478)
 // Description :  Output all simulation data in the HDF5 format, which can be used as a restart file
 //                or loaded by YT
 //
@@ -192,7 +192,7 @@ Procedure for outputting new variables:
 //                2419 : 2020/09/25 --> output EXTPOT_BLOCK_SIZE
 //                2420 : 2020/10/12 --> output OPT__FLAG_USER_NUM and use variable-length datatype for FlagTable_User
 //                2421 : 2020/10/26 --> output COSMIC_RAY
-//                2422 : 2020/10/26 --> output NEUTRINO_SCHEME
+//                2422 : 2020/10/29 --> output the parameters of external potential table
 //                2423 : 2020/11/01 --> output EOS_NTABLE_MAX
 //                2424 : 2020/12/22 --> output SRC_USER
 //                2425 : 2020/12/24 --> output SRC_DELEPTONIZATION
@@ -254,9 +254,10 @@ Procedure for outputting new variables:
 //                2477 : 2024/04/05 --> output OPT__RECORD_CENTER, COM_CEN_X, COM_CEN_Y, COM_CEN_Z,
 //                                             COM_MAX_R, COM_MIN_RHO, COM_TOLERR_R, COM_MAX_ITER
 //                2478 : 2024/04/09 --> output ANGMOM_ORIGIN_X, ANGMOM_ORIGIN_Y, ANGMOM_ORIGIN_Z
-//                2479 : 2024/09/11 --> output CCSN related (see below)
 //
-//                Previous CCSN branch message
+//                **** : 2024/**/** --> output CCSN related (see below)
+//                CCSN branch update
+//                2422 : 2020/10/26 --> output NEUTRINO_SCHEME
 //                2466 : 2020/11/02 --> output NUC_TABLE
 //                2467 : 2020/12/06 --> output GREP runtime parameters and EXT_POT_GREP_NAUX_MAX
 //                2468 : 2020/10/29 --> output the parameters of external potential table
@@ -1510,7 +1511,7 @@ void FillIn_KeyInfo( KeyInfo_t &KeyInfo, const int NFieldStored )
 
    const time_t CalTime = time( NULL );   // calendar time
 
-   KeyInfo.FormatVersion        = 2479;
+   KeyInfo.FormatVersion        = 2478;
    KeyInfo.Model                = MODEL;
    KeyInfo.NLevel               = NLEVEL;
    KeyInfo.NCompFluid           = NCOMP_FLUID;
