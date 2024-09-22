@@ -254,7 +254,7 @@ void SetParameter()
 //       set CCSN_CC_MaxRefine_LV1 to default value
          if ( CCSN_CC_MaxRefine_LV1 < 0 ) {
             CCSN_CC_MaxRefine_LV1 = MAX_LEVEL-2;
-            PRINT_WARNING( "CCSN_CC_MaxRefine_LV1", CCSN_CC_MaxRefine_LV1, FORMAT_INT );
+            PRINT_RESET_PARA( CCSN_CC_MaxRefine_LV1, FORMAT_INT, "" );
          }
       }
 
@@ -262,7 +262,7 @@ void SetParameter()
 //       set CCSN_CC_MaxRefine_LV2 to default value
          if ( CCSN_CC_MaxRefine_LV2 < 0 ) {
             CCSN_CC_MaxRefine_LV2 = MAX_LEVEL-1;
-            PRINT_WARNING( "CCSN_CC_MaxRefine_LV2", CCSN_CC_MaxRefine_LV2, FORMAT_INT );
+            PRINT_RESET_PARA( CCSN_CC_MaxRefine_LV2, FORMAT_INT, "" );
          }
 //       CCSN_CC_MaxRefine_LV1 should be smaller than CCSN_CC_MaxRefine_LV2
          if (  CCSN_CC_MaxRefine_Flag1  &&  ( CCSN_CC_MaxRefine_LV2 <= CCSN_CC_MaxRefine_LV1 )  )
@@ -288,7 +288,7 @@ void SetParameter()
 
    if ( CCSN_AngRes_Max > 0.0 ) {
       CCSN_AngRes_Max *= Deg2Rad;
-      PRINT_WARNING( "CCSN_AngRes_Max", CCSN_AngRes_Max, FORMAT_DOUBLE );
+      PRINT_RESET_PARA( CCSN_AngRes_Max, FORMAT_DOUBLE, "" );
 
       if ( !OPT__FLAG_REGION )
          Aux_Error( ERROR_INFO, "%s is disabled for %s = %13.7e !!\n", "OPT__FLAG_REGION", "CCSN_AngRes_Max", CCSN_AngRes_Max );
@@ -296,7 +296,7 @@ void SetParameter()
 
    if ( CCSN_AngRes_Min > 0.0 ) {
       CCSN_AngRes_Min *= Deg2Rad;
-      PRINT_WARNING( "CCSN_AngRes_Min", CCSN_AngRes_Min, FORMAT_DOUBLE );
+      PRINT_RESET_PARA( CCSN_AngRes_Min, FORMAT_DOUBLE, "" );
    }
 
    if ( CCSN_AngRes_Min > 0.0  &&  CCSN_AngRes_Max > 0.0  &&
@@ -308,18 +308,18 @@ void SetParameter()
 
 
 // (3) reset other general-purpose parameters
-//     --> a helper macro PRINT_WARNING is defined in TestProb.h
+//     --> a helper macro PRINT_RESET_PARA is defined in Macro.h
    const long   End_Step_Default = __INT_MAX__;
    const double End_T_Default    = __FLT_MAX__;
 
    if ( END_STEP < 0 ) {
       END_STEP = End_Step_Default;
-      PRINT_WARNING( "END_STEP", END_STEP, FORMAT_LONG );
+      PRINT_RESET_PARA( END_STEP, FORMAT_LONG, "" );
    }
 
    if ( END_T < 0.0 ) {
       END_T = End_T_Default;
-      PRINT_WARNING( "END_T", END_T, FORMAT_REAL );
+      PRINT_RESET_PARA( END_T, FORMAT_REAL, "" );
    }
 
 
@@ -725,7 +725,8 @@ int Flu_ResetByUser_CCSN( real fluid[], const double Emag, const double x, const
    const bool CheckMinTemp_No = false;
    fluid[TEMP_IG] = Hydro_Con2Temp( fluid[DENS], fluid[MOMX], fluid[MOMY], fluid[MOMZ], fluid[ENGY],
                                     fluid+NCOMP_FLUID, CheckMinTemp_No, NULL_REAL, Emag,
-                                    EoS_DensEint2Temp_CPUPtr, EoS_AuxArray_Flt, EoS_AuxArray_Int, h_EoS_Table );
+                                    EoS_DensEint2Temp_CPUPtr, EoS_GuessHTilde_CPUPtr, EoS_HTilde2Temp_CPUPtr,
+                                    EoS_AuxArray_Flt, EoS_AuxArray_Int, h_EoS_Table );
 
    return true;
 

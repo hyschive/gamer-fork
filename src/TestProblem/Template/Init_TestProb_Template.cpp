@@ -1,5 +1,4 @@
 #include "GAMER.h"
-#include "TestProb.h"
 
 
 
@@ -122,18 +121,18 @@ void SetParameter()
 
 
 // (3) reset other general-purpose parameters
-//     --> a helper macro PRINT_WARNING is defined in TestProb.h
+//     --> a helper macro PRINT_RESET_PARA is defined in Macro.h
    const long   End_Step_Default = __INT_MAX__;
    const double End_T_Default    = __FLT_MAX__;
 
    if ( END_STEP < 0 ) {
       END_STEP = End_Step_Default;
-      PRINT_WARNING( "END_STEP", END_STEP, FORMAT_LONG );
+      PRINT_RESET_PARA( END_STEP, FORMAT_LONG, "" );
    }
 
    if ( END_T < 0.0 ) {
       END_T = End_T_Default;
-      PRINT_WARNING( "END_T", END_T, FORMAT_REAL );
+      PRINT_RESET_PARA( END_T, FORMAT_REAL, "" );
    }
 
 
@@ -294,6 +293,7 @@ void Init_TestProb_Template()
    Output_UserWorkBeforeOutput_Ptr   = NULL; // option: none;                         example: Output/Output_UserWorkBeforeOutput.cpp
    Aux_Record_User_Ptr               = NULL; // option: OPT__RECORD_USER;             example: Auxiliary/Aux_Record_User.cpp
    Init_User_Ptr                     = NULL; // option: none;                         example: none
+   Init_User_AfterPoisson_Ptr        = NULL; // option: none;                         example: none
    End_User_Ptr                      = NULL; // option: none;                         example: TestProblem/Hydro/ClusterMerger_vs_Flash/Init_TestProb_ClusterMerger_vs_Flash.cpp --> End_ClusterMerger()
 #  ifdef GRAVITY
    Init_ExtAcc_Ptr                   = NULL; // option: OPT__EXT_ACC;                 example: SelfGravity/CPU_Gravity/CPU_ExtAcc_PointMass.cpp

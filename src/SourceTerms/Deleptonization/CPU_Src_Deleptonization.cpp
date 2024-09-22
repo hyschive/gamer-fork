@@ -177,7 +177,10 @@ static void Src_Deleptonization( real fluid[], const real B[],
 // Deleptonization
    const real Dens_Code = fluid[DENS];
    const real Dens_CGS  = Dens_Code * Dens2CGS;
-   const real Eint_Code = Hydro_Con2Eint( fluid[DENS], fluid[MOMX], fluid[MOMY], fluid[MOMZ], fluid[ENGY], true, MinEint, Emag );
+   const real Eint_Code = Hydro_Con2Eint( fluid[DENS], fluid[MOMX], fluid[MOMY], fluid[MOMZ], fluid[ENGY],
+                                          true, MinEint, Emag, EoS->GuessHTilde_FuncPtr,
+                                          EoS->HTilde2Temp_FuncPtr, EoS->AuxArrayDevPtr_Flt,
+                                          EoS->AuxArrayDevPtr_Int, EoS->Table );
          real Eint_Update;
          real Entr = NULL_REAL;
 #  ifdef YE
@@ -284,7 +287,10 @@ static void Src_Deleptonization( real fluid[], const real B[],
 
 //    final check
 #     if GAMER_DEBUG
-      if (  Hydro_CheckUnphysical( UNPHY_MODE_SING, &Eint_Update, "output internal energy density", ERROR_INFO, UNPHY_VERBOSE )  )
+      if (  Hydro_IsUnphysical( UNPHY_MODE_SING, &Eint_Update, "output internal energy density", (real)0.0,
+                                __FLT_MAX__, Emag, EoS->DensEint2Pres_FuncPtr, EoS->GuessHTilde_FuncPtr,
+                                EoS->HTilde2Temp_FuncPtr, EoS->AuxArrayDevPtr_Flt, EoS->AuxArrayDevPtr_Int,
+                                EoS->Table, ERROR_INFO, UNPHY_VERBOSE )  )
       {
          printf( "   Dens=%13.7e code units, Eint=%13.7e code units,  Ye=%13.7e\n",      Dens_Code, Eint_Code, Ye       );
          printf( "   Entr=%13.7e kb/baryon, Del_Ye=%13.7e, Del_Entr=%13.7e kb/baryon\n", Entr,      Del_Ye,    Del_Entr );
