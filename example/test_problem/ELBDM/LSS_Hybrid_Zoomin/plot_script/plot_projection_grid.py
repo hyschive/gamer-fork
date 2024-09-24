@@ -38,7 +38,6 @@ idx_end   = args.idx_end
 didx      = args.didx
 prefix    = args.prefix
 
-
 center = [0.295,9.522,8.27] # center of the targeted halo in the zoom-in simulation
 
 

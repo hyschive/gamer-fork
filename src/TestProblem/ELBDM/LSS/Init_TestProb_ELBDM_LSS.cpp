@@ -103,9 +103,8 @@ void SetParameter()
      
    if ( OPT__FLAG_REGION )
    {
-
      if ( ELBDM_FIRST_WAVE_LEVEL > ZoomIn_MaxLvOutside )
-	   Aux_Error( ERROR_INFO, " it is required to set ELBDM_FIRST_WAVE_LEVEL <= ZoomIn_MaxLvOutside for zoom-in simulation !!\n" );
+      Aux_Error( ERROR_INFO, " it is required to set ELBDM_FIRST_WAVE_LEVEL <= ZoomIn_MaxLvOutside for zoom-in simulation !!\n" );
 
      char *input_line = NULL;
      size_t len = 0;
@@ -136,26 +135,26 @@ void SetParameter()
      for (int s=0; s<ZoomIn_MaxSnap; s++)
      {
        n = getline( &input_line, &len, File_zoom );
-       if ( n <= 1 ) 
-	 Aux_Error( ERROR_INFO, "incorrect reading at zoom-in table at line %d of the file <%s> !!\n", s+1, "Input__ZoominBox" );
+       if ( n <= 1 )
+        Aux_Error( ERROR_INFO, "incorrect reading at zoom-in table at line %d of the file <%s> !!\n", s+1, "Input__ZoominBox" );
 
-       sscanf( input_line, "%f%f%f%f%f%f%f", 
-	       &ZoomIn_a[s], 
-	       &ZoomIn_Lx[s], &ZoomIn_Ly[s], &ZoomIn_Lz[s], 
-	       &ZoomIn_Center_x[s], &ZoomIn_Center_y[s], &ZoomIn_Center_z[s] );
+       sscanf( input_line, "%f%f%f%f%f%f%f",
+               &ZoomIn_a[s],
+               &ZoomIn_Lx[s], &ZoomIn_Ly[s], &ZoomIn_Lz[s],
+               &ZoomIn_Center_x[s], &ZoomIn_Center_y[s], &ZoomIn_Center_z[s] );
        
-       if ( s < 1 ) continue; 
+       if ( s < 1 ) continue;
 
        if ( ZoomIn_a[s-1] < ZoomIn_a[s] )
-	 Aux_Error( ERROR_INFO, "Scale factors are not listed in descending order in Input__ZoominBox!!\n" );
-	 
+        Aux_Error( ERROR_INFO, "Scale factors are not listed in descending order in Input__ZoominBox!!\n" );
+ 
        if ( ZoomIn_Center_x[s-1] - ZoomIn_Lx[s-1]/2 < ZoomIn_Center_x[s] - ZoomIn_Lx[s]/2 ||
-	    ZoomIn_Center_y[s-1] - ZoomIn_Ly[s-1]/2 < ZoomIn_Center_y[s] - ZoomIn_Ly[s]/2 ||
-	    ZoomIn_Center_z[s-1] - ZoomIn_Lz[s-1]/2 < ZoomIn_Center_z[s] - ZoomIn_Lz[s]/2 ||
-	    ZoomIn_Center_x[s-1] + ZoomIn_Lx[s-1]/2 > ZoomIn_Center_x[s] + ZoomIn_Lx[s]/2 ||
-	    ZoomIn_Center_y[s-1] + ZoomIn_Ly[s-1]/2 > ZoomIn_Center_y[s] + ZoomIn_Ly[s]/2 ||
-	    ZoomIn_Center_z[s-1] + ZoomIn_Lz[s-1]/2 > ZoomIn_Center_z[s] + ZoomIn_Lz[s]/2 )
-	 Aux_Error( ERROR_INFO, "Zoom-in box at a = %f is outside of the previous Zoom-in box !!\n", ZoomIn_a[s] );
+            ZoomIn_Center_y[s-1] - ZoomIn_Ly[s-1]/2 < ZoomIn_Center_y[s] - ZoomIn_Ly[s]/2 ||
+            ZoomIn_Center_z[s-1] - ZoomIn_Lz[s-1]/2 < ZoomIn_Center_z[s] - ZoomIn_Lz[s]/2 ||
+            ZoomIn_Center_x[s-1] + ZoomIn_Lx[s-1]/2 > ZoomIn_Center_x[s] + ZoomIn_Lx[s]/2 ||
+            ZoomIn_Center_y[s-1] + ZoomIn_Ly[s-1]/2 > ZoomIn_Center_y[s] + ZoomIn_Ly[s]/2 ||
+            ZoomIn_Center_z[s-1] + ZoomIn_Lz[s-1]/2 > ZoomIn_Center_z[s] + ZoomIn_Lz[s]/2 )
+        Aux_Error( ERROR_INFO, "Zoom-in box at a = %f is outside of the previous Zoom-in box !!\n", ZoomIn_a[s] );
 
       } // for (int s=0; s<ZoomIn_MaxSnap; s++)
 
@@ -232,9 +231,9 @@ bool Flag_Region_LSS( const int i, const int j, const int k, const int lv, const
                             ( Pos[1] - ZoomIn_Center_y[zoomID] < -0.5*amr->BoxSize[1] ) ? Pos[1] + amr->BoxSize[1] : Pos[1];
    const double Pos_z     = ( Pos[2] - ZoomIn_Center_z[zoomID] >  0.5*amr->BoxSize[2] ) ? Pos[2] - amr->BoxSize[2] :
                             ( Pos[2] - ZoomIn_Center_z[zoomID] < -0.5*amr->BoxSize[2] ) ? Pos[2] + amr->BoxSize[2] : Pos[2];
-   const double dR[3]     = { Pos_x  - ZoomIn_Center_x[zoomID], 
-			      Pos_y  - ZoomIn_Center_y[zoomID], 
-			      Pos_z  - ZoomIn_Center_z[zoomID] };
+   const double dR[3]     = { Pos_x  - ZoomIn_Center_x[zoomID],
+                              Pos_y  - ZoomIn_Center_y[zoomID],
+                              Pos_z  - ZoomIn_Center_z[zoomID] };
 
    if ( lv < ZoomIn_MaxLvOutside )   return true;
    else 
