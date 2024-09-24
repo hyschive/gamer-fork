@@ -4,13 +4,11 @@
 
 // problem-specific global variables
 // =======================================================================================
-static int  LSS_InitMode;   // initialization mode: 1=density-only, 2=real and imaginary parts or phase and density
-static double ZoomIn_Center_x;  // x coordinate of refinement region center
-static double ZoomIn_Center_y;  // y coordinate of refinement region center
-static double ZoomIn_Center_z;  // z coordinate of refinement region center
-static int ZoomIn_Lvlim;        // maximum refinement level outside of the zoom-in box
-static int Max_snap = 30;       // number of changes the zoom-in box. could be changed here if a higher freqeuncy is required.
-static real ZoomIn_a[30], ZoomIn_Lx[30], ZoomIn_Ly[30], ZoomIn_Lz[30];  // arrays that take the table of scale factor, length in x, y and z-axis
+static       int    LSS_InitMode;         // initialization mode: 1=density-only, 2=real and imaginary parts or phase and density
+static       int    ZoomIn_MaxLvOutside;  // maximum refinement level outside of the zoom-in box
+static       int    ZoomIn_MaxSnap;             // number of changes the zoom-in box
+static       real  *ZoomIn_a, *ZoomIn_Lx, *ZoomIn_Ly, *ZoomIn_Lz, 
+                   *ZoomIn_Center_x, *ZoomIn_Center_y, *ZoomIn_Center_z;   // arrays of the table of scale factor, length and center in xyz-axis
 
 // =======================================================================================
 
@@ -96,49 +94,75 @@ void SetParameter()
 // ********************************************************************************************************************************
 // ReadPara->Add( "KEY_IN_THE_FILE",   &VARIABLE,              DEFAULT,       MIN,              MAX               );
 // ********************************************************************************************************************************
-   ReadPara->Add( "LSS_InitMode",      &LSS_InitMode,          1,             1,                2                 );
-   ReadPara->Add( "ZoomIn_Center_x",   &ZoomIn_Center_x,       NoDef_double,  0.0,              NoMax_double      );
-   ReadPara->Add( "ZoomIn_Center_y",   &ZoomIn_Center_y,       NoDef_double,  0.0,              NoMax_double      );
-   ReadPara->Add( "ZoomIn_Center_z",   &ZoomIn_Center_z,       NoDef_double,  0.0,              NoMax_double      );
-   ReadPara->Add( "ZoomIn_Lvlim",      &ZoomIn_Lvlim,                 9,             0,                9      );
-
+   ReadPara->Add( "LSS_InitMode",        &LSS_InitMode,          1,             1,                2                 );
+   ReadPara->Add( "ZoomIn_MaxLvOutside", &ZoomIn_MaxLvOutside,   MAX_LEVEL,     0,                MAX_LEVEL         );
+ 
    ReadPara->Read( FileName );
 
    delete ReadPara;
+     
+   if ( OPT__FLAG_REGION )
+   {
 
-   // load Zoom-in Lagrangian Box Volumne at different redshifts
+     if ( ELBDM_FIRST_WAVE_LEVEL > ZoomIn_MaxLvOutside )
+	   Aux_Error( ERROR_INFO, " it is required to set ELBDM_FIRST_WAVE_LEVEL <= ZoomIn_MaxLvOutside for zoom-in simulation !!\n" );
 
-   if ( OPT__FLAG_REGION ){
      char *input_line = NULL;
      size_t len = 0;
      int n;
      FILE *File_zoom;
      File_zoom = fopen( "Input__ZoominBox", "r" );
 
-     getline( &input_line, &len, File_zoom );
-     for (int s=0; s<Max_snap; s++){
-       n = getline( &input_line, &len, File_zoom );
-       if (n != -1)
-	 sscanf(input_line, "%f%f%f%f", &ZoomIn_a[s], &ZoomIn_Lx[s], &ZoomIn_Ly[s], &ZoomIn_Lz[s]);
-       else{
-	 ZoomIn_a[s]  = 0.0;
-	 ZoomIn_Lx[s] = ZoomIn_Lx[s-1];
-	 ZoomIn_Ly[s] = ZoomIn_Ly[s-1];
-	 ZoomIn_Lz[s] = ZoomIn_Lz[s-1];
-       }
-     }
+//   record the number of rows in Input__ZoominBox
+     ZoomIn_MaxSnap = 0;
+     while ( getline( &input_line, &len, File_zoom ) != -1 )
+       ++ZoomIn_MaxSnap;
+     ZoomIn_MaxSnap--;
      fclose( File_zoom );
-   } //    if ( OPT__FLAG_REGION ){
-   
-// (1-2) set the default values
 
-// (1-3) check the runtime parameters
+//   load Zoom-in Lagrangian Box Volumne at different redshifts
+     ZoomIn_a  = new real [ZoomIn_MaxSnap];
+     ZoomIn_Lx = new real [ZoomIn_MaxSnap];
+     ZoomIn_Ly = new real [ZoomIn_MaxSnap];
+     ZoomIn_Lz = new real [ZoomIn_MaxSnap];
+     ZoomIn_Center_x = new real [ZoomIn_MaxSnap];
+     ZoomIn_Center_y = new real [ZoomIn_MaxSnap];
+     ZoomIn_Center_z = new real [ZoomIn_MaxSnap];
 
+//   skip the header
+     File_zoom = fopen( "Input__ZoominBox", "r" );
+     getline( &input_line, &len, File_zoom );
 
-// (2) set the problem-specific derived parameters
+     for (int s=0; s<ZoomIn_MaxSnap; s++)
+     {
+       n = getline( &input_line, &len, File_zoom );
+       if ( n <= 1 ) 
+	 Aux_Error( ERROR_INFO, "incorrect reading at zoom-in table at line %d of the file <%s> !!\n", s+1, "Input__ZoominBox" );
 
+       sscanf( input_line, "%f%f%f%f%f%f%f", 
+	       &ZoomIn_a[s], 
+	       &ZoomIn_Lx[s], &ZoomIn_Ly[s], &ZoomIn_Lz[s], 
+	       &ZoomIn_Center_x[s], &ZoomIn_Center_y[s], &ZoomIn_Center_z[s] );
+       
+       if ( s < 1 ) continue; 
 
-// (3) reset other general-purpose parameters
+       if ( ZoomIn_a[s-1] < ZoomIn_a[s] )
+	 Aux_Error( ERROR_INFO, "Scale factors are not listed in descending order in Input__ZoominBox!!\n" );
+	 
+       if ( ZoomIn_Center_x[s-1] - ZoomIn_Lx[s-1]/2 < ZoomIn_Center_x[s] - ZoomIn_Lx[s]/2 ||
+	    ZoomIn_Center_y[s-1] - ZoomIn_Ly[s-1]/2 < ZoomIn_Center_y[s] - ZoomIn_Ly[s]/2 ||
+	    ZoomIn_Center_z[s-1] - ZoomIn_Lz[s-1]/2 < ZoomIn_Center_z[s] - ZoomIn_Lz[s]/2 ||
+	    ZoomIn_Center_x[s-1] + ZoomIn_Lx[s-1]/2 > ZoomIn_Center_x[s] + ZoomIn_Lx[s]/2 ||
+	    ZoomIn_Center_y[s-1] + ZoomIn_Ly[s-1]/2 > ZoomIn_Center_y[s] + ZoomIn_Ly[s]/2 ||
+	    ZoomIn_Center_z[s-1] + ZoomIn_Lz[s-1]/2 > ZoomIn_Center_z[s] + ZoomIn_Lz[s]/2 )
+	 Aux_Error( ERROR_INFO, "Zoom-in box at a = %f is outside of the previous Zoom-in box !!\n", ZoomIn_a[s] );
+
+      } // for (int s=0; s<ZoomIn_MaxSnap; s++)
+
+       fclose( File_zoom );
+    } // if ( OPT__FLAG_REGION )
+
+// (2) reset other general-purpose parameters
 //     --> a helper macro PRINT_RESET_PARA is defined in Macro.h
    const long   End_Step_Default = __INT_MAX__;
    const double End_T_Default    = 1.0;
@@ -153,8 +177,7 @@ void SetParameter()
       PRINT_RESET_PARA( END_T, FORMAT_REAL, "" );
    }
 
-
-// (4) make a note
+// (3) make a note
    if ( MPI_Rank == 0 )
    {
       Aux_Message( stdout, "=============================================================================\n" );
@@ -193,42 +216,34 @@ bool Flag_Region_LSS( const int i, const int j, const int k, const int lv, const
 
    bool Within = true;
 
-   real ZoomIn_BoxLx, ZoomIn_BoxLy, ZoomIn_BoxLz;
-   for (int s=0; s<Max_snap; s++){
-     if (Time[0] > ZoomIn_a[s]){
-       ZoomIn_BoxLx = ZoomIn_Lx[s]; 
-       ZoomIn_BoxLy = ZoomIn_Ly[s]; 
-       ZoomIn_BoxLz = ZoomIn_Lz[s];
-       break;
-     }
+// get the zoom-in ID that can collect the zoom-in box's volume and center based on the current simulation time
+   int zoomID; 
+   for (int s=0; s<ZoomIn_MaxSnap; s++)
+   {
+      if ( Time[0] <= ZoomIn_a[s] )   continue;
+      zoomID = s;
+      break;
+    } // for (int s=0; s<ZoomIn_MaxSnap; s++)
+
+// periodic BC checks
+   const double Pos_x     = ( Pos[0] - ZoomIn_Center_x[zoomID] >  0.5*amr->BoxSize[0] ) ? Pos[0] - amr->BoxSize[0] :
+                            ( Pos[0] - ZoomIn_Center_x[zoomID] < -0.5*amr->BoxSize[0] ) ? Pos[0] + amr->BoxSize[0] : Pos[0];
+   const double Pos_y     = ( Pos[1] - ZoomIn_Center_y[zoomID] >  0.5*amr->BoxSize[1] ) ? Pos[1] - amr->BoxSize[1] :
+                            ( Pos[1] - ZoomIn_Center_y[zoomID] < -0.5*amr->BoxSize[1] ) ? Pos[1] + amr->BoxSize[1] : Pos[1];
+   const double Pos_z     = ( Pos[2] - ZoomIn_Center_z[zoomID] >  0.5*amr->BoxSize[2] ) ? Pos[2] - amr->BoxSize[2] :
+                            ( Pos[2] - ZoomIn_Center_z[zoomID] < -0.5*amr->BoxSize[2] ) ? Pos[2] + amr->BoxSize[2] : Pos[2];
+   const double dR[3]     = { Pos_x  - ZoomIn_Center_x[zoomID], 
+			      Pos_y  - ZoomIn_Center_y[zoomID], 
+			      Pos_z  - ZoomIn_Center_z[zoomID] };
+
+   if ( lv < ZoomIn_MaxLvOutside )   return true;
+   else 
+   {
+     Within = ( abs(dR[0]) < ZoomIn_Lx[zoomID]/2 )  &&
+              ( abs(dR[1]) < ZoomIn_Ly[zoomID]/2 )  &&
+              ( abs(dR[2]) < ZoomIn_Lz[zoomID]/2 );
+     return Within;
    }
-// put the target region below
-// ##########################################################################################################
-
-   const double Center[3] = { ZoomIn_Center_x, ZoomIn_Center_y, ZoomIn_Center_z };
-
-   double Pos_x = Pos[0];
-   double Pos_y = Pos[1];
-   double Pos_z = Pos[2];
-
-   // deal with periodic BC
-   if ( Pos[0]-Center[0] >  0.5*amr->BoxSize[0] ) Pos_x = Pos[0] - amr->BoxSize[0];
-   if ( Pos[0]-Center[0] < -0.5*amr->BoxSize[0] ) Pos_x = Pos[0] + amr->BoxSize[0];
-   if ( Pos[1]-Center[1] >  0.5*amr->BoxSize[1] ) Pos_y = Pos[1] - amr->BoxSize[1];
-   if ( Pos[1]-Center[1] < -0.5*amr->BoxSize[1] ) Pos_y = Pos[1] + amr->BoxSize[1];
-   if ( Pos[2]-Center[2] >  0.5*amr->BoxSize[2] ) Pos_z = Pos[2] - amr->BoxSize[2];
-   if ( Pos[2]-Center[2] < -0.5*amr->BoxSize[2] ) Pos_z = Pos[2] + amr->BoxSize[2];
-
-   const double dR[3]     = { Pos_x-Center[0], Pos_y-Center[1], Pos_z-Center[2] };   
-   
-   Within = (abs(dR[0]) < ZoomIn_BoxLx/2) && 
-            (abs(dR[1]) < ZoomIn_BoxLy/2) && 
-            (abs(dR[2]) < ZoomIn_BoxLz/2) || (
-	    (lv < ZoomIn_Lvlim));
-// ##########################################################################################################
-
-
-   return Within;
 
 } // FUNCTION : Flag_Region_LSS
 
@@ -314,8 +329,6 @@ void Init_ByFile_ELBDM_LSS( real fluid_out[], const real fluid_in[], const int n
                     "LSS_InitMode", LSS_InitMode );
    } // switch ( LSS_InitMode )
 
-   
-
 #  if ( ELBDM_SCHEME == ELBDM_HYBRID )
    if ( amr->use_wave_flag[lv] ) {
 #  endif
@@ -334,6 +347,24 @@ void Init_ByFile_ELBDM_LSS( real fluid_out[], const real fluid_in[], const int n
 #endif // #if ( MODEL == ELBDM )
 
 
+//-------------------------------------------------------------------------------------------------------
+// Function    :  End_Region_LSS
+// Description :  Free memory before terminating the program
+//
+// Note        :  1. Linked to the function pointer "End_User_Ptr" to replace "End_User()"
+//
+// Parameter   :  None
+//-------------------------------------------------------------------------------------------------------
+void End_Region_LSS()
+{
+  delete [] ZoomIn_a;
+  delete [] ZoomIn_Lx;
+  delete [] ZoomIn_Ly;
+  delete [] ZoomIn_Lz;
+  delete [] ZoomIn_Center_x;
+  delete [] ZoomIn_Center_y;
+  delete [] ZoomIn_Center_z;
+}
 
 //-------------------------------------------------------------------------------------------------------
 // Function    :  Init_TestProb_ELBDM_LSS
@@ -350,22 +381,20 @@ void Init_TestProb_ELBDM_LSS()
 
    if ( MPI_Rank == 0 )    Aux_Message( stdout, "%s ...\n", __FUNCTION__ );
 
-
 // validate the compilation flags and runtime parameters
    Validate();
-
 
 #  if ( MODEL == ELBDM )
 // set the problem-specific runtime parameters
    SetParameter();
 
-
    Init_ByFile_User_Ptr = Init_ByFile_ELBDM_LSS;
-   if ( OPT__FLAG_REGION )   Flag_Region_Ptr      = Flag_Region_LSS; // option: OPT__FLAG_REGION;             example: Refing/Flag_Region.cpp
+   Flag_Region_Ptr      = Flag_Region_LSS;
+   End_User_Ptr         = End_Region_LSS;
 
 #  endif // #if ( MODEL == ELBDM )
-
 
    if ( MPI_Rank == 0 )    Aux_Message( stdout, "%s ... done\n", __FUNCTION__ );
 
 } // FUNCTION : Init_TestProb_ELBDM_LSS
+

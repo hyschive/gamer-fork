@@ -1,6 +1,3 @@
 # problem-specific runtime parameters
 LSS_InitMode         2       # initialization mode: (1=density-only with constant phase, 2=real and imaginary parts or density and phase) [1]
-ZoomIn_Center_x      0.29491 # x coordinate of refinement region center
-ZoomIn_Center_y      9.52254 # y coordinate of refinement region center
-ZoomIn_Center_z      8.27318 # z coordinate of refinement region center
-ZoomIn_Lvlim         3       # maximum refinement level outside of the zoom-in box
+ZoomIn_MaxLvOutside  3       # maximum refinement level outside of the zoom-in box

@@ -13,7 +13,7 @@
 # =================================================================================================================
 
 # simulation scale
-BOX_SIZE                      10.0         # box size along the longest side (in Mpc/h if COMOVING is adopted)
+BOX_SIZE                      10.0        # box size along the longest side (in Mpc/h if COMOVING is adopted)
 NX0_TOT_X                     64          # number of base-level cells along x
 NX0_TOT_Y                     64          # number of base-level cells along y
 NX0_TOT_Z                     64          # number of base-level cells along z
@@ -42,9 +42,9 @@ OPT__BC_POT                   1           # gravity boundary condition: (1=perio
 
 
 # cosmology (COMOVING only)
-A_INIT                        9.900990099e-3    # initial scale factor
+A_INIT                        9.900990099e-3          # initial scale factor
 OMEGA_M0                      0.3158230904284232      # omega matter at the present time
-HUBBLE0                       0.6732117      # dimensionless Hubble parameter (currently only for converting ELBDM_MASS to code units)
+HUBBLE0                       0.6732117               # dimensionless Hubble parameter (currently only for converting ELBDM_MASS to code units)
 
 
 # time-step
