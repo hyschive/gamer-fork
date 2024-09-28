@@ -72,10 +72,11 @@ Note:
    c. N = 640, L = 0.0646921095 Mpc/h, single-precision
 
 7. The default FDMHaloDensityProfile is extracted from the default HALO_IC
-   a. Run the default FDM case to get Data_000000
+   a. Run the default ELBDM case to get Data_000000
    b. Adjust the plot_script/plot__density_profile.py: set `r_sphere = (50.0, 'kpc')` and `nbin = 128`
    c. Run `python3 plot__density_profile.py -s 0 -e 0`
    b. Remove the inner region (r < 6e-4 code_length) of the output Data_000000_density_profile to achieve a more consistent total enclosed mass
+   -> In this way, the CDM halo would look more similar and be easier to compare to the ELBDM case
 
 8. Generate the default FitHaloDensityProfile and SolitonDensityProfile: python Make_DensityProfile.py
    a. The parameters for the halo density profile are used to fit the ELBDM halo
