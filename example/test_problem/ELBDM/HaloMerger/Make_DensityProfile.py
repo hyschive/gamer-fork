@@ -99,7 +99,7 @@ soliton_densprof_density = Soliton_fitting_analytical_dens( soliton_densprof_rad
 
 ###################################################################################################################
 # save to file
-np.savetxt( 'HaloDensityProfile',
+np.savetxt( 'FitHaloDensityProfile',
             np.column_stack( (halo_densprof_radius, halo_densprof_density) ),
             fmt='          %9.8e',
             header='                     r                  density' )
@@ -148,7 +148,7 @@ ax.legend( loc='upper right' )
 
 # save the figure
 fig.subplots_adjust( top=0.93, bottom=0.1, left=0.1, right=0.97 )
-fig.savefig( 'fig_HaloDensityProfile.png' )
+fig.savefig( 'fig_FitHaloDensityProfile.png' )
 plt.close()
 
 fig = plt.figure()
