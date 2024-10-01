@@ -45,6 +45,7 @@ for idx in range(idx_start, idx_end+1, didx):
    plt.set_axes_unit( 'kpc' )
    plt.set_unit( field, 'Msun/kpc**3')
    plt.set_cmap( field, colormap )
+   plt.annotate_timestamp( time_unit='Myr', corner='upper_right', text_args={'color':'k'} )
    plt.save( mpl_kwargs={"dpi":dpi} )
 
    plt = yt.SlicePlot( ds, 1, fields = field, center = 'c')
@@ -52,6 +53,7 @@ for idx in range(idx_start, idx_end+1, didx):
    plt.set_axes_unit( 'kpc' )
    plt.set_unit( field, 'Msun/kpc**3')
    plt.set_cmap( field, colormap )
+   plt.annotate_timestamp( time_unit='Myr', corner='upper_right', text_args={'color':'k'} )
    plt.save( mpl_kwargs={"dpi":dpi} )
 
    plt = yt.SlicePlot( ds, 2, fields = field, center = 'c')
@@ -59,6 +61,7 @@ for idx in range(idx_start, idx_end+1, didx):
    plt.set_axes_unit( 'kpc' )
    plt.set_unit( field, 'Msun/kpc**3')
    plt.set_cmap( field, colormap )
+   plt.annotate_timestamp( time_unit='Myr', corner='upper_right', text_args={'color':'k'} )
    plt.save( mpl_kwargs={"dpi":dpi} )
 
 

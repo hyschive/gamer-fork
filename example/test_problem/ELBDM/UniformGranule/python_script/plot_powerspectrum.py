@@ -29,6 +29,7 @@ for t in range( len(sys.argv) ):
 print( '' )
 print( '-------------------------------------------------------------------\n' )
 
+# plot GAMER generated power spectrum as reference
 GAMER_PS = True
 print('GAMER_PS='+str(GAMER_PS)+'\n')
 
@@ -67,18 +68,6 @@ for idx in range(idx_start, idx_end+1, didx):
       gamer_k    = gamer_ps[:,0]
       gamer_Pk1d = gamer_ps[:,1]
       gamer_k3Pk = gamer_k**3*gamer_Pk1d
-
-   plt.figure()
-   plt.title("Power Spectrum")
-   plt.plot(kz[1:], Pk1d[1:]/max(Pk1d[1:]), label = 'numpy')
-   if(GAMER_PS):
-      plt.plot(gamer_k, gamer_Pk1d/max(gamer_Pk1d), label = 'gamer')
-   plt.xlabel('$k$')
-   plt.ylabel(r'$P(k)$')
-   plt.yscale('log')
-   plt.legend(loc='lower left')
-   plt.savefig('fig_powerspectrum_%06d.png'%idx, dpi = 150, bbox_inches="tight")
-   plt.close()
 
    plt.figure()
    plt.title("Dimensionless Power Spectrum")
