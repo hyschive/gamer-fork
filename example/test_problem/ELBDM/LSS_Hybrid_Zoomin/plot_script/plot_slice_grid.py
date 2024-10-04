@@ -42,7 +42,7 @@ idx_end   = args.idx_end
 didx      = args.didx
 prefix    = args.prefix
 
-center = [0.25817871, 9.3939209,  8.20983887] # center of the target halo for low resolution IC
+center = [0.25817871, 9.3939209,  8.20983887] # center of the target halo at z=0 for low resolution IC
 
 yt.enable_parallelism()
 ts = yt.DatasetSeries( [prefix+'/Data_%06d'%idx for idx in range( idx_start, idx_end+1, didx )] )
