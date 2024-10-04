@@ -103,8 +103,10 @@ void SetParameter()
      
    if ( OPT__FLAG_REGION )
    {
+#     if ( ELBDM_SCHEME == ELBDM_HYBRID )
       if ( ELBDM_FIRST_WAVE_LEVEL > ZoomIn_MaxLvOutside )
          Aux_Error( ERROR_INFO, " it is required to set ELBDM_FIRST_WAVE_LEVEL <= ZoomIn_MaxLvOutside for zoom-in simulation !!\n" );
+#     endif // # if ( ELBDM_SCHEME == ELBDM_HYBRID )
 
       if ( !Aux_CheckFileExist( FileNameZoomIn ) )
          Aux_Error( ERROR_INFO, "%s does not exist !!\n", FileNameZoomIn );
