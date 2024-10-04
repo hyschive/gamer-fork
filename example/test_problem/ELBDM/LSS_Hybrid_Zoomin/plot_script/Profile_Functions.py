@@ -16,16 +16,16 @@ import yt
 from scipy.optimize import curve_fit, ridder
 from VelocityDisp import *
 from PowerSpec    import *
-def soliton(x, xc ,time_a, particle_mass):
+def soliton( x, xc ,time_a, particle_mass ):
     return 1.9/time_a*((particle_mass/1e-23)**-2)*((xc)**-4)/(1+9.1*1e-2*(x/xc)**2)**8*1e9
 
-def find_virial_mass(r,mass_para,zeta, background_density):
-    mass = 10**np.interp(np.log10(r), np.log10(mass_para[0]), np.log10(mass_para[1]))
+def find_virial_mass( r, mass_para, zeta, background_density ):
+    mass = 10**np.interp(np.log10(r), np.log10( mass_para[0]), np.log10( mass_para[1] ) )
     return mass-zeta*background_density*(4/3*np.pi*r**3)
 
-def compute_profile(ds, center, _halo_radius, halo_id, path_data):
+def compute_profile( ds, center, _halo_radius, halo_id, path_data ):
 
-    print("start computing profile...\n")
+    print( "start computing profile...\n" )
     omega_M0             = ds.omega_matter
     omega_M0             = 0.3158230904284232
     newton_G             = ds.units.newtons_constant.to('(kpc*km**2)/(s**2*Msun)').d     #(kpc*km^2)/(s^2*Msun)
@@ -36,13 +36,10 @@ def compute_profile(ds, center, _halo_radius, halo_id, path_data):
     # plot variable
     nbin             = 256
     max_radius       = 4e2
-    coordinates = ds.arr([center[0], center[1], center[2]], 'code_length')
+    coordinates = ds.arr( [center[0], center[1], center[2]], 'code_length' )
 
     # save file parameter
-#    halo_parameter_filename = "Halo_Parameter_%d"%halo_id
     halo_parameter_filename = "Halo_Parameter"
-    writing_mode = 'append'
-    storage = {}
 
     # periodicity
     ds.force_periodicity()
@@ -51,33 +48,33 @@ def compute_profile(ds, center, _halo_radius, halo_id, path_data):
     # find the maximum value in a sphere extending halo_radius from center_guess
     halo_radius  = _halo_radius     # halo radius in cMpc/h --> change this value properly
     if ds.cosmological_simulation:
-        center_guess = coordinates
-        sphere_guess = ds.sphere( center_guess, (halo_radius, 'code_length' ) )
-        center_find  = sphere_guess.quantities.max_location( 'density' )
-        center_coordinate  = ds.arr([center_find[1].d, center_find[2].d, center_find[3].d], 'code_length')
+        center_guess       = coordinates
+        sphere_guess       = ds.sphere( center_guess, (halo_radius, 'code_length') )
+        center_find        = sphere_guess.quantities.max_location( 'density' )
+        center_coordinate  = ds.arr( [center_find[1].d, center_find[2].d, center_find[3].d], 'code_length' )
     else:
         center_coordinate = coordinates
-    print("Center is ", center_coordinate.in_units('code_length'))
+    print( "Center is ", center_coordinate.in_units('code_length') )
 
     # extract halo
     sp         = ds.sphere( center_coordinate, (0.30, 'code_length') ) # extract sphere with max 0.25 Mpc
     max_level  = ds.max_level
     min_radius = ds.domain_width.in_units("kpc")[0].d/2**max_level/ds.domain_dimensions[0]
 
-    prof_mass_accumulate = yt.create_profile(sp, 'radius', fields = 'cell_mass',
-                                             weight_field = None, n_bins = nbin ,
-                                             units = {'radius': 'kpc', 'cell_mass': 'Msun'}, 
-                                             extrema = {'radius': (min_radius,max_radius)}, accumulation = True)
+    prof_mass_accumulate = yt.create_profile( sp, 'radius', fields = 'cell_mass',
+                                              weight_field = None, n_bins = nbin ,
+                                              units = {'radius': 'kpc', 'cell_mass': 'Msun'}, 
+                                              extrema = {'radius': (min_radius,max_radius)}, accumulation = True )
 
-    prof_dens            = yt.create_profile(sp, 'radius', fields = 'density',
-                                             weight_field = 'cell_volume', n_bins = nbin ,
-                                             units = {'radius': 'kpc','density': 'Msun/kpc**3'}, 
-                                             extrema = {'radius': (min_radius,max_radius)})
+    prof_dens            = yt.create_profile( sp, 'radius', fields = 'density',
+                                              weight_field = 'cell_volume', n_bins = nbin ,
+                                              units = {'radius': 'kpc','density': 'Msun/kpc**3'}, 
+                                              extrema = {'radius': (min_radius,max_radius)} )
 
-    prof_volume          = yt.create_profile(sp, 'radius', fields = 'cell_volume',
-                                             weight_field = None, n_bins = nbin ,
-                                             units = {'radius': 'kpc', 'cell_volume': 'kpc**3'}, 
-                                             extrema = {'radius': (min_radius,max_radius)})
+    prof_volume          = yt.create_profile( sp, 'radius', fields = 'cell_volume',
+                                              weight_field = None, n_bins = nbin ,
+                                              units = {'radius': 'kpc', 'cell_volume': 'kpc**3'}, 
+                                              extrema = {'radius': (min_radius,max_radius)} )
 
     radius_o          = prof_dens.x.value
     density_o         = prof_dens['density'].value                       # density at radius 
@@ -97,38 +94,38 @@ def compute_profile(ds, center, _halo_radius, halo_id, path_data):
             mass_accumulate.append(mass_accumulate_o[i])
             volume.append(volume_o[i])
             
-    radius            = np.array(radius)
-    density           = np.array(density)
-    mass_accumulate   = np.array(mass_accumulate)
-    circular_velocity = np.sqrt(newton_G * mass_accumulate/radius)
+    radius            = np.array( radius )
+    density           = np.array( density )
+    mass_accumulate   = np.array( mass_accumulate )
+    circular_velocity = np.sqrt( newton_G * mass_accumulate/radius )
 
     # output profiles
-    if not os.path.exists(path_data + '/prof_dens'):
-       os.makedirs(path_data + '/prof_dens')
+    if not os.path.exists( path_data + '/prof_dens' ):
+       os.makedirs( path_data + '/prof_dens' )
 
-    if not os.path.exists(path_data + '/prof_mass'):
-       os.makedirs(path_data + '/prof_mass')
+    if not os.path.exists( path_data + '/prof_mass' ):
+       os.makedirs( path_data + '/prof_mass' )
 
-    if not os.path.exists(path_data + '/prof_circular_vel'):
-       os.makedirs(path_data + '/prof_circular_vel')
+    if not os.path.exists( path_data + '/prof_circular_vel' ):
+       os.makedirs( path_data + '/prof_circular_vel' )
 
-    with open('%s/prof_dens/%s_%d_profile_data'%(path_data,ds,halo_id) , 'w') as file:
-        writer = csv.writer(file, delimiter='\t')
-        writer.writerow(['#radius(kpccm)', 'density(Msun/kpccm**3)' ])
-        for i in range(len(radius)):
-            writer.writerow([radius[i], density[i]])
+    with open( '%s/prof_dens/%s_%d_profile_data'%(path_data,ds,halo_id) , 'w' ) as file:
+        writer = csv.writer( file, delimiter='\t' )
+        writer.writerow( ['#radius(kpccm)', 'density(Msun/kpccm**3)'] )
+        for i in range( len(radius) ):
+            writer.writerow( [radius[i], density[i]] )
 
-    with open('%s/prof_mass/%s_%d_mass_accumulate'%(path_data,ds,halo_id) , 'w') as file:
-        writer = csv.writer(file, delimiter='\t')
-        writer.writerow(['#radius(kpccm)', 'mass(Msun)' ])
-        for i in range(len(radius)):
-            writer.writerow([radius[i], mass_accumulate[i]])
+    with open( '%s/prof_mass/%s_%d_mass_accumulate'%(path_data,ds,halo_id) , 'w' ) as file:
+        writer = csv.writer( file, delimiter='\t' )
+        writer.writerow( ['#radius(kpccm)', 'mass(Msun)'] )
+        for i in range( len(radius) ):
+            writer.writerow( [radius[i], mass_accumulate[i]] )
 
-    with open('%s/prof_circular_vel/%s_%d_circular_velocity'%(path_data,ds,halo_id) , 'w') as file:
-        writer = csv.writer(file, delimiter='\t')
-        writer.writerow(['#radius(kpccm)', 'Vcir(km/s)' ])
-        for i in range(len(radius)):
-            writer.writerow([radius[i], circular_velocity[i]])
+    with open( '%s/prof_circular_vel/%s_%d_circular_velocity'%(path_data,ds,halo_id) , 'w' ) as file:
+        writer = csv.writer( file, delimiter='\t' )
+        writer.writerow( ['#radius(kpccm)', 'Vcir(km/s)'] )
+        for i in range( len(radius) ):
+            writer.writerow( [radius[i], circular_velocity[i]] )
     
     ############# Output Halo's properties (core mass, halo mass, raidus) ####################
 
@@ -144,23 +141,23 @@ def compute_profile(ds, center, _halo_radius, halo_id, path_data):
     zeta    = (18*np.pi**2 + 82*(omega_M - 1) - 39*(omega_M - 1)**2)/omega_M 
 
     # use mass_accumulation directly
-    halo_radius = ridder(lambda x:find_virial_mass(x,(radius, mass_accumulate),zeta, background_density_0),min_radius, max_radius)
-    halo_mass   = 10**np.interp(np.log10(halo_radius), np.log10(radius), np.log10(mass_accumulate))
+    halo_radius = ridder( lambda x:find_virial_mass(x,(radius, mass_accumulate),zeta, background_density_0),min_radius, max_radius )
+    halo_mass   = 10**np.interp( np.log10( halo_radius ), np.log10( radius ), np.log10( mass_accumulate ) )
         
     #core radius 2 : xc = max/2
     try: 
-        core_radius_2 = ridder(lambda x: 10**np.interp(np.log10(x),np.log10(radius), np.log10(density)) - max(density)/2, radius[0], max(radius))
+        core_radius_2 = ridder( lambda x: 10**np.interp( np.log10( x ), np.log10( radius ), np.log10( density )) - max(density)/2, radius[0], max( radius ) )
     except ValueError as e:
         print("Error while getting core_radius_2: likely unable to locate the center of halo. Please adjust center_first_guess or vicinity in Compute_profiles.py")
         exit(0)
         return 
-    core_mass_2   = 10**np.interp(np.log10(core_radius_2),np.log10(radius), np.log10(mass_accumulate))   
+    core_mass_2   = 10**np.interp( np.log10( core_radius_2 ), np.log10( radius ), np.log10( mass_accumulate ) )
     
     #core radius 1 : curve fit
     avg           = (density > 0.1*max(density))
-    popt, pcov    = curve_fit(lambda x, r_c:soliton(x, r_c, current_time_a, particle_mass), radius[avg], density[avg], bounds=(5e-1, 50))
+    popt, pcov    = curve_fit( lambda x, r_c:soliton(x, r_c, current_time_a, particle_mass), radius[avg], density[avg], bounds=(5e-1, 50) )
     core_radius_1 = popt[0]
-    core_mass_1   = 10**np.interp(np.log10(core_radius_1),np.log10(radius), np.log10(mass_accumulate))   
+    core_mass_1   = 10**np.interp( np.log10( core_radius_1 ),np.log10( radius ), np.log10( mass_accumulate ) )
 
     #core radius 3 : x = 0 solve equation 
     a             = (2**(1.0/8) - 1)**(1.0/2)	
@@ -168,27 +165,27 @@ def compute_profile(ds, center, _halo_radius, halo_id, path_data):
     core_mass_3   = ((4.2*10**9/((particle_mass/10**-23)**2*(float(core_radius_3*current_time_a)*10**3)))*(1/(a**2 + 1)**7)*(3465*a**13 + 23100*a**11 + 65373*a**9 + 101376*a**7 + 92323*a**5 + 48580*a**3 - 3465*a + 3465*(a**2 + 1)**7*np.arctan(a)))
 
     sto_list = []
-    sto_list.append(int(str(ds).split("_")[-1]))
-    sto_list.append(halo_id)
-    sto_list.append(particle_mass)
-    sto_list.append(center_coordinate.in_units('code_length')[0].d)
-    sto_list.append(center_coordinate.in_units('code_length')[1].d)
-    sto_list.append(center_coordinate.in_units('code_length')[2].d)
-    sto_list.append(current_time_z)
-    sto_list.append(halo_radius*current_time_a)
-    sto_list.append(halo_mass)
-    sto_list.append(max(density)*current_time_a**-3)
-    sto_list.append(core_radius_1*current_time_a)
-    sto_list.append(core_radius_2*current_time_a)
-    sto_list.append(core_radius_3*current_time_a)
-    sto_list.append(core_mass_1)
-    sto_list.append(core_mass_2)
-    sto_list.append(core_mass_3)
+    sto_list.append( int(str(ds).split("_")[-1]) )
+    sto_list.append( halo_id )
+    sto_list.append( particle_mass )
+    sto_list.append( center_coordinate.in_units('code_length')[0].d )
+    sto_list.append( center_coordinate.in_units('code_length')[1].d )
+    sto_list.append( center_coordinate.in_units('code_length')[2].d )
+    sto_list.append( current_time_z )
+    sto_list.append( halo_radius*current_time_a )
+    sto_list.append( halo_mass )
+    sto_list.append( max(density)*current_time_a**-3 )
+    sto_list.append( core_radius_1*current_time_a )
+    sto_list.append( core_radius_2*current_time_a )
+    sto_list.append( core_radius_3*current_time_a )
+    sto_list.append( core_mass_1 )
+    sto_list.append( core_mass_2 )
+    sto_list.append( core_mass_3 )
 
-    file_exists = os.path.exists("%s/%s"%(path_data, halo_parameter_filename))
-    with open("%s/%s"%(path_data,halo_parameter_filename), 'a+') as file:
+    file_exists = os.path.exists( "%s/%s"%(path_data, halo_parameter_filename) )
+    with open( "%s/%s"%(path_data,halo_parameter_filename), 'a+' ) as file:
         if not file_exists:
-            writer = csv.writer(file, delimiter=' ')
+            writer = csv.writer( file, delimiter=' ' )
             writer.writerow(['#snap',
                              'halo_id',
                              'm[eV]',
@@ -205,7 +202,7 @@ def compute_profile(ds, center, _halo_radius, halo_id, path_data):
                              'M_c2[Msun]',
                              'M_c3[Msun]'])
                         
-        file.write("%d %d %.1e %f %f %f %.7e %.7e %.7e %.7e %.7e %.7e %.7e %.7e %.7e %.7e\n"%(
+        file.write( "%d %d %.1e %f %f %f %.7e %.7e %.7e %.7e %.7e %.7e %.7e %.7e %.7e %.7e\n"%(
           sto_list[0],
           sto_list[1],
           sto_list[2],
@@ -222,8 +219,8 @@ def compute_profile(ds, center, _halo_radius, halo_id, path_data):
           sto_list[13],
           sto_list[14],
           sto_list[15],
-       ))
+        ))
 
     # Compute Velocity Dispersion & Power spectrum seperately    
-    Compute_VelocityDispersion(ds, center_coordinate.in_units('code_length').d, 0, '.')
-    Compute_PowerSpectrum(ds, center_coordinate.in_units('code_length').d, core_radius_1, 0, '.')
+    Compute_VelocityDispersion( ds, center_coordinate.in_units('code_length').d, 0, '.' )
+    Compute_PowerSpectrum( ds, center_coordinate.in_units('code_length').d, core_radius_1, 0, '.' )

@@ -23,28 +23,35 @@
 import argparse
 import numpy as np
 import yt
+import sys
 from Profile_Functions import *
 
 # load the command-line parameters
-parser = argparse.ArgumentParser(description='Plot profile and out put Halo_parameter')
+parser = argparse.ArgumentParser( description='Plot profile and output Halo_parameter' )
 
-parser.add_argument('-s', action='store', required=True,  type=int, dest='idx_start',
-                      help='first data index')
-parser.add_argument('-e', action='store', required=True,  type=int, dest='idx_end',
-                      help='last data index')
-parser.add_argument('-d', action='store', required=False, type=int, dest='didx',
-                      help='delta data index [%(default)d]', default=1)
+parser.add_argument( '-s', action='store', required=True,  type=int, dest='idx_start',
+                      help='first data index' )
+parser.add_argument( '-e', action='store', required=True,  type=int, dest='idx_end',
+                      help='last data index' )
+parser.add_argument( '-d', action='store', required=False, type=int, dest='didx',
+                      help='delta data index [%(default)d]', default=1 )
+
+# take note
+print( '\nCommand-line arguments:' )
+print( '-------------------------------------------------------------------' )
+print( ' '.join(map(str, sys.argv)) )
+print( '-------------------------------------------------------------------\n' )
 
 args        = parser.parse_args()
 idx_start   = args.idx_start
 idx_end     = args.idx_end
 didx        = args.didx
 
-for file_id in range(idx_start, idx_end+1, 1):
+for file_id in range( idx_start, idx_end+1, 1 ):
 
-    ds                 = yt.load("../Data_0000%.2d"%file_id)
-    center_first_guess = np.array([0.295, 9.522, 8.27]) # in cMpc/h. First guess for target halo of low resolution IC at z=0
+    ds                 = yt.load( "../Data_0000%.2d"%file_id )
+    center_first_guess = np.array( [0.295, 9.522, 8.27] ) # in cMpc/h. First guess for target halo of low resolution IC at z=0
     vicinity           = 0.3   # radius in cMpc/h
-    compute_profile(ds, center_first_guess, vicinity, 0, '.')
+    compute_profile( ds, center_first_guess, vicinity, 0, '.' )
     
-print("Done !")
+print( "Done !" )

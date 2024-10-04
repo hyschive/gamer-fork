@@ -4,11 +4,11 @@
 
 // problem-specific global variables
 // =======================================================================================
-static       int    LSS_InitMode;         // initialization mode: 1=density-only, 2=real and imaginary parts or phase and density
-static       int    ZoomIn_MaxLvOutside;  // maximum refinement level outside of the zoom-in box
-static       int    ZoomIn_MaxSnap;             // number of changes the zoom-in box
-static       real  *ZoomIn_a, *ZoomIn_Lx, *ZoomIn_Ly, *ZoomIn_Lz, 
-                   *ZoomIn_Center_x, *ZoomIn_Center_y, *ZoomIn_Center_z;   // arrays of the table of scale factor, length and center in xyz-axis
+static int   LSS_InitMode;         // initialization mode: 1=density-only, 2=real and imaginary parts or phase and density
+static int   ZoomIn_MaxLvOutside;  // maximum refinement level outside of the zoom-in box
+static int   ZoomIn_NRow;             // number of changes of the zoom-in box
+static real *ZoomIn_a, *ZoomIn_LX, *ZoomIn_LY, *ZoomIn_LZ, 
+            *ZoomIn_CenterX, *ZoomIn_CenterY, *ZoomIn_CenterZ;   // arrays of the table of scale factor, length, and center in xyz-axis
 
 // =======================================================================================
 
@@ -55,7 +55,6 @@ void Validate()
 
 // warnings
 
-
    if ( MPI_Rank == 0 )    Aux_Message( stdout, "   Validating test problem %d ... done\n", TESTPROB_ID );
 
 } // FUNCTION : Validate
@@ -86,6 +85,7 @@ void SetParameter()
 
 // (1) load the problem-specific runtime parameters
    const char FileName[] = "Input__TestProb";
+   const char FileNameZoomIn[] = "Input__ZoominBox";
    ReadPara_t *ReadPara  = new ReadPara_t;
 
 // (1-1) add parameters in the following format:
@@ -103,63 +103,66 @@ void SetParameter()
      
    if ( OPT__FLAG_REGION )
    {
-     if ( ELBDM_FIRST_WAVE_LEVEL > ZoomIn_MaxLvOutside )
-      Aux_Error( ERROR_INFO, " it is required to set ELBDM_FIRST_WAVE_LEVEL <= ZoomIn_MaxLvOutside for zoom-in simulation !!\n" );
+      if ( ELBDM_FIRST_WAVE_LEVEL > ZoomIn_MaxLvOutside )
+         Aux_Error( ERROR_INFO, " it is required to set ELBDM_FIRST_WAVE_LEVEL <= ZoomIn_MaxLvOutside for zoom-in simulation !!\n" );
 
-     char *input_line = NULL;
-     size_t len = 0;
-     int n;
-     FILE *File_zoom;
-     File_zoom = fopen( "Input__ZoominBox", "r" );
+      if ( !Aux_CheckFileExist( FileNameZoomIn ) )
+         Aux_Error( ERROR_INFO, "%s does not exist !!\n", FileNameZoomIn );
 
-//   record the number of rows in Input__ZoominBox
-     ZoomIn_MaxSnap = 0;
-     while ( getline( &input_line, &len, File_zoom ) != -1 )
-       ++ZoomIn_MaxSnap;
-     ZoomIn_MaxSnap--;
-     fclose( File_zoom );
+      char *input_line = NULL;
+      size_t len = 0;
+      int n;
+      FILE *File_zoom;
+      File_zoom = fopen( FileNameZoomIn, "r" );
 
-//   load Zoom-in Lagrangian Box Volumne at different redshifts
-     ZoomIn_a  = new real [ZoomIn_MaxSnap];
-     ZoomIn_Lx = new real [ZoomIn_MaxSnap];
-     ZoomIn_Ly = new real [ZoomIn_MaxSnap];
-     ZoomIn_Lz = new real [ZoomIn_MaxSnap];
-     ZoomIn_Center_x = new real [ZoomIn_MaxSnap];
-     ZoomIn_Center_y = new real [ZoomIn_MaxSnap];
-     ZoomIn_Center_z = new real [ZoomIn_MaxSnap];
+//    get the number of rows in Input__ZoominBox
+      ZoomIn_NRow = -1;
+      while ( getline( &input_line, &len, File_zoom ) != -1 ) ++ZoomIn_NRow;
+      fclose( File_zoom );
 
-//   skip the header
-     File_zoom = fopen( "Input__ZoominBox", "r" );
-     getline( &input_line, &len, File_zoom );
+//    load Zoom-in Lagrangian Box Volumne at different redshifts
+      ZoomIn_a        = new real [ZoomIn_NRow];
+      ZoomIn_LX       = new real [ZoomIn_NRow];
+      ZoomIn_LY       = new real [ZoomIn_NRow];
+      ZoomIn_LZ       = new real [ZoomIn_NRow];
+      ZoomIn_CenterX  = new real [ZoomIn_NRow];
+      ZoomIn_CenterY  = new real [ZoomIn_NRow];
+      ZoomIn_CenterZ  = new real [ZoomIn_NRow];
 
-     for (int s=0; s<ZoomIn_MaxSnap; s++)
-     {
-       n = getline( &input_line, &len, File_zoom );
-       if ( n <= 1 )
-        Aux_Error( ERROR_INFO, "incorrect reading at zoom-in table at line %d of the file <%s> !!\n", s+1, "Input__ZoominBox" );
+      File_zoom = fopen( FileNameZoomIn, "r" );
+      getline( &input_line, &len, File_zoom ); //   skip the header
 
-       sscanf( input_line, "%f%f%f%f%f%f%f",
-               &ZoomIn_a[s],
-               &ZoomIn_Lx[s], &ZoomIn_Ly[s], &ZoomIn_Lz[s],
-               &ZoomIn_Center_x[s], &ZoomIn_Center_y[s], &ZoomIn_Center_z[s] );
+      for (int s=0; s<ZoomIn_NRow; s++)
+      {
+         n = getline( &input_line, &len, File_zoom );
+         if ( n <= 1 )
+            Aux_Error( ERROR_INFO, "incorrect reading at zoom-in table at line %d of the file <%s> !!\n", s+1, FileNameZoomIn );
+
+         sscanf( input_line, "%f%f%f%f%f%f%f",
+		 &ZoomIn_a[s],
+		 &ZoomIn_LX[s], &ZoomIn_LY[s], &ZoomIn_LZ[s],
+		 &ZoomIn_CenterX[s], &ZoomIn_CenterY[s], &ZoomIn_CenterZ[s] );
        
-       if ( s < 1 ) continue;
+         if ( s < 1 ) continue;
 
-       if ( ZoomIn_a[s-1] < ZoomIn_a[s] )
-        Aux_Error( ERROR_INFO, "Scale factors are not listed in descending order in Input__ZoominBox!!\n" );
+         if ( ZoomIn_a[s-1] < ZoomIn_a[s] )
+            Aux_Error( ERROR_INFO, "Current a=%f is greater than the previous a=%f. Scale factors are not listed in descending order in %s!!\n", ZoomIn_a[s], ZoomIn_a[s-1], FileNameZoomIn );
  
-       if ( ZoomIn_Center_x[s-1] - ZoomIn_Lx[s-1]/2 < ZoomIn_Center_x[s] - ZoomIn_Lx[s]/2 ||
-            ZoomIn_Center_y[s-1] - ZoomIn_Ly[s-1]/2 < ZoomIn_Center_y[s] - ZoomIn_Ly[s]/2 ||
-            ZoomIn_Center_z[s-1] - ZoomIn_Lz[s-1]/2 < ZoomIn_Center_z[s] - ZoomIn_Lz[s]/2 ||
-            ZoomIn_Center_x[s-1] + ZoomIn_Lx[s-1]/2 > ZoomIn_Center_x[s] + ZoomIn_Lx[s]/2 ||
-            ZoomIn_Center_y[s-1] + ZoomIn_Ly[s-1]/2 > ZoomIn_Center_y[s] + ZoomIn_Ly[s]/2 ||
-            ZoomIn_Center_z[s-1] + ZoomIn_Lz[s-1]/2 > ZoomIn_Center_z[s] + ZoomIn_Lz[s]/2 )
-        Aux_Error( ERROR_INFO, "Zoom-in box at a = %f is outside of the previous Zoom-in box !!\n", ZoomIn_a[s] );
+         if ( ZoomIn_CenterX[s-1] - ZoomIn_LX[s-1]/2 < ZoomIn_CenterX[s] - ZoomIn_LX[s]/2  ||
+	      ZoomIn_CenterY[s-1] - ZoomIn_LY[s-1]/2 < ZoomIn_CenterY[s] - ZoomIn_LY[s]/2  ||
+	      ZoomIn_CenterZ[s-1] - ZoomIn_LZ[s-1]/2 < ZoomIn_CenterZ[s] - ZoomIn_LZ[s]/2  ||
+	      ZoomIn_CenterX[s-1] + ZoomIn_LX[s-1]/2 > ZoomIn_CenterX[s] + ZoomIn_LX[s]/2  ||
+	      ZoomIn_CenterY[s-1] + ZoomIn_LY[s-1]/2 > ZoomIn_CenterY[s] + ZoomIn_LY[s]/2  ||
+	      ZoomIn_CenterZ[s-1] + ZoomIn_LZ[s-1]/2 > ZoomIn_CenterZ[s] + ZoomIn_LZ[s]/2 )
+            Aux_Error( ERROR_INFO, "Zoom-in box at a = %.2f with LX=%.2f LY=%.2f LZ=%.2f CenterX=%.2f CenterY=%.2f CenterZ=%.2f is outside of the Zoom-in box at earlier a = %.2f with LX=%.2f LY=%.2f LZ=%.2f CenterX=%.2f CenterY=%.2f CenterZ=%.2f !!\n", 
+		       ZoomIn_a[s-1], ZoomIn_LX[s-1], ZoomIn_LY[s-1], ZoomIn_LZ[s-1], ZoomIn_CenterX[s-1], ZoomIn_CenterY[s-1], ZoomIn_CenterZ[s-1],
+		       ZoomIn_a[s], ZoomIn_LX[s], ZoomIn_LY[s], ZoomIn_LZ[s], ZoomIn_CenterX[s], ZoomIn_CenterY[s], ZoomIn_CenterZ[s] );
 
-      } // for (int s=0; s<ZoomIn_MaxSnap; s++)
+      } // for (int s=0; s<ZoomIn_NRow; s++)
 
-       fclose( File_zoom );
-    } // if ( OPT__FLAG_REGION )
+      fclose( File_zoom );
+   } // if ( OPT__FLAG_REGION )
+
 
 // (2) reset other general-purpose parameters
 //     --> a helper macro PRINT_RESET_PARA is defined in Macro.h
@@ -176,12 +179,20 @@ void SetParameter()
       PRINT_RESET_PARA( END_T, FORMAT_REAL, "" );
    }
 
+
 // (3) make a note
    if ( MPI_Rank == 0 )
    {
       Aux_Message( stdout, "=============================================================================\n" );
       Aux_Message( stdout, "  test problem ID     = %d\n", TESTPROB_ID  );
       Aux_Message( stdout, "  initialization mode = %d\n", LSS_InitMode );
+      Aux_Message( stdout, "  ZoomIn_MaxLvOutside = %d\n", ZoomIn_MaxLvOutside );
+      Aux_Message( stdout, "  Table in %s\n", FileNameZoomIn );
+      Aux_Message( stdout, "  #ScaleFactor    LX(UNIT_L)    LY(UNIT_L)    LZ(UNIT_L)   CenterX(UNIT_L)   CenterY(UNIT_L)   CenterZ(UNIT_L)\n" );
+      
+      for (int i=0; i<ZoomIn_NRow; i++)
+         Aux_Message( stdout, "  %.4f %.4f %.4f %.4f %.4f %.4f %.4f\n",
+		      ZoomIn_a[i], ZoomIn_LX[i], ZoomIn_LY[i], ZoomIn_LZ[i], ZoomIn_CenterX[i], ZoomIn_CenterY[i], ZoomIn_CenterZ[i] );
       Aux_Message( stdout, "=============================================================================\n" );
    }
 
@@ -189,6 +200,8 @@ void SetParameter()
    if ( MPI_Rank == 0 )    Aux_Message( stdout, "   Setting runtime parameters ... done\n" );
 
 } // FUNCTION : SetParameter
+
+
 
 //-------------------------------------------------------------------------------------------------------
 // Function    :  Flag_Region_LSS
@@ -208,6 +221,8 @@ void SetParameter()
 bool Flag_Region_LSS( const int i, const int j, const int k, const int lv, const int PID )
 {
 
+   if ( lv < ZoomIn_MaxLvOutside )   return true; // restrict the maximum refinement level outside the zoom-in box
+
    const double dh     = amr->dh[lv];                                         // cell size
    const double Pos[3] = { amr->patch[0][lv][PID]->EdgeL[0] + (i+0.5)*dh,     // x,y,z position
                            amr->patch[0][lv][PID]->EdgeL[1] + (j+0.5)*dh,
@@ -215,36 +230,33 @@ bool Flag_Region_LSS( const int i, const int j, const int k, const int lv, const
 
    bool Within = true;
 
-// get the zoom-in ID that can collect the zoom-in box's volume and center based on the current simulation time
-   int zoomID; 
-   for (int s=0; s<ZoomIn_MaxSnap; s++)
+// get the index of ZoomIn_* that can collect the zoom-in box's volume and center based on the current simulation time
+   int zoom_idx; 
+   for (int s=0; s<ZoomIn_NRow; s++)
    {
       if ( Time[0] <= ZoomIn_a[s] )   continue;
-      zoomID = s;
+      zoom_idx = s;
       break;
-    } // for (int s=0; s<ZoomIn_MaxSnap; s++)
+   } // for (int s=0; s<ZoomIn_NRow; s++)
 
 // periodic BC checks
-   const double Pos_x     = ( Pos[0] - ZoomIn_Center_x[zoomID] >  0.5*amr->BoxSize[0] ) ? Pos[0] - amr->BoxSize[0] :
-                            ( Pos[0] - ZoomIn_Center_x[zoomID] < -0.5*amr->BoxSize[0] ) ? Pos[0] + amr->BoxSize[0] : Pos[0];
-   const double Pos_y     = ( Pos[1] - ZoomIn_Center_y[zoomID] >  0.5*amr->BoxSize[1] ) ? Pos[1] - amr->BoxSize[1] :
-                            ( Pos[1] - ZoomIn_Center_y[zoomID] < -0.5*amr->BoxSize[1] ) ? Pos[1] + amr->BoxSize[1] : Pos[1];
-   const double Pos_z     = ( Pos[2] - ZoomIn_Center_z[zoomID] >  0.5*amr->BoxSize[2] ) ? Pos[2] - amr->BoxSize[2] :
-                            ( Pos[2] - ZoomIn_Center_z[zoomID] < -0.5*amr->BoxSize[2] ) ? Pos[2] + amr->BoxSize[2] : Pos[2];
-   const double dR[3]     = { Pos_x  - ZoomIn_Center_x[zoomID],
-                              Pos_y  - ZoomIn_Center_y[zoomID],
-                              Pos_z  - ZoomIn_Center_z[zoomID] };
+   const double Pos_x = ( Pos[0] - ZoomIn_CenterX[zoom_idx] >  0.5*amr->BoxSize[0] ) ? Pos[0] - amr->BoxSize[0] :
+                        ( Pos[0] - ZoomIn_CenterX[zoom_idx] < -0.5*amr->BoxSize[0] ) ? Pos[0] + amr->BoxSize[0] : Pos[0];
+   const double Pos_y = ( Pos[1] - ZoomIn_CenterY[zoom_idx] >  0.5*amr->BoxSize[1] ) ? Pos[1] - amr->BoxSize[1] :
+                        ( Pos[1] - ZoomIn_CenterY[zoom_idx] < -0.5*amr->BoxSize[1] ) ? Pos[1] + amr->BoxSize[1] : Pos[1];
+   const double Pos_z = ( Pos[2] - ZoomIn_CenterZ[zoom_idx] >  0.5*amr->BoxSize[2] ) ? Pos[2] - amr->BoxSize[2] :
+                        ( Pos[2] - ZoomIn_CenterZ[zoom_idx] < -0.5*amr->BoxSize[2] ) ? Pos[2] + amr->BoxSize[2] : Pos[2];
+   const double dR[3] = { Pos_x  - ZoomIn_CenterX[zoom_idx],
+                          Pos_y  - ZoomIn_CenterY[zoom_idx],
+                          Pos_z  - ZoomIn_CenterZ[zoom_idx] };
 
-   if ( lv < ZoomIn_MaxLvOutside )   return true;
-   else 
-   {
-     Within = ( abs(dR[0]) < ZoomIn_Lx[zoomID]/2 )  &&
-              ( abs(dR[1]) < ZoomIn_Ly[zoomID]/2 )  &&
-              ( abs(dR[2]) < ZoomIn_Lz[zoomID]/2 );
-     return Within;
-   }
+   Within = ( abs(dR[0]) < ZoomIn_LX[zoom_idx]/2 )  &&
+            ( abs(dR[1]) < ZoomIn_LY[zoom_idx]/2 )  &&
+            ( abs(dR[2]) < ZoomIn_LZ[zoom_idx]/2 );
+   return Within;
 
 } // FUNCTION : Flag_Region_LSS
+
 
 
 //-------------------------------------------------------------------------------------------------------
@@ -346,6 +358,7 @@ void Init_ByFile_ELBDM_LSS( real fluid_out[], const real fluid_in[], const int n
 #endif // #if ( MODEL == ELBDM )
 
 
+
 //-------------------------------------------------------------------------------------------------------
 // Function    :  End_Region_LSS
 // Description :  Free memory before terminating the program
@@ -356,14 +369,18 @@ void Init_ByFile_ELBDM_LSS( real fluid_out[], const real fluid_in[], const int n
 //-------------------------------------------------------------------------------------------------------
 void End_Region_LSS()
 {
-  delete [] ZoomIn_a;
-  delete [] ZoomIn_Lx;
-  delete [] ZoomIn_Ly;
-  delete [] ZoomIn_Lz;
-  delete [] ZoomIn_Center_x;
-  delete [] ZoomIn_Center_y;
-  delete [] ZoomIn_Center_z;
-}
+
+   delete [] ZoomIn_a;
+   delete [] ZoomIn_LX;
+   delete [] ZoomIn_LY;
+   delete [] ZoomIn_LZ;
+   delete [] ZoomIn_CenterX;
+   delete [] ZoomIn_CenterY;
+   delete [] ZoomIn_CenterZ;
+
+} // FUNCTION : End_Region_LSS
+
+
 
 //-------------------------------------------------------------------------------------------------------
 // Function    :  Init_TestProb_ELBDM_LSS
@@ -396,4 +413,3 @@ void Init_TestProb_ELBDM_LSS()
    if ( MPI_Rank == 0 )    Aux_Message( stdout, "%s ... done\n", __FUNCTION__ );
 
 } // FUNCTION : Init_TestProb_ELBDM_LSS
-
