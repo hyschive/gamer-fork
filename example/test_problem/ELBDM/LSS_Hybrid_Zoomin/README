@@ -6,13 +6,13 @@ Disable: PARTICLE
 
 Default setup:
 ========================================
-1. ELBDM_MASS              5.0e-24 (eV/c^2)
+1. ELBDM_MASS              2.0e-24 (eV/c^2)
    A_INIT                  9.900990099e-3          # initial scale factor
    OMEGA_M0                0.3158230904284232      # omega matter at the present time
    HUBBLE0                 0.6732117               # dimensionless Hubble parameter (currently only for converting ELBDM_MASS to code units)
    BOX_SIZE                10. (Mpc/h)
 
-2. MAX_LEVEL               5
+2. MAX_LEVEL               7
    OPT__FLAG_SPECTRAL      1
    OPT__FLAG_INTERFERENCE  1
    --> Input__Flag_Rho          = example/input/Input__Flag_Rho

@@ -19,7 +19,7 @@ center_mode   = 'c'
 zooms         = [1,7]
 
 # load the command-line parameters
-parser = argparse.ArgumentParser(description='Projection of mass density')
+parser = argparse.ArgumentParser(description='Slice of mass density')
 
 parser.add_argument( '-i', action='store', required=False, type=str, dest='prefix',
                      help='path prefix [%(default)s]', default='../' )

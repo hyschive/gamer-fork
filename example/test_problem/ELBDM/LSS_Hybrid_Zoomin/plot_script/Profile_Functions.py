@@ -16,6 +16,7 @@ import yt
 from scipy.optimize import curve_fit, ridder
 from VelocityDisp import *
 from PowerSpec    import *
+
 def soliton( x, xc ,time_a, particle_mass ):
     return 1.9/time_a*((particle_mass/1e-23)**-2)*((xc)**-4)/(1+9.1*1e-2*(x/xc)**2)**8*1e9
 
@@ -25,9 +26,12 @@ def find_virial_mass( r, mass_para, zeta, background_density ):
 
 def compute_profile( ds, center, _halo_radius, halo_id, path_data ):
 
+    if not os.path.exists(path_data):
+        print( "ERROR: %s does not exist !!"%path_data )
+        exit(0)
+
     print( "start computing profile...\n" )
     omega_M0             = ds.omega_matter
-    omega_M0             = 0.3158230904284232
     newton_G             = ds.units.newtons_constant.to('(kpc*km**2)/(s**2*Msun)').d     #(kpc*km^2)/(s^2*Msun)
     background_density_0 = (1*ds.units.code_density ).to("Msun/kpc**3").d
     particle_mass        = (ds.parameters[ 'ELBDM_Mass' ]*ds.units.code_mass).to('eV/c**2').d
@@ -82,50 +86,41 @@ def compute_profile( ds, center, _halo_radius, halo_id, path_data ):
     volume_o          = prof_volume['cell_volume'].value       # volume within radius
 
     # remove zero
-    radius          = []
-    density         = []
-    mass_accumulate = []
-    volume          = []
+    dens_idx = density_o != 0
 
-    for i in range(len(radius_o)):
-        if(density_o[i]!=0):
-            radius.append(radius_o[i])
-            density.append(density_o[i])
-            mass_accumulate.append(mass_accumulate_o[i])
-            volume.append(volume_o[i])
-            
-    radius            = np.array( radius )
-    density           = np.array( density )
-    mass_accumulate   = np.array( mass_accumulate )
+    radius            = radius_o[dens_idx]
+    density           = density_o[dens_idx]
+    mass_accumulate   = mass_accumulate_o[dens_idx]
     circular_velocity = np.sqrt( newton_G * mass_accumulate/radius )
 
     # output profiles
     if not os.path.exists( path_data + '/prof_dens' ):
-       os.makedirs( path_data + '/prof_dens' )
+        os.makedirs( path_data + '/prof_dens' )
 
     if not os.path.exists( path_data + '/prof_mass' ):
-       os.makedirs( path_data + '/prof_mass' )
+        os.makedirs( path_data + '/prof_mass' )
 
     if not os.path.exists( path_data + '/prof_circular_vel' ):
-       os.makedirs( path_data + '/prof_circular_vel' )
+        os.makedirs( path_data + '/prof_circular_vel' )
 
     with open( '%s/prof_dens/%s_%d_profile_data'%(path_data,ds,halo_id) , 'w' ) as file:
         writer = csv.writer( file, delimiter='\t' )
-        writer.writerow( ['#radius(kpccm)', 'density(Msun/kpccm**3)'] )
+        writer.writerow( [f"{'#radius(ckpc)':<15}", f"{'density(Msun/ckpc**3)':<15}"] )
         for i in range( len(radius) ):
-            writer.writerow( [radius[i], density[i]] )
+            writer.writerow( [f"{radius[i]:<15.8f}", f"{density[i]:<15.8f}"] )
+#            writer.writerow( [radius[i], density[i]] )
 
     with open( '%s/prof_mass/%s_%d_mass_accumulate'%(path_data,ds,halo_id) , 'w' ) as file:
         writer = csv.writer( file, delimiter='\t' )
-        writer.writerow( ['#radius(kpccm)', 'mass(Msun)'] )
+        writer.writerow( [f"{'#radius(ckpc)':<15}", f"{'mass(Msun)':<15}"] )
         for i in range( len(radius) ):
-            writer.writerow( [radius[i], mass_accumulate[i]] )
+            writer.writerow( [f"{radius[i]:<15.8f}", f"{mass_accumulate[i]:<15.8f}"] )
 
     with open( '%s/prof_circular_vel/%s_%d_circular_velocity'%(path_data,ds,halo_id) , 'w' ) as file:
         writer = csv.writer( file, delimiter='\t' )
-        writer.writerow( ['#radius(kpccm)', 'Vcir(km/s)'] )
+        writer.writerow( [f"{'#radius(ckpc)':<15}", f"{'Vcir(km/s)':<15}"] )
         for i in range( len(radius) ):
-            writer.writerow( [radius[i], circular_velocity[i]] )
+            writer.writerow( [f"{radius[i]:<15.8f}", f"{circular_velocity[i]:<15.8f}"] )
     
     ############# Output Halo's properties (core mass, halo mass, raidus) ####################
 
@@ -184,43 +179,47 @@ def compute_profile( ds, center, _halo_radius, halo_id, path_data ):
 
     file_exists = os.path.exists( "%s/%s"%(path_data, halo_parameter_filename) )
     with open( "%s/%s"%(path_data,halo_parameter_filename), 'a+' ) as file:
+        writer = csv.writer( file, delimiter='\t' )
+
+        # write header
         if not file_exists:
-            writer = csv.writer( file, delimiter=' ' )
-            writer.writerow(['#snap',
-                             'halo_id',
-                             'm[eV]',
-                             'x[cMpc/h]',
-                             'y[cMpc/h]',
-                             'z[cMpc/h]',
-                             'redshift',
-                             'r_vir[kpc]',
-                             'rho_max[Msun/kpc**3]',
-                             'r_c1[kpc]',
-                             'r_c2[kpc]',
-                             'r_c3[kpc]',
-                             'M_c1[Msun]',
-                             'M_c2[Msun]',
-                             'M_c3[Msun]'])
-                        
-        file.write( "%d %d %.1e %f %f %f %.7e %.7e %.7e %.7e %.7e %.7e %.7e %.7e %.7e %.7e\n"%(
-          sto_list[0],
-          sto_list[1],
-          sto_list[2],
-          sto_list[3],
-          sto_list[4],
-          sto_list[5],
-          sto_list[6],
-          sto_list[7],
-          sto_list[8],
-          sto_list[9],
-          sto_list[10],
-          sto_list[11],
-          sto_list[12],
-          sto_list[13],
-          sto_list[14],
-          sto_list[15],
-        ))
+            writer.writerow( [f"{'#snap':<6}",
+                              f"{'halo_id':<8}",
+                              f"{'m[eV]':<8}",
+                              f"{'x[cMpc/h]':<11}",
+                              f"{'y[cMpc/h]':<11}",
+                              f"{'z[cMpc/h]':<11}",
+                              f"{'redshift':<11}",
+                              f"{'r_vir[kpc]':<13}",
+                              f"{'Mvir[Msub]':<13}",
+                              f"{'rho_max[Msun/kpc**3]':<20}",
+                              f"{'r_c1[kpc]':<13}",
+                              f"{'r_c2[kpc]':<13}",
+                              f"{'r_c3[kpc]':<13}",
+                              f"{'M_c1[Msun]':<13}",
+                              f"{'M_c2[Msun]':<13}",
+                              f"{'M_c3[Msun]':<13}"
+                             ] )
+        # write data
+        writer.writerow( [
+        f"{sto_list[0]:<6}",
+        f"{sto_list[1]:<8}",
+        f"{sto_list[2]:<8.1e}",
+        f"{sto_list[3]:<11.8f}",
+        f"{sto_list[4]:<11.8f}",
+        f"{sto_list[5]:<11.8f}",
+        f"{sto_list[6]:<11.8f}",
+        f"{sto_list[7]:<13.8f}",
+        f"{sto_list[8]:<13.8e}",
+        f"{sto_list[9]:<20.8e}",
+        f"{sto_list[10]:<13.8f}",
+        f"{sto_list[11]:<13.8f}",
+        f"{sto_list[12]:<13.8f}",
+        f"{sto_list[13]:<13.8e}",
+        f"{sto_list[14]:<13.8e}",
+        f"{sto_list[15]:<13.8e}"
+        ] )
 
     # Compute Velocity Dispersion & Power spectrum seperately    
-    Compute_VelocityDispersion( ds, center_coordinate.in_units('code_length').d, 0, '.' )
-    Compute_PowerSpectrum( ds, center_coordinate.in_units('code_length').d, core_radius_1, 0, '.' )
+    Compute_VelocityDispersion( ds, center_coordinate.in_units('code_length').d, halo_id, path_data )
+    Compute_PowerSpectrum( ds, center_coordinate.in_units('code_length').d, core_radius_1, halo_id, path_data )

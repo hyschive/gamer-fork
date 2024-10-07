@@ -4,9 +4,9 @@
 
 // problem-specific global variables
 // =======================================================================================
-static int   LSS_InitMode;         // initialization mode: 1=density-only, 2=real and imaginary parts or phase and density
-static int   ZoomIn_MaxLvOutside;  // maximum refinement level outside of the zoom-in box
-static int   ZoomIn_NRow;             // number of changes of the zoom-in box
+static int   LSS_InitMode;                                       // initialization mode: 1=density-only, 2=real and imaginary parts or phase and density
+static int   ZoomIn_MaxLvOutside;                                // maximum refinement level outside of the zoom-in box
+static int   ZoomIn_NRow;                                        // number of changes of the zoom-in box
 static real *ZoomIn_a, *ZoomIn_LX, *ZoomIn_LY, *ZoomIn_LZ, 
             *ZoomIn_CenterX, *ZoomIn_CenterY, *ZoomIn_CenterZ;   // arrays of the table of scale factor, length, and center in xyz-axis
 
@@ -84,9 +84,9 @@ void SetParameter()
 
 
 // (1) load the problem-specific runtime parameters
-   const char FileName[] = "Input__TestProb";
+   const char FileName[]       = "Input__TestProb";
    const char FileNameZoomIn[] = "Input__ZoominBox";
-   ReadPara_t *ReadPara  = new ReadPara_t;
+   ReadPara_t *ReadPara        = new ReadPara_t;
 
 // (1-1) add parameters in the following format:
 // --> note that VARIABLE, DEFAULT, MIN, and MAX must have the same data type
@@ -189,12 +189,15 @@ void SetParameter()
       Aux_Message( stdout, "  test problem ID     = %d\n", TESTPROB_ID  );
       Aux_Message( stdout, "  initialization mode = %d\n", LSS_InitMode );
       Aux_Message( stdout, "  ZoomIn_MaxLvOutside = %d\n", ZoomIn_MaxLvOutside );
-      Aux_Message( stdout, "  Table in %s\n", FileNameZoomIn );
-      Aux_Message( stdout, "  #ScaleFactor    LX(UNIT_L)    LY(UNIT_L)    LZ(UNIT_L)   CenterX(UNIT_L)   CenterY(UNIT_L)   CenterZ(UNIT_L)\n" );
+      if ( OPT__FLAG_REGION )
+      {
+         Aux_Message( stdout, "  Table in %s\n", FileNameZoomIn );
+         Aux_Message( stdout, "  #ScaleFactor             LX(UNIT_L)              LY(UNIT_L)              LZ(UNIT_L)              CenterX(UNIT_L)         CenterY(UNIT_L)         CenterZ(UNIT_L)         \n" );
       
-      for (int i=0; i<ZoomIn_NRow; i++)
-         Aux_Message( stdout, "  %.4f %.4f %.4f %.4f %.4f %.4f %.4f\n",
-		      ZoomIn_a[i], ZoomIn_LX[i], ZoomIn_LY[i], ZoomIn_LZ[i], ZoomIn_CenterX[i], ZoomIn_CenterY[i], ZoomIn_CenterZ[i] );
+         for (int i=0; i<ZoomIn_NRow; i++)
+            Aux_Message( stdout, "%23.14e %23.14e %23.14e %23.14e %23.14e %23.14e %23.14e \n",
+			 ZoomIn_a[i], ZoomIn_LX[i], ZoomIn_LY[i], ZoomIn_LZ[i], ZoomIn_CenterX[i], ZoomIn_CenterY[i], ZoomIn_CenterZ[i] );
+      }
       Aux_Message( stdout, "=============================================================================\n" );
    }
 

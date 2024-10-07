@@ -9,15 +9,15 @@
 # carefully adjust vicinity for performance.
 
 # Example usage after running simulation with low resolution IC: 
-#    python3 Compute_profiles -s 36 -e 36
+#    python3 Compute_profiles.py -s 36 -e 36
 
 # Outputs:
 #   Halo_Parameter
-#   prof_dens/Data_0000xx_0_profile_data
-#   prof_mass/Data_0000xx_0_mass_accumule
-#   prof_dens/Data_0000xx_0_profile_data
-#   prof_circular_vel/Data_0000xx_0_circular_velocity
-#   prof_veldisp/Data_0000xx_0_veldisp_haloRestFrame
+#   prof_dens/Data_xxxxxx_0_profile_data
+#   prof_mass/Data_xxxxxx_0_mass_accumule
+#   prof_dens/Data_xxxxxx_0_profile_data
+#   prof_circular_vel/Data_xxxxxx_0_circular_velocity
+#   prof_veldisp/Data_xxxxxx_0_veldisp_haloRestFrame
 
 ################################################################################
 import argparse
@@ -25,6 +25,7 @@ import numpy as np
 import yt
 import sys
 from Profile_Functions import *
+
 
 # load the command-line parameters
 parser = argparse.ArgumentParser( description='Plot profile and output Halo_parameter' )
@@ -47,11 +48,13 @@ idx_start   = args.idx_start
 idx_end     = args.idx_end
 didx        = args.didx
 
-for file_id in range( idx_start, idx_end+1, 1 ):
+halo_id      = 0   # pick an id for your target halo
 
-    ds                 = yt.load( "../Data_0000%.2d"%file_id )
+for file_id in range( idx_start, idx_end+1, didx ):
+
+    ds                 = yt.load( "../Data_%06d"%file_id )
     center_first_guess = np.array( [0.295, 9.522, 8.27] ) # in cMpc/h. First guess for target halo of low resolution IC at z=0
-    vicinity           = 0.3   # radius in cMpc/h
-    compute_profile( ds, center_first_guess, vicinity, 0, '.' )
+    vicinity           = 0.3                              # radius in cMpc/h
+    compute_profile( ds, center_first_guess, vicinity, halo_id, '.' )
     
 print( "Done !" )

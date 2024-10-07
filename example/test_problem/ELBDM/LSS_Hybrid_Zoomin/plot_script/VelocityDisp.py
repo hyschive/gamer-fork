@@ -106,12 +106,12 @@ def Compute_VelocityDispersion( ds, center, halo_id, path_data ):
 
     sigma = np.sqrt( (sigmax2 + sigmay2 + sigmaz2) / 3.0 )
 
-    dr  *= 1e3/h # in kpccm
+    dr  *= 1e3/h # in ckpc
     if not os.path.exists( path_data + '/prof_veldisp' ):
        os.makedirs( path_data + '/prof_veldisp' )
 
     with open( '%s/prof_veldisp/%s_%d_veldisp_haloRestFrame'%(path_data,ds,halo_id) , 'w' ) as file:
         writer = csv.writer( file, delimiter='\t' )
-        writer.writerow( ['#radius(kpccm)', 'VelDisp(km/s)'] )
+        writer.writerow( [f"{'#radius(ckpc)':<15}", f"{'VelDisp(km/s)':<15}"] )
         for i in range( len(dr) ):
-            writer.writerow( [dr[i], sigma[i]] )
+            writer.writerow( [f"{dr[i]:<15.8f}", f"{sigma[i]:<15.8f}"] )

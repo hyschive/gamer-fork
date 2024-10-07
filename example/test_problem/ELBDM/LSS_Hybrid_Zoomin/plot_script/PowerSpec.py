@@ -128,10 +128,10 @@ def Compute_PowerSpectrum( ds, center, rc, halo_id, path_data ):
     k       = k / dxs[-1] / 1e3 / a * h * np.pi # from 1/ pixel to 1/kpc == wave vector (cycle/dx) but not angular wave vector (2pi/dx)
 
     if not os.path.exists( path_data + '/powerspec_within_halo' ):
-       os.makedirs( path_data + '/powerspec_within_halo' )
+        os.makedirs( path_data + '/powerspec_within_halo' )
 
     with open( '%s/powerspec_within_halo/%s_%d_powerspectrum_within_halo'%(path_data,ds,halo_id) , 'w' ) as file:
         writer = csv.writer( file, delimiter='\t' )
-        writer.writerow( ['#wavenumber(2pi/kpc)', 'powerspec' ] )
+        writer.writerow( [f"{'#wavenumber(2pi/kpc)':<22}", f"{'powerspec':<15}"] )
         for i in range( len(k) ):
-            writer.writerow( [k[i].d, pknorm[i]] )
+            writer.writerow( [f"{k[i].d:<22.8f}", f"{pknorm[i]:<15.8f}"] )
