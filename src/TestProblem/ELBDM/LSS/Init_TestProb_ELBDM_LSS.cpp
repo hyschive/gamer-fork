@@ -1,14 +1,17 @@
 #include "GAMER.h"
 
 
+#define ZOOM_A  0  // id of scale factor in ZoomIn_Table
+#define ZOOM_LX 1  // id of LX in ZoomIn_Table
+#define ZOOM_CX 4  // id of CenterX in ZoomIn_Table 
 
 // problem-specific global variables
 // =======================================================================================
-static int   LSS_InitMode;                                       // initialization mode: 1=density-only, 2=real and imaginary parts or phase and density
-static int   ZoomIn_MaxLvOutside;                                // maximum refinement level outside of the zoom-in box
-static int   ZoomIn_NRow;                                        // number of changes of the zoom-in box
-static real *ZoomIn_a, *ZoomIn_LX, *ZoomIn_LY, *ZoomIn_LZ, 
-            *ZoomIn_CenterX, *ZoomIn_CenterY, *ZoomIn_CenterZ;   // arrays of the table of scale factor, length, and center in xyz-axis
+static int    LSS_InitMode;                                       // initialization mode: 1=density-only, 2=real and imaginary parts or phase and density
+static int    ZoomIn_MaxLvOutside;                                // maximum refinement level outside of the zoom-in box
+static int    ZoomIn_NRow;                                        // number of rows of the zoom-in table
+static int    ZoomIn_NCol = 7;                                    // number of columns of the zoom-in table
+static real **ZoomIn_Table;                                       // arrays of the table of scale factor, length, and center in xyz-axis
 
 // =======================================================================================
 
@@ -122,45 +125,46 @@ void SetParameter()
       while ( getline( &input_line, &len, File_zoom ) != -1 ) ++ZoomIn_NRow;
       fclose( File_zoom );
 
-//    load Zoom-in Lagrangian Box Volumne at different redshifts
-      ZoomIn_a        = new real [ZoomIn_NRow];
-      ZoomIn_LX       = new real [ZoomIn_NRow];
-      ZoomIn_LY       = new real [ZoomIn_NRow];
-      ZoomIn_LZ       = new real [ZoomIn_NRow];
-      ZoomIn_CenterX  = new real [ZoomIn_NRow];
-      ZoomIn_CenterY  = new real [ZoomIn_NRow];
-      ZoomIn_CenterZ  = new real [ZoomIn_NRow];
+//    Allocate ZoomIn_Table
+      ZoomIn_Table = new real* [ZoomIn_NCol];
+      for ( int i=0; i<ZoomIn_NCol; i++ )
+	ZoomIn_Table[i] = new real [ZoomIn_NRow];
 
+//    load Zoom-in Lagrangian Box Volumne at different redshifts and check Error
       File_zoom = fopen( FileNameZoomIn, "r" );
       getline( &input_line, &len, File_zoom ); //   skip the header
 
-      for (int s=0; s<ZoomIn_NRow; s++)
+      for ( int s=0; s<ZoomIn_NRow; s++ )
       {
          n = getline( &input_line, &len, File_zoom );
          if ( n <= 1 )
             Aux_Error( ERROR_INFO, "incorrect reading at zoom-in table at line %d of the file <%s> !!\n", s+1, FileNameZoomIn );
-
-         sscanf( input_line, "%f%f%f%f%f%f%f",
-		 &ZoomIn_a[s],
-		 &ZoomIn_LX[s], &ZoomIn_LY[s], &ZoomIn_LZ[s],
-		 &ZoomIn_CenterX[s], &ZoomIn_CenterY[s], &ZoomIn_CenterZ[s] );
        
+         sscanf( input_line, "%f%f%f%f%f%f%f",
+		 &ZoomIn_Table[ZOOM_A][s],
+		 &ZoomIn_Table[ZOOM_LX][s], &ZoomIn_Table[ZOOM_LX + 1][s], &ZoomIn_Table[ZOOM_LX + 2][s],
+		 &ZoomIn_Table[ZOOM_CX][s], &ZoomIn_Table[ZOOM_CX + 1][s], &ZoomIn_Table[ZOOM_CX + 2][s] );
+
          if ( s < 1 ) continue;
 
-         if ( ZoomIn_a[s-1] < ZoomIn_a[s] )
-            Aux_Error( ERROR_INFO, "Current a=%f is greater than the previous a=%f. Scale factors are not listed in descending order in %s!!\n", ZoomIn_a[s], ZoomIn_a[s-1], FileNameZoomIn );
- 
-         if ( ZoomIn_CenterX[s-1] - ZoomIn_LX[s-1]/2 < ZoomIn_CenterX[s] - ZoomIn_LX[s]/2  ||
-	      ZoomIn_CenterY[s-1] - ZoomIn_LY[s-1]/2 < ZoomIn_CenterY[s] - ZoomIn_LY[s]/2  ||
-	      ZoomIn_CenterZ[s-1] - ZoomIn_LZ[s-1]/2 < ZoomIn_CenterZ[s] - ZoomIn_LZ[s]/2  ||
-	      ZoomIn_CenterX[s-1] + ZoomIn_LX[s-1]/2 > ZoomIn_CenterX[s] + ZoomIn_LX[s]/2  ||
-	      ZoomIn_CenterY[s-1] + ZoomIn_LY[s-1]/2 > ZoomIn_CenterY[s] + ZoomIn_LY[s]/2  ||
-	      ZoomIn_CenterZ[s-1] + ZoomIn_LZ[s-1]/2 > ZoomIn_CenterZ[s] + ZoomIn_LZ[s]/2 )
-            Aux_Error( ERROR_INFO, "Zoom-in box at a = %.2f with LX=%.2f LY=%.2f LZ=%.2f CenterX=%.2f CenterY=%.2f CenterZ=%.2f is outside of the Zoom-in box at earlier a = %.2f with LX=%.2f LY=%.2f LZ=%.2f CenterX=%.2f CenterY=%.2f CenterZ=%.2f !!\n", 
-		       ZoomIn_a[s-1], ZoomIn_LX[s-1], ZoomIn_LY[s-1], ZoomIn_LZ[s-1], ZoomIn_CenterX[s-1], ZoomIn_CenterY[s-1], ZoomIn_CenterZ[s-1],
-		       ZoomIn_a[s], ZoomIn_LX[s], ZoomIn_LY[s], ZoomIn_LZ[s], ZoomIn_CenterX[s], ZoomIn_CenterY[s], ZoomIn_CenterZ[s] );
+         if ( ZoomIn_Table[ZOOM_A][s-1] < ZoomIn_Table[ZOOM_A][s] )
+            Aux_Error( ERROR_INFO, "Current a=%f is greater than the previous a=%f. Scale factors are not listed in descending order in %s!!\n", 
+		       ZoomIn_Table[ZOOM_A][s], ZoomIn_Table[ZOOM_A][s-1], FileNameZoomIn );
 
-      } // for (int s=0; s<ZoomIn_NRow; s++)
+	 for ( int XYZ=0; XYZ<3; XYZ++ )
+	 {
+            if ( ZoomIn_Table[ZOOM_CX + XYZ][s-1] - ZoomIn_Table[ZOOM_LX + XYZ][s-1]/2 < ZoomIn_Table[ZOOM_CX + XYZ][s] - ZoomIn_Table[ZOOM_LX + XYZ][s]/2 ||
+		 ZoomIn_Table[ZOOM_CX + XYZ][s-1] + ZoomIn_Table[ZOOM_LX + XYZ][s-1]/2 > ZoomIn_Table[ZOOM_CX + XYZ][s] + ZoomIn_Table[ZOOM_LX + XYZ][s]/2 )
+	       Aux_Error( ERROR_INFO, "Zoom-in box at a = %.2f with LX=%.2f LY=%.2f LZ=%.2f CenterX=%.2f CenterY=%.2f CenterZ=%.2f " \
+			  "is outside of the Zoom-in box at earlier a = %.2f with LX=%.2f LY=%.2f LZ=%.2f CenterX=%.2f CenterY=%.2f CenterZ=%.2f !!\n", 
+			  ZoomIn_Table[ZOOM_A][s-1], 
+			  ZoomIn_Table[ZOOM_LX][s-1], ZoomIn_Table[ZOOM_LX + 1][s-1], ZoomIn_Table[ZOOM_LX + 2][s-1], 
+			  ZoomIn_Table[ZOOM_CX][s-1], ZoomIn_Table[ZOOM_CX + 1][s-1], ZoomIn_Table[ZOOM_CX + 2][s-1],
+			  ZoomIn_Table[ZOOM_A][s], 
+			  ZoomIn_Table[ZOOM_LX][s],   ZoomIn_Table[ZOOM_LX + 1][s],   ZoomIn_Table[ZOOM_LX + 2][s], 
+			  ZoomIn_Table[ZOOM_CX][s],   ZoomIn_Table[ZOOM_CX + 1][s],   ZoomIn_Table[ZOOM_CX + 2][s] );
+	 } // for ( int XYZ=0; XYZ<3; XYZ++ )
+      } // for ( int s=0; s<ZoomIn_NRow; s++ )
 
       fclose( File_zoom );
    } // if ( OPT__FLAG_REGION )
@@ -196,7 +200,9 @@ void SetParameter()
       
          for (int i=0; i<ZoomIn_NRow; i++)
             Aux_Message( stdout, "%23.14e %23.14e %23.14e %23.14e %23.14e %23.14e %23.14e \n",
-			 ZoomIn_a[i], ZoomIn_LX[i], ZoomIn_LY[i], ZoomIn_LZ[i], ZoomIn_CenterX[i], ZoomIn_CenterY[i], ZoomIn_CenterZ[i] );
+			 ZoomIn_Table[ZOOM_A][i], 
+			 ZoomIn_Table[ZOOM_LX][i], ZoomIn_Table[ZOOM_LX + 1][i], ZoomIn_Table[ZOOM_LX + 2][i], 
+			 ZoomIn_Table[ZOOM_CX][i], ZoomIn_Table[ZOOM_CX + 1][i], ZoomIn_Table[ZOOM_CX + 2][i] );
       }
       Aux_Message( stdout, "=============================================================================\n" );
    }
@@ -237,27 +243,24 @@ bool Flag_Region_LSS( const int i, const int j, const int k, const int lv, const
 
 // get the index of ZoomIn_* that can collect the zoom-in box's volume and center based on the current simulation time
    int zoom_idx; 
-   for (int s=0; s<ZoomIn_NRow; s++)
+   for ( int s=0; s<ZoomIn_NRow; s++ )
    {
-      if ( Time[0] <= ZoomIn_a[s] )   continue;
+      if ( Time[0] <= ZoomIn_Table[ZOOM_A][s] )   continue;
       zoom_idx = s;
       break;
-   } // for (int s=0; s<ZoomIn_NRow; s++)
+   } // for ( int s=0; s<ZoomIn_NRow; s++ )
 
 // periodic BC checks
-   const double Pos_x = ( Pos[0] - ZoomIn_CenterX[zoom_idx] >  0.5*amr->BoxSize[0] ) ? Pos[0] - amr->BoxSize[0] :
-                        ( Pos[0] - ZoomIn_CenterX[zoom_idx] < -0.5*amr->BoxSize[0] ) ? Pos[0] + amr->BoxSize[0] : Pos[0];
-   const double Pos_y = ( Pos[1] - ZoomIn_CenterY[zoom_idx] >  0.5*amr->BoxSize[1] ) ? Pos[1] - amr->BoxSize[1] :
-                        ( Pos[1] - ZoomIn_CenterY[zoom_idx] < -0.5*amr->BoxSize[1] ) ? Pos[1] + amr->BoxSize[1] : Pos[1];
-   const double Pos_z = ( Pos[2] - ZoomIn_CenterZ[zoom_idx] >  0.5*amr->BoxSize[2] ) ? Pos[2] - amr->BoxSize[2] :
-                        ( Pos[2] - ZoomIn_CenterZ[zoom_idx] < -0.5*amr->BoxSize[2] ) ? Pos[2] + amr->BoxSize[2] : Pos[2];
-   const double dR[3] = { Pos_x  - ZoomIn_CenterX[zoom_idx],
-                          Pos_y  - ZoomIn_CenterY[zoom_idx],
-                          Pos_z  - ZoomIn_CenterZ[zoom_idx] };
+   for ( int XYZ=0; XYZ<3; XYZ++ )
+   {
 
-   Within = ( abs(dR[0]) < ZoomIn_LX[zoom_idx]/2 )  &&
-            ( abs(dR[1]) < ZoomIn_LY[zoom_idx]/2 )  &&
-            ( abs(dR[2]) < ZoomIn_LZ[zoom_idx]/2 );
+      const double Pos_i = ( Pos[XYZ] - ZoomIn_Table[ZOOM_CX + XYZ][zoom_idx] >  0.5*amr->BoxSize[0] ) ? Pos[XYZ] - amr->BoxSize[0] :
+	                   ( Pos[XYZ] - ZoomIn_Table[ZOOM_CX + XYZ][zoom_idx] < -0.5*amr->BoxSize[0] ) ? Pos[XYZ] + amr->BoxSize[0] : Pos[XYZ];
+      const double dR    = Pos_i - ZoomIn_Table[ZOOM_CX + XYZ][zoom_idx];
+      Within            &= ( abs(dR) < ZoomIn_Table[ZOOM_LX + XYZ][zoom_idx]/2 );
+
+   } // for ( int XYZ=0; XYZ<3; XYZ++ )
+
    return Within;
 
 } // FUNCTION : Flag_Region_LSS
@@ -375,13 +378,9 @@ void Init_ByFile_ELBDM_LSS( real fluid_out[], const real fluid_in[], const int n
 void End_Region_LSS()
 {
 
-   delete [] ZoomIn_a;
-   delete [] ZoomIn_LX;
-   delete [] ZoomIn_LY;
-   delete [] ZoomIn_LZ;
-   delete [] ZoomIn_CenterX;
-   delete [] ZoomIn_CenterY;
-   delete [] ZoomIn_CenterZ;
+   for ( int i=0; i<ZoomIn_NCol; i++ )
+     delete [] ZoomIn_Table[i];
+   delete [] ZoomIn_Table; 
 
 } // FUNCTION : End_Region_LSS
 
