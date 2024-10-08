@@ -42,6 +42,7 @@ static double  *HaloMerger_Soliton_OuterSlope                      = NULL; // ou
 static char   (*HaloMerger_Soliton_DensProf_Filename)[MAX_STRING]  = NULL; // filename of the density profile table of each soliton
 static int     *HaloMerger_Soliton_DensProf_NBin                   = NULL; // number of bins of the density profile table
 static bool    *HaloMerger_Soliton_DensProf_Rescale                = NULL; // whether to scale the density profile table of each soliton
+static double  *HaloMerger_Soliton_DensProf_PhyConst               = NULL; // value of the dimensional constant 4*pi*G*(ELBDM_MASS/hbar)^2 in the units of density profile
 static double  *HaloMerger_Soliton_DensProf_ScaleL                 = NULL; // L/D: length/density scale factors of each soliton
 static double  *HaloMerger_Soliton_DensProf_ScaleD                 = NULL; //      (defined as the ratio between the core radii/peak
                                                                            //      density of the target and reference soliton profiles)
@@ -321,6 +322,7 @@ void SetParameter()
       HaloMerger_Soliton_DensProf          = new double* [HaloMerger_Soliton_Num];
       HaloMerger_Soliton_DensProf_NBin     = new int     [HaloMerger_Soliton_Num];
       HaloMerger_Soliton_DensProf_Rescale  = new bool    [HaloMerger_Soliton_Num];
+      HaloMerger_Soliton_DensProf_PhyConst = new double  [HaloMerger_Soliton_Num];
       HaloMerger_Soliton_DensProf_ScaleL   = new double  [HaloMerger_Soliton_Num];
       HaloMerger_Soliton_DensProf_ScaleD   = new double  [HaloMerger_Soliton_Num];
       } // if ( HaloMerger_Soliton_InitMode == 1 )
@@ -348,6 +350,7 @@ void SetParameter()
 
       char HaloMerger_Soliton_i_DensProf_Filename[MAX_STRING]; // filename of the density profile table for the i-th soliton (HaloMerger_Soliton_InitMode == 1 only)
       char HaloMerger_Soliton_i_DensProf_Rescale[MAX_STRING];  // whether to scale the density profile table for the i-th soliton (HaloMerger_Soliton_InitMode == 1 only)
+      char HaloMerger_Soliton_i_DensProf_PhyConst[MAX_STRING]; // value of the dimensional constant 4*pi*G*(ELBDM_MASS/hbar)^2 in the units of density profile for the i-th soliton (HaloMerger_Soliton_InitMode == 1 only)
 
       char HaloMerger_Soliton_i_OuterSlope[MAX_STRING];        // outer slope of the analytical density profile of the i-th soliton (HaloMerger_Soliton_InitMode == 2 only)
 
@@ -368,6 +371,7 @@ void SetParameter()
          {
          sprintf( HaloMerger_Soliton_i_DensProf_Filename, "HaloMerger_Soliton_%d_DensProf_Filename", index_soliton_input );
          sprintf( HaloMerger_Soliton_i_DensProf_Rescale,  "HaloMerger_Soliton_%d_DensProf_Rescale",  index_soliton_input );
+         sprintf( HaloMerger_Soliton_i_DensProf_PhyConst, "HaloMerger_Soliton_%d_DensProf_PhyConst", index_soliton_input );
          } // if ( HaloMerger_Soliton_InitMode == 1 )
          else if ( HaloMerger_Soliton_InitMode == 2 )
          {
@@ -396,6 +400,7 @@ void SetParameter()
          {
          ReadPara_Soliton->Add( HaloMerger_Soliton_i_DensProf_Filename,      HaloMerger_Soliton_DensProf_Filename[index_soliton],    NoDef_str,        Useless_str,   Useless_str      );
          ReadPara_Soliton->Add( HaloMerger_Soliton_i_DensProf_Rescale,      &HaloMerger_Soliton_DensProf_Rescale[index_soliton],     true,             Useless_bool,  Useless_bool     );
+         ReadPara_Soliton->Add( HaloMerger_Soliton_i_DensProf_PhyConst,     &HaloMerger_Soliton_DensProf_PhyConst[index_soliton],   -1.0,              NoMin_double,  NoMax_double     );
          } // if ( HaloMerger_Soliton_InitMode == 1 )
          else if ( HaloMerger_Soliton_InitMode == 2 )
          {
@@ -685,6 +690,10 @@ void SetParameter()
             if ( CoreRadiusRef == NULL_REAL )
                Aux_Error( ERROR_INFO, "cannot determine the reference core radius !!\n" );
 
+            // set the default physical constant
+            if ( HaloMerger_Soliton_DensProf_PhyConst[index_soliton] <= 0.0 )
+               HaloMerger_Soliton_DensProf_PhyConst[index_soliton] = 4.0*M_PI*NEWTON_G*SQR(ELBDM_ETA);
+
             if ( HaloMerger_Soliton_DensProf_Rescale[index_soliton] )
             {
                // evaluate the scale factors of each soliton
@@ -694,7 +703,7 @@ void SetParameter()
                   {
                      // overwrite the core radius by the value calculated from the peak density
                      HaloMerger_Soliton_DensProf_ScaleD[index_soliton] = HaloMerger_Soliton_CoreRho[index_soliton] / DensRef[0];
-                     HaloMerger_Soliton_DensProf_ScaleL[index_soliton] = sqrt( sqrt( 1.0 / (4.0*M_PI*NEWTON_G*SQR(ELBDM_ETA)*HaloMerger_Soliton_DensProf_ScaleD[index_soliton]) ) );
+                     HaloMerger_Soliton_DensProf_ScaleL[index_soliton] = sqrt( sqrt( HaloMerger_Soliton_DensProf_PhyConst[index_soliton] / (4.0*M_PI*NEWTON_G*SQR(ELBDM_ETA)*HaloMerger_Soliton_DensProf_ScaleD[index_soliton]) ) );
                      HaloMerger_Soliton_CoreRadius     [index_soliton] = CoreRadiusRef*HaloMerger_Soliton_DensProf_ScaleL[index_soliton];
                   }
                   else // if ( HaloMerger_Soliton_CoreRho[index_soliton] > 0.0 )
@@ -706,13 +715,18 @@ void SetParameter()
                {
                   // overwrite the peak density by the value calculated from the core radius
                   HaloMerger_Soliton_DensProf_ScaleL[index_soliton] = HaloMerger_Soliton_CoreRadius[index_soliton] / CoreRadiusRef;
-                  HaloMerger_Soliton_DensProf_ScaleD[index_soliton] = 1.0 / ( 4.0*M_PI*NEWTON_G*SQR(ELBDM_ETA)*POW4(HaloMerger_Soliton_DensProf_ScaleL[index_soliton]) );
+                  HaloMerger_Soliton_DensProf_ScaleD[index_soliton] = HaloMerger_Soliton_DensProf_PhyConst[index_soliton] / ( 4.0*M_PI*NEWTON_G*SQR(ELBDM_ETA)*POW4(HaloMerger_Soliton_DensProf_ScaleL[index_soliton]) );
                   HaloMerger_Soliton_CoreRho        [index_soliton] = HaloMerger_Soliton_DensProf_ScaleD[index_soliton]*DensRef[0];
                } // if ( HaloMerger_Soliton_CoreRadius[index_soliton] <= 0.0 ) ... else
 
             } // if ( HaloMerger_Soliton_DensProf_Rescale[index_soliton] )
             else
             {
+               // check the units of table are consistent with the simulation
+               if ( ! Mis_CompareRealValue( HaloMerger_Soliton_DensProf_PhyConst[index_soliton], 4.0*M_PI*NEWTON_G*SQR(ELBDM_ETA), NULL, false ) )
+                  Aux_Error( ERROR_INFO, "HaloMerger_Soliton_%d_DensProf_PhyConst (%13.6e) in input table is not consistent with the value of 4.0*M_PI*NEWTON_G*SQR(ELBDM_ETA) = %13.6e in simulation units !!\n",
+                             index_soliton_input, HaloMerger_Soliton_DensProf_PhyConst[index_soliton], 4.0*M_PI*NEWTON_G*SQR(ELBDM_ETA) );
+
                // overwrite the peak density and core radius from the table
                HaloMerger_Soliton_DensProf_ScaleL[index_soliton] = 1.0;
                HaloMerger_Soliton_DensProf_ScaleD[index_soliton] = 1.0;
@@ -1093,14 +1107,15 @@ void SetParameter()
          if ( HaloMerger_Soliton_InitMode == 1 )
          {
             Aux_Message( stdout, "\n  soliton density profile information:\n" );
-            Aux_Message( stdout, "  %7s %35s  %16s  %16s  %16s  %16s\n",
+            Aux_Message( stdout, "  %7s %35s  %16s  %16s  %16s  %16s  %16s\n",
                          "ID", "DensProf_Filename", "NBin",
-                               "Rescale", "ScaleL", "ScaleD"  );
+                               "Rescale", "PhyConst", "ScaleL", "ScaleD"  );
 
             for (int index_soliton=0; index_soliton<HaloMerger_Soliton_Num; index_soliton++)
-               Aux_Message( stdout, "  %7d %35s  %16d  %16d  %16.6e  %16.6e\n",
+               Aux_Message( stdout, "  %7d %35s  %16d  %16d  %16.6e  %16.6e  %16.6e\n",
                             index_soliton+1, HaloMerger_Soliton_DensProf_Filename[index_soliton], HaloMerger_Soliton_DensProf_NBin[index_soliton],
-                            HaloMerger_Soliton_DensProf_Rescale[index_soliton], HaloMerger_Soliton_DensProf_ScaleL[index_soliton], HaloMerger_Soliton_DensProf_ScaleD[index_soliton] );
+                            HaloMerger_Soliton_DensProf_Rescale[index_soliton], HaloMerger_Soliton_DensProf_PhyConst[index_soliton],
+                            HaloMerger_Soliton_DensProf_ScaleL[index_soliton], HaloMerger_Soliton_DensProf_ScaleD[index_soliton] );
 
          } // if ( HaloMerger_Soliton_InitMode == 1 )
          else if ( HaloMerger_Soliton_InitMode == 2 )
@@ -1405,6 +1420,7 @@ void End_HaloMerger()
          delete [] HaloMerger_Soliton_DensProf;
          delete [] HaloMerger_Soliton_DensProf_NBin;
          delete [] HaloMerger_Soliton_DensProf_Rescale;
+         delete [] HaloMerger_Soliton_DensProf_PhyConst;
          delete [] HaloMerger_Soliton_DensProf_ScaleL;
          delete [] HaloMerger_Soliton_DensProf_ScaleD;
 
