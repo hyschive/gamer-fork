@@ -8,7 +8,7 @@
 
 import argparse
 import csv
-import os 
+import os
 import sys
 
 import numpy as np
@@ -35,7 +35,7 @@ def compute_profile( ds, center, _halo_radius, halo_id, path_data ):
     newton_G             = ds.units.newtons_constant.to('(kpc*km**2)/(s**2*Msun)').d     #(kpc*km^2)/(s^2*Msun)
     background_density_0 = (1*ds.units.code_density ).to("Msun/kpc**3").d
     particle_mass        = (ds.parameters[ 'ELBDM_Mass' ]*ds.units.code_mass).to('eV/c**2').d
-    zeta_0               = (18*np.pi**2 + 82*( omega_M0 - 1 ) - 39*( omega_M0 - 1 )**2 )/omega_M0 
+    zeta_0               = (18*np.pi**2 + 82*( omega_M0 - 1 ) - 39*( omega_M0 - 1 )**2 )/omega_M0
 
     # plot variable
     nbin             = 256
@@ -48,7 +48,7 @@ def compute_profile( ds, center, _halo_radius, halo_id, path_data ):
     # periodicity
     ds.force_periodicity()
 
-    # find center 
+    # find center
     # find the maximum value in a sphere extending halo_radius from center_guess
     halo_radius  = _halo_radius     # halo radius in cMpc/h --> change this value properly
     if ds.cosmological_simulation:
@@ -67,21 +67,21 @@ def compute_profile( ds, center, _halo_radius, halo_id, path_data ):
 
     prof_mass_accumulate = yt.create_profile( sp, 'radius', fields = 'cell_mass',
                                               weight_field = None, n_bins = nbin ,
-                                              units = {'radius': 'kpc', 'cell_mass': 'Msun'}, 
+                                              units = {'radius': 'kpc', 'cell_mass': 'Msun'},
                                               extrema = {'radius': (min_radius,max_radius)}, accumulation = True )
 
     prof_dens            = yt.create_profile( sp, 'radius', fields = 'density',
                                               weight_field = 'cell_volume', n_bins = nbin ,
-                                              units = {'radius': 'kpc','density': 'Msun/kpc**3'}, 
+                                              units = {'radius': 'kpc','density': 'Msun/kpc**3'},
                                               extrema = {'radius': (min_radius,max_radius)} )
 
     prof_volume          = yt.create_profile( sp, 'radius', fields = 'cell_volume',
                                               weight_field = None, n_bins = nbin ,
-                                              units = {'radius': 'kpc', 'cell_volume': 'kpc**3'}, 
+                                              units = {'radius': 'kpc', 'cell_volume': 'kpc**3'},
                                               extrema = {'radius': (min_radius,max_radius)} )
 
     radius_o          = prof_dens.x.value
-    density_o         = prof_dens['density'].value                       # density at radius 
+    density_o         = prof_dens['density'].value                       # density at radius
     mass_accumulate_o = prof_mass_accumulate['cell_mass'].value  # all mass within radius
     volume_o          = prof_volume['cell_volume'].value       # volume within radius
 
@@ -121,7 +121,7 @@ def compute_profile( ds, center, _halo_radius, halo_id, path_data ):
         writer.writerow( [f"{'#radius(ckpc)':<15}", f"{'Vcir(km/s)':<15}"] )
         for i in range( len(radius) ):
             writer.writerow( [f"{radius[i]:<15.8f}", f"{circular_velocity[i]:<15.8f}"] )
-    
+
     ############# Output Halo's properties (core mass, halo mass, raidus) ####################
 
     # calculate virial mass to get halo radius
@@ -133,29 +133,29 @@ def compute_profile( ds, center, _halo_radius, halo_id, path_data ):
 
     # defintion of zeta (halo radius)
     omega_M = (omega_M0*(1 + current_time_z)**3)/(omega_M0*(1 + current_time_z)**3 + (1 - omega_M0))
-    zeta    = (18*np.pi**2 + 82*(omega_M - 1) - 39*(omega_M - 1)**2)/omega_M 
+    zeta    = (18*np.pi**2 + 82*(omega_M - 1) - 39*(omega_M - 1)**2)/omega_M
 
     # use mass_accumulation directly
     halo_radius = ridder( lambda x:find_virial_mass(x,(radius, mass_accumulate),zeta, background_density_0),min_radius, max_radius )
     halo_mass   = 10**np.interp( np.log10( halo_radius ), np.log10( radius ), np.log10( mass_accumulate ) )
-        
+
     #core radius 2 : xc = max/2
-    try: 
+    try:
         core_radius_2 = ridder( lambda x: 10**np.interp( np.log10( x ), np.log10( radius ), np.log10( density )) - max(density)/2, radius[0], max( radius ) )
     except ValueError as e:
         print("Error while getting core_radius_2: likely unable to locate the center of halo. Please adjust center_first_guess or vicinity in Compute_profiles.py")
         exit(0)
-        return 
+        return
     core_mass_2   = 10**np.interp( np.log10( core_radius_2 ), np.log10( radius ), np.log10( mass_accumulate ) )
-    
+
     #core radius 1 : curve fit
     avg           = (density > 0.1*max(density))
     popt, pcov    = curve_fit( lambda x, r_c:soliton(x, r_c, current_time_a, particle_mass), radius[avg], density[avg], bounds=(5e-1, 50) )
     core_radius_1 = popt[0]
     core_mass_1   = 10**np.interp( np.log10( core_radius_1 ),np.log10( radius ), np.log10( mass_accumulate ) )
 
-    #core radius 3 : x = 0 solve equation 
-    a             = (2**(1.0/8) - 1)**(1.0/2)	
+    #core radius 3 : x = 0 solve equation
+    a             = (2**(1.0/8) - 1)**(1.0/2)
     core_radius_3 = (max(density)/10**9/1.9*float(current_time_a)*(particle_mass/10**-23)**2)**-0.25
     core_mass_3   = ((4.2*10**9/((particle_mass/10**-23)**2*(float(core_radius_3*current_time_a)*10**3)))*(1/(a**2 + 1)**7)*(3465*a**13 + 23100*a**11 + 65373*a**9 + 101376*a**7 + 92323*a**5 + 48580*a**3 - 3465*a + 3465*(a**2 + 1)**7*np.arctan(a)))
 
@@ -220,6 +220,6 @@ def compute_profile( ds, center, _halo_radius, halo_id, path_data ):
         f"{sto_list[15]:<13.8e}"
         ] )
 
-    # Compute Velocity Dispersion & Power spectrum seperately    
+    # Compute Velocity Dispersion & Power spectrum seperately
     Compute_VelocityDispersion( ds, center_coordinate.in_units('code_length').d, halo_id, path_data )
     Compute_PowerSpectrum( ds, center_coordinate.in_units('code_length').d, core_radius_1, halo_id, path_data )

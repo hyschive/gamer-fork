@@ -6,7 +6,7 @@
 # carefully adjust rmax_for_vd to avoid exceeeding memory limit
 #######################################
 import os
-import yt 
+import yt
 import numpy as np
 import csv
 from   ELBDM_DerivedField import *
@@ -42,7 +42,7 @@ def density_profile( x, y, z, rho, center ):
             densprof[ind] += np.sum((rho)[inds==ind])
             counts  [ind] += np.sum(inds==ind)
 
-    mask = (counts==0)    
+    mask = (counts==0)
 
     return rbin[~mask], densprof[~mask]/counts[~mask], counts[~mask]
 
@@ -58,18 +58,18 @@ def Compute_VelocityDispersion( ds, center, halo_id, path_data ):
     h      = ds.hubble_constant
     H      = Hz( z, h*100, omegaL, omegam )
     dx_max = (ds.domain_width[0]/ds.domain_dimensions[0]).d  # in cMpc/h
-    dxs    = ds.arr( [dx_max/(2**i) for i in np.arange(ds.max_level+1)], 'code_length' )  # in cMpc/h 
+    dxs    = ds.arr( [dx_max/(2**i) for i in np.arange(ds.max_level+1)], 'code_length' )  # in cMpc/h
     lv     = 7
 
     Add_derived_fields( ds )
 
     cube = get_frb_cube( ds, center, rmax_for_vd, lv, dxs )
 
-    x    = cube["gamer","x"].to( "Mpc/h" ).d.flatten() 
-    y    = cube["gamer","y"].to( "Mpc/h" ).d.flatten()  
+    x    = cube["gamer","x"].to( "Mpc/h" ).d.flatten()
+    y    = cube["gamer","y"].to( "Mpc/h" ).d.flatten()
     z    = cube["gamer","z"].to( "Mpc/h" ).d.flatten()
     rho  = cube["gas", "density"].to( "Msun/kpc**3" ).d.flatten()
-    vx   = cube["gamer", "v_x"].to( "km/s" ).d.flatten() / a + H * a * x # physical v = comoving v * a +  Hax_c  
+    vx   = cube["gamer", "v_x"].to( "km/s" ).d.flatten() / a + H * a * x # physical v = comoving v * a +  Hax_c
     vy   = cube["gamer", "v_y"].to( "km/s" ).d.flatten() / a + H * a * y # remind: v = \grad S = dS/dy = dS/dy_c * a^(-1)
     vz   = cube["gamer", "v_z"].to( "km/s" ).d.flatten() / a + H * a * z
 
@@ -96,13 +96,13 @@ def Compute_VelocityDispersion( ds, center, halo_id, path_data ):
     dr,rhovyprof,_  = density_profile( x, y, z, rhovy,  center )
     dr,rhovzprof,_  = density_profile( x, y, z, rhovz,  center )
 
-    rhovxprof2 = rhovxprof**2 
-    rhovyprof2 = rhovyprof**2 
-    rhovzprof2 = rhovzprof**2 
+    rhovxprof2 = rhovxprof**2
+    rhovyprof2 = rhovyprof**2
+    rhovzprof2 = rhovzprof**2
 
-    sigmax2 = rhovx2prof/dprof - rhovxprof2/(dprof*dprof) 
-    sigmay2 = rhovy2prof/dprof - rhovyprof2/(dprof*dprof) 
-    sigmaz2 = rhovz2prof/dprof - rhovzprof2/(dprof*dprof) 
+    sigmax2 = rhovx2prof/dprof - rhovxprof2/(dprof*dprof)
+    sigmay2 = rhovy2prof/dprof - rhovyprof2/(dprof*dprof)
+    sigmaz2 = rhovz2prof/dprof - rhovzprof2/(dprof*dprof)
 
     sigma = np.sqrt( (sigmax2 + sigmay2 + sigmaz2) / 3.0 )
 

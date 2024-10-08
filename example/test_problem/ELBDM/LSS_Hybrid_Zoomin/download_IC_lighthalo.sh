@@ -10,4 +10,4 @@ girder-cli --api-url ${API_URL} download --parent-type item ${FILE_ID} ${LOCAL_F
 # unzip
 tar zxvf ${LOCAL_FILE}/Zoomin_IC_lighthalo.tar.gz
 rm -r ${LOCAL_FILE}
-ln -fs UM_IC_hybrid_N256_third UM_IC 
+ln -fs UM_IC_hybrid_N256_third UM_IC

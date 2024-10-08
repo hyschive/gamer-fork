@@ -5,7 +5,7 @@
 
 #######################################
 import os
-import yt 
+import yt
 import numpy as np
 import csv
 
@@ -51,11 +51,11 @@ def density_profile( x, y, z, rho, center ):
             densprof[ind] += np.sum( (rho)[inds==ind] )
             counts  [ind] += np.sum( inds==ind )
 
-    mask = (counts==0)    
+    mask = (counts==0)
     return rbin[~mask], densprof[~mask]/counts[~mask], counts[~mask]
 
 def correlation_function_Pk( rho, rhoave ):
-    
+
     N     = np.int64( np.ceil( rho.shape[0]**(1./3) ) )
     rho   = rho.reshape( (N, N, N) )
     rho   = (rho - rhoave)/rhoave
@@ -68,7 +68,7 @@ def correlation_function_Pk( rho, rhoave ):
     kz = kz.flatten()
     Pk3D = Pk3D.flatten()
     distance = np.sqrt( kx**2 +  ky**2 + kz**2 )
-    
+
     N            = np.int64( 8e1 )
     rbin_edge    = np.logspace( -2, np.log10( distance.max() ),N )
     rbin         = (rbin_edge[1:]+rbin_edge[:-1])/2
@@ -89,12 +89,12 @@ def correlation_function_Pk( rho, rhoave ):
 def normalize_rho( x, y, z, rho, dr, dprof, center ):
 
     rhonorm = rho.copy()
-    r = np.sqrt( (x - center[0])**2 +   
-                 (y - center[1])**2 +    
-                 (z - center[2])**2 ) 
+    r = np.sqrt( (x - center[0])**2 +
+                 (y - center[1])**2 +
+                 (z - center[2])**2 )
 
     inds = np.digitize( r, dr )-1
-    
+
     for i in range( inds.shape[0] ):
         rhonorm[i] /= dprof[inds[i]]
 
@@ -106,10 +106,10 @@ def Compute_PowerSpectrum( ds, center, rc, halo_id, path_data ):
     h      = ds.hubble_constant
     rc    *= h / 1e3 # from comoving kpc to comoving Mpc /h
     dx_max = (ds.domain_width[0]/ds.domain_dimensions[0] ).d  # in cMpc/h
-    dxs    = ds.arr( [dx_max/(2**i) for i in np.arange(ds.max_level+1)], 'code_length' )  # in cMpc/h 
+    dxs    = ds.arr( [dx_max/(2**i) for i in np.arange(ds.max_level+1)], 'code_length' )  # in cMpc/h
 
     rmax = rfac * rc
-    rmin = rmfac * rc 
+    rmin = rmfac * rc
     cube = get_frb_cube( ds, center, rmax, lv, dxs )
 
     x    = cube["gamer","x"].to( "Mpc/h" ).d.flatten()
@@ -122,7 +122,7 @@ def Compute_PowerSpectrum( ds, center, rc, halo_id, path_data ):
     rho        = corezero( x, y, z, rho, rmin, center )
     rhoave     = np.mean( rho )
 
-    k,pk,c  = correlation_function_Pk( rho, rhoave ) 
+    k,pk,c  = correlation_function_Pk( rho, rhoave )
     pknorm  = pk * k**3
     pknorm /= pknorm.max()
     k       = k / dxs[-1] / 1e3 / a * h * np.pi # from 1/ pixel to 1/kpc == wave vector (cycle/dx) but not angular wave vector (2pi/dx)

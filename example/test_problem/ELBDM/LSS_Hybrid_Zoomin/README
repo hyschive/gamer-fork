@@ -34,8 +34,8 @@ Note:
 3. details on Zoom-in Simulation
    1. For details on running a hybrid simulation, please see "example/test_problem/ELBDM/LSS_Hybrid/README"
    2. Input__ZoomInBox controls the volume(LX, LY, LZ) and center(CenterX, CenterY, CenterZ) of the time dependent zoom-in box.
-      Note that we read the scale factor in descending order. 
-      The UNIT_L in cosmological simulation refers to cMpc/h. 
+      Note that we read the scale factor in descending order.
+      The UNIT_L in cosmological simulation refers to cMpc/h.
    3. Input__TestProb controls the maximum level outside of the volume (ZoomIn_MaxLvOutside).
    4. It is required to set ELBDM_FIRST_WAVE_LEVEL <= ZoomIn_MaxLvOutside, to avoid problems of the fluid-wave interface at the zoom-in boundary (Chan+24, under review)
    5. OPT__FLAG_REGION must be enabled.
@@ -47,4 +47,4 @@ Note:
    2. NX0_TOT_X   256
       NX0_TOT_Y   256
       NX0_TOT_Z   256
-      ELBDM_MASS  2.0e-23 
+      ELBDM_MASS  2.0e-23

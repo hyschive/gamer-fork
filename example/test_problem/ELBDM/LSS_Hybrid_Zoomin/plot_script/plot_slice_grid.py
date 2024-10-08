@@ -1,6 +1,6 @@
 ################################################################################
 
-# This code output the density slice of the simulation with a pre-determined center. 
+# This code output the density slice of the simulation with a pre-determined center.
 
 ################################################################################
 
@@ -59,7 +59,7 @@ for ds in ts.piter():
          pz_dens.set_axes_unit( 'Mpc/h' )
          pz_dens.zoom( zoom )
          pz_dens.save( 'Data_%06d_Slice_%s_%s_x%d.png'%(num, ax, field[1],zoom), mpl_kwargs={"dpi":dpi} )
-         
+
          pz_dens.annotate_grids()
          pz_dens.save( 'Data_%06d_Slice_%s_%s_x%d_grid.png'%(num, ax, field[1],zoom), mpl_kwargs={"dpi":dpi} )
          pz_dens.zoom( 1./zoom )

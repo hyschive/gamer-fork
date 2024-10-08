@@ -2,13 +2,13 @@
 ################################################################################
 
 # This code outputs the density, cumulative mass, circular velocity and velocity dispersion profiles
-# of a target halo. The code uses an initial estimate (center_first_guess) to search the vicinity within 
+# of a target halo. The code uses an initial estimate (center_first_guess) to search the vicinity within
 # a specified radius (vicinity) for the coordinates of the maximum density,
 # corresponding to the center of the target halo.
 
 # carefully adjust vicinity for performance.
 
-# Example usage after running simulation with low resolution IC: 
+# Example usage after running simulation with low resolution IC:
 #    python3 Compute_profiles.py -s 36 -e 36
 
 # Outputs:
@@ -56,5 +56,5 @@ for file_id in range( idx_start, idx_end+1, didx ):
     center_first_guess = np.array( [0.295, 9.522, 8.27] ) # in cMpc/h. First guess for target halo of low resolution IC at z=0
     vicinity           = 0.3                              # radius in cMpc/h
     compute_profile( ds, center_first_guess, vicinity, halo_id, '.' )
-    
+
 print( "Done !" )

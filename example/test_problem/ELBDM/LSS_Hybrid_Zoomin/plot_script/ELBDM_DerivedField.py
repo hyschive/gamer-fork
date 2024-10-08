@@ -88,7 +88,7 @@ def Add_derived_fields( ds ):
    ds.add_field( ("gamer","S"),
                  function=_S, units="dimensionless",
                  display_name=r"$S$", sampling_type="cell" )
-   ds.add_field( ("gamer", "PhaseMod2"), 
+   ds.add_field( ("gamer", "PhaseMod2"),
                  function=_phasemod2,
                  sampling_type="local", units="" )
 
