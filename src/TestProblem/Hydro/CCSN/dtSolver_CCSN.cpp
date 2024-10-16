@@ -84,7 +84,9 @@ double Mis_GetTimeStep_Lightbulb( const int lv, const double dTime_dt )
             const real  Emag = NULL_REAL;
 #           endif // ifdef MHD ... else ...
 
-            const real Eint_Code  = Hydro_Con2Eint( Dens, Momx, Momy, Momz, Engy, true, MIN_EINT, Emag );
+            const real Eint_Code  = Hydro_Con2Eint( Dens, Momx, Momy, Momz, Engy, true, MIN_EINT, Emag,
+                                                    EoS_GuessHTilde_CPUPtr, EoS_HTilde2Temp_CPUPtr,
+                                                    EoS_AuxArray_Flt, EoS_AuxArray_Int, h_EoS_Table );
                   real dEint_Code = NULL_REAL;
 
 
@@ -110,7 +112,7 @@ double Mis_GetTimeStep_Lightbulb( const int lv, const double dTime_dt )
 
 
                SrcTerms.Lightbulb_CPUPtr( fluid, B, &SrcTerms, 0.0, NULL_REAL, x, y, z, NULL_REAL, NULL_REAL,
-                                          MIN_DENS, MIN_PRES, MIN_EINT, NULL,
+                                          MIN_DENS, MIN_PRES, MIN_EINT, &EoS,
                                           Src_Lightbulb_AuxArray_Flt, Src_Lightbulb_AuxArray_Int );
 
 #              ifdef DEDT_NU
