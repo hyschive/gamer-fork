@@ -34,7 +34,7 @@ r_sphere     = (100.0, 'kpc')
 dpi          = 150
 nbin         = 32
 
-Ref_DensProf_filename = '../HaloDensityProfile'
+Ref_DensProf_filename = '../FDMHaloDensityProfile'
 
 yt.enable_parallelism()
 ts = yt.DatasetSeries([ prefix+'Data_%06d'%idx for idx in range(idx_start, idx_end+1, didx) ])
