@@ -7,7 +7,7 @@
 #endif
 
 
-#define LinearInterp( x, xa, xb, ya, yb )   (  ( ((x) - (xa)) * (yb) + ((xb) - (x)) * (ya) ) / ((xb) - (xa))  )
+#define LinearInterp( x, xa, xb, ya, yb )   (  (ya) + ((yb) - (ya)) * ((x) - (xa)) / ((xb) - (xa))  )
 
 
 #ifdef __CUDACC__
