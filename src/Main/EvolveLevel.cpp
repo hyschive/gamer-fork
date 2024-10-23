@@ -20,10 +20,6 @@ extern Timer_t *Timer_Par_2Son   [NLEVEL];
 
 bool AutoReduceDt_Continue;
 
-extern void (*Flu_ResetByUser_API_Ptr)( const int lv, const int FluSg, const int MagSg, const double TimeNew, const double dt );
-extern void (*Mis_UserWorkBeforeNextLevel_Ptr)( const int lv, const double TimeNew, const double TimeOld, const double dt );
-extern void (*Mis_UserWorkBeforeNextSubstep_Ptr)( const int lv, const double TimeNew, const double TimeOld, const double dt );
-
 
 
 
@@ -720,19 +716,13 @@ void EvolveLevel( const int lv, const double dTime_FaLv )
 //       12-1. use the average data on fine grids to correct the coarse-grid data
          if ( OPT__FIXUP_RESTRICT )
          {
-#           ifdef DEDT_NU
-            const long ResVar = _TOTAL - _DEDT_NU;
-#           else
-            const long ResVar = _TOTAL;
-#           endif
-
             TIMING_FUNC(   Flu_FixUp_Restrict( lv, amr->FluSg[lv+1], amr->FluSg[lv], amr->MagSg[lv+1], amr->MagSg[lv],
-                                               NULL_INT, NULL_INT, ResVar, _MAG ),
+                                               NULL_INT, NULL_INT, FixUpVar_Restrict, _MAG ),
                            Timer_FixUp[lv],   TIMER_ON   );
 
 #           ifdef LOAD_BALANCE
             TIMING_FUNC(   LB_GetBufferData( lv, amr->FluSg[lv], amr->MagSg[lv], NULL_INT, DATA_RESTRICT,
-                                             ResVar, _MAG, NULL_INT ),
+                                             FixUpVar_Restrict, _MAG, NULL_INT ),
                            Timer_GetBuf[lv][7],   TIMER_ON   );
 #           endif
          }
@@ -759,11 +749,11 @@ void EvolveLevel( const int lv, const double dTime_FaLv )
          {
 #           ifdef LOAD_BALANCE
             TIMING_FUNC(   Buf_GetBufferData( lv, NULL_INT, NULL_INT, NULL_INT, COARSE_FINE_FLUX,
-                                              _FLUX_TOTAL, _NONE, NULL_INT, USELB_YES ),
+                                              FixUpVar_Flux, _NONE, NULL_INT, USELB_YES ),
                            Timer_GetBuf[lv][6],   TIMER_ON   );
 #           endif
 
-            TIMING_FUNC(   Flu_FixUp_Flux( lv ),
+            TIMING_FUNC(   Flu_FixUp_Flux( lv, FixUpVar_Flux ),
                            Timer_FixUp[lv],   TIMER_ON   );
          }
 
@@ -774,7 +764,7 @@ void EvolveLevel( const int lv, const double dTime_FaLv )
          if ( OPT__FIXUP_FLUX  ||  OPT__FIXUP_RESTRICT )
 #        endif
          TIMING_FUNC(   Buf_GetBufferData( lv, amr->FluSg[lv], amr->MagSg[lv], NULL_INT, DATA_AFTER_FIXUP,
-                                           _TOTAL, _MAG, Flu_ParaBuf, USELB_YES  ),
+                                           FixUpVar_Flux | FixUpVar_Restrict, _MAG, Flu_ParaBuf, USELB_YES  ),
                         Timer_GetBuf[lv][3],   TIMER_ON   );
 
          if ( OPT__VERBOSE  &&  MPI_Rank == 0 )    Aux_Message( stdout, "done\n" );
@@ -785,7 +775,9 @@ void EvolveLevel( const int lv, const double dTime_FaLv )
 
 //    13. refine to higher level(s)
 // ===============================================================================================
-      if ( lv != TOP_LEVEL  &&  AdvanceCounter[lv] % REGRID_COUNT == 0 )
+//    still check lv>=MAX_LEVEL since it’s possible to have patches on levels higher than MAX_LEVEL temporarily
+//    if MAX_LEVEL is reduced during restart or runtime
+      if (  ( lv < MAX_LEVEL || (lv!=TOP_LEVEL && NPatchTotal[lv+1]!=0) )  &&  AdvanceCounter[lv] % REGRID_COUNT == 0  )
       {
 //       REFINE_NLEVEL>1 allows for refining multiple levels at once
          const int lv_refine_max = MIN( lv+REFINE_NLEVEL, TOP_LEVEL ) - 1;
