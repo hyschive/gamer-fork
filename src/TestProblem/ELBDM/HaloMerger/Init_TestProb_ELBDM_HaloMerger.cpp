@@ -352,7 +352,7 @@ void SetParameter()
 
       char HaloMerger_Soliton_i_DensProf_Filename[MAX_STRING]; // filename of the density profile table for the i-th soliton (HaloMerger_Soliton_InitMode == 1 only)
       char HaloMerger_Soliton_i_DensProf_Rescale[MAX_STRING];  // whether to scale the density profile table for the i-th soliton (HaloMerger_Soliton_InitMode == 1 only)
-      char HaloMerger_Soliton_i_DensProf_PhyConst[MAX_STRING]; // value of the dimensional constant 4*pi*G*(ELBDM_MASS/hbar)^2 in the units of density profile for the i-th soliton (HaloMerger_Soliton_InitMode == 1 only)
+      char HaloMerger_Soliton_i_DensProf_PhyConst[MAX_STRING]; // value of the dimensional constant 4*pi*G*(ELBDM_MASS/hbar)^2 in the units of density profile for the i-th soliton (HaloMerger_Soliton_InitMode == 1 only) (<=0.0=same as in the simulation units)
 
       char HaloMerger_Soliton_i_OuterSlope[MAX_STRING];        // outer slope of the analytical density profile of the i-th soliton (HaloMerger_Soliton_InitMode == 2 only)
 
@@ -699,6 +699,8 @@ void SetParameter()
             // set the ratio of the physical constant between simulation and input table
             HaloMerger_Soliton_DensProf_ScaleC[index_soliton] = (4.0*M_PI*NEWTON_G*SQR(ELBDM_ETA))/HaloMerger_Soliton_DensProf_PhyConst[index_soliton];
 
+            // rescale the soliton density profile by following the scaling relation:
+            // (4*pi*G*ELBDM_ETA^2)*(CoreRho)*(CoreRadius^4) = a dimensionless constnat  ->  (ScaleC)*(ScaleD)*(ScaleL^4) = 1
             if ( HaloMerger_Soliton_DensProf_Rescale[index_soliton] )
             {
                // evaluate the scale factors of each soliton
