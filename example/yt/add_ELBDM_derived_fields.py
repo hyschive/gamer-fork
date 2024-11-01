@@ -108,29 +108,29 @@ def _bulk_velocity_magnitude(field, data):
    #return (data["bulk_velocity_x"]**2 + data["bulk_velocity_y"]**2 + data["bulk_velocity_z"]**2)**0.5
    return data["momentum_density_magnitude"]/data["Dens"]
 
-# sigma_x = ((df/dx)/f)*hbar/m = (R*dR/dx + I*dI/dx)/rho*hbar/m
-def _internal_velocity_x(field, data):
+# w_x = ((df/dx)/f)*hbar/m = (R*dR/dx + I*dI/dx)/rho*hbar/m
+def _thermal_velocity_x(field, data):
    #return (data["Real"]*data["Real_gradient_x"] + data["Imag"]*data["Imag_gradient_x"])/(ELBDM_ETA(data)*data["Dens"])
    return (data["f_gradient_x"]/data["f"])/ELBDM_ETA(data)
 
-# sigma_y = ((df/dy)/f)*hbar/m = (R*dR/dy + I*dI/dy)/rho*hbar/m
-def _internal_velocity_y(field, data):
+# w_y = ((df/dy)/f)*hbar/m = (R*dR/dy + I*dI/dy)/rho*hbar/m
+def _thermal_velocity_y(field, data):
    #return (data["Real"]*data["Real_gradient_y"] + data["Imag"]*data["Imag_gradient_y"])/(ELBDM_ETA(data)*data["Dens"])
    return (data["f_gradient_y"]/data["f"])/ELBDM_ETA(data)
 
-# sigma_z = ((df/dz)/f)*hbar/m = (R*dR/dz + I*dI/dz)/rho*hbar/m
-def _internal_velocity_z(field, data):
+# w_z = ((df/dz)/f)*hbar/m = (R*dR/dz + I*dI/dz)/rho*hbar/m
+def _thermal_velocity_z(field, data):
    #return (data["Real"]*data["Real_gradient_z"] + data["Imag"]*data["Imag_gradient_z"])/(ELBDM_ETA(data)*data["Dens"])
    return (data["f_gradient_z"]/data["f"])/ELBDM_ETA(data)
 
-# |sigma| = |(grad(f)/f)|*hbar/m = |(R*grad(R) + I*grad(I))|/rho*hbar/m
-def _internal_velocity_magnitude(field, data):
-   #return (data["internal_velocity_x"]**2 + data["internal_velocity_y"]**2 + data["internal_velocity_z"]**2)**0.5
+# |w| = |(grad(f)/f)|*hbar/m = |(R*grad(R) + I*grad(I))|/rho*hbar/m
+def _thermal_velocity_magnitude(field, data):
+   #return (data["thermal_velocity_x"]**2 + data["thermal_velocity_y"]**2 + data["thermal_velocity_z"]**2)**0.5
    return (data["f_gradient_magnitude"]/data["f"])/ELBDM_ETA(data)
 
 # |u| = sqrt(|grad(f)/f|^2 + |grad(S)|^2)*hbar/m = sqrt((|grad(R)|^2 + |grad(I)|^2)/rho)*hbar/m
 def _total_velocity_magnitude(field, data):
-   #return (data["bulk_velocity"]**2 + data["internal_velocity"]**2)**0.5
+   #return (data["bulk_velocity"]**2 + data["thermal_velocity"]**2)**0.5
    return (((data["Real_gradient_magnitude"]**2 + data["Imag_gradient_magnitude"]**2)/data["Dens"])**0.5)/ELBDM_ETA(data)
 
 #################################
@@ -142,29 +142,29 @@ def _bulk_kinetic_energy_density(field, data):
    #return 0.5*data["Dens"]*data["bulk_velocity"]**2
    return 0.5*(data["momentum_density_magnitude"]**2)/data["Dens"]
 
-# e_k_intn = 1/2*rho*|sigma|^2 = 1/2*|grad(f)|^2*hbar^2/m^2
-def _internal_kinetic_energy_density(field, data):
-   #return 0.5*data["Dens"]*data["internal_velocity"]**2
+# e_k_thml = 1/2*rho*|w|^2 = 1/2*|grad(f)|^2*hbar^2/m^2
+def _thermal_kinetic_energy_density(field, data):
+   #return 0.5*data["Dens"]*data["thermal_velocity"]**2
    return 0.5*(data["f_gradient_magnitude"]**2)/ELBDM_ETA(data)**2
 
-# e_k = 1/2*rho*|u|^2 = 1/2*rho*|v|^2 + 1/2*rho*|sigma|^2 = 1/2*(|grad(R)|^2 + |grad(I)|^2)*hbar^2/m^2
+# e_k = 1/2*rho*|u|^2 = 1/2*rho*|v|^2 + 1/2*rho*|w|^2 = 1/2*(|grad(R)|^2 + |grad(I)|^2)*hbar^2/m^2
 def _total_kinetic_energy_density(field, data):
-   #return data["bulk_kinetic_energy_density"] + data["internal_kinetic_energy_density"]
+   #return data["bulk_kinetic_energy_density"] + data["thermal_kinetic_energy_density"]
    return 0.5*(data["Real_gradient_magnitude"]**2 + data["Imag_gradient_magnitude"]**2)/ELBDM_ETA(data)**2
 
 # E_k_bulk = e_k_bulk*dV
 def _cell_bulk_kinetic_energy(field, data):
    return data["bulk_kinetic_energy_density"]*data["cell_volume"]
 
-# E_k_intn = e_k_intn*dV
-def _cell_internal_kinetic_energy(field, data):
-   return data["internal_kinetic_energy_density"]*data["cell_volume"]
+# E_k_thml = e_k_thml*dV
+def _cell_thermal_kinetic_energy(field, data):
+   return data["thermal_kinetic_energy_density"]*data["cell_volume"]
 
 # E_k = e_k*dV
 def _cell_total_kinetic_energy(field, data):
    return data["total_kinetic_energy_density"]*data["cell_volume"]
 
-# epsilon_k = 1/2*u^2 = 1/2*v^2 +1/2*sigma^2
+# epsilon_k = 1/2*u^2 = 1/2*v^2 +1/2*w^2
 def _specific_total_kinetic_energy(field, data):
    return data["total_kinetic_energy_density"]/data["Dens"]
 
@@ -213,25 +213,25 @@ def _bulk_wavevector_z(field, data):
 def _bulk_wavevector_magnitude(field, data):
    return data["bulk_velocity_magnitude"]*ELBDM_ETA(data)
 
-# k_intn_x = (df/dx)/f = (R*dR/dx + I*dI/dx)/rho
-def _internal_wavevector_x(field, data):
-   return data["internal_velocity_x"]*ELBDM_ETA(data)
+# k_thml_x = (df/dx)/f = (R*dR/dx + I*dI/dx)/rho
+def _thermal_wavevector_x(field, data):
+   return data["thermal_velocity_x"]*ELBDM_ETA(data)
 
-# k_intn_y = (df/dy)/f = (R*dR/dy + I*dI/dy)/rho
-def _internal_wavevector_y(field, data):
-   return data["internal_velocity_y"]*ELBDM_ETA(data)
+# k_thml_y = (df/dy)/f = (R*dR/dy + I*dI/dy)/rho
+def _thermal_wavevector_y(field, data):
+   return data["thermal_velocity_y"]*ELBDM_ETA(data)
 
-# k_intn_z = (df/dz)/f = (R*dR/dz + I*dI/dz)/rho
-def _internal_wavevector_z(field, data):
-   return data["internal_velocity_z"]*ELBDM_ETA(data)
+# k_thml_z = (df/dz)/f = (R*dR/dz + I*dI/dz)/rho
+def _thermal_wavevector_z(field, data):
+   return data["thermal_velocity_z"]*ELBDM_ETA(data)
 
-# |k_intn| = |grad(f)/f| = |(R*grad(R) + I*grad(I))|/rho
-def _internal_wavevector_magnitude(field, data):
-   return data["internal_velocity_magnitude"]*ELBDM_ETA(data)
+# |k_thml| = |grad(f)/f| = |(R*grad(R) + I*grad(I))|/rho
+def _thermal_wavevector_magnitude(field, data):
+   return data["thermal_velocity_magnitude"]*ELBDM_ETA(data)
 
 # |k| = sqrt(|grad(f)/f|^2 + |grad(S)|^2) = sqrt((|grad(R)|^2 + |grad(I)|^2)/rho)
 def _total_wavevector_magnitude(field, data):
-   #return (data["bulk_wavevector_magnitude"]**2 + data["internal_wavevector_magnitude"]**2)**0.5
+   #return (data["bulk_wavevector_magnitude"]**2 + data["thermal_wavevector_magnitude"]**2)**0.5
    return ((data["Real_gradient_magnitude"]**2 + data["Imag_gradient_magnitude"]**2)/data["Dens"])**0.5
 
 #################################
@@ -254,21 +254,21 @@ def _bulk_wavelength_z(field, data):
 def _bulk_wavelength(field, data):
    return 2.0*np.pi/data["bulk_wavevector_magnitude"]
 
-# lambda_intn_x = 2*PI/k_intn_x
-def _internal_wavelength_x(field, data):
-   return 2.0*np.pi/data["internal_wavevector_x"]
+# lambda_thml_x = 2*PI/k_thml_x
+def _thermal_wavelength_x(field, data):
+   return 2.0*np.pi/data["thermal_wavevector_x"]
 
-# lambda_intn_y = 2*PI/k_intn_y
-def _internal_wavelength_y(field, data):
-   return 2.0*np.pi/data["internal_wavevector_y"]
+# lambda_thml_y = 2*PI/k_thml_y
+def _thermal_wavelength_y(field, data):
+   return 2.0*np.pi/data["thermal_wavevector_y"]
 
-# lambda_intn_z = 2*PI/k_intn_z
-def _internal_wavelength_z(field, data):
-   return 2.0*np.pi/data["internal_wavevector_z"]
+# lambda_thml_z = 2*PI/k_thml_z
+def _thermal_wavelength_z(field, data):
+   return 2.0*np.pi/data["thermal_wavevector_z"]
 
-# lambda_intn = 2*PI/k_intn = 2*PI*hbar/(m*sigma)
-def _internal_wavelength(field, data):
-   return 2.0*np.pi/data["internal_wavevector_magnitude"]
+# lambda_thml = 2*PI/k_thml = 2*PI*hbar/(m*w)
+def _thermal_wavelength(field, data):
+   return 2.0*np.pi/data["thermal_wavevector_magnitude"]
 
 # lambda = 2*PI/k = 2*PI*hbar/(m*u)
 def _total_wavelength(field, data):
@@ -278,9 +278,9 @@ def _total_wavelength(field, data):
 def _cells_per_bulk_wavelength(field, data):
    return data["bulk_wavelength"]/data["dx"]
 
-# lambda_intn/dx = 2*PI/(k_intn*dx)
-def _cells_per_internal_wavelength(field, data):
-   return data["internal_wavelength"]/data["dx"]
+# lambda_thml/dx = 2*PI/(k_thml*dx)
+def _cells_per_thermal_wavelength(field, data):
+   return data["thermal_wavelength"]/data["dx"]
 
 # lambda/dx = 2*PI/(k*dx)
 def _cells_per_total_wavelength(field, data):
@@ -290,9 +290,9 @@ def _cells_per_total_wavelength(field, data):
 def _bulk_wavelength_per_cell(field, data):
    return 1.0/data["cells_per_bulk_wavelength"]
 
-# dx/lambda_intn = k_intn*dx/(2*PI)
-def _internal_wavelength_per_cell(field, data):
-   return 1.0/data["cells_per_internal_wavelength"]
+# dx/lambda_thml = k_thml*dx/(2*PI)
+def _thermal_wavelength_per_cell(field, data):
+   return 1.0/data["cells_per_thermal_wavelength"]
 
 # dx/lambda = k*dx/(2*PI)
 def _total_wavelength_per_cell(field, data):
@@ -427,27 +427,27 @@ def Add_ELBDM_derived_fields(ds):
                  units         = "code_length/code_time",
                  sampling_type = "cell" )
 
-   ds.add_field(       ("gamer", "internal_velocity_x"),
-                 function      = _internal_velocity_x,
-                 display_name  =r"Internal Velocity X $\sigma_x$",
+   ds.add_field(       ("gamer", "thermal_velocity_x"),
+                 function      = _thermal_velocity_x,
+                 display_name  =r"Thermal Velocity X $w_x$",
                  units         = "code_length/code_time",
                  sampling_type = "cell" )
 
-   ds.add_field(       ("gamer", "internal_velocity_y"),
-                 function      = _internal_velocity_y,
-                 display_name  =r"Internal Velocity Y $\sigma_y$",
+   ds.add_field(       ("gamer", "thermal_velocity_y"),
+                 function      = _thermal_velocity_y,
+                 display_name  =r"Thermal Velocity Y $w_y$",
                  units         = "code_length/code_time",
                  sampling_type = "cell" )
 
-   ds.add_field(       ("gamer", "internal_velocity_z"),
-                 function      = _internal_velocity_z,
-                 display_name  =r"Internal Velocity Z $\sigma_z$",
+   ds.add_field(       ("gamer", "thermal_velocity_z"),
+                 function      = _thermal_velocity_z,
+                 display_name  =r"Thermal Velocity Z $w_z$",
                  units         = "code_length/code_time",
                  sampling_type = "cell" )
 
-   ds.add_field(       ("gamer", "internal_velocity_magnitude"),
-                 function      = _internal_velocity_magnitude,
-                 display_name  =r"Internal Velocity Magnitude $|\vec{\sigma}|$",
+   ds.add_field(       ("gamer", "thermal_velocity_magnitude"),
+                 function      = _thermal_velocity_magnitude,
+                 display_name  =r"Thermal Velocity Magnitude $|\vec{w}|$",
                  units         = "code_length/code_time",
                  sampling_type = "cell" )
 
@@ -464,9 +464,9 @@ def Add_ELBDM_derived_fields(ds):
                  units         = "code_mass/(code_length*code_time**2)",
                  sampling_type = "cell" )
 
-   ds.add_field(       ("gamer", "internal_kinetic_energy_density"),
-                 function      = _internal_kinetic_energy_density,
-                 display_name  =r"Internal Kinetic Energy Density",
+   ds.add_field(       ("gamer", "thermal_kinetic_energy_density"),
+                 function      = _thermal_kinetic_energy_density,
+                 display_name  =r"Thermal Kinetic Energy Density",
                  units         = "code_mass/(code_length*code_time**2)",
                  sampling_type = "cell" )
 
@@ -482,9 +482,9 @@ def Add_ELBDM_derived_fields(ds):
                  units         = "code_mass*code_length**2/(code_time**2)",
                  sampling_type = "cell" )
 
-   ds.add_field(       ("gamer", "cell_internal_kinetic_energy"),
-                 function      = _cell_internal_kinetic_energy,
-                 display_name  =r"Cell Internal Kinetic Energy $E_{\rm{k,internal}}$",
+   ds.add_field(       ("gamer", "cell_thermal_kinetic_energy"),
+                 function      = _cell_thermal_kinetic_energy,
+                 display_name  =r"Cell Thermal Kinetic Energy $E_{\rm{k,thermal}}$",
                  units         = "code_mass*code_length**2/(code_time**2)",
                  sampling_type = "cell" )
 
@@ -564,27 +564,27 @@ def Add_ELBDM_derived_fields(ds):
                  units         = "1/(code_length)",
                  sampling_type = "cell" )
 
-   ds.add_field(       ("gamer", "internal_wavevector_x"),
-                 function      = _internal_wavevector_x,
-                 display_name  =r"Internal Wavevector X $k_{\rm{internal},x}$",
+   ds.add_field(       ("gamer", "thermal_wavevector_x"),
+                 function      = _thermal_wavevector_x,
+                 display_name  =r"Thermal Wavevector X $k_{\rm{thermal},x}$",
                  units         = "1/(code_length)",
                  sampling_type = "cell" )
 
-   ds.add_field(       ("gamer", "internal_wavevector_y"),
-                 function      = _internal_wavevector_y,
-                 display_name  =r"Internal Wavevector Y $k_{\rm{internal},y}$",
+   ds.add_field(       ("gamer", "thermal_wavevector_y"),
+                 function      = _thermal_wavevector_y,
+                 display_name  =r"Thermal Wavevector Y $k_{\rm{thermal},y}$",
                  units         = "1/(code_length)",
                  sampling_type = "cell" )
 
-   ds.add_field(       ("gamer", "internal_wavevector_z"),
-                 function      = _internal_wavevector_z,
-                 display_name  =r"Internal Wavevector Z $k_{\rm{internal},z}$",
+   ds.add_field(       ("gamer", "thermal_wavevector_z"),
+                 function      = _thermal_wavevector_z,
+                 display_name  =r"Thermal Wavevector Z $k_{\rm{thermal},z}$",
                  units         = "1/(code_length)",
                  sampling_type = "cell" )
 
-   ds.add_field(       ("gamer", "internal_wavevector_magnitude"),
-                 function      = _internal_wavevector_magnitude,
-                 display_name  =r"Internal Wavevector Magnitude $|\vec{k}_{\rm{internal}}|$",
+   ds.add_field(       ("gamer", "thermal_wavevector_magnitude"),
+                 function      = _thermal_wavevector_magnitude,
+                 display_name  =r"Thermal Wavevector Magnitude $|\vec{k}_{\rm{thermal}}|$",
                  units         = "1/(code_length)",
                  sampling_type = "cell" )
 
@@ -619,27 +619,27 @@ def Add_ELBDM_derived_fields(ds):
                  units         = "code_length",
                  sampling_type = "cell" )
 
-   ds.add_field(       ("gamer", "internal_wavelength_x"),
-                 function      = _internal_wavelength_x,
-                 display_name  =r"Internal Wavelength X $\lambda_{\rm{internal},x}$",
+   ds.add_field(       ("gamer", "thermal_wavelength_x"),
+                 function      = _thermal_wavelength_x,
+                 display_name  =r"Thermal Wavelength X $\lambda_{\rm{thermal},x}$",
                  units         = "code_length",
                  sampling_type = "cell" )
 
-   ds.add_field(       ("gamer", "internal_wavelength_y"),
-                 function      = _internal_wavelength_y,
-                 display_name  =r"Internal Wavelength Y $\lambda_{\rm{internal},y}$",
+   ds.add_field(       ("gamer", "thermal_wavelength_y"),
+                 function      = _thermal_wavelength_y,
+                 display_name  =r"Thermal Wavelength Y $\lambda_{\rm{thermal},y}$",
                  units         = "code_length",
                  sampling_type = "cell" )
 
-   ds.add_field(       ("gamer", "internal_wavelength_z"),
-                 function      = _internal_wavelength_z,
-                 display_name  =r"Internal Wavelength Z $\lambda_{\rm{internal},z}$",
+   ds.add_field(       ("gamer", "thermal_wavelength_z"),
+                 function      = _thermal_wavelength_z,
+                 display_name  =r"Thermal Wavelength Z $\lambda_{\rm{thermal},z}$",
                  units         = "code_length",
                  sampling_type = "cell" )
 
-   ds.add_field(       ("gamer", "internal_wavelength"),
-                 function      = _internal_wavelength,
-                 display_name  =r"Internal Wavelength $\lambda_{\rm{internal}}$",
+   ds.add_field(       ("gamer", "thermal_wavelength"),
+                 function      = _thermal_wavelength,
+                 display_name  =r"Thermal Wavelength $\lambda_{\rm{thermal}}$",
                  units         = "code_length",
                  sampling_type = "cell" )
 
@@ -655,9 +655,9 @@ def Add_ELBDM_derived_fields(ds):
                  units         = "dimensionless",
                  sampling_type = "cell" )
 
-   ds.add_field(       ("gamer", "cells_per_internal_wavelength"),
-                 function      = _cells_per_internal_wavelength,
-                 display_name  =r"$\lambda_{\rm{internal}} / \Delta x$",
+   ds.add_field(       ("gamer", "cells_per_thermal_wavelength"),
+                 function      = _cells_per_thermal_wavelength,
+                 display_name  =r"$\lambda_{\rm{thermal}} / \Delta x$",
                  units         = "dimensionless",
                  sampling_type = "cell" )
 
@@ -673,9 +673,9 @@ def Add_ELBDM_derived_fields(ds):
                  units         = "dimensionless",
                  sampling_type = "cell" )
 
-   ds.add_field(       ("gamer", "internal_wavelength_per_cell"),
-                 function      = _internal_wavelength_per_cell,
-                 display_name  =r"$\Delta x / \lambda_{\rm{internal}}$",
+   ds.add_field(       ("gamer", "thermal_wavelength_per_cell"),
+                 function      = _thermal_wavelength_per_cell,
+                 display_name  =r"$\Delta x / \lambda_{\rm{thermal}}$",
                  units         = "dimensionless",
                  sampling_type = "cell" )
 
