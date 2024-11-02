@@ -55,37 +55,37 @@ def _S(field, data):
 #################################
 
 # j_x = rho*v_x = (R*dI/dx - I*dR/dx)*hbar/m
-def _momentum_density_x(field, data):
+def _bulk_momentum_density_x(field, data):
    return (data["Real"]*data["Imag_gradient_x"] - data["Imag"]*data["Real_gradient_x"])/ELBDM_ETA(data)
 
 # j_y = rho*v_y = (R*dI/dy - I*dR/dy)*hbar/m
-def _momentum_density_y(field, data):
+def _bulk_momentum_density_y(field, data):
    return (data["Real"]*data["Imag_gradient_y"] - data["Imag"]*data["Real_gradient_y"])/ELBDM_ETA(data)
 
 # j_z = rho*v_z = (R*dI/dz - I*dR/dz)*hbar/m
-def _momentum_density_z(field, data):
+def _bulk_momentum_density_z(field, data):
    return (data["Real"]*data["Imag_gradient_z"] - data["Imag"]*data["Real_gradient_z"])/ELBDM_ETA(data)
 
 # |j| = rho*|v| = |R*grad(I) - I*grad(R)|*hbar/m
-def _momentum_density_magnitude(field, data):
-   return (data["momentum_density_x"]**2 + data["momentum_density_y"]**2 + data["momentum_density_z"]**2)**0.5
+def _bulk_momentum_density_magnitude(field, data):
+   return (data["bulk_momentum_density_x"]**2 + data["bulk_momentum_density_y"]**2 + data["bulk_momentum_density_z"]**2)**0.5
 
 # J_x = j_x*dV = dM*v_x
-def _cell_momentum_x(field, data):
-   return data["momentum_density_x"]*data["cell_volume"]
+def _cell_bulk_momentum_x(field, data):
+   return data["bulk_momentum_density_x"]*data["cell_volume"]
 
 # J_y = j_y*dV = dM*v_y
-def _cell_momentum_y(field, data):
-   return data["momentum_density_y"]*data["cell_volume"]
+def _cell_bulk_momentum_y(field, data):
+   return data["bulk_momentum_density_y"]*data["cell_volume"]
 
 # J_z = j_z*dV = dM*v_z
-def _cell_momentum_z(field, data):
-   return data["momentum_density_z"]*data["cell_volume"]
+def _cell_bulk_momentum_z(field, data):
+   return data["bulk_momentum_density_z"]*data["cell_volume"]
 
 # |J| = |j|*dV = dM*|v|
-def _cell_momentum_magnitude(field, data):
-   #return (data["cell_momentum_x"]**2 + data["cell_momentum_y"]**2 + data["cell_momentum_z"]**2)**0.5
-   return data["momentum_density_magnitude"]*data["cell_volume"]
+def _cell_bulk_momentum_magnitude(field, data):
+   #return (data["cell_bulk_momentum_x"]**2 + data["cell_bulk_momentum_y"]**2 + data["cell_bulk_momentum_z"]**2)**0.5
+   return data["bulk_momentum_density_magnitude"]*data["cell_volume"]
 
 #################################
 ## Velocity
@@ -93,20 +93,20 @@ def _cell_momentum_magnitude(field, data):
 
 # v_x = (dS/dx)*hbar/m = (R*dI/dx - I*dR/dx)/rho*hbar/m
 def _bulk_velocity_x(field, data):
-   return data["momentum_density_x"]/data["Dens"]
+   return data["bulk_momentum_density_x"]/data["Dens"]
 
 # v_y = (dS/dy)*hbar/m = (R*dI/dy - I*dR/dy)/rho*hbar/m
 def _bulk_velocity_y(field, data):
-   return data["momentum_density_y"]/data["Dens"]
+   return data["bulk_momentum_density_y"]/data["Dens"]
 
 # v_z = (dS/dz)*hbar/m = (R*dI/dz - I*dR/dz)/rho*hbar/m
 def _bulk_velocity_z(field, data):
-   return data["momentum_density_z"]/data["Dens"]
+   return data["bulk_momentum_density_z"]/data["Dens"]
 
 # |v| = |grad(S)|*hbar/m = |(R*grad(I) - I*grad(R))|/rho*hbar/m
 def _bulk_velocity_magnitude(field, data):
    #return (data["bulk_velocity_x"]**2 + data["bulk_velocity_y"]**2 + data["bulk_velocity_z"]**2)**0.5
-   return data["momentum_density_magnitude"]/data["Dens"]
+   return data["bulk_momentum_density_magnitude"]/data["Dens"]
 
 # w_x = ((df/dx)/f)*hbar/m = (R*dR/dx + I*dI/dx)/rho*hbar/m
 def _thermal_velocity_x(field, data):
@@ -140,7 +140,7 @@ def _total_velocity_magnitude(field, data):
 # e_k_bulk = 1/2*rho*|v|^2 = 1/2*rho*|grad(S)|^2*hbar^2/m^2
 def _bulk_kinetic_energy_density(field, data):
    #return 0.5*data["Dens"]*data["bulk_velocity"]**2
-   return 0.5*(data["momentum_density_magnitude"]**2)/data["Dens"]
+   return 0.5*(data["bulk_momentum_density_magnitude"]**2)/data["Dens"]
 
 # e_k_thml = 1/2*rho*|w|^2 = 1/2*|grad(f)|^2*hbar^2/m^2
 def _thermal_kinetic_energy_density(field, data):
@@ -354,51 +354,51 @@ def Add_ELBDM_derived_fields(ds):
    Grad_S = ds.add_gradient_fields( ("gamer","S")    )
 
    ## Momentum
-   ds.add_field(       ("gamer", "momentum_density_x"),
-                 function      = _momentum_density_x,
-                 display_name  =r"Momentum Density X $j_x$",
+   ds.add_field(       ("gamer", "bulk_momentum_density_x"),
+                 function      = _bulk_momentum_density_x,
+                 display_name  =r"Bulk Momentum Density X $j_x$",
                  units         = "code_mass/(code_length**2*code_time)",
                  sampling_type = "cell" )
 
-   ds.add_field(       ("gamer", "momentum_density_y"),
-                 function      = _momentum_density_y,
-                 display_name  =r"Momentum Density Y $j_y$",
+   ds.add_field(       ("gamer", "bulk_momentum_density_y"),
+                 function      = _bulk_momentum_density_y,
+                 display_name  =r"Bulk Momentum Density Y $j_y$",
                  units         = "code_mass/(code_length**2*code_time)",
                  sampling_type = "cell" )
 
-   ds.add_field(       ("gamer", "momentum_density_z"),
-                 function      = _momentum_density_z,
-                 display_name  =r"Momentum Density Z $j_z$",
+   ds.add_field(       ("gamer", "bulk_momentum_density_z"),
+                 function      = _bulk_momentum_density_z,
+                 display_name  =r"Bulk Momentum Density Z $j_z$",
                  units         = "code_mass/(code_length**2*code_time)",
                  sampling_type = "cell" )
 
-   ds.add_field(       ("gamer", "momentum_density_magnitude"),
-                 function      = _momentum_density_magnitude,
-                 display_name  =r"Momentum Density Magnitude $|\vec{j}|$",
+   ds.add_field(       ("gamer", "bulk_momentum_density_magnitude"),
+                 function      = _bulk_momentum_density_magnitude,
+                 display_name  =r"Bulk Momentum Density Magnitude $|\vec{j}|$",
                  units         = "code_mass/(code_length**2*code_time)",
                  sampling_type = "cell")
 
-   ds.add_field(       ("gamer", "cell_momentum_x"),
-                 function      = _cell_momentum_x,
-                 display_name  =r"Cell Momentum X $J_x$",
+   ds.add_field(       ("gamer", "cell_bulk_momentum_x"),
+                 function      = _cell_bulk_momentum_x,
+                 display_name  =r"Cell Bulk Momentum X $J_x$",
                  units         = "code_mass*code_length/code_time",
                  sampling_type = "cell")
 
-   ds.add_field(       ("gamer", "cell_momentum_y"),
-                 function      = _cell_momentum_y,
-                 display_name  =r"Cell Momentum Y $J_y$",
+   ds.add_field(       ("gamer", "cell_bulk_momentum_y"),
+                 function      = _cell_bulk_momentum_y,
+                 display_name  =r"Cell Bulk Momentum Y $J_y$",
                  units         = "code_mass*code_length/code_time",
                  sampling_type = "cell")
 
-   ds.add_field(       ("gamer", "cell_momentum_z"),
-                 function      = _cell_momentum_z,
-                 display_name  =r"Cell_momentum Z $J_z$",
+   ds.add_field(       ("gamer", "cell_bulk_momentum_z"),
+                 function      = _cell_bulk_momentum_z,
+                 display_name  =r"Cell Bulk Momentum Z $J_z$",
                  units         = "code_mass*code_length/code_time",
                  sampling_type = "cell")
 
-   ds.add_field(       ("gamer", "cell_momentum_magnitude"),
-                 function      = _cell_momentum_magnitude,
-                 display_name  =r"Cell Momentum Magnitude $|\vec{J}|$",
+   ds.add_field(       ("gamer", "cell_bulk_momentum_magnitude"),
+                 function      = _cell_bulk_momentum_magnitude,
+                 display_name  =r"Cell Bulk Momentum Magnitude $|\vec{J}|$",
                  units         = "code_mass*code_length/code_time",
                  sampling_type = "cell")
 
