@@ -70,6 +70,22 @@ def _bulk_momentum_density_z(field, data):
 def _bulk_momentum_density_magnitude(field, data):
    return (data["bulk_momentum_density_x"]**2 + data["bulk_momentum_density_y"]**2 + data["bulk_momentum_density_z"]**2)**0.5
 
+# xi_x = rho*w_x = (R*dR/dx + I*dI/dx)*hbar/m
+def _thermal_momentum_density_x(field, data):
+   return (data["Real"]*data["Real_gradient_x"] + data["Imag"]*data["Imag_gradient_x"])/ELBDM_ETA(data)
+
+# xi_y = rho*w_y = (R*dR/dy + I*dI/dy)*hbar/m
+def _thermal_momentum_density_y(field, data):
+   return (data["Real"]*data["Real_gradient_y"] + data["Imag"]*data["Imag_gradient_y"])/ELBDM_ETA(data)
+
+# xi_z = rho*w_z = (R*dR/dz + I*dI/dz)*hbar/m
+def _thermal_momentum_density_z(field, data):
+   return (data["Real"]*data["Real_gradient_z"] + data["Imag"]*data["Imag_gradient_z"])/ELBDM_ETA(data)
+
+# |xi| = rho*|w| = |R*grad(R) + I*grad(I)|*hbar/m
+def _thermal_momentum_density_magnitude(field, data):
+   return (data["thermal_momentum_density_x"]**2 + data["thermal_momentum_density_y"]**2 + data["thermal_momentum_density_z"]**2)**0.5
+
 # J_x = j_x*dV = dM*v_x
 def _cell_bulk_momentum_x(field, data):
    return data["bulk_momentum_density_x"]*data["cell_volume"]
@@ -86,6 +102,23 @@ def _cell_bulk_momentum_z(field, data):
 def _cell_bulk_momentum_magnitude(field, data):
    #return (data["cell_bulk_momentum_x"]**2 + data["cell_bulk_momentum_y"]**2 + data["cell_bulk_momentum_z"]**2)**0.5
    return data["bulk_momentum_density_magnitude"]*data["cell_volume"]
+
+# Xi_x = xi_x*dV = dM*w_x
+def _cell_thermal_momentum_x(field, data):
+   return data["thermal_momentum_density_x"]*data["cell_volume"]
+
+# Xi_y = xi_y*dV = dM*w_y
+def _cell_thermal_momentum_y(field, data):
+   return data["thermal_momentum_density_y"]*data["cell_volume"]
+
+# Xi_z = xi_z*dV = dM*w_z
+def _cell_thermal_momentum_z(field, data):
+   return data["thermal_momentum_density_z"]*data["cell_volume"]
+
+# |Xi| = |xi|*dV = dM*|w|
+def _cell_thermal_momentum_magnitude(field, data):
+   #return (data["cell_thermal_momentum_x"]**2 + data["cell_thermal_momentum_y"]**2 + data["cell_thermal_momentum_z"]**2)**0.5
+   return data["thermal_momentum_density_magnitude"]*data["cell_volume"]
 
 #################################
 ## Velocity
@@ -110,27 +143,27 @@ def _bulk_velocity_magnitude(field, data):
 
 # w_x = ((df/dx)/f)*hbar/m = (R*dR/dx + I*dI/dx)/rho*hbar/m
 def _thermal_velocity_x(field, data):
-   #return (data["Real"]*data["Real_gradient_x"] + data["Imag"]*data["Imag_gradient_x"])/(ELBDM_ETA(data)*data["Dens"])
-   return (data["f_gradient_x"]/data["f"])/ELBDM_ETA(data)
+   #return (data["f_gradient_x"]/data["f"])/ELBDM_ETA(data)
+   return data["thermal_momentum_density_x"]/data["Dens"]
 
 # w_y = ((df/dy)/f)*hbar/m = (R*dR/dy + I*dI/dy)/rho*hbar/m
 def _thermal_velocity_y(field, data):
-   #return (data["Real"]*data["Real_gradient_y"] + data["Imag"]*data["Imag_gradient_y"])/(ELBDM_ETA(data)*data["Dens"])
-   return (data["f_gradient_y"]/data["f"])/ELBDM_ETA(data)
+   #return (data["f_gradient_y"]/data["f"])/ELBDM_ETA(data)
+   return data["thermal_momentum_density_y"]/data["Dens"]
 
 # w_z = ((df/dz)/f)*hbar/m = (R*dR/dz + I*dI/dz)/rho*hbar/m
 def _thermal_velocity_z(field, data):
-   #return (data["Real"]*data["Real_gradient_z"] + data["Imag"]*data["Imag_gradient_z"])/(ELBDM_ETA(data)*data["Dens"])
-   return (data["f_gradient_z"]/data["f"])/ELBDM_ETA(data)
+   #return (data["f_gradient_z"]/data["f"])/ELBDM_ETA(data)
+   return data["thermal_momentum_density_z"]/data["Dens"]
 
 # |w| = |(grad(f)/f)|*hbar/m = |(R*grad(R) + I*grad(I))|/rho*hbar/m
 def _thermal_velocity_magnitude(field, data):
-   #return (data["thermal_velocity_x"]**2 + data["thermal_velocity_y"]**2 + data["thermal_velocity_z"]**2)**0.5
-   return (data["f_gradient_magnitude"]/data["f"])/ELBDM_ETA(data)
+   #return (data["f_gradient_magnitude"]/data["f"])/ELBDM_ETA(data)
+   return data["thermal_momentum_density_magnitude"]/data["Dens"]
 
 # |u| = sqrt(|grad(f)/f|^2 + |grad(S)|^2)*hbar/m = sqrt((|grad(R)|^2 + |grad(I)|^2)/rho)*hbar/m
 def _total_velocity_magnitude(field, data):
-   #return (data["bulk_velocity"]**2 + data["thermal_velocity"]**2)**0.5
+   #return (data["bulk_velocity_magnitude"]**2 + data["thermal_velocity_magnitude"]**2)**0.5
    return (((data["Real_gradient_magnitude"]**2 + data["Imag_gradient_magnitude"]**2)/data["Dens"])**0.5)/ELBDM_ETA(data)
 
 #################################
@@ -145,7 +178,8 @@ def _bulk_kinetic_energy_density(field, data):
 # e_k_thml = 1/2*rho*|w|^2 = 1/2*|grad(f)|^2*hbar^2/m^2
 def _thermal_kinetic_energy_density(field, data):
    #return 0.5*data["Dens"]*data["thermal_velocity"]**2
-   return 0.5*(data["f_gradient_magnitude"]**2)/ELBDM_ETA(data)**2
+   #return 0.5*(data["f_gradient_magnitude"]**2)/ELBDM_ETA(data)**2
+   return 0.5*(data["thermal_momentum_density_magnitude"]**2)/data["Dens"]
 
 # e_k = 1/2*rho*|u|^2 = 1/2*rho*|v|^2 + 1/2*rho*|w|^2 = 1/2*(|grad(R)|^2 + |grad(I)|^2)*hbar^2/m^2
 def _total_kinetic_energy_density(field, data):
@@ -306,7 +340,7 @@ def _total_wavelength_per_cell(field, data):
 def _f_laplacian(field, data):
    return data["f_gradient_x_gradient_x"] + data["f_gradient_y_gradient_y"] + data["f_gradient_z_gradient_z"]
 
-# Laplacian(S) = div(grad(S)) = div(v_bulk)*m/hbar = div(k_bulk)
+# Laplacian(S) = div(grad(S)) = div(v)*m/hbar = div(k_bulk)
 def _S_laplacian(field, data):
    return data["bulk_wavevector_x_gradient_x"] + data["bulk_wavevector_y_gradient_y"] + data["bulk_wavevector_z_gradient_z"]
 
@@ -378,6 +412,30 @@ def Add_ELBDM_derived_fields(ds):
                  units         = "code_mass/(code_length**2*code_time)",
                  sampling_type = "cell")
 
+   ds.add_field(       ("gamer", "thermal_momentum_density_x"),
+                 function      = _thermal_momentum_density_x,
+                 display_name  =r"Thermal Momentum Density X $\xi_x$",
+                 units         = "code_mass/(code_length**2*code_time)",
+                 sampling_type = "cell" )
+
+   ds.add_field(       ("gamer", "thermal_momentum_density_y"),
+                 function      = _thermal_momentum_density_y,
+                 display_name  =r"Thermal Momentum Density Y $\xi_y$",
+                 units         = "code_mass/(code_length**2*code_time)",
+                 sampling_type = "cell" )
+
+   ds.add_field(       ("gamer", "thermal_momentum_density_z"),
+                 function      = _thermal_momentum_density_z,
+                 display_name  =r"Thermal Momentum Density Z $\xi_z$",
+                 units         = "code_mass/(code_length**2*code_time)",
+                 sampling_type = "cell" )
+
+   ds.add_field(       ("gamer", "thermal_momentum_density_magnitude"),
+                 function      = _thermal_momentum_density_magnitude,
+                 display_name  =r"Thermal Momentum Density Magnitude $|\vec{\xi}|$",
+                 units         = "code_mass/(code_length**2*code_time)",
+                 sampling_type = "cell")
+
    ds.add_field(       ("gamer", "cell_bulk_momentum_x"),
                  function      = _cell_bulk_momentum_x,
                  display_name  =r"Cell Bulk Momentum X $J_x$",
@@ -399,6 +457,30 @@ def Add_ELBDM_derived_fields(ds):
    ds.add_field(       ("gamer", "cell_bulk_momentum_magnitude"),
                  function      = _cell_bulk_momentum_magnitude,
                  display_name  =r"Cell Bulk Momentum Magnitude $|\vec{J}|$",
+                 units         = "code_mass*code_length/code_time",
+                 sampling_type = "cell")
+
+   ds.add_field(       ("gamer", "cell_thermal_momentum_x"),
+                 function      = _cell_thermal_momentum_x,
+                 display_name  =r"Cell Thermal Momentum X $\Xi_x$",
+                 units         = "code_mass*code_length/code_time",
+                 sampling_type = "cell")
+
+   ds.add_field(       ("gamer", "cell_thermal_momentum_y"),
+                 function      = _cell_thermal_momentum_y,
+                 display_name  =r"Cell Thermal Momentum Y $\Xi_y$",
+                 units         = "code_mass*code_length/code_time",
+                 sampling_type = "cell")
+
+   ds.add_field(       ("gamer", "cell_thermal_momentum_z"),
+                 function      = _cell_thermal_momentum_z,
+                 display_name  =r"Cell Thermal Momentum Z $\Xi_z$",
+                 units         = "code_mass*code_length/code_time",
+                 sampling_type = "cell")
+
+   ds.add_field(       ("gamer", "cell_thermal_momentum_magnitude"),
+                 function      = _cell_thermal_momentum_magnitude,
+                 display_name  =r"Cell Thermal Momentum Magnitude $|\vec{\Xi}|$",
                  units         = "code_mass*code_length/code_time",
                  sampling_type = "cell")
 
