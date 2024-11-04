@@ -50,6 +50,10 @@ def _Imag(field, data):
 def _S(field, data):
    return np.arctan2(data["Imag"], data["Real"])
 
+# nu = 1/rho = 1/(R^2 + I^2)
+def _specific_volume(field, data):
+   return data["Dens"]**(-1)
+
 #################################
 ## Momentum
 #################################
@@ -379,6 +383,12 @@ def Add_ELBDM_derived_fields(ds):
                  function      = _S,
                  display_name  =r"$S$",
                  units         = "dimensionless",
+                 sampling_type = "cell" )
+
+   ds.add_field(       ("gamer", "specific_volume"),
+                 function      = _specific_volume,
+                 display_name  =r"Specific Volume $\frac{1}{\rho}$",
+                 units         = "code_length**3/code_mass",
                  sampling_type = "cell" )
 
    ## Gradient Field
