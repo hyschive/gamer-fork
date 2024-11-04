@@ -125,6 +125,67 @@ def _cell_thermal_momentum_magnitude(field, data):
    return data["thermal_momentum_density_magnitude"]*data["cell_volume"]
 
 #################################
+## Energy
+#################################
+
+# e_k_bulk = 1/2*rho*|v|^2 = 1/2*rho*|grad(S)|^2*hbar^2/m^2
+def _bulk_kinetic_energy_density(field, data):
+   #return 0.5*data["Dens"]*data["bulk_velocity"]**2
+   return 0.5*(data["bulk_momentum_density_magnitude"]**2)/data["Dens"]
+
+# e_k_thml = 1/2*rho*|w|^2 = 1/2*|grad(f)|^2*hbar^2/m^2
+def _thermal_kinetic_energy_density(field, data):
+   #return 0.5*data["Dens"]*data["thermal_velocity"]**2
+   #return 0.5*(data["f_gradient_magnitude"]**2)/ELBDM_ETA(data)**2
+   return 0.5*(data["thermal_momentum_density_magnitude"]**2)/data["Dens"]
+
+# e_k = 1/2*rho*|u|^2 = 1/2*rho*|v|^2 + 1/2*rho*|w|^2 = 1/2*(|grad(R)|^2 + |grad(I)|^2)*hbar^2/m^2
+def _total_kinetic_energy_density(field, data):
+   #return data["bulk_kinetic_energy_density"] + data["thermal_kinetic_energy_density"]
+   return 0.5*(data["Real_gradient_magnitude"]**2 + data["Imag_gradient_magnitude"]**2)/ELBDM_ETA(data)**2
+
+# E_k_bulk = e_k_bulk*dV
+def _cell_bulk_kinetic_energy(field, data):
+   return data["bulk_kinetic_energy_density"]*data["cell_volume"]
+
+# E_k_thml = e_k_thml*dV
+def _cell_thermal_kinetic_energy(field, data):
+   return data["thermal_kinetic_energy_density"]*data["cell_volume"]
+
+# E_k = e_k*dV
+def _cell_total_kinetic_energy(field, data):
+   return data["total_kinetic_energy_density"]*data["cell_volume"]
+
+# epsilon_k = 1/2*u^2 = 1/2*v^2 +1/2*w^2
+def _specific_total_kinetic_energy(field, data):
+   return data["total_kinetic_energy_density"]*data["specific_volume"]
+
+# e_p = 1/2*rho*Phi
+def _potential_energy_density(field, data):
+   return 0.5*data['Pote']*data['Dens']
+
+# E_p = e_p*dV
+def _cell_potential_energy(field, data):
+   return data["potential_energy_density"]*data["cell_volume"]
+
+# epsilon_p = Phi_0 - Phi
+def _relative_potential(field, data):
+   Phi_0 = 0.0
+   return Phi_0 - data['Pote']
+
+# e = e_p + e_k
+def _total_energy_density(field, data):
+   return data['potential_energy_density'] + data['total_kinetic_energy_density']
+
+# E = E_p + E_k
+def _cell_total_energy(field, data):
+   return data['cell_potential_energy'] + data['cell_total_kinetic_energy']
+
+# epsilon = epsilon_p + epsilon_k = Phi_0 - Phi - 1/2*u^2
+def _relative_energy(field, data):
+   return data['relative_potential'] - data["specific_total_kinetic_energy"]
+
+#################################
 ## Velocity
 #################################
 
@@ -168,68 +229,8 @@ def _thermal_velocity_magnitude(field, data):
 # |u| = sqrt(|grad(f)/f|^2 + |grad(S)|^2)*hbar/m = sqrt((|grad(R)|^2 + |grad(I)|^2)/rho)*hbar/m
 def _total_velocity_magnitude(field, data):
    #return (data["bulk_velocity_magnitude"]**2 + data["thermal_velocity_magnitude"]**2)**0.5
-   return (((data["Real_gradient_magnitude"]**2 + data["Imag_gradient_magnitude"]**2)/data["Dens"])**0.5)/ELBDM_ETA(data)
-
-#################################
-## Energy
-#################################
-
-# e_k_bulk = 1/2*rho*|v|^2 = 1/2*rho*|grad(S)|^2*hbar^2/m^2
-def _bulk_kinetic_energy_density(field, data):
-   #return 0.5*data["Dens"]*data["bulk_velocity"]**2
-   return 0.5*(data["bulk_momentum_density_magnitude"]**2)/data["Dens"]
-
-# e_k_thml = 1/2*rho*|w|^2 = 1/2*|grad(f)|^2*hbar^2/m^2
-def _thermal_kinetic_energy_density(field, data):
-   #return 0.5*data["Dens"]*data["thermal_velocity"]**2
-   #return 0.5*(data["f_gradient_magnitude"]**2)/ELBDM_ETA(data)**2
-   return 0.5*(data["thermal_momentum_density_magnitude"]**2)/data["Dens"]
-
-# e_k = 1/2*rho*|u|^2 = 1/2*rho*|v|^2 + 1/2*rho*|w|^2 = 1/2*(|grad(R)|^2 + |grad(I)|^2)*hbar^2/m^2
-def _total_kinetic_energy_density(field, data):
-   #return data["bulk_kinetic_energy_density"] + data["thermal_kinetic_energy_density"]
-   return 0.5*(data["Real_gradient_magnitude"]**2 + data["Imag_gradient_magnitude"]**2)/ELBDM_ETA(data)**2
-
-# E_k_bulk = e_k_bulk*dV
-def _cell_bulk_kinetic_energy(field, data):
-   return data["bulk_kinetic_energy_density"]*data["cell_volume"]
-
-# E_k_thml = e_k_thml*dV
-def _cell_thermal_kinetic_energy(field, data):
-   return data["thermal_kinetic_energy_density"]*data["cell_volume"]
-
-# E_k = e_k*dV
-def _cell_total_kinetic_energy(field, data):
-   return data["total_kinetic_energy_density"]*data["cell_volume"]
-
-# epsilon_k = 1/2*u^2 = 1/2*v^2 +1/2*w^2
-def _specific_total_kinetic_energy(field, data):
-   return data["total_kinetic_energy_density"]/data["Dens"]
-
-# e_p = 1/2*rho*Phi
-def _potential_energy_density(field, data):
-   return 0.5*data['Pote']*data['Dens']
-
-# E_p = e_p*dV
-def _cell_potential_energy(field, data):
-   return data["potential_energy_density"]*data["cell_volume"]
-
-# epsilon_p = Phi_0 - Phi
-def _relative_potential(field, data):
-   Phi_0 = 0.0
-   return Phi_0 - data['Pote']
-
-# e = e_p + e_k
-def _total_energy_density(field, data):
-   return data['potential_energy_density'] + data['total_kinetic_energy_density']
-
-# E = E_p + E_k
-def _cell_total_energy(field, data):
-   return data['cell_potential_energy'] + data['cell_total_kinetic_energy']
-
-# epsilon = epsilon_p + epsilon_k = Phi_0 - Phi - 1/2*u^2
-def _relative_energy(field, data):
-   return data['relative_potential'] - data["specific_total_kinetic_energy"]
+   #return (((data["Real_gradient_magnitude"]**2 + data["Imag_gradient_magnitude"]**2)/data["Dens"])**0.5)/ELBDM_ETA(data)
+   return (2.0*data["specific_total_kinetic_energy"])**0.5
 
 #################################
 ## Wavevector
@@ -270,7 +271,8 @@ def _thermal_wavevector_magnitude(field, data):
 # |k| = sqrt(|grad(f)/f|^2 + |grad(S)|^2) = sqrt((|grad(R)|^2 + |grad(I)|^2)/rho)
 def _total_wavevector_magnitude(field, data):
    #return (data["bulk_wavevector_magnitude"]**2 + data["thermal_wavevector_magnitude"]**2)**0.5
-   return ((data["Real_gradient_magnitude"]**2 + data["Imag_gradient_magnitude"]**2)/data["Dens"])**0.5
+   #return ((data["Real_gradient_magnitude"]**2 + data["Imag_gradient_magnitude"]**2)/data["Dens"])**0.5
+   return data["total_velocity_magnitude"]*ELBDM_ETA(data)
 
 #################################
 # Wavelength
@@ -494,61 +496,6 @@ def Add_ELBDM_derived_fields(ds):
                  units         = "code_mass*code_length/code_time",
                  sampling_type = "cell")
 
-   ## Velocity
-   ds.add_field(       ("gamer", "bulk_velocity_x"),
-                 function      = _bulk_velocity_x,
-                 display_name  =r"Bulk Velocity X $v_x$",
-                 units         = "code_length/code_time",
-                 sampling_type = "cell" )
-
-   ds.add_field(       ("gamer", "bulk_velocity_y"),
-                 function      = _bulk_velocity_y,
-                 display_name  =r"Bulk Velocity Y $v_y$",
-                 units         = "code_length/code_time",
-                 sampling_type = "cell" )
-
-   ds.add_field(       ("gamer", "bulk_velocity_z"),
-                 function      = _bulk_velocity_z,
-                 display_name  =r"Bulk Velocity Z $v_z$",
-                 units         = "code_length/code_time",
-                 sampling_type = "cell" )
-
-   ds.add_field(       ("gamer", "bulk_velocity_magnitude"),
-                 function      = _bulk_velocity_magnitude,
-                 display_name  =r"Bulk Velocity Magnitude $|\vec{v}|$",
-                 units         = "code_length/code_time",
-                 sampling_type = "cell" )
-
-   ds.add_field(       ("gamer", "thermal_velocity_x"),
-                 function      = _thermal_velocity_x,
-                 display_name  =r"Thermal Velocity X $w_x$",
-                 units         = "code_length/code_time",
-                 sampling_type = "cell" )
-
-   ds.add_field(       ("gamer", "thermal_velocity_y"),
-                 function      = _thermal_velocity_y,
-                 display_name  =r"Thermal Velocity Y $w_y$",
-                 units         = "code_length/code_time",
-                 sampling_type = "cell" )
-
-   ds.add_field(       ("gamer", "thermal_velocity_z"),
-                 function      = _thermal_velocity_z,
-                 display_name  =r"Thermal Velocity Z $w_z$",
-                 units         = "code_length/code_time",
-                 sampling_type = "cell" )
-
-   ds.add_field(       ("gamer", "thermal_velocity_magnitude"),
-                 function      = _thermal_velocity_magnitude,
-                 display_name  =r"Thermal Velocity Magnitude $|\vec{w}|$",
-                 units         = "code_length/code_time",
-                 sampling_type = "cell" )
-
-   ds.add_field(       ("gamer", "total_velocity_magnitude"),
-                 function      = _total_velocity_magnitude,
-                 display_name  =r"Total Velocity Magnitude $|\vec{u}|$",
-                 units         = "code_length/code_time",
-                 sampling_type = "cell" )
-
    ## Energy
    ds.add_field(       ("gamer", "bulk_kinetic_energy_density"),
                  function      = _bulk_kinetic_energy_density,
@@ -629,6 +576,61 @@ def Add_ELBDM_derived_fields(ds):
                  function      = _relative_energy,
                  display_name  =r"Relative Energy $\epsilon$",
                  units         = "code_length**2/(code_time**2)",
+                 sampling_type = "cell" )
+
+   ## Velocity
+   ds.add_field(       ("gamer", "bulk_velocity_x"),
+                 function      = _bulk_velocity_x,
+                 display_name  =r"Bulk Velocity X $v_x$",
+                 units         = "code_length/code_time",
+                 sampling_type = "cell" )
+
+   ds.add_field(       ("gamer", "bulk_velocity_y"),
+                 function      = _bulk_velocity_y,
+                 display_name  =r"Bulk Velocity Y $v_y$",
+                 units         = "code_length/code_time",
+                 sampling_type = "cell" )
+
+   ds.add_field(       ("gamer", "bulk_velocity_z"),
+                 function      = _bulk_velocity_z,
+                 display_name  =r"Bulk Velocity Z $v_z$",
+                 units         = "code_length/code_time",
+                 sampling_type = "cell" )
+
+   ds.add_field(       ("gamer", "bulk_velocity_magnitude"),
+                 function      = _bulk_velocity_magnitude,
+                 display_name  =r"Bulk Velocity Magnitude $|\vec{v}|$",
+                 units         = "code_length/code_time",
+                 sampling_type = "cell" )
+
+   ds.add_field(       ("gamer", "thermal_velocity_x"),
+                 function      = _thermal_velocity_x,
+                 display_name  =r"Thermal Velocity X $w_x$",
+                 units         = "code_length/code_time",
+                 sampling_type = "cell" )
+
+   ds.add_field(       ("gamer", "thermal_velocity_y"),
+                 function      = _thermal_velocity_y,
+                 display_name  =r"Thermal Velocity Y $w_y$",
+                 units         = "code_length/code_time",
+                 sampling_type = "cell" )
+
+   ds.add_field(       ("gamer", "thermal_velocity_z"),
+                 function      = _thermal_velocity_z,
+                 display_name  =r"Thermal Velocity Z $w_z$",
+                 units         = "code_length/code_time",
+                 sampling_type = "cell" )
+
+   ds.add_field(       ("gamer", "thermal_velocity_magnitude"),
+                 function      = _thermal_velocity_magnitude,
+                 display_name  =r"Thermal Velocity Magnitude $|\vec{w}|$",
+                 units         = "code_length/code_time",
+                 sampling_type = "cell" )
+
+   ds.add_field(       ("gamer", "total_velocity_magnitude"),
+                 function      = _total_velocity_magnitude,
+                 display_name  =r"Total Velocity Magnitude $|\vec{u}|$",
+                 units         = "code_length/code_time",
                  sampling_type = "cell" )
 
    ## Wavevector
