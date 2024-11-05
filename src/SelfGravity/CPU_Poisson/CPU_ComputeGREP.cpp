@@ -44,12 +44,12 @@ void CPU_ComputeGREP( const int lv, const double Time, const Profile_t *DensAve,
    double *Vr        = VrAve  ->Data;
    double *Pres      = PresAve->Data;
 
-   double *Weight       = new double [NBin];  // volume of each bin
-   double *Edge_L       = new double [NBin];  // left edge of each bin
+   double *Weight       = new double [NBin];  // volume                           of each bin
+   double *Edge_L       = new double [NBin];  // left edge                        of each bin
    double *Vr_L         = new double [NBin];  // radial velocity at the left edge of each bin
    double *Mass_NW      = new double [NBin];  // enclosed Newtonian mass for \bar_Phi(r)     in Eq. (7)
-   double *Mass_TOV     = new double [NBin];  // enclosed TOV mass       for \bar_Phi(r)_TOV in Eq. (7)
-   double *Mass_TOV_USG = new double [NBin];  // enclosed TOV mass in the previous iteration
+   double *Mass_TOV     = new double [NBin];  // enclosed TOV       mass for \bar_Phi(r)_TOV in Eq. (7)
+   double *Mass_TOV_USG = new double [NBin];  // enclosed TOV       mass in the previous iteration
    double *Dens_TOV     = new double [NBin];  // empirical TOV density                          Eq. (4)
    double *Gamma_TOV    = new double [NBin];  // metric function                                Eq. (5)
 
@@ -159,7 +159,7 @@ void CPU_ComputeGREP( const int lv, const double Time, const Profile_t *DensAve,
 
 //       data
          for (int i=0; i<NBin; i++)
-         fprintf( File, "%5d %9ld %22.15e %22.15e %22.15e %22.15e %22.15e %22.15e %22.15e %22.15e %22.15e %22.15e\n",
+         fprintf( File, "%5d %9ld %22.14e %22.14e %22.14e %22.14e %22.14e %22.14e %22.14e %22.14e %22.14e %22.14e\n",
                         i, DensAve->NCell[i], Radius[i], Dens[i], Engy[i], Vr[i], Pres[i],
                         Mass_NW[i], Mass_TOV[i], Mass_TOV_USG[i], Gamma_TOV[i],
                         fabs( Mass_TOV_USG[i] - Mass_TOV[i] ) / Mass_TOV[i] );
@@ -219,30 +219,42 @@ void CPU_ComputeGREP( const int lv, const double Time, const Profile_t *DensAve,
 
 //    metadata
       fprintf( File, "# Step                 : %ld\n",                  Step );
-      fprintf( File, "# Time                 : %.7e\n",                 Time );
+      fprintf( File, "# Time                 : %13.7e\n",               Time );
       fprintf( File, "# GREP_CENTER_METHOD   : %d\n",                   GREP_CENTER_METHOD );
       fprintf( File, "# Center               : %13.7e %13.7e %13.7e\n", EffPot->Center[0], EffPot->Center[1], EffPot->Center[2] );
       fprintf( File, "# Maximum Radius       : %13.7e\n",               EffPot->MaxRadius );
       fprintf( File, "# LogBin               : %d\n",                   EffPot->LogBin );
       fprintf( File, "# LogBinRatio          : %13.7e\n",               EffPot->LogBinRatio );
       fprintf( File, "# Number of Iterations : %d\n",                   NIter );
-      fprintf( File, "# NBin                 : %d\n",                   NBin );
-      fprintf( File, "# -------------------------------------------------\n" );
-      fprintf( File, "%5s %9s %22s %22s %22s %22s %22s %22s %22s %22s %22s %23s\n",
-                     "# Bin", "NCell", "Bin_Center", "Bin_Edge", "Density", "Energy", "Vr", "Pressure",
-                     "Mass_NW", "Mass_TOV", "Gamma_TOV", "Eff_Pot");
+      fprintf( File, "# NBin                 : %d\n",                   NBin  );
+      fprintf( File, "#\n"                                                    );
+      fprintf( File, "# Bin                  : bin index\n"                                                );
+      fprintf( File, "# NCell                : number of cell\n"                                           );
+      fprintf( File, "# Bin_Center           : bin center\n"                                               );
+      fprintf( File, "# Bin_Edge_L           : left bin edge\n"                                            );
+      fprintf( File, "# Density              : density                        defined at the     center\n" );
+      fprintf( File, "# Energy               : internal energy density        defined at the     center\n" );
+      fprintf( File, "# Vr                   : radial velocity                defined at the     center\n" );
+      fprintf( File, "# Pressure             : pressure                       defined at the     center\n" );
+      fprintf( File, "# Mass_NW              : enclosed Newtonian mass        defined at the right edge\n" );
+      fprintf( File, "# Mass_TOV             : enclosed TOV       mass        defined at the right edge\n" );
+      fprintf( File, "# Gamma_TOV            : metric function                defined at the right edge\n" );
+      fprintf( File, "# Eff_Pot              : effective potential correction defined at the  left edge\n" );
+      fprintf( File, "# -------------------------------------------------------------------------------\n" );
+      fprintf( File, "%5s %9s %22s %22s %22s %22s %22s %22s %22s %22s %22s %22s\n",
+                     "# [1]", "[2]", "[3]", "[4]", "[5]", "[6]", "[7]", "[8]", "[9]", "[10]", "[11]", "[12]" );
+      fprintf( File, "%5s %9s %22s %22s %22s %22s %22s %22s %22s %22s %22s %22s\n",
+                     "# Bin", "NCell", "Bin_Center", "Bin_Edge_L", "Density", "Energy", "Vr", "Pressure",
+                     "Mass_NW", "Mass_TOV", "Gamma_TOV", "Eff_Pot" );
 
 //    data
-//    --> Dens, Engy, Vr, Pres         are defined at the bin center
-//        Mass_NW, Mass_TOV, Gamma_TOV are defined at the right edge
-//        EffPot                       is  defined at the left  edge
-      fprintf( File, "%5d %9ld %22.15e %22.15e %22.15e %22.15e %22.15e %22.15e %22.15e %22.15e %22.15e %23.15e\n",
-                     0, DensAve->NCell[0], Radius[0], Edge_L[0], Dens[0], Engy[0], Vr[0], Pres[0],
+      fprintf( File, "%5d %9ld %22.14e %22.14e %22.14e %22.14e %22.14e %22.14e %22.14e %22.14e %22.14e %22.14e\n",
+                     1,   DensAve->NCell[0], Radius[0], Edge_L[0], Dens[0], Engy[0], Vr[0], Pres[0],
                      NULL_REAL,    NULL_REAL,     NULL_REAL,      EffPot->Data[0] );
 
       for (int i=1; i<NBin; i++)
-      fprintf( File, "%5d %9ld %22.15e %22.15e %22.15e %22.15e %22.15e %22.15e %22.15e %22.15e %22.15e %23.15e\n",
-                     i, DensAve->NCell[i], Radius[i], Edge_L[i], Dens[i], Engy[i], Vr[i], Pres[i],
+      fprintf( File, "%5d %9ld %22.14e %22.14e %22.14e %22.14e %22.14e %22.14e %22.14e %22.14e %22.14e %22.14e\n",
+                     i+1, DensAve->NCell[i], Radius[i], Edge_L[i], Dens[i], Engy[i], Vr[i], Pres[i],
                      Mass_NW[i-1], Mass_TOV[i-1], Gamma_TOV[i-1], EffPot->Data[i] );
 
       fclose( File );
