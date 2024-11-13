@@ -4,6 +4,27 @@ import glob
 import re
 import sys
 
+# -------------------------------------------------------------------------------------------------------------------------
+# user-specified parameters
+UNIT_L = 3.0856800e+21                      # length unit assigned in gamer
+UNIT_V = 1.0000000e+05                      # velocity unit assigned in gamer
+sigma  = 6                                  # velocity dispersion in km/s
+ma     = 3.0e-19                            # FDM particle mass in eV/c^2
+# -------------------------------------------------------------------------------------------------------------------------
+UNIT_T = UNIT_L/UNIT_V                      # time unit used in gamer
+sigma  = sigma*1e5                          # velocity dispersion in cm/s
+h_bar  = 6.582119569e-16                    # reduced planck constant in eV*s
+c      = 2.99792458e10                      # speed of light in cm/s
+d      = 0.35*2.0*np.pi*h_bar/ma/sigma*c**2 # granule diameter in cm
+
+# C(t) decay time scale, C(t_corr)=(1+2*0.35**2)**(-1.5)*C(t=0) = 0.72*C(t=0)
+t_corr = d/(2**0.5*np.pi*sigma)/(3600.*24.*365.*1e6) # expected correlation time scale in Myr
+
+print("velocity dispersion             = %g km/s"%(sigma/1.0e5))
+print("estimated granule size          = %g kpc"%(d/UNIT_L))
+print("expected correlation time scale = %g Myr"%t_corr)
+print("")
+
 file_dir = '../Record__Correlation/'
 files = glob.glob(file_dir + 'correlation_function_t=*.txt')
 
@@ -33,14 +54,8 @@ for f in filename:
 if not r:
    print("no file loaded, check ../Record__Correlation/ !!")
 
-t = np.array(t)*1000
+t = np.array(t)*UNIT_T/(3600.*24.*365.*1e6)
 C = np.array(C)
-
-d = 0.00234224
-sigma = 5.10172
-
-# C(t) decay time scale, C(t_corr)=(1+2*0.35**2)**(-1.5)*C(t=0) = 0.72*C(t=0)
-t_corr = d/(2**0.5*np.pi*sigma)*1000
 
 color = plt.cm.turbo(np.linspace(0.1, 0.9, len(r[0])))
 
