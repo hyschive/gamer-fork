@@ -1,22 +1,10 @@
 #include "GAMER.h"
-#include "TestProb.h"
-#include "Profile_with_Sigma.h"
+#include "Prototype_UniformGranule.h"
 
-static void Init_Load_StepTable( void );
 static void AddNewField_ELBDM_UniformGranule( void );
 static void Init_User_ELBDM_UniformGranule( void );
 static void Do_CF( void );
 static void End_UniformGranule( void );
-
-void Aux_ComputeProfile_with_Sigma( Profile_with_Sigma_t *Prof[], const double Center[], const double r_max_input, const double dr_min,
-                                    const bool LogBin, const double LogBinRatio, const bool RemoveEmpty, const long TVarBitIdx[],
-                                    const int NProf, const int MinLv, const int MaxLv, const PatchType_t PatchType,
-                                    const double PrepTimeIn );
-
-void Aux_ComputeCorrelation( Profile_t *Correlation[], const Profile_with_Sigma_t *prof_init[], const double Center[],
-                             const double r_max_input, const double dr_min, const bool LogBin, const double LogBinRatio,
-                             const bool RemoveEmpty, const long TVarBitIdx[], const int NProf, const int MinLv, const int MaxLv,
-                             const PatchType_t PatchType, const double PrepTime, const double dr_min_prof );
 
 
 // problem-specific global variables
@@ -127,12 +115,12 @@ void SetParameter()
    ReadPara->Add( "StepInitial",              &StepInitial,             0,             0,                NoMax_int         );
    ReadPara->Add( "StepInterval",             &StepInterval,            1,             1,                NoMax_int         );
    ReadPara->Add( "StepEnd",                  &StepEnd,                 NoMax_int,     0,                NoMax_int         );
-   ReadPara->Add( "RadiusMax_corr",           &RadiusMax_corr,          Eps_double,    Eps_double,       NoMax_double      );
-   ReadPara->Add( "dr_min_corr",              &dr_min_corr,             Eps_double,    Eps_double,       NoMax_double      );
+   ReadPara->Add( "RadiusMax_corr",           &RadiusMax_corr,          Eps_double,    NoMin_double,     NoMax_double      );
+   ReadPara->Add( "dr_min_corr",              &dr_min_corr,             Eps_double,    NoMin_double,     NoMax_double      );
    ReadPara->Add( "LogBin_corr",              &LogBin_corr,             false,         Useless_bool,     Useless_bool      );
-   ReadPara->Add( "LogBinRatio_corr",         &LogBinRatio_corr,        1.0,           Eps_double,       NoMax_double      );
+   ReadPara->Add( "LogBinRatio_corr",         &LogBinRatio_corr,        1.0,           NoMin_double,     NoMax_double      );
    ReadPara->Add( "RemoveEmpty_corr",         &RemoveEmpty_corr,        false,         Useless_bool,     Useless_bool      );
-   ReadPara->Add( "dr_min_prof",              &dr_min_prof,             Eps_double,    Eps_double,       NoMax_double      );
+   ReadPara->Add( "dr_min_prof",              &dr_min_prof,             Eps_double,    NoMin_double,     NoMax_double      );
 
    ReadPara->Read( FileName );
 
@@ -229,7 +217,7 @@ void SetParameter()
 
 //-------------------------------------------------------------------------------------------------------
 // Function    :  AddNewField_ELBDM_UniformGranule
-// Description :  Add the problem-specific fields
+// Description :  Store the initial density as Dens0
 //
 // Note        :  1. Ref: https://github.com/gamer-project/gamer/wiki/Adding-New-Simulations#v-add-problem-specific-grid-fields-and-particle-attributes
 //                2. Invoke AddField() for each of the problem-specific field:
@@ -273,14 +261,16 @@ static void Init_User_ELBDM_UniformGranule( void )
    {
 //    store the initial density in both Sg so that we don't have to worry about which Sg to be used
 //    a. for restart and ReComputeCorrelation disabled, the initial density has already been loaded and we just need to copy the data to another Sg
-      if ( ( OPT__INIT == INIT_BY_RESTART ) && ( !ReComputeCorrelation ) ) {
+      if ( ( OPT__INIT == INIT_BY_RESTART ) && ( !ReComputeCorrelation ) )
+      {
          const real Dens0 = amr->patch[ amr->FluSg[lv] ][lv][PID]->fluid[Idx_Dens0][k][j][i];
 
          amr->patch[ 1-amr->FluSg[lv] ][lv][PID]->fluid[Idx_Dens0][k][j][i] = Dens0;
       }
 
 //    b. for starting a new simulation, we must copy the initial density to both Sg
-      else {
+      else
+      {
          const real Dens0 = amr->patch[ amr->FluSg[lv] ][lv][PID]->fluid[DENS][k][j][i];
 
          amr->patch[   amr->FluSg[lv] ][lv][PID]->fluid[Idx_Dens0][k][j][i] = Dens0;
@@ -291,7 +281,7 @@ static void Init_User_ELBDM_UniformGranule( void )
    if (ComputeCorrelation)
    {
        const double InitialTime = Time[0];
-       if ( MPI_Rank==0 ) Aux_Message( stdout, "StepInitial = %d ; StepInterval = %d ; StepEnd = %d\n", StepInitial, StepInterval, StepEnd);
+       if ( MPI_Rank == 0 )  Aux_Message( stdout, "StepInitial = %d ; StepInterval = %d ; StepEnd = %d\n", StepInitial, StepInterval, StepEnd);
 
        if ( MPI_Rank == 0 )  Aux_Message( stdout, "InitialTime = %13.6e \n", InitialTime );
 
@@ -428,4 +418,4 @@ void Init_TestProb_ELBDM_UniformGranule()
 
    if ( MPI_Rank == 0 )    Aux_Message( stdout, "%s ... done\n", __FUNCTION__ );
 
-} // FUNCTION : Init_TestProb_ELBDM_DiskHeating
+} // FUNCTION : Init_TestProb_ELBDM_UniformGranule

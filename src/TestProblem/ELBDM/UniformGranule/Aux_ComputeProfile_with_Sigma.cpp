@@ -18,7 +18,7 @@ extern void SetTempIntPara( const int lv, const int Sg_0, const double PrepTime,
 //                       Prof->Weight    []: Total weighting at each bin
 //                       Prof->NCell     []: Number of cells at each bin
 //                       Prof->NBin    : Total number of bins
-//                   --> See the "Profile_with_Sigma_t" structure defined in "include/Profile.h" for details
+//                   --> See the "Profile_with_Sigma_t" structure defined in "./Profile_with_Sigma.h" for details
 //                   --> These arrays will be free'd when deleting "Prof"
 //                2. Maximum radius adopted when actually computing the profile may be larger than the input "r_max"
 //                   --> Because "r_max" in general does not coincide with the right edge of the maximum bin
@@ -700,4 +700,4 @@ void Aux_ComputeProfile_with_Sigma( Profile_with_Sigma_t *Prof[], const double C
       }
    } // if ( RemoveEmpty )
 
-} // FUNCTION : Aux_ComputeProfile
+} // FUNCTION : Aux_ComputeProfile_with_Sigma
