@@ -64,17 +64,17 @@ for idx in range(idx_start, idx_end+1, didx):
    vy_qp = fac*(imag*grad_imag[1] + real*grad_real[1])/dens
    vz_qp = fac*(imag*grad_imag[2] + real*grad_real[2])/dens
 
-   sigma_x_sqr_bk = np.average(dens*vx_bk**2)/avedens - (np.average(dens*vx_bk))**2/avedens**2
-   sigma_y_sqr_bk = np.average(dens*vy_bk**2)/avedens - (np.average(dens*vy_bk))**2/avedens**2
-   sigma_z_sqr_bk = np.average(dens*vz_bk**2)/avedens - (np.average(dens*vz_bk))**2/avedens**2
+   sigma_x_square_bk = np.average(dens*vx_bk**2)/avedens - (np.average(dens*vx_bk))**2/avedens**2
+   sigma_y_square_bk = np.average(dens*vy_bk**2)/avedens - (np.average(dens*vy_bk))**2/avedens**2
+   sigma_z_square_bk = np.average(dens*vz_bk**2)/avedens - (np.average(dens*vz_bk))**2/avedens**2
 
-   sigma_x_sqr_qp = np.average(dens*vx_qp**2)/avedens - (np.average(dens*vx_qp))**2/avedens**2
-   sigma_y_sqr_qp = np.average(dens*vy_qp**2)/avedens - (np.average(dens*vy_qp))**2/avedens**2
-   sigma_z_sqr_qp = np.average(dens*vz_qp**2)/avedens - (np.average(dens*vz_qp))**2/avedens**2
+   sigma_x_square_qp = np.average(dens*vx_qp**2)/avedens - (np.average(dens*vx_qp))**2/avedens**2
+   sigma_y_square_qp = np.average(dens*vy_qp**2)/avedens - (np.average(dens*vy_qp))**2/avedens**2
+   sigma_z_square_qp = np.average(dens*vz_qp**2)/avedens - (np.average(dens*vz_qp))**2/avedens**2
 
 
-   sigma_bk = ((sigma_x_sqr_bk + sigma_y_sqr_bk +sigma_z_sqr_bk)/3.)**0.5
-   sigma_qp = ((sigma_x_sqr_qp + sigma_y_sqr_qp +sigma_z_sqr_qp)/3.)**0.5
+   sigma_bk = ((sigma_x_square_bk + sigma_y_square_bk +sigma_z_square_bk)/3.)**0.5
+   sigma_qp = ((sigma_x_square_qp + sigma_y_square_qp +sigma_z_square_qp)/3.)**0.5
 
    sigma_total = (sigma_bk**2+sigma_qp**2)**0.5
    print('bulk velocity dispersion = %g'%(sigma_bk))
