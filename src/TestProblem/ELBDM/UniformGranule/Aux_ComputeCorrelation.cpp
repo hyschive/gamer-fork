@@ -140,8 +140,8 @@ void InterpolateMeanAndStd(real *mean_inter, real *std_inter, const Profile_with
 //                Profile_t Correlation_Dens;
 //                Profile_t *Correlation[] = { &Correlation_Dens };
 //
-//                Aux_ComputeProfile( Correlation, Center, MaxRadius, MinBinSize, LogBin, LogBinRatio, RemoveEmptyBin,
-//                                    TVarBitIdx, NProf, MinLv, MaxLv, PatchType, PrepTime );
+//                Aux_ComputeCorrelation( Correlation, Center, MaxRadius, MinBinSize, LogBin, LogBinRatio, RemoveEmptyBin,
+//                                        TVarBitIdx, NProf, MinLv, MaxLv, PatchType, PrepTime );
 //
 //                if ( MPI_Rank == 0 )
 //                {
@@ -330,26 +330,12 @@ void Aux_ComputeCorrelation( Profile_t *Correlation[], const Profile_with_Sigma_
          int  FluSg_IntT;
          real FluWeighting, FluWeighting_IntT;
 
-#        ifdef MHD
-         bool MagIntTime = false;
-         int  MagSg      = amr->MagSg[lv];
-         int  MagSg_IntT;
-         real MagWeighting, MagWeighting_IntT;
-#        endif
-
          if ( PrepTime >= 0.0 )
          {
 //          fluid
             const int FluSg0 = amr->FluSg[lv];
             SetTempIntPara( lv, FluSg0, PrepTime, amr->FluSgTime[lv][FluSg0], amr->FluSgTime[lv][1-FluSg0],
                             FluIntTime, FluSg, FluSg_IntT, FluWeighting, FluWeighting_IntT );
-
-//          magnetic field
-#           ifdef MHD
-            const int MagSg0 = amr->MagSg[lv];
-            SetTempIntPara( lv, MagSg0, PrepTime, amr->MagSgTime[lv][MagSg0], amr->MagSgTime[lv][1-MagSg0],
-                            MagIntTime, MagSg, MagSg_IntT, MagWeighting, MagWeighting_IntT );
-#           endif
          }
 
 
@@ -378,17 +364,20 @@ void Aux_ComputeCorrelation( Profile_t *Correlation[], const Profile_with_Sigma_
             const double z0 = amr->patch[0][lv][PID]->EdgeL[2] + 0.5*dh - Center[2];
 
             for (int k=0; k<PS1; k++)  {  double dz = z0 + k*dh;
-                                          if ( Periodic[2] ) {
+                                          if ( Periodic[2] )
+                                          {
                                              if      ( dz > +HalfBox[2] )  {  dz -= amr->BoxSize[2];  }
                                              else if ( dz < -HalfBox[2] )  {  dz += amr->BoxSize[2];  }
                                           }
             for (int j=0; j<PS1; j++)  {  double dy = y0 + j*dh;
-                                          if ( Periodic[1] ) {
+                                          if ( Periodic[1] )
+                                          {
                                              if      ( dy > +HalfBox[1] )  {  dy -= amr->BoxSize[1];  }
                                              else if ( dy < -HalfBox[1] )  {  dy += amr->BoxSize[1];  }
                                           }
             for (int i=0; i<PS1; i++)  {  double dx = x0 + i*dh;
-                                          if ( Periodic[0] ) {
+                                          if ( Periodic[0] )
+                                          {
                                              if      ( dx > +HalfBox[0] )  {  dx -= amr->BoxSize[0];  }
                                              else if ( dx < -HalfBox[0] )  {  dx += amr->BoxSize[0];  }
                                           }
@@ -419,7 +408,7 @@ void Aux_ComputeCorrelation( Profile_t *Correlation[], const Profile_with_Sigma_
                   {
                      const int v_in = v_out + NCOMP_FLUID;
 
-                     Passive     [v_out] = FluidPtr     [v_in][k][j][i];
+                     Passive[v_out] = FluidPtr[v_in][k][j][i];
                   }
 
                   for (int p=0; p<NProf; p++)
@@ -437,9 +426,9 @@ void Aux_ComputeCorrelation( Profile_t *Correlation[], const Profile_with_Sigma_
                         delta_passive -= mean_value[p];
 
                         if (std_value[p]>(real)0.)
-                            OMP_Data  [p][TID][bin] += delta*delta_passive/std_value[p]/std_value[p]*Weight;
+                           OMP_Data[p][TID][bin] += delta*delta_passive/std_value[p]/std_value[p]*Weight;
                         else
-                            OMP_Data  [p][TID][bin] += delta*delta_passive/mean_value[p]/mean_value[p]*Weight;
+                           OMP_Data[p][TID][bin] += delta*delta_passive/mean_value[p]/mean_value[p]*Weight;
 
                         OMP_Weight[p][TID][bin] += Weight;
                         OMP_NCell [p][TID][bin] ++;

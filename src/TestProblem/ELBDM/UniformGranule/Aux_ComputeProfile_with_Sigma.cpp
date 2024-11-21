@@ -74,8 +74,8 @@ extern void SetTempIntPara( const int lv, const int Sg_0, const double PrepTime,
 //                Profile_with_Sigma_t Prof_Dens, Prof_Pres;
 //                Profile_with_Sigma_t *Prof[] = { &Prof_Dens, &Prof_Pres };
 //
-//                Aux_ComputeProfile( Prof, Center, MaxRadius, MinBinSize, LogBin, LogBinRatio, RemoveEmptyBin,
-//                                    TVar, NProf, MinLv, MaxLv, PatchType, PrepTime );
+//                Aux_ComputeProfile_with_Sigma( Prof, Center, MaxRadius, MinBinSize, LogBin, LogBinRatio, RemoveEmptyBin,
+//                                               TVar, NProf, MinLv, MaxLv, PatchType, PrepTime );
 //
 //                if ( MPI_Rank == 0 )
 //                {

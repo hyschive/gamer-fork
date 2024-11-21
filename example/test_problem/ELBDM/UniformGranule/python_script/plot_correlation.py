@@ -3,25 +3,25 @@ import matplotlib.pyplot as plt
 import glob
 import re
 import sys
+import yt
 
 # -------------------------------------------------------------------------------------------------------------------------
 # user-specified parameters
-UNIT_L = 3.0856800e+21                      # length unit assigned in gamer
-UNIT_V = 1.0000000e+05                      # velocity unit assigned in gamer
-sigma  = 6                                  # velocity dispersion in km/s
-ma     = 3.0e-19                            # FDM particle mass in eV/c^2
+sigma        = 5.1                            # velocity dispersion in km/s
 # -------------------------------------------------------------------------------------------------------------------------
-UNIT_T = UNIT_L/UNIT_V                      # time unit used in gamer
-sigma  = sigma*1e5                          # velocity dispersion in cm/s
-h_bar  = 6.582119569e-16                    # reduced planck constant in eV*s
-c      = 2.99792458e10                      # speed of light in cm/s
-d      = 0.35*2.0*np.pi*h_bar/ma/sigma*c**2 # granule diameter in cm
+ds = yt.load( '../Data_000000' )
+UNIT_L = ds.parameters["Unit_L"]              # code length unit (default is kpc)
+UNIT_V = ds.parameters["Unit_V"]              # code velocity unit (default is km/s)
+UNIT_T = ds.parameters["Unit_T"]
+ma     = ds.parameters["ELBDM_Mass"]          # FDM particle mass in code unit
+h_bar  = ds.parameters["ELBDM_PlanckConst"]   # reduced planck constant in code unit
+d      = 0.35*2.0*np.pi*h_bar/ma/sigma        # granule diameter in code uniti (kpc)
 
 # C(t) decay time scale, C(t_corr)=(1+2*0.35**2)**(-1.5)*C(t=0) = 0.72*C(t=0)
-t_corr = d/(2**0.5*np.pi*sigma)/(3600.*24.*365.*1e6) # expected correlation time scale in Myr
+t_corr = d/(2**0.5*np.pi*sigma)*UNIT_T/(3600.*24.*365.*1e6) # expected correlation time scale in Myr
 
-print("velocity dispersion             = %g km/s"%(sigma/1.0e5))
-print("estimated granule size          = %g kpc"%(d/UNIT_L))
+print("velocity dispersion             = %g km/s"%sigma)
+print("estimated granule size          = %g kpc"%d)
 print("expected correlation time scale = %g Myr"%t_corr)
 print("")
 
