@@ -280,57 +280,57 @@ static void Init_User_ELBDM_UniformGranule( void )
 
    if (ComputeCorrelation)
    {
-       const double InitialTime = Time[0];
-       if ( MPI_Rank == 0 )  Aux_Message( stdout, "StepInitial = %d ; StepInterval = %d ; StepEnd = %d\n", StepInitial, StepInterval, StepEnd);
+      const double InitialTime = Time[0];
+      if ( MPI_Rank == 0 )  Aux_Message( stdout, "StepInitial = %d ; StepInterval = %d ; StepEnd = %d\n", StepInitial, StepInterval, StepEnd);
 
-       if ( MPI_Rank == 0 )  Aux_Message( stdout, "InitialTime = %13.6e \n", InitialTime );
+      if ( MPI_Rank == 0 )  Aux_Message( stdout, "InitialTime = %13.6e \n", InitialTime );
 
-//     compute the enter position for passive field
-       if ( MPI_Rank == 0 )  Aux_Message( stdout, "Calculate halo center for passive field:\n");
+//    compute the enter position for passive field
+      if ( MPI_Rank == 0 )  Aux_Message( stdout, "Calculate halo center for passive field:\n");
 
-       double FinaldR;
-       int    FinalNIter;
-       double CoM_ref[3];
-       Extrema_t Max_Dens;
+      double FinaldR;
+      int    FinalNIter;
+      double CoM_ref[3];
+      Extrema_t Max_Dens;
 
-       Max_Dens.Field     = _DENS;
-       Max_Dens.Radius    = __FLT_MAX__; // entire domain
-       Max_Dens.Center[0] = amr->BoxCenter[0];
-       Max_Dens.Center[1] = amr->BoxCenter[1];
-       Max_Dens.Center[2] = amr->BoxCenter[2];
+      Max_Dens.Field     = _DENS;
+      Max_Dens.Radius    = __FLT_MAX__; // entire domain
+      Max_Dens.Center[0] = amr->BoxCenter[0];
+      Max_Dens.Center[1] = amr->BoxCenter[1];
+      Max_Dens.Center[2] = amr->BoxCenter[2];
 
-       Aux_FindExtrema( &Max_Dens, EXTREMA_MAX, 0, TOP_LEVEL, PATCH_LEAF );
-       if ( COM_CEN_X < 0.0  ||  COM_CEN_Y < 0.0  ||  COM_CEN_Z < 0.0 )
-       {
-          for (int d=0; d<3; d++) CoM_ref[d] = Max_Dens.Coord[d];
-       }
-       else
-       {
-          CoM_ref[0] = COM_CEN_X;
-          CoM_ref[1] = COM_CEN_Y;
-          CoM_ref[2] = COM_CEN_Z;
-       }
-       Aux_FindWeightedAverageCenter( Center, CoM_ref, COM_MAX_R, COM_MIN_RHO, _TOTAL_DENS, COM_TOLERR_R, COM_MAX_ITER, &FinaldR, &FinalNIter );
+      Aux_FindExtrema( &Max_Dens, EXTREMA_MAX, 0, TOP_LEVEL, PATCH_LEAF );
+      if ( COM_CEN_X < 0.0  ||  COM_CEN_Y < 0.0  ||  COM_CEN_Z < 0.0 )
+      {
+         for (int d=0; d<3; d++) CoM_ref[d] = Max_Dens.Coord[d];
+      }
+      else
+      {
+         CoM_ref[0] = COM_CEN_X;
+         CoM_ref[1] = COM_CEN_Y;
+         CoM_ref[2] = COM_CEN_Z;
+      }
+      Aux_FindWeightedAverageCenter( Center, CoM_ref, COM_MAX_R, COM_MIN_RHO, _TOTAL_DENS, COM_TOLERR_R, COM_MAX_ITER, &FinaldR, &FinalNIter );
 
-       if ( MPI_Rank == 0 )  Aux_Message( stdout, "Center of passive field is ( %14.11e,%14.11e,%14.11e )\n", Center[0], Center[1], Center[2] );
+      if ( MPI_Rank == 0 )  Aux_Message( stdout, "Center of passive field is ( %14.11e,%14.11e,%14.11e )\n", Center[0], Center[1], Center[2] );
 
-//     commpute density profile for passive field
-       if ( MPI_Rank == 0 )  Aux_Message( stdout, "Calculate density profile for passive field:\n");
+//    commpute density profile for passive field
+      if ( MPI_Rank == 0 )  Aux_Message( stdout, "Calculate density profile for passive field:\n");
 
-       const long TVar[] = {BIDX(Idx_Dens0)};
-       Aux_ComputeProfile_with_Sigma( Prof, Center, RadiusMax_prof, dr_min_prof, LogBin_prof, LogBinRatio_prof, RemoveEmpty_prof, TVar, 1, MinLv, MaxLv, PATCH_LEAF, InitialTime );
+      const long TVar[] = {BIDX(Idx_Dens0)};
+      Aux_ComputeProfile_with_Sigma( Prof, Center, RadiusMax_prof, dr_min_prof, LogBin_prof, LogBinRatio_prof, RemoveEmpty_prof, TVar, 1, MinLv, MaxLv, PATCH_LEAF, InitialTime );
 
-       if ( MPI_Rank == 0 )
-       {
-          char Filename[MAX_STRING];
-          sprintf( Filename, "%s/initial_profile_with_Sigma.txt", FilePath_corr );
-          FILE *output_initial_prof = fopen(Filename, "w");
-          fprintf( output_initial_prof, "#%19s  %21s  %21s  %21s  %11s\n", "Radius", "Dens", "Dens_Sigma" , "Weighting", "Cell_Number");
-          for (int b=0; b<Prof[0]->NBin; b++)
-             fprintf( output_initial_prof, "%20.14e  %21.14e  %21.14e  %21.14e  %11ld\n",
-                      Prof[0]->Radius[b], Prof[0]->Data[b], Prof[0]->Data_Sigma[b], Prof[0]->Weight[b], Prof[0]->NCell[b] );
-          fclose(output_initial_prof);
-       }
+      if ( MPI_Rank == 0 )
+      {
+         char Filename[MAX_STRING];
+         sprintf( Filename, "%s/initial_profile_with_Sigma.txt", FilePath_corr );
+         FILE *output_initial_prof = fopen(Filename, "w");
+         fprintf( output_initial_prof, "#%19s  %21s  %21s  %21s  %11s\n", "Radius", "Dens", "Dens_Sigma" , "Weighting", "Cell_Number");
+         for (int b=0; b<Prof[0]->NBin; b++)
+            fprintf( output_initial_prof, "%20.14e  %21.14e  %21.14e  %21.14e  %11ld\n",
+                     Prof[0]->Radius[b], Prof[0]->Data[b], Prof[0]->Data_Sigma[b], Prof[0]->Weight[b], Prof[0]->NCell[b] );
+         fclose(output_initial_prof);
+      }
    }
 #  endif // #if ( NCOMP_PASSIVE_USER > 0 )
 
