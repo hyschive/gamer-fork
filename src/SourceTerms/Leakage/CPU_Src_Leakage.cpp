@@ -227,7 +227,7 @@ static void Src_Leakage( real fluid[], const real B[],
 // do nothing if the cell is beyond the sampled rays
    if ( rad > MaxRadius )
    {
-      if ( RecMode )
+      if ( RecMode == 1 )
       {
          fluid[DENS] = (real)0.0;
          fluid[MOMX] = (real)0.0;
@@ -533,7 +533,7 @@ static void Src_Leakage( real fluid[], const real B[],
 
 
 // (4) store the dEdt, luminosity, heating rate, and net heating rate for Record Mode
-   if ( RecMode )
+   if ( RecMode == 1 )
    {
       fluid[DENS    ] = dEdt_CGS * Dens_Code * Unit_D;
       fluid[MOMX    ] = Lum [0];
@@ -554,8 +554,10 @@ static void Src_Leakage( real fluid[], const real B[],
 
 // (5-1) update the change rates of energy and Ye first
 #  ifdef DYEDT_NU
-   fluid[DEDT_NU ] = FABS( dEdt_Code  );
-   fluid[DYEDT_NU] = FABS( dYedt_Code );
+   fluid[DEDT_NU ] = ( RecMode == 2 ) ? dEdt_Code  : FABS( dEdt_Code  );
+   fluid[DYEDT_NU] = ( RecMode == 2 ) ? dYedt_Code : FABS( dYedt_Code );
+
+   if ( RecMode == 2 )   return;
 #  endif
 
 // (5-2) make sure the new Ye is not within 1% of the table boundary

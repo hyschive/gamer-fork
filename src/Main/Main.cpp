@@ -102,7 +102,7 @@ double               DUAL_ENERGY_SWITCH;
 double               FlagTable_Current[NLEVEL-1], INT_MONO_COEFF_B;
 IntScheme_t          OPT__MAG_INT_SCHEME, OPT__REF_MAG_INT_SCHEME;
 bool                 OPT__FIXUP_ELECTRIC, OPT__CK_INTERFACE_B, OPT__OUTPUT_CC_MAG, OPT__FLAG_CURRENT;
-bool                 OPT__OUTPUT_DIVMAG;
+bool                 OPT__OUTPUT_DIVMAG, OPT__OUTPUT_LEAKAGE;
 int                  OPT__CK_DIVERGENCE_B;
 double               UNIT_B;
 bool                 OPT__SAME_INTERFACE_B;
