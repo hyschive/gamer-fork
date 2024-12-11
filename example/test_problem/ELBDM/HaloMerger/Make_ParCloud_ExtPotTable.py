@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import os.path
 
 
 ###################################################################################################################
@@ -54,17 +55,22 @@ ParCloud_ExtPot_table_potential = np.array([Potential_UniDenSph( radius, ParClou
 
 ###################################################################################################################
 # save to file
-np.savetxt( 'ParCloud_ExtPotTable',
+filename = 'ParCloud_ExtPotTable'
+
+if os.path.exists( filename ):
+   print( '\nWARNING: file "%s" already exists and will be overwritten !!'%filename )
+
+np.savetxt( filename,
             np.column_stack( (ParCloud_ExtPot_table_radius, ParCloud_ExtPot_table_potential) ),
-            fmt='          %9.8e',
-            header='                     r                 potential' )
+            fmt='%23.8e',
+            header='%21s %23s'%( 'r', 'potential' ) )
 ###################################################################################################################
 
 
 ###################################################################################################################
 # plot to images
 fig = plt.figure()
-ax  = fig.add_subplot(111)
+ax  = fig.add_subplot( 111 )
 
 # plot some important values for reference
 ax.axvline( ParCloud_ExtPot_UniDenSph_R, linestyle='--', color='grey', label=r'$R$' )
@@ -73,12 +79,12 @@ ax.axvline( ParCloud_ExtPot_UniDenSph_R, linestyle='--', color='grey', label=r'$
 ax.plot( ParCloud_ExtPot_table_radius, ParCloud_ExtPot_table_potential, '-', color='r', label=r'$\Phi(r)$' )
 
 # annotate the information
-ax.annotate( r'$UniDenSph_M$ = %.8e'%ParCloud_ExtPot_UniDenSph_M+'\n'+
-             r'$UniDenSph_R$ = %.8e'%ParCloud_ExtPot_UniDenSph_R,
-             xy=(0.02,0.80), xycoords='axes fraction' )
+ax.annotate( r'UniDenSph $M$ = %.8e'%ParCloud_ExtPot_UniDenSph_M+'\n'+
+             r'UniDenSph $R$ = %.8e'%ParCloud_ExtPot_UniDenSph_R,
+             xy=( 0.02, 0.80 ), xycoords='axes fraction' )
 
 # setting for the figure
-ax.set_xscale('log')
+ax.set_xscale( 'log' )
 ax.set_xlim( 0.5*np.min(ParCloud_ExtPot_table_radius), 2.0*np.max(ParCloud_ExtPot_table_radius) )
 
 # set the labels
@@ -89,6 +95,12 @@ ax.legend( loc='lower right' )
 
 # save the figure
 fig.subplots_adjust( top=0.93, bottom=0.1, left=0.15, right=0.97 )
-fig.savefig( 'fig_ParCloud_ExtPotTable.png' )
+
+filename_fig = 'fig_ParCloud_ExtPotTable.png'
+
+if os.path.exists( filename_fig ):
+   print( '\nWARNING: file "%s" already exists and will be overwritten !!'%filename_fig )
+
+fig.savefig( filename_fig )
 plt.close()
 ###################################################################################################################
