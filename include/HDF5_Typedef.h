@@ -507,6 +507,7 @@ struct InputPara_t
 #  if ( MODEL == ELBDM )
    int    Opt__Flag_EngyDensity;
    int    Opt__Flag_Spectral;
+   int    Opt__Flag_Spectral_N;
 #  if ( ELBDM_SCHEME == ELBDM_HYBRID )
    int    Opt__Flag_Interference;
 #  endif
@@ -761,9 +762,10 @@ struct InputPara_t
    int    IntOppSign0thOrder;
 #  ifdef SUPPORT_SPECTRAL_INT
    char  *SpecInt_TablePath;
+   int    SpecInt_GhostBoundary;
 #  if ( MODEL == ELBDM )
    int    SpecInt_XY_Instead_DePha;
-   double SpecInt_WavelengthMagnifier;
+   double SpecInt_VortexThreshold;
 #  endif
 #  endif
 
@@ -773,6 +775,7 @@ struct InputPara_t
    int    Opt__Output_User;
 #  ifdef PARTICLE
    int    Opt__Output_Par_Mode;
+   int    Opt__Output_Par_Mesh;
 #  endif
    int    Opt__Output_BasePS;
    int    Opt__Output_Base;

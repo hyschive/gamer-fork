@@ -154,6 +154,7 @@ extern int              ELBDM_FIRST_WAVE_LEVEL;
 #endif // # if ( ELBDM_SCHEME == ELBDM_HYBRID )
 
 extern bool             OPT__FLAG_SPECTRAL;
+extern int              OPT__FLAG_SPECTRAL_N;
 extern double           FlagTable_Spectral[NLEVEL-1][2];
 
 extern ELBDMRemoveMotionCM_t ELBDM_REMOVE_MOTION_CM;
@@ -230,7 +231,7 @@ extern bool       FFTW3_Double_OMP_Enabled, FFTW3_Single_OMP_Enabled;
 // ============================================================================================================
 #ifdef PARTICLE
 extern double          DT__PARVEL, DT__PARVEL_MAX, DT__PARACC;
-extern bool            OPT__CK_PARTICLE, OPT__FLAG_NPAR_CELL, OPT__FLAG_PAR_MASS_CELL, OPT__FREEZE_PAR;
+extern bool            OPT__CK_PARTICLE, OPT__FLAG_NPAR_CELL, OPT__FLAG_PAR_MASS_CELL, OPT__FREEZE_PAR, OPT__OUTPUT_PAR_MESH;
 extern int             OPT__OUTPUT_PAR_MODE, OPT__PARTICLE_COUNT, OPT__FLAG_NPAR_PATCH, FlagTable_NParPatch[NLEVEL-1], FlagTable_NParCell[NLEVEL-1];
 extern double          FlagTable_ParMassCell[NLEVEL-1];
 extern ParOutputDens_t OPT__OUTPUT_PAR_DENS;
@@ -357,9 +358,10 @@ extern int  FB_ParaBuf;
 // (2-13) spectral interpolation
 #ifdef SUPPORT_SPECTRAL_INT
 extern char   SPEC_INT_TABLE_PATH[MAX_STRING];
+extern int    SPEC_INT_GHOST_BOUNDARY;
 #if ( MODEL == ELBDM )
 extern bool   SPEC_INT_XY_INSTEAD_DEPHA;
-extern double SPEC_INT_WAVELENGTH_MAGNIFIER;
+extern double SPEC_INT_VORTEX_THRESHOLD;
 #endif
 class InterpolationHandler;
 extern InterpolationHandler Int_InterpolationHandler;
