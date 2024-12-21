@@ -64,7 +64,8 @@ void CPU_ComputeGREP( const int lv, const double Time, const Profile_t *DensAve,
 // find the maximum radius that the stored weights are reliable
    for (int d=0; d<3; d++)
    {
-      MaxRadius = MIN(  MIN( amr->BoxSize[d] - DensAve->Center[d], DensAve->Center[d] ),
+      MaxRadius = MIN(  MIN( DensAve->Center[d] - amr->BoxEdgeL[d],
+                            -DensAve->Center[d] + amr->BoxEdgeR[d] ),
                         MaxRadius  );
    }
 
@@ -183,6 +184,8 @@ void CPU_ComputeGREP( const int lv, const double Time, const Profile_t *DensAve,
    for (int b=0; b<NBin; b++)   EffPot->Radius[b] = Edge_L[b];
 
 // set the outer boundary condition of the potential to -GM/r at the left edge of last bin
+// --> the effective GR potential incorporates -Phi_NW(r) + Phi_TOV(r) to correct
+//     the potential obtained from the Poisson solver
    EffPot->Data[NBin-1] = -NEWTON_G * ( Mass_TOV[NBin-2] - Mass_NW[NBin-2] ) / EffPot->Radius[NBin-1];
 
    for (int i=NBin-2; i>0; i--)
@@ -204,7 +207,7 @@ void CPU_ComputeGREP( const int lv, const double Time, const Profile_t *DensAve,
       EffPot->Data[i] = EffPot->Data[i+1] - dr * NEWTON_G * ( Mass_NW_C - Mass_TOV_C ) / SQR( Radius[i] );
    }
 
-// set the potential for the innermost bin
+// adopting the zero-gradient inner boundary condition for missing data to avoid extrapolation
    EffPot->Data[0] = EffPot->Data[1];
 
 
