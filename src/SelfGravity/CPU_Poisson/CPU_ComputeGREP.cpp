@@ -70,6 +70,8 @@ void CPU_ComputeGREP( const int lv, const double Time, const Profile_t *DensAve,
    }
 
 // update the weight
+// --> using the weight obtained from Aux_ComputeProfile() may lead to a flattened end
+//     in the enclosed mass profile when MaxRadius > Edge_L[i+1]
    for (int i=0; i<NBin-1; i++)
    {
       Weight[i] = ( Edge_L[i+1] > MaxRadius )
