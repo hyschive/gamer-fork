@@ -387,6 +387,14 @@ void Detect_CoreBounce()
 
 
 // (2) criterion 2: any cells within 30km has entropy larger than 3
+   double Center[3];
+
+#  ifdef GRAVITY
+   for (int i=0; i<3; i++)   Center[i] = GREP_Center[i]
+#  else
+   for (int i=0; i<3; i++)   Center[i] = amr->BoxCenter[i];
+#  endif
+
 
 // allocate memory for per-thread arrays
 #  ifdef OPENMP
@@ -423,9 +431,9 @@ void Detect_CoreBounce()
             for (int j=0; j<PS1; j++)  {  const double y = amr->patch[0][lv][PID]->EdgeL[1] + (j+0.5)*dh;
             for (int i=0; i<PS1; i++)  {  const double x = amr->patch[0][lv][PID]->EdgeL[0] + (i+0.5)*dh;
 
-               const double x0 = x - GREP_Center[0];
-               const double y0 = y - GREP_Center[1];
-               const double z0 = z - GREP_Center[2];
+               const double x0 = x - Center[0];
+               const double y0 = y - Center[1];
+               const double z0 = z - Center[2];
                const double r  = sqrt(  SQR( x0 ) + SQR( y0 ) + SQR( z0 )  );
 
 //             ignore cells outside 30km
@@ -498,6 +506,7 @@ void Detect_Shock()
    const int PRES    = NCOMP_PASSIVE + 4;
 
 
+   double Center[3];
    double Shock_Min    =  HUGE_NUMBER;
    double Shock_Max    = -HUGE_NUMBER;
    double Shock_Ave    =  0.0;
@@ -522,6 +531,12 @@ void Detect_Shock()
       OMP_Shock_Weight[t] = 0.0;
       OMP_Shock_Found [t] = false;
    }
+
+#  ifdef GRAVITY
+   for (int i=0; i<3; i++)   Center[i] = GREP_Center[i]
+#  else
+   for (int i=0; i<3; i++)   Center[i] = amr->BoxCenter[i];
+#  endif
 
 
    for (int lv=0; lv<NLEVEL; lv++)
@@ -614,9 +629,9 @@ void Detect_Shock()
             for (int j=0; j<PS1; j++)  {  const double y = amr->patch[0][lv][PID]->EdgeL[1] + (j+0.5)*dh; const int jj = j+NGhost;
             for (int i=0; i<PS1; i++)  {  const double x = amr->patch[0][lv][PID]->EdgeL[0] + (i+0.5)*dh; const int ii = i+NGhost;
 
-               const double dx = x - GREP_Center[0];
-               const double dy = y - GREP_Center[1];
-               const double dz = z - GREP_Center[2];
+               const double dx = x - Center[0];
+               const double dy = y - Center[1];
+               const double dz = z - Center[2];
                const double r  = sqrt(  SQR( dx ) + SQR( dy ) + SQR( dz )  );
 
 //             (3) evaluate the undivided gradient of pressure and the undivided divergence of velocity
