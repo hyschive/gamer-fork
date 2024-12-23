@@ -22,8 +22,8 @@
 //                FaPotSg  : Potential sandglass at level "FaLv"
 //                TVarCC   : Target cell-centered variables
 //                           --> Supported variables in different models:
-//                               HYDRO : _DENS, _MOMX, _MOMY, _MOMZ, _ENGY,[, _POTE]
-//                               ELBDM : _DENS, _REAL, _IMAG, [, _POTE]
+//                               HYDRO : _DENS, _MOMX, _MOMY, _MOMZ, _ENGY [, _POTE] [, BIDX(field_index)]
+//                               ELBDM : _DENS, _REAL, _IMAG [, _POTE] [, BIDX(field_index)]
 //                           --> _FLUID, _PASSIVE, and _TOTAL apply to all models
 //                TVarFC   : Target face-centered variables
 //                            --> Supported variables in different models:
@@ -91,13 +91,6 @@ void Flu_FixUp_Restrict( const int FaLv, const int SonFluSg, const int FaFluSg, 
 #  else
    const bool ResMag  = false;
 #  endif
-#  ifndef _DYEDT_NU
-   const long _DYEDT_NU = 0;
-#  endif
-#  ifndef _DEDT_NU
-   const long _DEDT_NU = 0;
-#  endif
-   const long EoSVar   = _TOTAL - _DYEDT_NU - _DEDT_NU;
    const int  PS1_half = PS1 / 2;
 
 
@@ -304,9 +297,7 @@ void Flu_FixUp_Restrict( const int FaLv, const int SonFluSg, const int FaFluSg, 
 
 //    check the minimum pressure/internal energy and, when the dual-energy formalism is adopted, ensure the consistency between
 //    pressure, total energy density, and the dual-energy variable
-#     if ( MODEL == HYDRO )
-//    apply this correction only when preparing all fluid variables or magnetic field
-      if (  ( TVarCC & EoSVar ) == EoSVar  ||  ResMag  )
+#     if ( MODEL == HYDRO  &&  !defined SRHD )
       for (int k=0; k<PS1; k++)
       for (int j=0; j<PS1; j++)
       for (int i=0; i<PS1; i++)
@@ -363,13 +354,17 @@ void Flu_FixUp_Restrict( const int FaLv, const int SonFluSg, const int FaFluSg, 
                               amr->patch[FaFluSg][FaLv][FaPID]->fluid[ENGY][k][j][i],
                               Passive,
                               CheckMinTemp_No, NULL_REAL, Emag, EoS_DensEint2Temp_CPUPtr,
+                              EoS_GuessHTilde_CPUPtr, EoS_HTilde2Temp_CPUPtr,
                               EoS_AuxArray_Flt, EoS_AuxArray_Int, h_EoS_Table );
 
 //       check output temperature initial guess
 #        ifdef GAMER_DEBUG
          const real Temp_IG = amr->patch[FaFluSg][FaLv][FaPID]->fluid[TEMP_IG][k][j][i];
 
-         if (  Hydro_CheckUnphysical( UNPHY_MODE_SING, &Temp_IG, "output temperature initial guess", ERROR_INFO, UNPHY_VERBOSE )  )
+         if (  Hydro_IsUnphysical( UNPHY_MODE_SING, &Temp_IG, "output temperature initial guess", (real)0.0,
+                                   __FLT_MAX__, Emag, EoS_DensEint2Pres_CPUPtr, EoS_GuessHTilde_CPUPtr,
+                                   EoS_HTilde2Temp_CPUPtr, EoS_AuxArray_Flt, EoS_AuxArray_Int,
+                                   h_EoS_Table, ERROR_INFO, UNPHY_VERBOSE )  )
          {
             Aux_Message( stderr, "Fluid: " );
             for (int v=0; v<NCOMP_TOTAL; v++)   Aux_Message( stderr, " [%d]=%14.7e", v, amr->patch[FaFluSg][FaLv][FaPID]->fluid[v][k][j][i] );

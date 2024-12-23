@@ -1,14 +1,5 @@
 #include "GAMER.h"
 
-extern void (*Init_User_Ptr)();
-extern void (*Init_DerivedField_User_Ptr)();
-#ifdef PARTICLE
-extern void (*Par_Init_ByFunction_Ptr)( const long NPar_ThisRank, const long NPar_AllRank,
-                                        real *ParMass, real *ParPosX, real *ParPosY, real *ParPosZ,
-                                        real *ParVelX, real *ParVelY, real *ParVelZ, real *ParTime,
-                                        real *ParType, real *AllAttribute[PAR_NATT_TOTAL] );
-#endif
-
 
 
 
@@ -16,7 +7,8 @@ extern void (*Par_Init_ByFunction_Ptr)( const long NPar_ThisRank, const long NPa
 // Function    :  Init
 // Description :  Initialize GAMER
 //
-// Note        :  1. Function pointer "Init_User_Ptr" may be set by a test problem initializer
+// Note        :  1. Function pointers "Init_User_Ptr" and "Init_User_AfterPoisson_Ptr" may be set by a
+//                   test problem initializer
 //
 // Parameter   :  argc, argv: Command line arguments
 //-------------------------------------------------------------------------------------------------------
@@ -53,6 +45,20 @@ void Init_GAMER( int *argc, char ***argv )
 // reset parameters
 // --> must be called after Init_Unit()
    Init_ResetParameter();
+
+
+// load the tables of the flag criteria from the input files "Input__Flag_XXX"
+   Init_Load_FlagCriteria();
+
+
+// load the dump table from the input file "Input__DumpTable"
+   if ( OPT__OUTPUT_MODE == OUTPUT_USE_TABLE )
+#  ifdef PARTICLE
+   if ( OPT__OUTPUT_TOTAL || OPT__OUTPUT_PART || OPT__OUTPUT_USER || OPT__OUTPUT_BASEPS || OPT__OUTPUT_PAR_MODE )
+#  else
+   if ( OPT__OUTPUT_TOTAL || OPT__OUTPUT_PART || OPT__OUTPUT_USER || OPT__OUTPUT_BASEPS )
+#  endif
+   Init_Load_DumpTable();
 
 
 // initialize OpenMP settings
@@ -129,6 +135,10 @@ void Init_GAMER( int *argc, char ***argv )
 #  endif
 
 
+// initialize the microphysics
+   Microphysics_Init();
+
+
 // initialize the user-defined derived fields
    if ( OPT__OUTPUT_USER_FIELD )
    {
@@ -155,21 +165,6 @@ void Init_GAMER( int *argc, char ***argv )
 #  ifdef TIMING
    Aux_CreateTimer();
 #  endif
-
-
-// load the tables of the flag criteria from the input files "Input__Flag_XXX"
-   Init_Load_FlagCriteria();
-
-
-// load the dump table from the input file "Input__DumpTable"
-//###NOTE: unit has not been converted into internal unit
-   if ( OPT__OUTPUT_MODE == OUTPUT_USE_TABLE )
-#  ifdef PARTICLE
-   if ( OPT__OUTPUT_TOTAL || OPT__OUTPUT_PART || OPT__OUTPUT_USER || OPT__OUTPUT_BASEPS || OPT__OUTPUT_PAR_MODE )
-#  else
-   if ( OPT__OUTPUT_TOTAL || OPT__OUTPUT_PART || OPT__OUTPUT_USER || OPT__OUTPUT_BASEPS )
-#  endif
-   Init_Load_DumpTable();
 
 
 // initialize memory pool
@@ -243,7 +238,7 @@ void Init_GAMER( int *argc, char ***argv )
 #  endif
 
 
-// user-defined initialization
+// user-defined initialization (before the Poisson solver)
    if ( Init_User_Ptr != NULL )  Init_User_Ptr();
 
 
@@ -269,6 +264,15 @@ void Init_GAMER( int *argc, char ***argv )
 //    evaluate the gravitational potential
       if ( MPI_Rank == 0 )    Aux_Message( stdout, "%s ...\n", "Calculating gravitational potential" );
 
+
+//    utilize the box center as the reference point for GREP center during the initialization stage
+//    since the potential is not initialized yet
+      const GREP_Center_t Backup_GREP_Center = GREP_CENTER_METHOD;
+
+      if ( OPT__EXT_POT == EXT_POT_GREP )
+         GREP_CENTER_METHOD = ( OPT__INIT == INIT_BY_RESTART ) ? GREP_CENTER_NONE : GREP_CENTER_BOX;
+
+
       for (int lv=0; lv<NLEVEL; lv++)
       {
          if ( MPI_Rank == 0 )    Aux_Message( stdout, "   Lv %2d ... ", lv );
@@ -284,6 +288,10 @@ void Init_GAMER( int *argc, char ***argv )
       } // for (int lv=0; lv<NLEVEL; lv++)
 
       if ( MPI_Rank == 0 )    Aux_Message( stdout, "%s ... done\n", "Calculating gravitational potential" );
+
+
+//    restore the GREP center
+      if ( OPT__EXT_POT == EXT_POT_GREP )   GREP_CENTER_METHOD = Backup_GREP_Center;
    } // if ( OPT__SELF_GRAVITY_TYPE  ||  OPT__EXT_POT )
 #  endif // #ifdef GARVITY
 
@@ -316,6 +324,10 @@ void Init_GAMER( int *argc, char ***argv )
 #  endif // #ifdef TRACER
 
 #  endif // #ifdef PARTICLE
+
+
+// user-defined initialization (after the Poisson solver)
+   if ( Init_User_AfterPoisson_Ptr != NULL )    Init_User_AfterPoisson_Ptr();
 
 
 // initialize source-term fields (e.g., cooling time)

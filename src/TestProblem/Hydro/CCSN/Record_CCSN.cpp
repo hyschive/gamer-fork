@@ -26,7 +26,6 @@ extern void Src_WorkBeforeMajorFunc_Leakage( const int lv, const double TimeNew,
 
 
 
-
 //-------------------------------------------------------------------------------------------------------
 // Function    :  Record_CCSN_CentralQuant
 // Description :  Record quantities at the center
@@ -38,7 +37,6 @@ void Record_CCSN_CentralQuant()
 {
 
    const char   filename_central_quant[] = "Record__CentralQuant";
-   const double BoxCenter[3]             = { amr->BoxCenter[0], amr->BoxCenter[1], amr->BoxCenter[2] };
 
 // allocate memory for per-thread arrays
 #  ifdef OPENMP
@@ -158,9 +156,10 @@ void Record_CCSN_CentralQuant()
          {
              FILE *file_cent_quant = fopen( filename_central_quant, "w" );
 
-             fprintf( file_cent_quant, "#%14s %8s %15s %15s %15s %15s %15s %15s %15s %16s %15s",
+             fprintf( file_cent_quant, "#%14s %8s %15s %15s %15s %15s %15s %15s %15s %16s %15s %16s %16s %16s",
                                        "1_Time", "2_Step", "3_PosX", "4_PosY", "5_PosZ",
-                                       "6_Dens", "7_Ye", "8_Rsh_Min", "9_Rsh_Ave_V", "10_Rsh_Ave_Vinv", "11_Rsh_Max" );
+                                       "6_Dens", "7_Ye", "8_Rsh_Min", "9_Rsh_Ave_V", "10_Rsh_Ave_Vinv", "11_Rsh_Max",
+                                       "11_GREP_PosX", "12_GREP_PosY", "13_GREP_PosZ" );
 
 #            if ( defined NEUTRINO_SCHEME  &&  NEUTRINO_SCHEME == LEAKAGE )
              fprintf( file_cent_quant, " %21s %16s %16s %16s %17s %17s %20s %20s %17s %17s %17s %18s %18s %18s",
@@ -172,8 +171,8 @@ void Record_CCSN_CentralQuant()
 
              fprintf( file_cent_quant, "\n" );
 
-             fprintf( file_cent_quant, "#%14s %8s %15s %15s %15s %15s %15s %15s %15s %16s %15s",
-                                       "[sec]", "[1]", "[cm]", "[cm]", "[cm]", "[g/cm^3]", "[1]", "[cm]", "[cm]", "[cm]", "[cm]" );
+             fprintf( file_cent_quant, "#%14s %8s %15s %15s %15s %15s %15s %15s %15s %16s %15s %16s %16s %16s",
+                                       "[sec]", "[1]", "[cm]", "[cm]", "[cm]", "[g/cm^3]", "[1]", "[cm]", "[cm]", "[cm]", "[cm]", "[cm]", "[cm]", "[cm]" );
 
 #            if ( defined NEUTRINO_SCHEME  &&  NEUTRINO_SCHEME == LEAKAGE )
              fprintf( file_cent_quant, " %21s %16s %16s %16s %17s %17s %20s %20s %17s %17s %17s %18s %18s %18s",
@@ -212,6 +211,14 @@ void Record_CCSN_CentralQuant()
       fprintf( file_cent_quant, "%15.7e %8ld %15.7e %15.7e %15.7e %15.7e %15.7e %15.7e %15.7e %16.7e %15.7e",
                Time[0]*UNIT_T, Step, Data_Flt[1]*UNIT_L, Data_Flt[2]*UNIT_L, Data_Flt[3]*UNIT_L,
                u[DENS]*UNIT_D, Ye, CCSN_Rsh_Min*UNIT_L, CCSN_Rsh_Ave_V*UNIT_L, CCSN_Rsh_Ave_Vinv*UNIT_L, CCSN_Rsh_Max*UNIT_L );
+
+#     ifdef GRAVITY
+      fprintf( file_cent_quant, " %16.7e %16.7e %16.7e",
+               GREP_Center[0]*UNIT_L, GREP_Center[1]*UNIT_L, GREP_Center[2]*UNIT_L );
+#     else
+      fprintf( file_cent_quant, " %16.7e %16.7e %16.7e",
+               NULL_REAL, NULL_REAL, NULL_REAL );
+#     endif
 
 #     if ( defined NEUTRINO_SCHEME  &&  NEUTRINO_SCHEME == LEAKAGE )
       fprintf( file_cent_quant, " %21.7e %16.7e %16.7e %16.7e %17.7e %17.7e %20.7e %20.7e %17.7e %17.7e %17.7e %18.7e %18.7e %18.7e",
@@ -421,7 +428,6 @@ void Record_CCSN_GWSignal()
 {
 
    const char   filename_QuadMom_2nd[ ] = "Record__QuadMom_2nd";
-   const double BoxCenter           [3] = { amr->BoxCenter[0], amr->BoxCenter[1], amr->BoxCenter[2] };
 
 // allocate memory for per-thread arrays
 #  ifdef OPENMP
@@ -481,9 +487,9 @@ void Record_CCSN_GWSignal()
             for (int j=0; j<PS1; j++)  {  const double y = amr->patch[0][lv][PID]->EdgeL[1] + (j+0.5)*dh; const int jj = j + GRA_GHOST_SIZE;
             for (int i=0; i<PS1; i++)  {  const double x = amr->patch[0][lv][PID]->EdgeL[0] + (i+0.5)*dh; const int ii = i + GRA_GHOST_SIZE;
 
-               const double dx = x - BoxCenter[0];
-               const double dy = y - BoxCenter[1];
-               const double dz = z - BoxCenter[2];
+               const double dx = x - GREP_Center[0];
+               const double dy = y - GREP_Center[1];
+               const double dz = z - GREP_Center[2];
                const double r  = sqrt(  SQR( dx ) + SQR( dy ) + SQR( dz )  );
 
                const double dens  = amr->patch[ amr->FluSg[lv] ][lv][PID]->fluid[DENS][k][j][i];
@@ -602,7 +608,14 @@ void Detect_CoreBounce()
 
 
 // (2) criterion 2: any cells within 30km has entropy larger than 3
-   const double BoxCenter[3] = { amr->BoxCenter[0], amr->BoxCenter[1], amr->BoxCenter[2] };
+   double Center[3];
+
+#  ifdef GRAVITY
+   for (int i=0; i<3; i++)   Center[i] = GREP_Center[i]
+#  else
+   for (int i=0; i<3; i++)   Center[i] = amr->BoxCenter[i];
+#  endif
+
 
 // allocate memory for per-thread arrays
 #  ifdef OPENMP
@@ -639,9 +652,9 @@ void Detect_CoreBounce()
             for (int j=0; j<PS1; j++)  {  const double y = amr->patch[0][lv][PID]->EdgeL[1] + (j+0.5)*dh;
             for (int i=0; i<PS1; i++)  {  const double x = amr->patch[0][lv][PID]->EdgeL[0] + (i+0.5)*dh;
 
-               const double x0 = x - BoxCenter[0];
-               const double y0 = y - BoxCenter[1];
-               const double z0 = z - BoxCenter[2];
+               const double x0 = x - Center[0];
+               const double y0 = y - Center[1];
+               const double z0 = z - Center[2];
                const double r  = sqrt(  SQR( x0 ) + SQR( y0 ) + SQR( z0 )  );
 
 //             ignore cells outside 30km
@@ -716,6 +729,7 @@ void Detect_Shock()
 #  endif
 
 
+   double Center[3];
    double Shock_Min         =  HUGE_NUMBER;
    double Shock_Max         = -HUGE_NUMBER;
    double Shock_Ave_V       =  0.0;
@@ -752,6 +766,12 @@ void Detect_Shock()
       OMP_Shock_Weight_Vinv[t] = 0.0;
       OMP_Shock_Found      [t] = false;
    }
+
+#  ifdef GRAVITY
+   for (int i=0; i<3; i++)   Center[i] = GREP_Center[i]
+#  else
+   for (int i=0; i<3; i++)   Center[i] = amr->BoxCenter[i];
+#  endif
 
 
    for (int lv=0; lv<NLEVEL; lv++)
@@ -871,9 +891,9 @@ void Detect_Shock()
             for (int j=0; j<PS1; j++)  {  const double y = amr->patch[0][lv][PID]->EdgeL[1] + (j+0.5)*dh; const int jj = j+SHK_GHOST_SIZE;
             for (int i=0; i<PS1; i++)  {  const double x = amr->patch[0][lv][PID]->EdgeL[0] + (i+0.5)*dh; const int ii = i+SHK_GHOST_SIZE;
 
-               const double dx = x - BoxCenter[0];
-               const double dy = y - BoxCenter[1];
-               const double dz = z - BoxCenter[2];
+               const double dx = x - Center[0];
+               const double dy = y - Center[1];
+               const double dz = z - Center[2];
                const double r  = sqrt(  SQR( dx ) + SQR( dy ) + SQR( dz )  );
 
 //             (3) evaluate the undivided gradient of pressure and the undivided divergence of velocity
