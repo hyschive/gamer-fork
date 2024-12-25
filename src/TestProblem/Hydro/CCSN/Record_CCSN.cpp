@@ -342,7 +342,7 @@ void Record_CCSN_Leakage()
 #              endif
 
                SrcTerms.Leakage_CPUPtr( fluid, B, &SrcTerms, 0.0, NULL_REAL, x, y, z, NULL_REAL, NULL_REAL,
-                                        MIN_DENS, MIN_PRES, MIN_EINT, NULL,
+                                        MIN_DENS, MIN_PRES, MIN_EINT, &EoS,
                                         Src_Leakage_AuxArray_Flt, Src_Leakage_AuxArray_Int );
 
                if ( fluid[DENS] > 0.0 )
@@ -611,7 +611,7 @@ void Detect_CoreBounce()
    double Center[3];
 
 #  ifdef GRAVITY
-   for (int i=0; i<3; i++)   Center[i] = GREP_Center[i]
+   for (int i=0; i<3; i++)   Center[i] = GREP_Center[i];
 #  else
    for (int i=0; i<3; i++)   Center[i] = amr->BoxCenter[i];
 #  endif
@@ -768,7 +768,7 @@ void Detect_Shock()
    }
 
 #  ifdef GRAVITY
-   for (int i=0; i<3; i++)   Center[i] = GREP_Center[i]
+   for (int i=0; i<3; i++)   Center[i] = GREP_Center[i];
 #  else
    for (int i=0; i<3; i++)   Center[i] = amr->BoxCenter[i];
 #  endif
@@ -850,8 +850,8 @@ void Detect_Shock()
                const real Pres = Hydro_Con2Pres( FluidForEoS[DENS], FluidForEoS[MOMX], FluidForEoS[MOMY],
                                                  FluidForEoS[MOMZ], FluidForEoS[ENGY], FluidForEoS+NCOMP_FLUID,
                                                  (MIN_PRES>=(real)0.0), MIN_PRES, Emag,
-                                                 EoS_DensEint2Pres_CPUPtr, EoS_AuxArray_Flt, EoS_AuxArray_Int,
-                                                 h_EoS_Table, NULL );
+                                                 EoS_DensEint2Pres_CPUPtr, EoS_GuessHTilde_CPUPtr, EoS_HTilde2Temp_CPUPtr,
+                                                 EoS_AuxArray_Flt, EoS_AuxArray_Int, h_EoS_Table, NULL );
 
                const real CSqr = EoS_DensPres2CSqr_CPUPtr( FluidForEoS[DENS], Pres, FluidForEoS+NCOMP_FLUID,
                                                            EoS_AuxArray_Flt, EoS_AuxArray_Int, h_EoS_Table );

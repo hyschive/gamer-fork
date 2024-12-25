@@ -225,7 +225,9 @@ double Mis_GetTimeStep_Leakage( const int lv, const double dTime_dt )
             const real  Emag = NULL_REAL;
 #           endif // ifdef MHD ... else ...
 
-            const real Eint_Code  = Hydro_Con2Eint( Dens, Momx, Momy, Momz, Engy, true, MIN_EINT, Emag );
+            const real Eint_Code  = Hydro_Con2Eint( Dens, Momx, Momy, Momz, Engy, true, MIN_EINT, Emag,
+                                                    EoS_GuessHTilde_CPUPtr, EoS_HTilde2Temp_CPUPtr,
+                                                    EoS_AuxArray_Flt, EoS_AuxArray_Int, h_EoS_Table );
 
 #           ifdef DYEDT_NU
             const real dEint_Code = amr->patch[ amr->FluSg[lv] ][lv][PID]->fluid[DEDT_NU ][k][j][i];

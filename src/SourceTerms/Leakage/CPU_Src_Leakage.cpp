@@ -476,8 +476,16 @@ static void Src_Leakage( real fluid[], const real B[],
 #  endif
 
    const real Dens_Code = fluid[DENS];
+#  ifdef __CUDACC__
    const real Eint_Code = Hydro_Con2Eint( fluid[DENS], fluid[MOMX], fluid[MOMY], fluid[MOMZ], fluid[ENGY],
-                                          true, MinEint, Emag );
+                                          true, MinEint, Emag, EoS->GuessHTilde_FuncPtr,
+                                          EoS->HTilde2Temp_FuncPtr, EoS->AuxArrayDevPtr_Flt,
+                                          EoS->AuxArrayDevPtr_Int, EoS->Table );
+#  else
+   const real Eint_Code = Hydro_Con2Eint( fluid[DENS], fluid[MOMX], fluid[MOMY], fluid[MOMZ], fluid[ENGY],
+                                          true, MinEint, Emag, EoS_GuessHTilde_CPUPtr, EoS_HTilde2Temp_CPUPtr,
+                                          EoS_AuxArray_Flt, EoS_AuxArray_Int, h_EoS_Table );
+#  endif
 #  ifdef YE
    const real Ye = fluid[YE] / fluid[DENS];
 #  else
@@ -601,7 +609,9 @@ static void Src_Leakage( real fluid[], const real B[],
 
 // (6) final check
 #  ifdef GAMER_DEBUG
-   if (  Hydro_CheckUnphysical( UNPHY_MODE_SING, &Eint_Update, "output internal energy density", ERROR_INFO, UNPHY_VERBOSE )  )
+   if (  Hydro_IsUnphysical( UNPHY_MODE_SING, &Eint_Update, "output internal energy density", (real)0.0,
+                             __FLT_MAX__, NULL_REAL, NULL, NULL, NULL, NULL, NULL, NULL,
+                             ERROR_INFO, UNPHY_VERBOSE )  )
    {
       printf( "   Dens=%13.7e code units, Eint=%13.7e code units, Ye=%13.7e\n", Dens_Code, Eint_Code, Ye );
       printf( "   Radius=%13.7e cm, Temp=%13.7e Kelvin, dEdt=%13.7e, dYedt=%13.7e\n", rad * SrcTerms->Unit_L, Temp_Kelv, dEdt_Code, dYedt );

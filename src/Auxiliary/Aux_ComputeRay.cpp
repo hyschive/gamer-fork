@@ -360,8 +360,8 @@ void Aux_ComputeRay( Profile_t *Ray[], const double Center[], const double Edge[
                                                                                     FluidPtr     [ENGY][k][j][i],
                                                                                     Passive,
                                                                                     CheckMinTemp_No, NULL_REAL, Emag,
-                                                                                    EoS_DensEint2Temp_CPUPtr, EoS_AuxArray_Flt,
-                                                                                    EoS_AuxArray_Int, h_EoS_Table )
+                                                                                    EoS_DensEint2Temp_CPUPtr, EoS_GuessHTilde_CPUPtr, EoS_HTilde2Temp_CPUPtr,
+                                                                                    EoS_AuxArray_Flt, EoS_AuxArray_Int, h_EoS_Table )
                                                 + FluWeighting_IntT*Hydro_Con2Temp( FluidPtr_IntT[DENS][k][j][i],
                                                                                     FluidPtr_IntT[MOMX][k][j][i],
                                                                                     FluidPtr_IntT[MOMY][k][j][i],
@@ -369,8 +369,8 @@ void Aux_ComputeRay( Profile_t *Ray[], const double Center[], const double Edge[
                                                                                     FluidPtr_IntT[ENGY][k][j][i],
                                                                                     Passive_IntT,
                                                                                     CheckMinTemp_No, NULL_REAL, Emag_IntT,
-                                                                                    EoS_DensEint2Temp_CPUPtr, EoS_AuxArray_Flt,
-                                                                                    EoS_AuxArray_Int, h_EoS_Table )
+                                                                                    EoS_DensEint2Temp_CPUPtr, EoS_GuessHTilde_CPUPtr, EoS_HTilde2Temp_CPUPtr,
+                                                                                    EoS_AuxArray_Flt, EoS_AuxArray_Int, h_EoS_Table )
                                               :                     Hydro_Con2Temp( FluidPtr     [DENS][k][j][i],
                                                                                     FluidPtr     [MOMX][k][j][i],
                                                                                     FluidPtr     [MOMY][k][j][i],
@@ -378,8 +378,8 @@ void Aux_ComputeRay( Profile_t *Ray[], const double Center[], const double Edge[
                                                                                     FluidPtr     [ENGY][k][j][i],
                                                                                     Passive,
                                                                                     CheckMinTemp_No, NULL_REAL, Emag,
-                                                                                    EoS_DensEint2Temp_CPUPtr, EoS_AuxArray_Flt,
-                                                                                    EoS_AuxArray_Int, h_EoS_Table );
+                                                                                    EoS_DensEint2Temp_CPUPtr, EoS_GuessHTilde_CPUPtr, EoS_HTilde2Temp_CPUPtr,
+                                                                                    EoS_AuxArray_Flt, EoS_AuxArray_Int, h_EoS_Table );
 
 //                            use cell mass as the weighting of each cell
                               Weight = ( FluIntTime )

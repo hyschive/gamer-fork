@@ -1122,9 +1122,9 @@ void Init_ResetParameter()
    SrcTerms.Leakage_RadiusMax      /= UNIT_L;
    SrcTerms.Leakage_RadiusMin_Log  /= UNIT_L;
 
-   PRINT_WARNING( SrcTerms.Leakage_BinSize_Radius, FORMAT_FLT, "to be consistent with the code units" );
-   PRINT_WARNING( SrcTerms.Leakage_RadiusMax,      FORMAT_FLT, "to be consistent with the code units" );
-   PRINT_WARNING( SrcTerms.Leakage_RadiusMin_Log,  FORMAT_FLT, "to be consistent with the code units" );
+   PRINT_RESET_PARA( SrcTerms.Leakage_BinSize_Radius, FORMAT_FLT, "to be consistent with the code units" );
+   PRINT_RESET_PARA( SrcTerms.Leakage_RadiusMax,      FORMAT_FLT, "to be consistent with the code units" );
+   PRINT_RESET_PARA( SrcTerms.Leakage_RadiusMin_Log,  FORMAT_FLT, "to be consistent with the code units" );
 #  endif // if ( defined NEUTRINO_SCHEME  &&  NEUTRINO_SCHEME == LEAKAGE )
 
 
