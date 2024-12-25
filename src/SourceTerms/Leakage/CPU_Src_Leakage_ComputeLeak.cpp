@@ -6,6 +6,9 @@
 
 #ifndef __CUDACC__
 
+// not apply any correction to the leakage profiles for the stability issue
+//#define LEAKAGE_PROF_CORR
+
 static int    NIter_Max = 200;
 extern double CCSN_Leakage_EAve [NType_Neutrino];
 extern double CCSN_Leakage_RadNS[NType_Neutrino];
@@ -60,18 +63,19 @@ void Src_Leakage_ComputeTau( Profile_t *Ray[], double *Edge,
                              real *HeatE_Rms, real *HeatE_Ave )
 {
 
+   const real   Dens_CorrThresh_Code = 1.0e3 / UNIT_D;
 #  ifdef FLOAT8
    const double Tolerance_Leak = 1.0e-10;
 #  else
    const double Tolerance_Leak = 1.0e-5;
 #  endif
 #  if ( NUC_TABLE_MODE == NUC_TABLE_MODE_TEMP )
-   const real   EoS_TempMin    = POW( (real)10.0, h_EoS_Table[NUC_TAB_TORE     ][0] );
+   const real   EoS_TempMin_Kelv = POW( (real)10.0, h_EoS_Table[NUC_TAB_TORE     ][0] ) / Kelvin2MeV;
 #  else
-   const real   EoS_TempMin    = POW( (real)10.0, h_EoS_Table[NUC_TAB_EORT_MODE][0] );
+   const real   EoS_TempMin_Kelv = POW( (real)10.0, h_EoS_Table[NUC_TAB_EORT_MODE][0] ) / Kelvin2MeV;
 #  endif
-   const bool   NuHeat         = SrcTerms.Leakage_NuHeat;
-   const real   NuHeat_Fac     = SrcTerms.Leakage_NuHeat_Fac;
+   const bool   NuHeat           = SrcTerms.Leakage_NuHeat;
+   const real   NuHeat_Fac       = SrcTerms.Leakage_NuHeat_Fac;
 
 
 // prepare the line element, area, and bin volume for better performance
@@ -215,25 +219,31 @@ void Src_Leakage_ComputeTau( Profile_t *Ray[], double *Edge,
             Temp_MeV [TID][i] = Temp_Kelv[TID][i] * Kelvin2MeV;
          }
 
+#        ifdef LEAKAGE_PROF_CORR
 //       (1-2) fix potential undershoots near shock, adopted from FLASH
-//       --> the second-to-last value is also checked here
          for (int i=1; i<NRadius-1; i++)
          {
-            if ( NCell[TID][i] == 0L )   continue;
-
-            if ( Dens_CGS[TID][i] < 1.0e3 )
-               Dens_CGS[TID][i] = 0.5 * ( Dens_CGS[TID][i-1] + Dens_CGS[TID][i+1] );
+            if ( Dens_Code[TID][i] < Dens_CorrThresh_Code )
+               Dens_Code[TID][i] = 0.5 * ( Dens_Code[TID][i-1] + Dens_Code[TID][i+1] );
 
 //          make sure the temperature is not within a factor of 2 of the table lower bound
-            if ( Temp_MeV[TID][i] < 2.0 * EoS_TempMin )
-               Temp_MeV[TID][i] = 0.5 * ( Temp_MeV[TID][i-1] + Temp_MeV[TID][i+1] );
+            if ( Temp_Kelv[TID][i] < 2.0 * EoS_TempMin_Kelv )
+               Temp_Kelv[TID][i] = 0.5 * ( Temp_Kelv[TID][i-1] + Temp_Kelv[TID][i+1] );
 
 //          make sure the temperature does not drop by more than 50% from one bin to the next
-            if ( Temp_MeV[TID][i] < 0.5 * Temp_MeV[TID][i-1] )
-               Temp_MeV[TID][i] = 0.5 * ( Temp_MeV[TID][i-1] + Temp_MeV[TID][i+1] );
+            if ( Temp_Kelv[TID][i] < 0.5 * Temp_Kelv[TID][i-1] )
+               Temp_Kelv[TID][i] = 0.5 * ( Temp_Kelv[TID][i-1] + Temp_Kelv[TID][i+1] );
 
             if (  ( Ye[TID][i] < 0.0 )  ||  ( Ye[TID][i] > 0.53 )  )
                Ye[TID][i] = 0.5 * ( Ye[TID][i-1] + Ye[TID][i+1] );
+         }
+#        endif
+
+//       (1-3) unit conversion
+         for (int i=0; i<NRadius; i++)
+         {
+            Dens_CGS[TID][i] = Dens_Code[TID][i] * UNIT_D;
+            Temp_MeV[TID][i] = Temp_Kelv[TID][i] * Kelvin2MeV;
          }
 
 
@@ -247,53 +257,36 @@ void Src_Leakage_ComputeTau( Profile_t *Ray[], double *Edge,
 
          for (int i=0; i<NRadius; i++)
          {
-            if ( NCell[TID][i] == 0L )
+            In_Flt[0] = Dens_Code[TID][i];
+            In_Flt[1] = Temp_Kelv[TID][i];
+            In_Flt[2] = Ye       [TID][i];
+            In_Flt[3] = Temp_Kelv[TID][i];
+
+            EoS_General_CPUPtr( NUC_MODE_TEMP, Out, In_Flt, In_Int, EoS_AuxArray_Flt, EoS_AuxArray_Int, h_EoS_Table );
+
+//          check the obtained EoS variables are not NaN
+#           ifdef GAMER_DEBUG
+            for (int n=0; n<NTarget; n++)
             {
-               Eint_Code[TID][i] = 0.0;
-               eta_e    [TID][i] = 0.0;
-               eta_p    [TID][i] = 0.0;
-               eta_n    [TID][i] = 0.0;
-               x_h      [TID][i] = 0.0;
-               x_n      [TID][i] = 0.0;
-               x_p      [TID][i] = 0.0;
-               abar     [TID][i] = 0.0;
-               zbar     [TID][i] = 0.0;
-               eta_hat  [TID][i] = 0.0;
-            }
-
-            else
-            {
-               In_Flt[0] = Dens_Code[TID][i];
-               In_Flt[1] = Temp_Kelv[TID][i];
-               In_Flt[2] = Ye       [TID][i];
-               In_Flt[3] = Temp_Kelv[TID][i];
-
-               EoS_General_CPUPtr( NUC_MODE_TEMP, Out, In_Flt, In_Int, EoS_AuxArray_Flt, EoS_AuxArray_Int, h_EoS_Table );
-
-//             check the obtained EoS variables are not NaN
-#              ifdef GAMER_DEBUG
-               for (int n=0; n<NTarget; n++)
+               if ( Out[n] != Out[n] )
                {
-                  if ( Out[n] != Out[n] )
-                  {
-                     Aux_Message( stderr, "unphysical thermal variable (%d = %13.7e) in %s\n", In_Int[n+1], Out[n], __FUNCTION__ );
-                     Aux_Message( stderr, "   Dens=%13.7e code units, Temp=%13.7e Kelvin, Ye=%13.7e, Mode %d\n",
-                                          In_Flt[0], In_Flt[1], In_Flt[2], NUC_MODE_TEMP );
-                  }
+                  Aux_Message( stderr, "unphysical thermal variable (%d = %13.7e) in %s\n", In_Int[n+1], Out[n], __FUNCTION__ );
+                  Aux_Message( stderr, "   Dens=%13.7e code units, Temp=%13.7e Kelvin, Ye=%13.7e, Mode %d\n",
+                                       In_Flt[0], In_Flt[1], In_Flt[2], NUC_MODE_TEMP );
                }
-#              endif
+            }
+#           endif
 
-               Eint_Code[TID][i] = Out[0];
-               eta_e    [TID][i] = Out[1] / Temp_MeV[TID][i];
-               eta_p    [TID][i] = Out[2] / Temp_MeV[TID][i];
-               eta_n    [TID][i] = Out[3] / Temp_MeV[TID][i];
-               x_h      [TID][i] = Out[4];
-               x_n      [TID][i] = Out[5];
-               x_p      [TID][i] = Out[6];
-               abar     [TID][i] = Out[7];
-               zbar     [TID][i] = Out[8];
-               eta_hat  [TID][i] = eta_n[TID][i] - eta_p[TID][i] - Const_Qnp / Temp_MeV[TID][i];
-            } // if ( NCell[TID][i] == 0L ) ... else ...
+            Eint_Code[TID][i] = Out[0];
+            eta_e    [TID][i] = Out[1] / Temp_MeV[TID][i];
+            eta_p    [TID][i] = Out[2] / Temp_MeV[TID][i];
+            eta_n    [TID][i] = Out[3] / Temp_MeV[TID][i];
+            x_h      [TID][i] = Out[4];
+            x_n      [TID][i] = Out[5];
+            x_p      [TID][i] = Out[6];
+            abar     [TID][i] = Out[7];
+            zbar     [TID][i] = Out[8];
+            eta_hat  [TID][i] = eta_n[TID][i] - eta_p[TID][i] - Const_Qnp / Temp_MeV[TID][i];
 
             eta_nu[TID][i][0] = eta_e[TID][i] - eta_n[TID][i] + eta_p[TID][i]; // include effects of rest mass
             eta_nu[TID][i][1] = -eta_nu[TID][i][0];
@@ -472,9 +465,7 @@ void Src_Leakage_ComputeTau( Profile_t *Ray[], double *Edge,
 
 //          coherent neutrino nucleus scattering; (A18)
 //          --> the power of Abar is 1 because the opacity multiples the number fraction, not mass fraction
-            kappa_scat_fac_Rosswog *= ( NCell[TID][i] == 0L )
-                                    ? 0.0
-                                    : 0.25 * abar[TID][i] * SQR( 1.0 - zbar[TID][i] / abar[TID][i] );
+            kappa_scat_fac_Rosswog *= 0.25 * abar[TID][i] * SQR( 1.0 - zbar[TID][i] / abar[TID][i] );
 
             for (int k=0; k<NType_Neutrino; k++)
                kappa_tilde_scat_x[k] = x_h[TID][i] * kappa_scat_fac_Rosswog;
@@ -602,20 +593,12 @@ void Src_Leakage_ComputeTau( Profile_t *Ray[], double *Edge,
             lepton_blocking[0] = 1.0 / (  1.0 + exp(  eta_e[TID][i] - FermiInte[2][0] / FermiInte[1][0] )  );
             lepton_blocking[1] = 1.0 / (  1.0 + exp( -eta_e[TID][i] - FermiInte[2][1] / FermiInte[1][1] )  );
 
-            if ( NCell[TID][i] == 0L )
-            {
-               for (int k=0; k<NType_Neutrino-1; k++)   lum[k] = 0.0;
-            }
-
-            else
-            {
-//             get the change in luminosity
-//             --> the returned lum is the luminosity per volume
-               Src_Leakage_ComputeLeak( Dens_Code[TID][i], Temp_Kelv[TID][i], Ye[TID][i], chi_Ross_3D[i][j], tau_Ruff_3D[i][j],
-                                        Heat_Flux_3D[i][j], HeatE_Rms_2D[j], HeatE_Ave_2D[j],
-                                        dEdt[TID]+i, dYedt[TID]+i, lum, heat, netheat,
-                                        NuHeat, NuHeat_Fac, UNIT_D, &EoS );
-            }
+//          get the change in luminosity
+//          --> the returned lum is the luminosity per volume
+            Src_Leakage_ComputeLeak( Dens_Code[TID][i], Temp_Kelv[TID][i], Ye[TID][i], chi_Ross_3D[i][j], tau_Ruff_3D[i][j],
+                                     Heat_Flux_3D[i][j], HeatE_Rms_2D[j], HeatE_Ave_2D[j],
+                                     dEdt[TID]+i, dYedt[TID]+i, lum, heat, netheat,
+                                     NuHeat, NuHeat_Fac, UNIT_D, &EoS );
 
             for (int k=0; k<NType_Neutrino-1; k++)
             {

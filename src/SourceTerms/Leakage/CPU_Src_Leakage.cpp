@@ -666,32 +666,25 @@ void Src_WorkBeforeMajorFunc_Leakage( const int lv, const double TimeNew, const 
    if ( Step == Leakage_Step )   return;
 
 
-// (1) find the position of proto-neutron star center
-   Extrema_t Extrema;
-   Extrema.Field     = _DENS;
-   Extrema.Radius    = HUGE_NUMBER;
-   Extrema.Center[0] = amr->BoxCenter[0];
-   Extrema.Center[1] = amr->BoxCenter[1];
-   Extrema.Center[2] = amr->BoxCenter[2];
+// (1) set the leakage center to the GREP center, if available
+   double Leakage_Center[3];
 
-   Aux_FindExtrema( &Extrema, EXTREMA_MAX, 0, TOP_LEVEL, PATCH_LEAF );
-
-// (1-1) subtract off half cell width if the maximum locates at one of the most central zones
-   const double Extrema_dh = amr->dh[ Extrema.Level ];
-
-   if (  ( fabs( Extrema.Coord[0] - amr->BoxCenter[0] ) < Extrema_dh )  &&
-         ( fabs( Extrema.Coord[1] - amr->BoxCenter[1] ) < Extrema_dh )  &&
-         ( fabs( Extrema.Coord[2] - amr->BoxCenter[2] ) < Extrema_dh )      )
-      for (int i=0; i<3; i++)   Extrema.Coord[i] = amr->BoxCenter[i];
+#  ifdef GRAVITY
+   for (int i=0; i<3; i++)   Leakage_Center[i] = GREP_Center[i];
+#  else
+   for (int i=0; i<3; i++)   Leakage_Center[i] = amr->BoxCenter[i];
+#  endif
 
 
-// (2) set up the ray coordinate
+// (2) set up the coordinate of leakage rays
+//     --> in linear scale for                 r <= RadiusMin_Log
+//            log              RadiusMin_Log < r <  MaxRadius
    const double BinSize_Linear = AuxArray_Flt[SRC_AUX_DRAD      ];
    const double MaxRadius      = AuxArray_Flt[SRC_AUX_MAXRADIUS ];
    const int    NRad_Linear    = AuxArray_Int[SRC_AUX_NRAD_LIN  ];
    const double RadiusMin_Log  = AuxArray_Flt[SRC_AUX_RADMIN_LOG];
 
-   const double Factor = Src_Leakage_ConstructSeries( NRad - NRad_Linear, RadiusMin_Log, MaxRadius, BinSize_Linear );
+   const double Factor      = Src_Leakage_ConstructSeries( NRad - NRad_Linear, RadiusMin_Log, MaxRadius, BinSize_Linear );
          double BinSize_Log = BinSize_Linear;
          double Edge[NRad+1];
 
@@ -710,10 +703,10 @@ void Src_WorkBeforeMajorFunc_Leakage( const int lv, const double TimeNew, const 
    for (int i=0; i<NRad; i++)   h_SrcLeakage_Radius[i] = 0.5 * ( Edge[i] + Edge[i+1] );
 
 
-// (3) sample ray
+// (3) sampling the leakage ray
 //     --> prepare data at TimeOld because data on higher level at TimeNew are not available
 #  ifndef _YE
-   const long _YE = 0;
+   const long _YE = NULL_INT;
 #  endif
    const int  NProf  = 3;
    const int  NData  = NRad * NTheta * NPhi;
@@ -722,9 +715,12 @@ void Src_WorkBeforeMajorFunc_Leakage( const int lv, const double TimeNew, const 
    Profile_t  Ray_Dens_Code, Ray_Temp_Kelv, Ray_Ye;
    Profile_t *Leakage_Ray[] = { &Ray_Dens_Code, &Ray_Temp_Kelv, &Ray_Ye };
 
-   Aux_ComputeRay( Leakage_Ray, Extrema.Coord, Edge, NRad_Linear, NRad, NTheta, NPhi,
-                   BinSize_Linear, RadiusMin_Log, MaxRadius, TVar, NProf, TimeOld );
+// construct the leakage profiles sequentially to minimize memory usage.
+   for (int i=0; i<NProf; i++)
+      Aux_ComputeRay( &Leakage_Ray[i], Leakage_Center, Edge, NRad_Linear, NRad, NTheta, NPhi,
+                      BinSize_Linear, RadiusMin_Log, MaxRadius, &TVar[i], 1, TimeOld );
 
+// convert electron density to electron fraction
    for (int i=0; i<NData; i++)
       if ( Ray_Ye.NCell[i] != 0L )   Ray_Ye.Data[i] /= Ray_Dens_Code.Data[i];
 
@@ -736,9 +732,9 @@ void Src_WorkBeforeMajorFunc_Leakage( const int lv, const double TimeNew, const 
 
 
 // (5) update AuxArray_Flt and AuxArray_Int
-   AuxArray_Flt[SRC_AUX_PNS_X] = Extrema.Coord[0];
-   AuxArray_Flt[SRC_AUX_PNS_Y] = Extrema.Coord[1];
-   AuxArray_Flt[SRC_AUX_PNS_Z] = Extrema.Coord[2];
+   AuxArray_Flt[SRC_AUX_PNS_X] = Leakage_Center[0];
+   AuxArray_Flt[SRC_AUX_PNS_Y] = Leakage_Center[1];
+   AuxArray_Flt[SRC_AUX_PNS_Z] = Leakage_Center[2];
 
 #  ifdef GPU
    Src_SetConstMemory_Leakage( AuxArray_Flt, AuxArray_Int,
