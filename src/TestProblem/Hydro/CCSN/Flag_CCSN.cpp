@@ -192,15 +192,16 @@ bool Flag_Region_CCSN( const int i, const int j, const int k, const int lv, cons
 
 
 // check allowed maximum refine level based on distance to the center
-   const double R_base    = ( CCSN_Is_PostBounce  &&  CCSN_Rsh_Ave > 0.0 )
-                          ? fmax( 2.0 * CCSN_Rsh_Max - CCSN_Rsh_Ave, CCSN_REF_RBase )
-                          : CCSN_REF_RBase;
-         int    ratio     = (int) ( R / R_base );
-         int    dlv       = (R * UNIT_L > 3.0e6) ? 2 : 1;
+   if ( CCSN_REF_RBase > 0.0 )
+   {
+      const double R_base = CCSN_REF_RBase;
+            int    ratio  = (int) ( R / R_base );
+            int    dlv    = 0;
 
-   while ( ratio )   { dlv += 1; ratio >>= 1; }
+      while ( ratio )   { dlv += 1; ratio >>= 1; }
 
-   if ( lv + dlv > MAX_LEVEL )  Within = false;
+      if ( lv + dlv >= MAX_LEVEL )  Within = false;
+   }
 
 
    return Within;
