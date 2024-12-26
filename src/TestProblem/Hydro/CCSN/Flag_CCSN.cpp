@@ -177,8 +177,12 @@ bool Flag_Region_CCSN( const int i, const int j, const int k, const int lv, cons
 #  else
    const double dR [3] = { Pos[0]-amr->BoxCenter[0], Pos[1]-amr->BoxCenter[1], Pos[2]-amr->BoxCenter[2] };
 #  endif
-   const double R     = sqrt( SQR(dR[0]) + SQR(dR[1]) + SQR(dR[2]) );
+   const double R      = sqrt( SQR(dR[0]) + SQR(dR[1]) + SQR(dR[2]) );
 
+
+// must check CCSN_MaxRefine_Rad before evaluating other criteria
+   if ( R * UNIT_L <= CCSN_MaxRefine_Rad )
+      return true;
 
 // check the maximum allowed refinement level based on angular resolution
    if ( CCSN_AngRes_Max > 0.0  &&  2.0 * R * CCSN_AngRes_Max > dh )
