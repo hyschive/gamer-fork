@@ -88,7 +88,7 @@ double Mis_GetTimeStep_Leakage( const int lv, const double dTime_dt );
 double Mis_GetTimeStep_CoreCollapse( const int lv, const double dTime_dt );
 bool   Flag_Region_CCSN( const int i, const int j, const int k, const int lv, const int PID );
 bool   Flag_CoreCollapse( const int i, const int j, const int k, const int lv, const int PID, const double *Threshold );
-bool   Flag_Lightbulb( const int i, const int j, const int k, const int lv, const int PID, const double *Threshold );
+bool   Flag_PostBounce( const int i, const int j, const int k, const int lv, const int PID, const double *Threshold );
 
 
 
@@ -945,7 +945,7 @@ bool Flag_CCSN( const int i, const int j, const int k, const int lv, const int P
 
    if (  ( CCSN_Prob == Post_Bounce )  ||  SrcTerms.Lightbulb  ||  SrcTerms.Leakage  )
    {
-      Flag |= Flag_Lightbulb( i, j, k, lv, PID, Threshold );
+      Flag |= Flag_PostBounce( i, j, k, lv, PID, Threshold );
       if ( Flag )    return Flag;
    }
 
