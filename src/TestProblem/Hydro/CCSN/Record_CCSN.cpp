@@ -36,7 +36,7 @@ extern void Src_WorkBeforeMajorFunc_Leakage( const int lv, const double TimeNew,
 void Record_CCSN_CentralQuant()
 {
 
-   const char   filename_central_quant[] = "Record__CentralQuant";
+   const char FileName[] = "Record__CentralQuant";
 
 // allocate memory for per-thread arrays
 #  ifdef OPENMP
@@ -139,6 +139,12 @@ void Record_CCSN_CentralQuant()
 
 
 // write to the file "Record__CentralQuant" by the MPI process which has the target patch
+#  if ( NEUTRINO_SCHEME == LEAKAGE )
+   const int NColumn = 28;
+#  else
+   const int NColumn = 14;
+#  endif
+
    if ( MPI_Rank == Data_Int[0] )
    {
 
@@ -147,44 +153,53 @@ void Record_CCSN_CentralQuant()
 //    file header
       if ( FirstTime )
       {
-         if ( Aux_CheckFileExist(filename_central_quant) )
-         {
-             Aux_Message( stderr, "WARNING : file \"%s\" already exists !!\n", filename_central_quant );
-         }
+         if ( Aux_CheckFileExist(FileName) )
+            Aux_Message( stderr, "WARNING : file \"%s\" already exists !!\n", FileName );
 
          else
          {
-             FILE *file_cent_quant = fopen( filename_central_quant, "w" );
+            FILE *File = fopen( FileName, "w" );
 
-             fprintf( file_cent_quant, "#%14s %8s %15s %15s %15s %15s %15s %15s %15s %16s %15s %16s %16s %16s",
-                                       "1_Time", "2_Step", "3_PosX", "4_PosY", "5_PosZ",
-                                       "6_Dens", "7_Ye", "8_Rsh_Min", "9_Rsh_Ave_V", "10_Rsh_Ave_Vinv", "11_Rsh_Max",
-                                       "11_GREP_PosX", "12_GREP_PosY", "13_GREP_PosZ" );
+//          column index
+            Aux_Message( File, "#%14s  %8s", "[ 1]", "[ 2]" );
+            for (int c=2; c<NColumn; c++)   Aux_Message( File, "  %13s[%2d]", "", c+1 );
+            Aux_Message( File, "\n" );
 
-#            if ( defined NEUTRINO_SCHEME  &&  NEUTRINO_SCHEME == LEAKAGE )
-             fprintf( file_cent_quant, " %21s %16s %16s %16s %17s %17s %20s %20s %17s %17s %17s %18s %18s %18s",
-                                       "12_Leak_NetHeat_Gain", "13_Leak_Lum_Nue", "14_Leak_Lum_Nua", "15_Leak_Lum_Nux",
-                                       "16_Leak_Heat_Nue", "17_Leak_Heat_Nua", "18_Leak_NetHeat_Nue", "19_Leak_NetHeat_Nua",
-                                       "20_Leak_EAve_Nue", "21_Leak_EAve_Nua", "22_Leak_EAve_Nux",
-                                       "23_Leak_RadNS_Nue", "24_Leak_RadNS_Nua", "25_Leak_RadNS_Nux" );
-#            endif
+//          field name
+            Aux_Message( File, "#%14s  %8s",               "Time", "Step"                                    );
+            Aux_Message( File, "  %17s  %17s  %17s",       "PosX", "PosY", "PosZ"                            );
+            Aux_Message( File, "  %17s  %17s",             "Dens", "Ye"                                      );
+            Aux_Message( File, "  %17s  %17s  %17s  %17s", "Rsh_Min", "Rsh_Ave_V", "Rsh_Ave_Vinv", "Rsh_Max" );
+            Aux_Message( File, "  %17s  %17s  %17s",       "GREP_PosX", "GREP_PosY", "GREP_PosZ"             );
 
-             fprintf( file_cent_quant, "\n" );
+#           if ( NEUTRINO_SCHEME == LEAKAGE )
+            Aux_Message( File, "  %17s",             "Leak_NetHeat_Gain"                                       );
+            Aux_Message( File, "  %17s  %17s  %17s",      "Leak_Lum_Nue",     "Leak_Lum_Nua",   "Leak_Lum_Nux" );
+            Aux_Message( File, "  %17s  %17s",           "Leak_Heat_Nue",    "Leak_Heat_Nua"                   );
+            Aux_Message( File, "  %17s  %17s",        "Leak_NetHeat_Nue", "Leak_NetHeat_Nua"                   );
+            Aux_Message( File, "  %17s  %17s  %17s",     "Leak_EAve_Nue",    "Leak_EAve_Nua",  "Leak_EAve_Nux" );
+            Aux_Message( File, "  %17s  %17s  %17s",    "Leak_RadNS_Nue",   "Leak_RadNS_Nua", "Leak_RadNS_Nux" );
+#           endif
+            Aux_Message( File, "\n" );
 
-             fprintf( file_cent_quant, "#%14s %8s %15s %15s %15s %15s %15s %15s %15s %16s %15s %16s %16s %16s",
-                                       "[sec]", "[1]", "[cm]", "[cm]", "[cm]", "[g/cm^3]", "[1]", "[cm]", "[cm]", "[cm]", "[cm]", "[cm]", "[cm]", "[cm]" );
+//          field unit
+            Aux_Message( File, "#%14s  %8s",               "[sec]", "[1]"                 );
+            Aux_Message( File, "  %17s  %17s  %17s",       "[cm]", "[cm]", "[cm]"         );
+            Aux_Message( File, "  %17s  %17s",             "[g/cm^3]", "[1]"              );
+            Aux_Message( File, "  %17s  %17s  %17s  %17s", "[cm]", "[cm]", "[cm]", "[cm]" );
+            Aux_Message( File, "  %17s  %17s  %17s",       "[cm]", "[cm]", "[cm]"         );
 
-#            if ( defined NEUTRINO_SCHEME  &&  NEUTRINO_SCHEME == LEAKAGE )
-             fprintf( file_cent_quant, " %21s %16s %16s %16s %17s %17s %20s %20s %17s %17s %17s %18s %18s %18s",
-                                       "[erg/s]", "[erg/s]", "[erg/s]", "[erg/s]",
-                                       "[erg/s]", "[erg/s]", "[erg/s]", "[erg/s]",
-                                       "[MeV]", "[MeV]", "[MeV]",
-                                       "[cm]", "[cm]", "[cm]" );
-#            endif
+#           if ( NEUTRINO_SCHEME == LEAKAGE )
+            Aux_Message( File, "  %17s",             "[erg/s]"                       );
+            Aux_Message( File, "  %17s  %17s  %17s", "[erg/s]", "[erg/s]", "[erg/s]" );
+            Aux_Message( File, "  %17s  %17s",       "[erg/s]", "[erg/s]"            );
+            Aux_Message( File, "  %17s  %17s",       "[erg/s]", "[erg/s]"            );
+            Aux_Message( File, "  %17s  %17s  %17s", "[MeV]", "[MeV]", "[MeV]"       );
+            Aux_Message( File, "  %17s  %17s  %17s", "[cm]", "[cm]", "[cm]"          );
+#           endif
+            Aux_Message( File, "\n" );
 
-             fprintf( file_cent_quant, "\n" );
-
-             fclose( file_cent_quant );
+            fclose( File );
          }
 
          FirstTime = false;
@@ -206,31 +221,29 @@ void Record_CCSN_CentralQuant()
       const real Ye = (real)0.0;
 #     endif
 
-      FILE *file_cent_quant = fopen( filename_central_quant, "a" );
+      FILE *File = fopen( FileName, "a" );
 
-      fprintf( file_cent_quant, "%15.7e %8ld %15.7e %15.7e %15.7e %15.7e %15.7e %15.7e %15.7e %16.7e %15.7e",
-               Time[0]*UNIT_T, Step, Data_Flt[1]*UNIT_L, Data_Flt[2]*UNIT_L, Data_Flt[3]*UNIT_L,
-               u[DENS]*UNIT_D, Ye, CCSN_Rsh_Min*UNIT_L, CCSN_Rsh_Ave_V*UNIT_L, CCSN_Rsh_Ave_Vinv*UNIT_L, CCSN_Rsh_Max*UNIT_L );
-
+      Aux_Message( File, " %14.7e  %8ld",                    Time[0]*UNIT_T, Step                                                                      );
+      Aux_Message( File, "  %17.7e  %17.7e  %17.7e",         Data_Flt[1]*UNIT_L, Data_Flt[2]*UNIT_L, Data_Flt[3]*UNIT_L                                );
+      Aux_Message( File, "  %17.7e  %17.7e",                 u[DENS]*UNIT_D, Ye                                                                        );
+      Aux_Message( File, "  %17.7e  %17.7e  %17.7e  %17.7e", CCSN_Rsh_Min*UNIT_L, CCSN_Rsh_Ave_V*UNIT_L, CCSN_Rsh_Ave_Vinv*UNIT_L, CCSN_Rsh_Max*UNIT_L );
 #     ifdef GRAVITY
-      fprintf( file_cent_quant, " %16.7e %16.7e %16.7e",
-               GREP_Center[0]*UNIT_L, GREP_Center[1]*UNIT_L, GREP_Center[2]*UNIT_L );
+      for (int i=0; i<3; i++)   Aux_Message( File, "  %17.7e", GREP_Center[i]*UNIT_L );
 #     else
-      fprintf( file_cent_quant, " %16.7e %16.7e %16.7e",
-               NULL_REAL, NULL_REAL, NULL_REAL );
+      for (int i=0; i<3; i++)   Aux_Message( File, "  %17.7e", NULL_REAL             );
 #     endif
 
-#     if ( defined NEUTRINO_SCHEME  &&  NEUTRINO_SCHEME == LEAKAGE )
-      fprintf( file_cent_quant, " %21.7e %16.7e %16.7e %16.7e %17.7e %17.7e %20.7e %20.7e %17.7e %17.7e %17.7e %18.7e %18.7e %18.7e",
-               CCSN_Leakage_NetHeatGain, CCSN_Leakage_Lum[0], CCSN_Leakage_Lum[1], CCSN_Leakage_Lum[2],
-               CCSN_Leakage_Heat[0], CCSN_Leakage_Heat[1], CCSN_Leakage_NetHeat[0], CCSN_Leakage_NetHeat[1],
-               CCSN_Leakage_EAve[0], CCSN_Leakage_EAve[1], CCSN_Leakage_EAve[2],
-               CCSN_Leakage_RadNS[0], CCSN_Leakage_RadNS[1], CCSN_Leakage_RadNS[2] );
+#     if ( NEUTRINO_SCHEME == LEAKAGE )
+      Aux_Message( File, "  %17.7e",                 CCSN_Leakage_NetHeatGain                                                );
+      Aux_Message( File, "  %17.7e  %17.7e  %17.7e", CCSN_Leakage_Lum    [0], CCSN_Leakage_Lum    [1], CCSN_Leakage_Lum  [2] );
+      Aux_Message( File, "  %17.7e  %17.7e",         CCSN_Leakage_Heat   [0], CCSN_Leakage_Heat   [1]                        );
+      Aux_Message( File, "  %17.7e  %17.7e",         CCSN_Leakage_NetHeat[0], CCSN_Leakage_NetHeat[1]                        );
+      Aux_Message( File, "  %17.7e  %17.7e  %17.7e", CCSN_Leakage_EAve   [0], CCSN_Leakage_EAve   [1], CCSN_Leakage_EAve [2] );
+      Aux_Message( File, "  %17.7e  %17.7e  %17.7e", CCSN_Leakage_RadNS  [0], CCSN_Leakage_RadNS  [1], CCSN_Leakage_RadNS[2] );
 #     endif
+      Aux_Message( File, "\n" );
 
-      fprintf( file_cent_quant, "\n" );
-
-      fclose( file_cent_quant );
+      fclose( File );
 
    } // if ( MPI_Rank == 0 )
 

@@ -9,7 +9,6 @@
 // not apply any correction to the leakage profiles for the stability issue
 //#define LEAKAGE_PROF_CORR
 
-static int    NIter_Max = 200;
 extern double CCSN_Leakage_EAve [NType_Neutrino];
 extern double CCSN_Leakage_RadNS[NType_Neutrino];
 
@@ -265,17 +264,14 @@ void Src_Leakage_ComputeTau( Profile_t *Ray[], double *Edge,
             EoS_General_CPUPtr( NUC_MODE_TEMP, Out, In_Flt, In_Int, EoS_AuxArray_Flt, EoS_AuxArray_Int, h_EoS_Table );
 
 //          check the obtained EoS variables are not NaN
-#           ifdef GAMER_DEBUG
+            bool EOS_IsFinite = true;
+
             for (int n=0; n<NTarget; n++)
-            {
-               if ( Out[n] != Out[n] )
-               {
-                  Aux_Message( stderr, "unphysical thermal variable (%d = %13.7e) in %s\n", In_Int[n+1], Out[n], __FUNCTION__ );
-                  Aux_Message( stderr, "   Dens=%13.7e code units, Temp=%13.7e Kelvin, Ye=%13.7e, Mode %d\n",
-                                       In_Flt[0], In_Flt[1], In_Flt[2], NUC_MODE_TEMP );
-               }
-            }
-#           endif
+               if ( Out[n] != Out[n] )   { EOS_IsFinite = false;   break; }
+
+            if ( ! EOS_IsFinite )
+               Aux_Error( ERROR_INFO, "unphysical thermal variable in %s, Dens=%13.7e code units, Temp=%13.7e Kelvin, Ye=%13.7e, Mode %d\n",
+                          __FUNCTION__, In_Flt[0], In_Flt[1], In_Flt[2], NUC_MODE_TEMP );
 
             Eint_Code[TID][i] = Out[0];
             eta_e    [TID][i] = Out[1] / Temp_MeV[TID][i];
@@ -314,7 +310,9 @@ void Src_Leakage_ComputeTau( Profile_t *Ray[], double *Edge,
          }
 
 //       (3-2) loop to get converged optical depth
-         int NIter = 1;
+         const int  NIter_Max   = 200;
+               int  NIter       = 0;
+               bool IsConverged = false;
 
          while ( NIter < NIter_Max )
          {
@@ -402,36 +400,34 @@ void Src_Leakage_ComputeTau( Profile_t *Ray[], double *Edge,
 
 
 //          compute the relative change in total opacity
-            bool IsConverged = true;
+            IsConverged = true;
 
             for (int i=0; i<NRadius;        i++) {
             for (int k=0; k<NType_Neutrino; k++) {
-               if ( !IsConverged )   break;
+               if ( ! IsConverged )   break;
 
                double rel_diff = fabs( kappa_tot[TID][i][k] / kappa_tot_old[TID][i][k] - 1.0 );
 
                if ( rel_diff > Tolerance_Leak )   IsConverged = false;
             }}
 
-            if ( IsConverged )   break;
-
-
             NIter++;
          } // while ( NIter < NIter_Max )
 
-         if ( NIter >= NIter_Max )
+         if ( ! IsConverged )
          {
-#           ifdef GAMER_DEBUG
-            Aux_Message( stderr, "#%13s %14s %14s %14s %14s %14s %14s %14s %14s %14s %14s\n",
-                                 "Index", "NCell", "kappa_old[0]", "kappa_old[1]", "kappa_old[2]",
-                                 "kappa_new[0]", "kappa_new[1]", "kappa_new[2]", "tau[0]", "tau[1]", "tau[2]" );
+            Aux_Message( stderr, "#%6s %8s %14s %14s %14s %14s %14s %14s %14s %14s %14s\n",
+                                 "Index", "NCell",
+                                 "kappa_old[0]", "kappa_old[1]", "kappa_old[2]",
+                                 "kappa_new[0]", "kappa_new[1]", "kappa_new[2]",
+                                 "tau[0]", "tau[1]", "tau[2]" );
 
             for (int i=0; i<NRadius; i++)
-               Aux_Message( stderr, "%14d %14ld %14.6e %14.6e %14.6e %14.6e %14.6e %14.6e %14.6e %14.6e %14.6e\n",
-                                    i, NCell[TID][i], kappa_tot_old[TID][i][0], kappa_tot_old[TID][i][1], kappa_tot_old[TID][i][2],
-                                    kappa_tot[TID][i][0], kappa_tot[TID][i][1], kappa_tot[TID][i][2],
-                                    tau[TID][i][0], tau[TID][i][1], tau[TID][i][2] );
-#           endif
+               Aux_Message( stderr, "%7d %8ld %14.6e %14.6e %14.6e %14.6e %14.6e %14.6e %14.6e %14.6e %14.6e\n",
+                                    i, NCell[TID][i],
+                                    kappa_tot_old[TID][i][0], kappa_tot_old[TID][i][1], kappa_tot_old[TID][i][2],
+                                    kappa_tot    [TID][i][0], kappa_tot    [TID][i][1], kappa_tot    [TID][i][2],
+                                    tau          [TID][i][0], tau          [TID][i][1], tau          [TID][i][2] );
 
             Aux_Error( ERROR_INFO, "failed in finding converged opacity for Ray (%d) in %s !!\n",
                        j, __FUNCTION__ );
@@ -610,46 +606,65 @@ void Src_Leakage_ComputeTau( Profile_t *Ray[], double *Edge,
 
 //       (6) dump ray data for debug
 #        ifdef GAMER_DEBUG
-         char FileName_Leakage[50];
+         const int  NColumn = 16;
+               char FileName[50];
 
-         sprintf( FileName_Leakage, "Leakage_Lum_%06d", j );
-         FILE *File_Leakage = fopen( FileName_Leakage, "w" );
+         sprintf( FileName, "Leakage_Lum_%06d", j );
+         FILE *File = fopen( FileName, "w" );
 
          const int idx_theta = j % NTheta;
          const int idx_phi   = int(j / NTheta);
 
 //       metadata
-         fprintf( File_Leakage, "# Idx_Ray = %6d, Idx_Theta = %3d, Idx_Phi = %3d\n#\n",
-                                j, idx_theta, idx_phi );
+         Aux_Message( File, "# Idx_Ray       : %6d\n",    j                  );
+         Aux_Message( File, "# Idx_Theta     : %6d\n",    idx_theta          );
+         Aux_Message( File, "# Idx_Phi       : %6d\n",    idx_phi            );
+         Aux_Message( File, "# Rad_NS_Nue    : %14.6e\n", NS_loc[0]          );
+         Aux_Message( File, "# Rad_NS_Nua    : %14.6e\n", NS_loc[1]          );
+         Aux_Message( File, "# Rad_NS_Nux    : %14.6e\n", NS_loc[2]          );
+         Aux_Message( File, "# HeatE_Rms_Nue : %14.6e\n", HeatE_Rms_2D[j][0] );
+         Aux_Message( File, "# HeatE_Rms_Nua : %14.6e\n", HeatE_Rms_2D[j][1] );
+         Aux_Message( File, "# HeatE_Rms_Nux : %14.6e\n", HeatE_Rms_2D[j][2] );
+         Aux_Message( File, "# HeatE_Ave_Nue : %14.6e\n", HeatE_Ave_2D[j][0] );
+         Aux_Message( File, "# HeatE_Ave_Nua : %14.6e\n", HeatE_Ave_2D[j][1] );
+         Aux_Message( File, "# HeatE_Ave_Nux : %14.6e\n", HeatE_Ave_2D[j][2] );
+         Aux_Message( File, "# -------------------------------------------------------------------------------\n" );
+
+         Aux_Message( File, "#%14s  %8s", "[ 1]", "[ 2]" );
+         for (int c=2; c<NColumn; c++)   Aux_Message( File, "  %10s[%2d]", "", c+1 );
+         Aux_Message( File, "\n" );
+
+         Aux_Message( File, "#%14s  %8s",               "Radius", "NCell"                              );
+         Aux_Message( File, "  %14s  %14s  %14s  %14s", "Dens", "Temp", "Ye", "Eint"                   );
+         Aux_Message( File, "  %14s  %14s  %14s",       "tau_Ruff_Nue", "tau_Ruff_Nua", "tau_Ruff_Nux" );
+         Aux_Message( File, "  %14s  %14s  %14s",       "chi_Ross_Nue", "chi_Ross_Nua", "chi_Ross_Nux" );
+         Aux_Message( File, "  %14s  %14s",             "HeatFlux_Nue", "HeatFlux_Nua"                 );
+         Aux_Message( File, "  %14s  %14s",             "dEdt", "dYedt"                                );
+         Aux_Message( File, "\n" );
+
+         Aux_Message( File, "#%14s  %8s",               "[cm]", "[1]"                               );
+         Aux_Message( File, "  %14s  %14s  %14s  %14s", "[g/cm^3]", "[Kelvin]", "[1]", "[cm^2/s^2]" );
+         Aux_Message( File, "  %14s  %14s  %14s",       "[1]", "[1]", "[1]"                         );
+         Aux_Message( File, "  %14s  %14s  %14s",       "[1]", "[1]", "[1]"                         );
+         Aux_Message( File, "  %14s  %14s",             "[erg/cm^2/s]", "[erg/cm^2/s]"              );
+         Aux_Message( File, "  %14s  %14s",             "[erg/g/s]", "[1/s]"                        );
+         Aux_Message( File, "\n" );
 
 //       ray data
-         fprintf( File_Leakage, "# Rad_NS_Nue    = %14.6e, Rad_NS_Nua    = %14.6e, Rad_NS_Nux    = %14.6e\n",
-                                NS_loc[0], NS_loc[1], NS_loc[2] );
-         fprintf( File_Leakage, "# HeatE_Rms_Nue = %14.6e, HeatE_Rms_Nua = %14.6e, HeatE_Rms_Nux = %14.6e\n",
-                                HeatE_Rms_2D[j][0], HeatE_Rms_2D[j][1], HeatE_Rms_2D[j][2] );
-         fprintf( File_Leakage, "# HeatE_Ave_Nue = %14.6e, HeatE_Ave_Nua = %14.6e, HeatE_Ave_Nux = %14.6e\n#\n",
-                                HeatE_Ave_2D[j][0], HeatE_Ave_2D[j][1], HeatE_Ave_2D[j][2] );
-
-         fprintf( File_Leakage, "#%13s %14s %16s %16s %16s %16s %16s %16s %16s %16s %16s %16s %16s %16s %16s %16s\n",
-                                "1_Radius", "2_NCell", "3_Dens", "4_Temp", "5_Ye", "6_Eint",
-                                "7_tau_Ruff_Nue", "8_tau_Ruff_Nua", "9_tau_Ruff_Nux",
-                                "10_chi_Ross_Nue", "11_chi_Ross_Nua", "12_chi_Ross_Nux",
-                                "13_HeatFlux_Nue", "14_HeatFlux_Nua", "15_dEdt", "16_dYedt" );
-         fprintf( File_Leakage, "#%13s %14s %16s %16s %16s %16s %16s %16s %16s %16s %16s %16s %16s %16s %16s %16s\n",
-                                "[cm]", "[1]", "[g/cm^3]", "[Kelvin]", "[dimensionless]", "[cm^2/s^2]",
-                                "[dimensionless]", "[dimensionless]", "[dimensionless]",
-                                "[dimensionless]", "[dimensionless]", "[dimensionless]",
-                                "[erg/cm^2/s]", "[erg/cm^2/s]", "[erg/g/s]", "[1/s]" );
-
          for (int i=0; i<NRadius; i++)
-            fprintf( File_Leakage, "%14.6e %14ld %16.6e %16.6e %16.6e %16.6e %16.6e %16.6e %16.6e %16.6e %16.6e %16.6e %16.6e %16.6e %16.6e %16.6e\n",
-                                   0.5 * (Edge_CGS[i] + Edge_CGS[i+1]), NCell[TID][i],
-                                   Dens_CGS[TID][i], Temp_Kelv[TID][i], Ye[TID][i], Eint_Code[TID][i] / Dens_Code[TID][i] * SQR(UNIT_V),
-                                   tau_Ruff_3D[i][j][0], tau_Ruff_3D[i][j][1], tau_Ruff_3D[i][j][2],
-                                   chi_Ross_3D[i][j][0], chi_Ross_3D[i][j][1], chi_Ross_3D[i][j][2],
-                                   Heat_Flux_3D[i][j][0] / Const_hc_MeVcm_CUBE, Heat_Flux_3D[i][j][1] / Const_hc_MeVcm_CUBE, dEdt[TID][i], dYedt[TID][i] );
+         {
+            Aux_Message( File, " %14.7e  %8ld",                    0.5 * ( Edge_CGS[i] + Edge_CGS[i+1] ), NCell[TID][i]                                                 );
+            Aux_Message( File, "  %14.7e  %14.7e  %14.7e  %14.7e", Dens_CGS[TID][i], Temp_Kelv[TID][i], Ye[TID][i], Eint_Code[TID][i] / Dens_Code[TID][i] * SQR(UNIT_V) );
 
-         fclose( File_Leakage );
+            for (int k=0; k<NType_Neutrino;   k++)   Aux_Message( File, "  %14.7e", tau_Ruff_3D [i][j][k] );
+            for (int k=0; k<NType_Neutrino;   k++)   Aux_Message( File, "  %14.7e", chi_Ross_3D [i][j][k] );
+            for (int k=0; k<NType_Neutrino-1; k++)   Aux_Message( File, "  %14.7e", Heat_Flux_3D[i][j][k] / Const_hc_MeVcm_CUBE );
+
+            Aux_Message( File, "  %14.7e  %14.7e", dEdt[TID][i], dYedt[TID][i] );
+            Aux_Message( File, "\n" );
+         }
+
+         fclose( File );
 #        endif // #ifdef GAMER_DEBUG
       } // for (int j=IRay_start; j<IRay_end; j++)
    } // #  pragma omp parallel for schedule( runtime )
@@ -680,7 +695,8 @@ void Src_Leakage_ComputeTau( Profile_t *Ray[], double *Edge,
 
 
 // store the radius of neutrino sphere and mean neutrino energy
-   for (int k=0; k<NType_Neutrino; k++)  {
+   for (int k=0; k<NType_Neutrino; k++)
+   {
       CCSN_Leakage_EAve [k] = EAve [k] / NRay;
       CCSN_Leakage_RadNS[k] = RadNS[k] / NRay;
    }
