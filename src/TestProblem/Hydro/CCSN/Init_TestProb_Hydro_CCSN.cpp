@@ -83,9 +83,8 @@ void   Record_CCSN_Leakage();
 void   Record_CCSN_GWSignal();
 void   Detect_CoreBounce();
 void   Detect_Shock();
-double Mis_GetTimeStep_Lightbulb( const int lv, const double dTime_dt );
-double Mis_GetTimeStep_Leakage( const int lv, const double dTime_dt );
 double Mis_GetTimeStep_CoreCollapse( const int lv, const double dTime_dt );
+double Mis_GetTimeStep_PostBounce( const int lv, const double dTime_dt );
 bool   Flag_Region_CCSN( const int i, const int j, const int k, const int lv, const int PID );
 bool   Flag_CoreCollapse( const int i, const int j, const int k, const int lv, const int PID, const double *Threshold );
 bool   Flag_PostBounce( const int i, const int j, const int k, const int lv, const int PID, const double *Threshold );
@@ -883,28 +882,26 @@ void Record_CCSN()
 //-------------------------------------------------------------------------------------------------------
 // Function    :  Mis_GetTimeStep_CCSN
 // Description :  Interface for invoking several functions for estimating the evolution time-step
+//                for CCSN simulations
 //-------------------------------------------------------------------------------------------------------
 double Mis_GetTimeStep_CCSN( const int lv, const double dTime_dt )
 {
 
    double dt_CCSN = HUGE_NUMBER;
 
-   if ( SrcTerms.Lightbulb )
+   if ( ! CCSN_Is_PostBounce )
    {
-      const double dt_LB = Mis_GetTimeStep_Lightbulb( lv, dTime_dt );
-
-      dt_CCSN = fmin( dt_CCSN, dt_LB );
+      if ( SrcTerms.Deleptonization )
+         dt_CCSN = fmin(  dt_CCSN, Mis_GetTimeStep_CoreCollapse( lv, dTime_dt )  );
    }
 
-   if ( SrcTerms.Leakage )
+   else
    {
-      const double dt_NuHeat = Mis_GetTimeStep_Leakage( lv, dTime_dt );
-
-      dt_CCSN = fmin( dt_CCSN, dt_NuHeat );
+#     if ( NEUTRINO_SCHEME == LIGHTBULB  ||  NEUTRINO_SCHEME == LEAKAGE )
+      if ( SrcTerms.Lightbulb  ||  SrcTerms.Leakage )
+         dt_CCSN = fmin(  dt_CCSN, Mis_GetTimeStep_PostBounce  ( lv, dTime_dt )  );
+#     endif
    }
-
-   if ( !CCSN_Is_PostBounce  &&  SrcTerms.Deleptonization )
-      dt_CCSN = fmin(  dt_CCSN, Mis_GetTimeStep_CoreCollapse( lv, dTime_dt )  );
 
 
    return dt_CCSN;
@@ -1006,10 +1003,12 @@ void Init_TestProb_Hydro_CCSN()
    Flag_Region_Ptr          = Flag_Region_CCSN;
    Aux_Record_User_Ptr      = Record_CCSN;
    End_User_Ptr             = End_CCSN;
-   Mis_GetTimeStep_User_Ptr = Mis_GetTimeStep_CCSN;
 #  if ( EOS == EOS_NUCLEAR  &&  NUC_TABLE_MODE == NUC_TABLE_MODE_TEMP )
    Flu_ResetByUser_Func_Ptr = Flu_ResetByUser_CCSN;
 #  endif
+
+   if ( CCSN_Prob != Migration_Test )
+      Mis_GetTimeStep_User_Ptr = Mis_GetTimeStep_CCSN;
 
 
 #  ifdef MHD
