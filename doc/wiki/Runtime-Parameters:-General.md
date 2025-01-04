@@ -80,6 +80,13 @@ Test problem ID. See [[Test Problems]] for details. It currently supports
     * **Restriction:**
 
 
+<a name="TEST"></a>
+* #### `TEST` &ensp; (&#8805;0) &ensp; [0]
+    * **Description:**
+For testing purposes.
+    * **Restriction:**
+
+
 ## Remarks
 
 

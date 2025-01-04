@@ -608,6 +608,7 @@ void Init_Load_Parameter()
 #  endif
    ReadPara->Add( "OPT__CK_INPUT_FLUID",        &OPT__CK_INPUT_FLUID,             false,           Useless_bool,  Useless_bool   );
 
+   ReadPara->Add( "TEST",                       &TEST,                            2,               0,             4              );
 
 
 // load parameters
