@@ -459,6 +459,9 @@ void SetGridIC( real fluid[], const double x, const double y, const double z, co
 #  ifdef YE
    Prim[ YE        ] = (real)(aYe  + dYe *Tanh );
 #  endif
+#  ifdef TEMP_IG
+   Prim[ TEMP_IG   ] = 1.0e6 / Const_kB_eV;
+#  endif
 
 #  ifdef SRHD
    Hydro_Pri2Con( Prim, fluid, NULL_BOOL, NULL_INT, NULL, NULL,
@@ -472,6 +475,12 @@ void SetGridIC( real fluid[], const double x, const double y, const double z, co
    fluid[ MomIdx[1] ] = Prim[ MomIdx[1] ]*fluid[DENS];
    fluid[ MomIdx[2] ] = Prim[ MomIdx[2] ]*fluid[DENS];
    Pres               = Prim[ ENGY      ];
+#  ifdef YE
+   fluid[ YE        ] = Prim[ YE        ]*fluid[DENS];
+#  endif
+#  ifdef TEMP_IG
+   fluid[ TEMP_IG   ] = Prim[ TEMP_IG   ];
+#  endif
 
 // compute and store the total gas energy
    Eint = EoS_DensPres2Eint_CPUPtr( fluid[DENS], Pres, fluid+NCOMP_FLUID,
