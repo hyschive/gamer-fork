@@ -1,5 +1,12 @@
-filename=uniform-granule-ic
+#!/bin/bash
 
-curl https://girder.hub.yt/api/v1/item/66e0028e32f323dee1b801dc/download -o ${filename}.tgz
-tar -zxvf ${filename}.tgz
-rm ${filename}.tgz
+LOCAL_FILENAME="uniform-granule"
+FILE_ID="677cc1c3999605c485c8de80"
+
+# 1. download
+curl https://hub.yt/api/v1/item/${FILE_ID}/download -o "${LOCAL_FILENAME}.tar.gz"
+
+# 2. unzip
+tar -zxvf ${LOCAL_FILENAME}.tar.gz
+rm ${LOCAL_FILENAME}.tar.gz
+
