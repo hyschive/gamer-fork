@@ -1,0 +1,92 @@
+reset
+
+
+# target files
+# -----------------------------------------------------------
+FILE_REF_0256   = 'ReferenceSolution/Nuclear/CCSN_Hydro/flash_n0256'
+FILE_REF_1024   = 'ReferenceSolution/Nuclear/CCSN_Hydro/flash_n1024'
+FILE_REF_4096   = 'ReferenceSolution/Nuclear/CCSN_Hydro/flash_n4096'
+FILE_IN_PREFIX  = 'Xline_y0.000_z0.000'
+FILE_IN_SUFFIX  = ''
+FILE_OUT_PREFIX = 'Fig__Riemann_Hydro_Nuclear'
+DATA_ID         = 10
+
+
+# terminal
+# -----------------------------------------------------------
+set term x11 enhanced
+# set term png enhanced size 1600, 1200 font ",18"
+set output sprintf("Fig__Riemann_Hydro_Nuclear_%06d.png", 10)
+
+
+# specify the resolution and units
+# -----------------------------------------------------------
+NX0_TOT_X = 1024
+UNIT_M    = 1.0e31
+UNIT_L    = 1.0e7
+UNIT_T    = 1.0e-4
+UNIT_V    = UNIT_L/UNIT_T
+UNIT_D    = UNIT_M/UNIT_L**3
+UNIT_P    = UNIT_M/UNIT_L/UNIT_T**2
+
+
+# plot style
+# -----------------------------------------------------------
+set multiplot layout 2, 2
+set xlabel "X [cm]"
+set xtics rotate by -45
+set logscale y
+set style fill empty
+set style line 1 pt 6 ps 2.0 lc rgb "blue"
+set style line 2 pt 6 ps 2.0 lc rgb "orange"
+set style line 3 pt 6 ps 2.0 lc rgb "green"
+set style line 4 pt 6 ps 2.0 lc rgb "red"
+set key right bottom
+
+
+# set the output file
+# -----------------------------------------------------------
+if      ( GPVAL_TERM eq 'pngcairo'   ) FILE_OUT_EXT='png'; \
+else if ( GPVAL_TERM eq 'png'        ) FILE_OUT_EXT='png'; \
+else if ( GPVAL_TERM ne 'x11'        ) print 'Unkown terminal for settting the output file extension !!' quit
+
+
+# plot
+# -----------------------------------------------------------
+FILE_IN = sprintf( '%s_%06d%s', FILE_IN_PREFIX, DATA_ID, FILE_IN_SUFFIX )
+
+# density
+set ylabel "Density [g/cm^{3}]"
+plot FILE_IN       u ($4*UNIT_L):($7*UNIT_D) w lp ls 1 notitle, \
+     FILE_REF_0256 u 1:2                     w lp ls 2 notitle, \
+     FILE_REF_1024 u 1:2                     w lp ls 3 notitle, \
+     FILE_REF_4096 u 1:2                     w lp ls 4 notitle
+
+# vx
+set ylabel "Velocity [cm/s]"
+plot FILE_IN       u ($4*UNIT_L):(($8/$7)*UNIT_V) w lp ls 1 notitle, \
+     FILE_REF_0256 u 1:9                          w lp ls 2 notitle, \
+     FILE_REF_1024 u 1:9                          w lp ls 3 notitle, \
+     FILE_REF_4096 u 1:9                          w lp ls 4 notitle
+
+
+# specific energy
+set ylabel "Specific Energy [cm^{2}/s^{2}]"
+plot FILE_IN       u ($4*UNIT_L):(($11/$7)*UNIT_V**2) w lp ls 1 notitle, \
+     FILE_REF_0256 u 1:4                              w lp ls 2 notitle, \
+     FILE_REF_1024 u 1:4                              w lp ls 3 notitle, \
+     FILE_REF_4096 u 1:4                              w lp ls 4 notitle
+
+
+# ye
+set ylabel "Ye [1]"
+unset logscale y
+plot FILE_IN       u ($4*UNIT_L):($14/$7) w lp ls 1 title sprintf("GAMER (%04d)", NX0_TOT_X), \
+     FILE_REF_0256 u 1:10                 w lp ls 2 title "FLASH (0256)", \
+     FILE_REF_1024 u 1:10                 w lp ls 3 title "FLASH (1024)", \
+     FILE_REF_4096 u 1:10                 w lp ls 4 title "FLASH (4096)"
+
+unset multiplot
+
+
+if ( GPVAL_TERM eq 'x11' ) { pause -1 }

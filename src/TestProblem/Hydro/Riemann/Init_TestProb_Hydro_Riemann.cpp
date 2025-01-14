@@ -460,7 +460,7 @@ void SetGridIC( real fluid[], const double x, const double y, const double z, co
    Prim[ YE        ] = (real)(aYe  + dYe *Tanh );
 #  endif
 #  ifdef TEMP_IG
-   Prim[ TEMP_IG   ] = 1.0e6 / Const_kB_eV;
+   Prim[ TEMP_IG   ] = 1.0e6 / Const_kB_eV; // set the temperature initial guess to 1 MeV
 #  endif
 
 #  ifdef SRHD
@@ -479,7 +479,7 @@ void SetGridIC( real fluid[], const double x, const double y, const double z, co
    fluid[ YE        ] = Prim[ YE        ]*fluid[DENS];
 #  endif
 #  ifdef TEMP_IG
-   fluid[ TEMP_IG   ] = Prim[ TEMP_IG   ];
+   fluid[ TEMP_IG   ] = Prim[ TEMP_IG   ]; // set temperature initial guess for nuclear eos
 #  endif
 
 // compute and store the total gas energy
@@ -489,7 +489,7 @@ void SetGridIC( real fluid[], const double x, const double y, const double z, co
 // do NOT include magnetic energy here
    fluid[ENGY] = Hydro_ConEint2Etot( fluid[DENS], fluid[MOMX], fluid[MOMY], fluid[MOMZ], Eint, 0.0 );
 #  ifdef TEMP_IG
-   fluid[TEMP_IG] = NULL_REAL;
+   fluid[TEMP_IG] = Prim[TEMP_IG]; // set temperature initial guess for nuclear eos
    fluid[TEMP_IG] = EoS_DensEint2Temp_CPUPtr( fluid[DENS], Eint, fluid+NCOMP_FLUID,
                                               EoS_AuxArray_Flt, EoS_AuxArray_Int, h_EoS_Table );
 #  endif
