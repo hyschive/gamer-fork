@@ -460,7 +460,7 @@ void SetGridIC( real fluid[], const double x, const double y, const double z, co
    Prim[ YE        ] = (real)(aYe  + dYe *Tanh );
 #  endif
 #  ifdef TEMP_IG
-   Prim[ TEMP_IG   ] = 1.0e6 / Const_kB_eV; // fix the temperature initial guess to 1 MeV for EoS_DensPres2Eint_CPUPtr()
+   Prim[ TEMP_IG   ] = 1.0e6 / Const_kB_eV; // fix the temperature initial guess to 1 MeV for EoS_DensPres2Eint_CPUPtr(); it will later be overwritten by EoS_DensEint2Temp_CPUPtr()
 #  endif
 
 #  ifdef SRHD
@@ -479,8 +479,7 @@ void SetGridIC( real fluid[], const double x, const double y, const double z, co
    fluid[ YE        ] = Prim[ YE        ]*fluid[DENS];
 #  endif
 #  ifdef TEMP_IG
-   fluid[ TEMP_IG   ] = Prim[ TEMP_IG   ]; // fix the temperature initial guess to 1 MeV for EoS_DensPres2Eint_CPUPtr()
-#  endif
+   fluid[ TEMP_IG   ] = Prim[ TEMP_IG   ]; // fix the temperature initial guess to 1 MeV for EoS_DensPres2Eint_CPUPtr(); it will later be overwritten by EoS_DensEint2Temp_CPUPtr()
 
 // compute and store the total gas energy
    Eint = EoS_DensPres2Eint_CPUPtr( fluid[DENS], Pres, fluid+NCOMP_FLUID,
