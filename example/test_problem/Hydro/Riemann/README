@@ -55,3 +55,15 @@ Note:
          - Plotting scripts: plot__srhd_mixed.gpt and plot__srhd_mixed.py
          - The analytical solution: ReferenceSolution/TM_EoS/SRHD_Mixed
          - Reference: Figure 5. in "Tseng et al. 2021, MNRAS, 504, 3298"
+
+6. For NuclearCCSN Riemann problems:
+      - Compilation options are provided in generate_make_Riemann_NuclearCCSN.sh
+      - Input__Parameter is given in Input__Parameter.NuclearCCSN
+         - Nuclear equation of state table can be downloaded with the command: sh download_eostable.sh
+         - NUC_TABLE must be properly set
+      - Input__TestProb is given in Input__TestProb.NuclearCCSN
+         - Riemann_Prob = 12 (case 1) or 13 (case 2)
+      - Currently only case 1 provides the reference solutions
+      - The reference solutions from FLASH code:
+        ReferenceSolution/Nuclear/CCSN_Hydro/flash_n* (* is the number of cells in x-direction)
+      - Plotting scripts: plot__hydro_dens_nuclear.gpt

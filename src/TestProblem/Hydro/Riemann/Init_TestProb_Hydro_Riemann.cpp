@@ -459,6 +459,9 @@ void SetGridIC( real fluid[], const double x, const double y, const double z, co
 #  ifdef YE
    Prim[ YE        ] = (real)(aYe  + dYe *Tanh );
 #  endif
+#  ifdef TEMP_IG
+   Prim[ TEMP_IG   ] = 1.0e6 / Const_kB_eV; // fix the temperature initial guess to 1 MeV for EoS_DensPres2Eint_CPUPtr(); it will later be overwritten by EoS_DensEint2Temp_CPUPtr()
+#  endif
 
 #  ifdef SRHD
    Hydro_Pri2Con( Prim, fluid, NULL_BOOL, NULL_INT, NULL, NULL,
@@ -472,17 +475,21 @@ void SetGridIC( real fluid[], const double x, const double y, const double z, co
    fluid[ MomIdx[1] ] = Prim[ MomIdx[1] ]*fluid[DENS];
    fluid[ MomIdx[2] ] = Prim[ MomIdx[2] ]*fluid[DENS];
    Pres               = Prim[ ENGY      ];
+#  ifdef YE
+   fluid[ YE        ] = Prim[ YE        ]*fluid[DENS];
+#  endif
+#  ifdef TEMP_IG
+   fluid[ TEMP_IG   ] = Prim[ TEMP_IG   ]; // fix the temperature initial guess to 1 MeV for EoS_DensPres2Eint_CPUPtr(); it will later be overwritten by EoS_DensEint2Temp_CPUPtr()
 
 // compute and store the total gas energy
    Eint = EoS_DensPres2Eint_CPUPtr( fluid[DENS], Pres, fluid+NCOMP_FLUID,
                                     EoS_AuxArray_Flt, EoS_AuxArray_Int, h_EoS_Table );
 
 // do NOT include magnetic energy here
-   fluid[ENGY] = Hydro_ConEint2Etot( fluid[DENS], fluid[MOMX], fluid[MOMY], fluid[MOMZ], Eint, 0.0 );
+   fluid[ ENGY      ] = Hydro_ConEint2Etot( fluid[DENS], fluid[MOMX], fluid[MOMY], fluid[MOMZ], Eint, 0.0 );
 #  ifdef TEMP_IG
-   fluid[TEMP_IG] = NULL_REAL;
-   fluid[TEMP_IG] = EoS_DensEint2Temp_CPUPtr( fluid[DENS], Eint, fluid+NCOMP_FLUID,
-                                              EoS_AuxArray_Flt, EoS_AuxArray_Int, h_EoS_Table );
+   fluid[ TEMP_IG   ] = EoS_DensEint2Temp_CPUPtr( fluid[DENS], Eint, fluid+NCOMP_FLUID,
+                                                  EoS_AuxArray_Flt, EoS_AuxArray_Int, h_EoS_Table );
 #  endif
 #  endif // #ifdef SRHD ... else ...
 
