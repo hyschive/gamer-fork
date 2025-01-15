@@ -59,6 +59,7 @@ Note:
 6. For NuclearCCSN Riemann problems:
       - Compilation options are provided in generate_make_Riemann_NuclearCCSN.sh
       - Input__Parameter is given in Input__Parameter.NuclearCCSN
+         - Nuclear equation of state table can be downloaded with the command: sh download_eostable.sh
          - NUC_TABLE must be properly set
       - Input__TestProb is given in Input__TestProb.NuclearCCSN
          - Riemann_Prob = 12 (case 1) or 13 (case 2)
