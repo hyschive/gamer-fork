@@ -28,6 +28,9 @@ extern real *d_SrcLeakage_HeatEAve;
 // external variables, local and external function prototypes
 #ifndef __CUDACC__
 
+// construct the leakage profiles sequentially to minimize memory usage
+//#define LEAKAGE_SEQUENTIAL_MAPPING
+
 static long Leakage_Step = -1;
 
 #if ( EOS == EOS_NUCLEAR )
@@ -256,6 +259,7 @@ static void Src_Leakage( real fluid[], const real B[],
            ? MIN(  MAX( int( rad / dRad - (real)0.5 ), 0 ), NRadius-2  )
            : Src_Leakage_BinarySearch( Radius, NRad_Lin-1, NRadius-2, rad );
 
+// check extrapolation here
    xs[0] = Radius[idx_rad];
    xs[1] = Radius[idx_rad+1];
 
@@ -715,10 +719,14 @@ void Src_WorkBeforeMajorFunc_Leakage( const int lv, const double TimeNew, const 
    Profile_t  Ray_Dens_Code, Ray_Temp_Kelv, Ray_Ye;
    Profile_t *Leakage_Ray[] = { &Ray_Dens_Code, &Ray_Temp_Kelv, &Ray_Ye };
 
-// construct the leakage profiles sequentially to minimize memory usage.
+#  ifdef LEAKAGE_SEQUENTIAL_MAPPING
    for (int i=0; i<NProf; i++)
       Aux_ComputeRay( &Leakage_Ray[i], Leakage_Center, Edge, NRad_Linear, NRad, NTheta, NPhi,
                       BinSize_Linear, RadiusMin_Log, MaxRadius, &TVar[i], 1, TimeOld );
+#  else
+   Aux_ComputeRay( Leakage_Ray, Leakage_Center, Edge, NRad_Linear, NRad, NTheta, NPhi,
+                   BinSize_Linear, RadiusMin_Log, MaxRadius, TVar, NProf, TimeOld );
+#  endif
 
 // convert electron density to electron fraction
    for (int i=0; i<NData; i++)
