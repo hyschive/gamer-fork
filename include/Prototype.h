@@ -46,7 +46,7 @@ void Aux_FindWeightedAverageCenter( double WeightedAverageCenter[], const double
 void Aux_ComputeRay( Profile_t *Ray[], const double Center[], const double Edge[],
                      const int NRadius_Linear, const int NRadius, const int NTheta, const int NPhi,
                      const double BinSize_Linear, const double MaxRad_Linear, const double MaxRad,
-                     const long TVarBitIdx[], const int NProf, const double PrepTime );
+                     const long TVarBitIdx[], const int NProf, const double PrepTimeIn );
 #ifndef SERIAL
 void Aux_Record_BoundaryPatch( const int lv, int *NList, int **IDList, int **PosList );
 #endif
