@@ -104,6 +104,7 @@ struct SrcTerms_t
    double    Leakage_RadiusMin_Log;
    bool      Leakage_NuHeat;
    double    Leakage_NuHeat_Fac;
+   int       Leakage_Opt_Temp;
    real     *Leakage_Radius_DevPtr;
    real     *Leakage_tau_DevPtr;
    real     *Leakage_chi_DevPtr;

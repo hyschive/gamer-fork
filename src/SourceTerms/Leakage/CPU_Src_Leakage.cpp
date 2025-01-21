@@ -707,17 +707,27 @@ void Src_WorkBeforeMajorFunc_Leakage( const int lv, const double TimeNew, const 
    for (int i=0; i<NRad; i++)   h_SrcLeakage_Radius[i] = 0.5 * ( Edge[i] + Edge[i+1] );
 
 
-// (3) sampling the leakage ray
+// (3) construct the leakage ray
 //     --> prepare data at TimeOld because data on higher level at TimeNew are not available
 #  ifndef _YE
    const long _YE = NULL_INT;
 #  endif
    const int  NProf  = 3;
    const int  NData  = NRad * NTheta * NPhi;
-   const long TVar[] = { _DENS, _TEMP, _YE };
+         long TVar[] = { _DENS, _NONE, _YE };
 
    Profile_t  Ray_Dens_Code, Ray_Temp_Kelv, Ray_Ye;
    Profile_t *Leakage_Ray[] = { &Ray_Dens_Code, &Ray_Temp_Kelv, &Ray_Ye };
+
+   switch ( SrcTerms.Leakage_Opt_Temp )
+   {
+      case LEAK_TEMP_INDCELL:   TVar[1] = _TEMP;   break;
+      case LEAK_TEMP_BINDATA:   TVar[1] = _EINT;   break;
+      default:
+         Aux_Error( ERROR_INFO, "unsupported temperature computation scheme %s = %d !!\n",
+                    "SRC_LEAKAGE_OPT_TEMP", SrcTerms.Leakage_Opt_Temp );
+   } // switch ( SrcTerms.Leakage_Opt_Temp )
+
 
 #  ifdef LEAKAGE_SEQUENTIAL_MAPPING
    for (int i=0; i<NProf; i++)
@@ -727,6 +737,37 @@ void Src_WorkBeforeMajorFunc_Leakage( const int lv, const double TimeNew, const 
    Aux_ComputeRay( Leakage_Ray, Leakage_Center, Edge, NRad_Linear, NRad, NTheta, NPhi,
                    BinSize_Linear, RadiusMin_Log, MaxRadius, TVar, NProf, TimeOld );
 #  endif
+
+
+// retrieve the temperature profile from the density, internal energy density, and Ye
+   if ( SrcTerms.Leakage_Opt_Temp == LEAK_TEMP_BINDATA )
+   {
+      real Passive[NCOMP_PASSIVE] = { 0.0 };
+
+      for (int i=0; i<NData; i++)
+      {
+         if ( Ray_Temp_Kelv.NCell[i] == 0L )   continue;
+
+#        ifdef YE
+         Passive[ YE      - NCOMP_FLUID ] = Ray_Ye.Data[i];
+
+#        ifdef TEMP_IG
+//       set the initial guess of temperature to 1 MeV
+         Passive[ TEMP_IG - NCOMP_FLUID ] = 1.0e6 / Const_kB_eV;
+#        endif
+
+         const real Temp = EoS_DensEint2Temp_CPUPtr( Ray_Dens_Code.Data[i], Ray_Temp_Kelv.Data[i],
+                                                     Passive, EoS_AuxArray_Flt, EoS_AuxArray_Int, h_EoS_Table );
+
+         if ( Temp != Temp )
+            Aux_Error( ERROR_INFO, "Invalid temperature found in %s: %.7e %.7e %.7e !!\n",
+                       __FUNCTION__, Ray_Dens_Code.Data[i], Ray_Temp_Kelv.Data[i], Ray_Ye.Data[i] );
+
+         Ray_Temp_Kelv.Data[i] = Temp;
+#        endif // ifdef YE
+      }
+   } // if ( SrcTerms.Leakage_Opt_Temp == LEAK_TEMP_BINDATA )
+
 
 // convert electron density to electron fraction
    for (int i=0; i<NData; i++)

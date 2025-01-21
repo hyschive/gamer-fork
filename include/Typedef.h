@@ -525,6 +525,13 @@ const ExtremaMode_t
    EXTREMA_MAX = 2;
 
 
+// leakage source term
+typedef int Leakage_TempScheme_t;
+const Leakage_TempScheme_t
+   LEAK_TEMP_INDCELL = 1,
+   LEAK_TEMP_BINDATA = 2;
+
+
 // function pointers
 typedef real (*EoS_GUESS_t)    ( const real Con[], real* const Constant, const double AuxArray_Flt[],
                                  const int AuxArray_Int[], const real *const Table[EOS_NTABLE_MAX] );

@@ -224,6 +224,7 @@ void Init_Load_Parameter()
    ReadPara->Add( "SRC_LEAKAGE_RADIUSMIN_LOG",  &SrcTerms.Leakage_RadiusMin_Log,  3.0e7,           Eps_double,    NoMax_double   );
    ReadPara->Add( "SRC_LEAKAGE_NUHEAT",         &SrcTerms.Leakage_NuHeat,         true,            Useless_bool,  Useless_bool   );
    ReadPara->Add( "SRC_LEAKAGE_NUHEAT_FAC",     &SrcTerms.Leakage_NuHeat_Fac,     1.0,             0.0,           NoMax_double   );
+   ReadPara->Add( "SRC_LEAKAGE_OPT_TEMP",       &SrcTerms.Leakage_Opt_Temp, LEAK_TEMP_BINDATA, LEAK_TEMP_INDCELL, LEAK_TEMP_BINDATA );
    ReadPara->Add( "SRC_USER",                   &SrcTerms.User,                   false,           Useless_bool,  Useless_bool   );
 // do not check SRC_GPU_NPGROUP since it may be reset by either Init_ResetDefaultParameter() or CUAPI_SetMemSize()
    ReadPara->Add( "SRC_GPU_NPGROUP",            &SRC_GPU_NPGROUP,                -1,               NoMin_int,     NoMax_int      );

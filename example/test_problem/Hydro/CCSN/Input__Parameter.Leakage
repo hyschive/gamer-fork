@@ -190,6 +190,8 @@ SRC_LEAKAGE_RADIUSMAX         3.0e8       # maximum radius in cm [3.0e8]
 SRC_LEAKAGE_RADIUSMIN_LOG     3.0e7       # minimum radius of logarithmic bins in cm [3.0e7]
 SRC_LEAKAGE_NUHEAT            1           # include a parameterized neutrino heating scheme [1]
 SRC_LEAKAGE_NUHEAT_FAC        1.0         # rescale the parameterized heating rate by SRC_LEAKAGE_NUHEAT_FAC [1.0]
+SRC_LEAKAGE_OPT_TEMP          2           # temperature computation scheme [2]
+                                          # (1=individual cell, 2=binned data)
 SRC_USER                      0           # user-defined source terms -> edit "Src_User.cpp" [0]
 SRC_GPU_NPGROUP              -1           # number of patch groups sent into the CPU/GPU source-term solver (<=0=auto) [-1]
 
@@ -206,6 +208,8 @@ GREP_MAXRADIUS               -1.0         # maximum radius in the radial profile
 GREP_MINBINSIZE              -1.0         # minimum bin size                                             [-1.0]
                                           # (<=0=use amr->dh[MAX_LEVEL])
 GREP_OPT_FIXUP                1           # fix up the profiles after grid allocation/deallocation       [1]
+GREP_OPT_PRES                 2           # pressure computation scheme                                  [2]
+                                          # (1=individual cell, 2=binned data)
 
 
 # initialization

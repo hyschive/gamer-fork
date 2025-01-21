@@ -1045,6 +1045,7 @@ void Aux_TakeNote()
       fprintf( Note, "SRC_LEAKAGE_RADIUSMIN_LOG      % 14.7e\n",  SrcTerms.Leakage_RadiusMin_Log  );
       fprintf( Note, "SRC_LEAKAGE_NUHEAT             % d\n",      SrcTerms.Leakage_NuHeat         );
       fprintf( Note, "SRC_LEAKAGE_NUHEAT_FAC         % 14.7e\n",  SrcTerms.Leakage_NuHeat_Fac     );
+      fprintf( Note, "SRC_LEAKAGE_OPT_TEMP           % d\n",      SrcTerms.Leakage_Opt_Temp       );
 #     endif
 #     endif // #ifdef NEUTRINO_SCHEME
       fprintf( Note, "SRC_USER                       % d\n",      SrcTerms.User                   );
