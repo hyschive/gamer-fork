@@ -531,6 +531,12 @@ const Leakage_TempScheme_t
    LEAK_TEMP_INDCELL = 1,
    LEAK_TEMP_BINDATA = 2;
 
+typedef int Leakage_Mode_t;
+const Leakage_Mode_t
+   LEAK_MODE_EVOLVE   = 1,
+   LEAK_MODE_RECORD   = 2,
+   LEAK_MODE_CORRSIGN = 3;
+
 
 // function pointers
 typedef real (*EoS_GUESS_t)    ( const real Con[], real* const Constant, const double AuxArray_Flt[],

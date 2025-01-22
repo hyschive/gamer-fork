@@ -17,12 +17,12 @@ extern double CCSN_Leakage_RadNS[NType_Neutrino];
 
 GPU_DEVICE
 void Src_Leakage_ComputeLeak( const real Dens_Code, const real Temp_Kelv, const real Ye, const real chi[], const real tau[],
-                              const real Heat_Flux[], const real *HeatE_Rms, const real *HeatE_Ave,
+                              const real Heat_Flux[], const real *Heat_ERms, const real *Heat_EAve,
                               real *dEdt, real *dYedt, real *Lum, real *Heat, real *NetHeat,
                               const bool NuHeat, const real NuHeat_Fac, const real UNIT_D, const EoS_t *EoS );
 
 GPU_DEVICE static
-real Compute_FermiIntegral( const int order, const real eta );
+real Compute_FermiIntegral( const int Order, const real eta );
 
 
 
@@ -51,42 +51,48 @@ real Compute_FermiIntegral( const int order, const real eta );
 //                tau_Ruff  : Array to store the opacity calculated via the Ruffert scheme
 //                chi_Ross  : Array to store the chi     calculated via the Rosswog scheme
 //                Heat_Flux : Array to store the      neutrino flux used for heating
-//                HeatE_Rms : Array to store the rms  neutrino energy at neutrino sphere
-//                HeatE_Ave : Array to store the mean neutrino energy at neutrino sphere
+//                Heat_ERms : Array to store the rms  neutrino energy at neutrino sphere
+//                Heat_EAve : Array to store the mean neutrino energy at neutrino sphere
 //
-// Return      :  tau_Ruff, chi_Ross, Heat_Flux, HeatE_Rms, HeatE_Ave
+// Return      :  tau_Ruff, chi_Ross, Heat_Flux, Heat_ERms, Heat_EAve
 //-------------------------------------------------------------------------------------------------------
 void Src_Leakage_ComputeTau( Profile_t *Ray[], double *Edge,
                              const int NRadius, const int NTheta, const int NPhi,
                              real *tau_Ruff, real *chi_Ross, real *Heat_Flux,
-                             real *HeatE_Rms, real *HeatE_Ave )
+                             real *Heat_ERms, real *Heat_EAve )
 {
 
-   const real   Dens_CorrThresh_Code = 1.0e3 / UNIT_D;
 #  ifdef FLOAT8
    const double Tolerance_Leak = 1.0e-10;
 #  else
    const double Tolerance_Leak = 1.0e-5;
 #  endif
+
 #  if ( NUC_TABLE_MODE == NUC_TABLE_MODE_TEMP )
    const real   EoS_TempMin_Kelv = POW( (real)10.0, h_EoS_Table[NUC_TAB_TORE     ][0] ) / Kelvin2MeV;
 #  else
    const real   EoS_TempMin_Kelv = POW( (real)10.0, h_EoS_Table[NUC_TAB_EORT_MODE][0] ) / Kelvin2MeV;
 #  endif
-   const bool   NuHeat           = SrcTerms.Leakage_NuHeat;
-   const real   NuHeat_Fac       = SrcTerms.Leakage_NuHeat_Fac;
+
+#  ifdef LEAKAGE_PROF_CORR
+   const real   Dens_CorrThresh_Code = 1.0e3 / UNIT_D;
+#  endif
+
+   const bool   NuHeat     = SrcTerms.Leakage_NuHeat;
+   const real   NuHeat_Fac = SrcTerms.Leakage_NuHeat_Fac;
 
 
-// prepare the line element, area, and bin volume for better performance
-   double Edge_CGS[NRadius+1], ds[NRadius], area[NRadius], vol[NRadius];
+// prepare the line element, surface area at bin center, and bin volume
+   double Edge_CGS[NRadius+1], BinWidth[NRadius], BinSurfArea[NRadius], BinVol[NRadius];
 
    for (int i=0; i<NRadius+1; i++)   Edge_CGS[i] = Edge[i] * UNIT_L;
 
    for (int i=0; i<NRadius; i++)
    {
-      ds  [i] = Edge_CGS[i+1] - Edge_CGS[i];
-      area[i] = 4.0 * M_PI * SQR(  0.5 * ( Edge_CGS[i] + Edge_CGS[i+1] )  );
-      vol [i] = 4.0 * M_PI * (  CUBE( Edge_CGS[i+1] ) - CUBE( Edge_CGS[i] )  ) / 3.0 ;
+      BinWidth   [i] = Edge_CGS[i+1] - Edge_CGS[i];
+      BinSurfArea[i] = 4.0 * M_PI * SQR(  0.5 * ( Edge_CGS[i] + Edge_CGS[i+1] )  ) / double( NTheta * NPhi );
+      BinVol     [i] = 4.0 * M_PI * (  CUBE( Edge_CGS[i+1] ) - CUBE( Edge_CGS[i] )  )
+                     / ( 3.0 * double( NTheta * NPhi ) );
    }
 
 
@@ -161,8 +167,8 @@ void Src_Leakage_ComputeTau( Profile_t *Ray[], double *Edge,
    vla_3D tau_Ruff_3D  = ( vla_3D ) tau_Ruff;
    vla_3D chi_Ross_3D  = ( vla_3D ) chi_Ross;
    vla_3D Heat_Flux_3D = ( vla_3D ) Heat_Flux;
-   vla_2D HeatE_Rms_2D = ( vla_2D ) HeatE_Rms;
-   vla_2D HeatE_Ave_2D = ( vla_2D ) HeatE_Ave;
+   vla_2D Heat_ERms_2D = ( vla_2D ) Heat_ERms;
+   vla_2D Heat_EAve_2D = ( vla_2D ) Heat_EAve;
 
    for (int i=0; i<NRadius; i++) {
    for (int j=0; j<NRay;    j++) {
@@ -174,8 +180,8 @@ void Src_Leakage_ComputeTau( Profile_t *Ray[], double *Edge,
          tau_Ruff_3D [i][j][k] = 0.0;
          chi_Ross_3D [i][j][k] = 0.0;
          Heat_Flux_3D[i][j][k] = 0.0;
-         HeatE_Rms_2D   [j][k] = 0.0;
-         HeatE_Ave_2D   [j][k] = 0.0;
+         Heat_ERms_2D   [j][k] = 0.0;
+         Heat_EAve_2D   [j][k] = 0.0;
       }
    }}
 
@@ -328,7 +334,7 @@ void Src_Leakage_ComputeTau( Profile_t *Ray[], double *Edge,
                tau[TID][NRadius-1][k] = 0.0;
 
                for (int i=NRadius-2; i>=0; i--)
-                  tau[TID][i][k] = tau[TID][i+1][k] + kappa_tot[TID][i][k] * ds[i];
+                  tau[TID][i][k] = tau[TID][i+1][k] + kappa_tot[TID][i][k] * BinWidth[i];
             }
 
 //          use new optical depth to update opacity
@@ -515,7 +521,7 @@ void Src_Leakage_ComputeTau( Profile_t *Ray[], double *Edge,
          for (int k=0; k<NType_Neutrino; k++)
          {
                                                chi[TID][NRadius-1][k] = 0.0;
-            for (int i=NRadius-2; i>=0; i--)   chi[TID][i]        [k] = chi[TID][i+1][k] + zeta[TID][i][k] * ds[i];
+            for (int i=NRadius-2; i>=0; i--)   chi[TID][i]        [k] = chi[TID][i+1][k] + zeta[TID][i][k] * BinWidth[i];
                                                chi[TID][NRadius-1][k] = chi[TID][NRadius-2][k];
          }
 
@@ -527,7 +533,7 @@ void Src_Leakage_ComputeTau( Profile_t *Ray[], double *Edge,
 
 
 //       (5) neutrino heating in O'Connor & Ott (2010)
-         int    idx_NS;
+         int    Idx_NS;
          double eta_nu_Inte, Temp_MeV_Inte;
          double Table_tau[2], Table_Data[2];
          double FermiInte[3][NType_Neutrino];
@@ -536,51 +542,48 @@ void Src_Leakage_ComputeTau( Profile_t *Ray[], double *Edge,
 //       (5-1) measure the rms and mean energy at neutrino sphere (tau = 2/3)
          for (int k=0; k<NType_Neutrino; k++)
          {
-            idx_NS = 0;
+            Idx_NS = 0;
 
             for (int i=0; i<NRadius; i++)
             {
                if ( tau[TID][i][k] < TwoThirds )   break;
 
-               idx_NS = i;
+               Idx_NS = i;
             }
 
-//          use linear interpolation to obtain the correct location of neutrino sphere
-            Table_tau [0] = tau[TID][idx_NS+1][k];
-            Table_tau [1] = tau[TID][idx_NS  ][k];
-            Table_Data[0] = 0.5 * ( Edge_CGS[idx_NS+1] + Edge_CGS[idx_NS+2] );
-            Table_Data[1] = 0.5 * ( Edge_CGS[idx_NS  ] + Edge_CGS[idx_NS+1] );
+//          use linear interpolation to compute the location of neutrino sphere (tau = 2/3)
+            Table_tau [0] = tau[TID][Idx_NS+1][k];
+            Table_tau [1] = tau[TID][Idx_NS  ][k];
+            Table_Data[0] = 0.5 * ( Edge_CGS[Idx_NS+1] + Edge_CGS[Idx_NS+2] );
+            Table_Data[1] = 0.5 * ( Edge_CGS[Idx_NS  ] + Edge_CGS[Idx_NS+1] );
 
             NS_loc[k] = Mis_InterpolateFromTable( 2, Table_tau, Table_Data, TwoThirds );
 
 //          use interpolated eta_nu to compute the Fermi integrate
-            for (int i=0; i<3; i++)
-            {
-               Table_Data[0] = eta_nu[TID][idx_NS+1][k];
-               Table_Data[1] = eta_nu[TID][idx_NS  ][k];
-               eta_nu_Inte   = Mis_InterpolateFromTable( 2, Table_tau, Table_Data, TwoThirds );
+            Table_Data[0] = eta_nu[TID][Idx_NS+1][k];
+            Table_Data[1] = eta_nu[TID][Idx_NS  ][k];
+            eta_nu_Inte   = Mis_InterpolateFromTable( 2, Table_tau, Table_Data, TwoThirds );
 
-               FermiInte[i][k] = Compute_FermiIntegral( i+3, eta_nu_Inte );
-            }
+            for (int i=0; i<3; i++)   FermiInte[i][k] = Compute_FermiIntegral( i+3, eta_nu_Inte );
 
-//          use interpolated eta_nu and Temp_MeV to compute the HeatE_Rms and HeatE_Ave
-            Table_Data[0] = Temp_MeV[TID][idx_NS+1];
-            Table_Data[1] = Temp_MeV[TID][idx_NS  ];
+//          use interpolated eta_nu and Temp_MeV to compute the Heat_ERms and Heat_EAve
+            Table_Data[0] = Temp_MeV[TID][Idx_NS+1];
+            Table_Data[1] = Temp_MeV[TID][Idx_NS  ];
             Temp_MeV_Inte = Mis_InterpolateFromTable( 2, Table_tau, Table_Data, TwoThirds );
 
-            HeatE_Rms_2D[j][k] = Temp_MeV_Inte * sqrt( FermiInte[2][k] / FermiInte[0][k] ); // (A4)
-            HeatE_Ave_2D[j][k] = Temp_MeV_Inte *       FermiInte[2][k] / FermiInte[1][k];   // (A11)
+            Heat_ERms_2D[j][k] = Temp_MeV_Inte * sqrt( FermiInte[2][k] / FermiInte[0][k] ); // (A4)
+            Heat_EAve_2D[j][k] = Temp_MeV_Inte *       FermiInte[2][k] / FermiInte[1][k];   // (A11)
 
-//          sum the HeatE_Ave and NS_loc for computing the average
-            OMP_EAve [TID][k] += HeatE_Ave_2D[j][k];
+//          sum the Heat_EAve and NS_loc for computing the average
+            OMP_EAve [TID][k] += Heat_EAve_2D[j][k];
             OMP_RadNS[TID][k] += NS_loc[k];
          }
 
 //       (5-2) leak along this ray to determine luminosity
-         real   lum     [NType_Neutrino];
-         real   heat    [NType_Neutrino];
-         real   netheat [NType_Neutrino];
-         double lum_acc [NType_Neutrino] = { 0.0 };
+         real   Lum     [NType_Neutrino];
+         real   Heat    [NType_Neutrino];
+         real   NetHeat [NType_Neutrino];
+         double LumAcc  [NType_Neutrino] = { 0.0 };
          double lepton_blocking[NType_Neutrino];
 
          for (int i=0; i<NRadius-1; i++)
@@ -592,14 +595,14 @@ void Src_Leakage_ComputeTau( Profile_t *Ray[], double *Edge,
 //          get the change in luminosity
 //          --> the returned lum is the luminosity per volume
             Src_Leakage_ComputeLeak( Dens_Code[TID][i], Temp_Kelv[TID][i], Ye[TID][i], chi_Ross_3D[i][j], tau_Ruff_3D[i][j],
-                                     Heat_Flux_3D[i][j], HeatE_Rms_2D[j], HeatE_Ave_2D[j],
-                                     dEdt[TID]+i, dYedt[TID]+i, lum, heat, netheat,
+                                     Heat_Flux_3D[i][j], Heat_ERms_2D[j], Heat_EAve_2D[j],
+                                     dEdt[TID]+i, dYedt[TID]+i, Lum, Heat, NetHeat,
                                      NuHeat, NuHeat_Fac, UNIT_D, &EoS );
 
             for (int k=0; k<NType_Neutrino-1; k++)
             {
-               lum_acc             [k] += vol[i] * lum[k];
-               Heat_Flux_3D[i+1][j][k]  = lum_acc[k] * lepton_blocking[k] / area[i];
+               LumAcc              [k] += BinVol[i] * Lum[k];
+               Heat_Flux_3D[i+1][j][k]  = LumAcc[k] * lepton_blocking[k] / BinSurfArea[i];
             }
          } // for (int i=0; i<NRadius-1; i++)
 
@@ -622,12 +625,12 @@ void Src_Leakage_ComputeTau( Profile_t *Ray[], double *Edge,
          Aux_Message( File, "# Rad_NS_Nue    : %14.6e\n", NS_loc[0]          );
          Aux_Message( File, "# Rad_NS_Nua    : %14.6e\n", NS_loc[1]          );
          Aux_Message( File, "# Rad_NS_Nux    : %14.6e\n", NS_loc[2]          );
-         Aux_Message( File, "# HeatE_Rms_Nue : %14.6e\n", HeatE_Rms_2D[j][0] );
-         Aux_Message( File, "# HeatE_Rms_Nua : %14.6e\n", HeatE_Rms_2D[j][1] );
-         Aux_Message( File, "# HeatE_Rms_Nux : %14.6e\n", HeatE_Rms_2D[j][2] );
-         Aux_Message( File, "# HeatE_Ave_Nue : %14.6e\n", HeatE_Ave_2D[j][0] );
-         Aux_Message( File, "# HeatE_Ave_Nua : %14.6e\n", HeatE_Ave_2D[j][1] );
-         Aux_Message( File, "# HeatE_Ave_Nux : %14.6e\n", HeatE_Ave_2D[j][2] );
+         Aux_Message( File, "# Heat_ERms_Nue : %14.6e\n", Heat_ERms_2D[j][0] );
+         Aux_Message( File, "# Heat_ERms_Nua : %14.6e\n", Heat_ERms_2D[j][1] );
+         Aux_Message( File, "# Heat_ERms_Nux : %14.6e\n", Heat_ERms_2D[j][2] );
+         Aux_Message( File, "# Heat_EAve_Nue : %14.6e\n", Heat_EAve_2D[j][0] );
+         Aux_Message( File, "# Heat_EAve_Nua : %14.6e\n", Heat_EAve_2D[j][1] );
+         Aux_Message( File, "# Heat_EAve_Nux : %14.6e\n", Heat_EAve_2D[j][2] );
          Aux_Message( File, "# -------------------------------------------------------------------------------\n" );
 
          Aux_Message( File, "#%14s  %8s", "[ 1]", "[ 2]" );
@@ -635,7 +638,7 @@ void Src_Leakage_ComputeTau( Profile_t *Ray[], double *Edge,
          Aux_Message( File, "\n" );
 
          Aux_Message( File, "#%14s  %8s",               "Radius", "NCell"                              );
-         Aux_Message( File, "  %14s  %14s  %14s  %14s", "Dens", "Temp", "Ye", "Eint"                   );
+         Aux_Message( File, "  %14s  %14s  %14s  %14s", "Dens", "Temp", "Ye", "sEint"                  );
          Aux_Message( File, "  %14s  %14s  %14s",       "tau_Ruff_Nue", "tau_Ruff_Nua", "tau_Ruff_Nux" );
          Aux_Message( File, "  %14s  %14s  %14s",       "chi_Ross_Nue", "chi_Ross_Nua", "chi_Ross_Nux" );
          Aux_Message( File, "  %14s  %14s",             "HeatFlux_Nue", "HeatFlux_Nua"                 );
@@ -687,8 +690,8 @@ void Src_Leakage_ComputeTau( Profile_t *Ray[], double *Edge,
    MPI_Allreduce( MPI_IN_PLACE, tau_Ruff,  NRadius*NRay*NType_Neutrino, MPI_GAMER_REAL, MPI_SUM, MPI_COMM_WORLD );
    MPI_Allreduce( MPI_IN_PLACE, chi_Ross,  NRadius*NRay*NType_Neutrino, MPI_GAMER_REAL, MPI_SUM, MPI_COMM_WORLD );
    MPI_Allreduce( MPI_IN_PLACE, Heat_Flux, NRadius*NRay*NType_Neutrino, MPI_GAMER_REAL, MPI_SUM, MPI_COMM_WORLD );
-   MPI_Allreduce( MPI_IN_PLACE, HeatE_Rms,         NRay*NType_Neutrino, MPI_GAMER_REAL, MPI_SUM, MPI_COMM_WORLD );
-   MPI_Allreduce( MPI_IN_PLACE, HeatE_Ave,         NRay*NType_Neutrino, MPI_GAMER_REAL, MPI_SUM, MPI_COMM_WORLD );
+   MPI_Allreduce( MPI_IN_PLACE, Heat_ERms,         NRay*NType_Neutrino, MPI_GAMER_REAL, MPI_SUM, MPI_COMM_WORLD );
+   MPI_Allreduce( MPI_IN_PLACE, Heat_EAve,         NRay*NType_Neutrino, MPI_GAMER_REAL, MPI_SUM, MPI_COMM_WORLD );
    MPI_Allreduce( MPI_IN_PLACE, EAve,                   NType_Neutrino, MPI_DOUBLE,     MPI_SUM, MPI_COMM_WORLD );
    MPI_Allreduce( MPI_IN_PLACE, RadNS,                  NType_Neutrino, MPI_DOUBLE,     MPI_SUM, MPI_COMM_WORLD );
 #  endif // ifndef SERIAL
@@ -751,27 +754,27 @@ void Src_Leakage_ComputeTau( Profile_t *Ray[], double *Edge,
 //                        S. Rosswog & M. Liebendoerfer, 2003, MNRAS, 342, 673 (arXiv: 0302301)
 //                        E. O'Connor & C. D. Ott, 2010, Class. Quantum Grav., 27, 114103 (arXiv: 0912.2393)
 //
-// Parameter   :  Dens_Code   : Density in code unit
-//                Temp_Kelv   : Temperature in Kelvin
-//                Ye          : Electron fraction
-//                chi         : chi calculated from the Rosswog scheme
-//                tau         : Optical depth calculated from the Ruffert scheme
-//                Heat_Flux   : Neutrino flux
-//                HeatE_Rms   : Neutrino rms  energy at neutrino sphere
-//                HeatE_Ave   : Neutrino mean energy at neutrino sphere
-//                dEdt        : Change rate in the internal energy in erg/g/s
-//                dYedt       : Change rate in electron fraction   in 1/s
-//                Lum         : Local luminosity, dE/dt
-//                Heat        : Local neutrino heating rate per volume in erg/s/cm3
-//                NetHeat     : Local net      heating rate per volume in erg/s/cm3
-//                NuHeat      : Flag for include neutrino heating
-//                NuHeat_Fac  : Factor of the neutrino heating rate
+// Parameter   :  Dens_Code  : Density in code unit
+//                Temp_Kelv  : Temperature in Kelvin
+//                Ye         : Electron fraction
+//                chi        : chi calculated from the Rosswog scheme
+//                tau        : Optical depth calculated from the Ruffert scheme
+//                Heat_Flux  : Neutrino flux
+//                Heat_ERms  : Neutrino rms  energy at neutrino sphere
+//                Heat_EAve  : Neutrino mean energy at neutrino sphere
+//                dEdt       : Change rate in the internal energy in erg/g/s
+//                dYedt      : Change rate in electron fraction   in 1/s
+//                Lum        : Local luminosity, dE/dt
+//                Heat       : Local neutrino heating rate per volume in erg/s/cm3
+//                NetHeat    : Local net      heating rate per volume in erg/s/cm3
+//                NuHeat     : Flag for include neutrino heating
+//                NuHeat_Fac : Factor of the neutrino heating rate
 //
 // Return      :  dEdt, dYedt, Lum, Heat, NetHeat
 //-------------------------------------------------------------------------------------------------------
 GPU_DEVICE
 void Src_Leakage_ComputeLeak( const real Dens_Code, const real Temp_Kelv, const real Ye, const real chi[], const real tau[],
-                              const real Heat_Flux[], const real *HeatE_Rms, const real *HeatE_Ave,
+                              const real Heat_Flux[], const real *Heat_ERms, const real *Heat_EAve,
                               real *dEdt, real *dYedt, real *Lum, real *Heat, real *NetHeat,
                               const bool NuHeat, const real NuHeat_Fac, const real UNIT_D, const EoS_t *EoS )
 {
@@ -1030,8 +1033,8 @@ void Src_Leakage_ComputeLeak( const real Dens_Code, const real Temp_Kelv, const 
       }
 
 //    local neutrino heating rate; (31)
-      Heat_Eff[0] = heat_factor * Dens_CGS * x_n * Heat_Flux[0] * SQR( HeatE_Rms[0] ) * F[0]; // erg/cm^3/s
-      Heat_Eff[1] = heat_factor * Dens_CGS * x_p * Heat_Flux[1] * SQR( HeatE_Rms[1] ) * F[1]; // erg/cm^3/s
+      Heat_Eff[0] = heat_factor * Dens_CGS * x_n * Heat_Flux[0] * SQR( Heat_ERms[0] ) * F[0]; // erg/cm^3/s
+      Heat_Eff[1] = heat_factor * Dens_CGS * x_p * Heat_Flux[1] * SQR( Heat_ERms[1] ) * F[1]; // erg/cm^3/s
    }
 
 
@@ -1047,8 +1050,8 @@ void Src_Leakage_ComputeLeak( const real Dens_Code, const real Temp_Kelv, const 
 
 
    *dEdt  = -Lum_tot / ( Dens_CGS * Const_hc_MeVcm_CUBE );
-   *dYedt = (  R_eff[1] - Heat_Eff[1] / ( HeatE_Ave[1] * Const_MeV )
-             - R_eff[0] + Heat_Eff[0] / ( HeatE_Ave[0] * Const_MeV ) )
+   *dYedt = (  R_eff[1] - Heat_Eff[1] / ( Heat_EAve[1] * Const_MeV )
+             - R_eff[0] + Heat_Eff[0] / ( Heat_EAve[0] * Const_MeV ) )
           * Const_mn / ( Dens_CGS * Const_hc_MeVcm_CUBE );
 
 } // FUNCTION : Src_Leakage_ComputeLeak
@@ -1063,19 +1066,19 @@ void Src_Leakage_ComputeLeak( const real Dens_Code, const real Temp_Kelv, const 
 //                2. Only support integer order <= 5
 //                3. Ref: K. Takahashi, M. F. El Eid, W. Hillebrandt, 1978, A&A, 67, 185
 //
-// Parameter   :  order : Order of Fermi integral
+// Parameter   :  Order : Order of Fermi integral
 //                eta   : Degeneracy
 //
 // Return      :  integral
 //-------------------------------------------------------------------------------------------------------
 GPU_DEVICE
-real Compute_FermiIntegral( const int order, const real eta )
+real Compute_FermiIntegral( const int Order, const real eta )
 {
    real integral = 0.0;
 
    if ( eta > (real)1.0e-3 )
    {
-      switch ( order )
+      switch ( Order )
       {
          case 0:
             integral  = LOG( (real)1.0 + EXP(eta) );
@@ -1105,12 +1108,12 @@ real Compute_FermiIntegral( const int order, const real eta )
             integral  = CUBE(eta) * CUBE(eta) / (real)6.0 + (real)8.2247 * SQR(eta) * SQR(eta) + (real)113.6439 * SQR(eta) + (real)236.5323;
             integral /= (real)1.0 + EXP( (real)-1.9727 * eta );
          break;
-      } // switch ( order )
+      } // switch ( Order )
    }
 
    else
    {
-      switch ( order )
+      switch ( Order )
       {
          case 0:
             integral = LOG( (real)1.0 + EXP(eta) );
@@ -1140,7 +1143,7 @@ real Compute_FermiIntegral( const int order, const real eta )
             integral  = (real)120.0 * EXP(eta);
             integral /= (real)1.0 + (real)0.0147 * EXP( (real)0.9431 * eta );
          break;
-      } // switch ( order )
+      } // switch ( Order )
    } // if ( eta > (real)1.0e-3 ) ... else ...
 
 

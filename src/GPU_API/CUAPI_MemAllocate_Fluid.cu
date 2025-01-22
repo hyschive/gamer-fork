@@ -257,12 +257,12 @@ int CUAPI_MemAllocate_Fluid( const int Flu_NPG, const int Pot_NPG, const int Src
    CUDA_CHECK_MALLOC(  cudaMalloc( (void**) &d_SrcLeakage_HeatEAve,  Leak_EAve_MemSize    )  );
 
 // store the device pointers in SrcTerms when using GPU
-   SrcTerms.Leakage_Radius_DevPtr    = d_SrcLeakage_Radius;
-   SrcTerms.Leakage_tau_DevPtr       = d_SrcLeakage_tau;
-   SrcTerms.Leakage_chi_DevPtr       = d_SrcLeakage_chi;
-   SrcTerms.Leakage_Heat_Flux_DevPtr = d_SrcLeakage_HeatFlux;
-   SrcTerms.Leakage_HeatE_Rms_DevPtr = d_SrcLeakage_HeatERms;
-   SrcTerms.Leakage_HeatE_Ave_DevPtr = d_SrcLeakage_HeatEAve;
+   SrcTerms.Leakage_Radius_DevPtr   = d_SrcLeakage_Radius;
+   SrcTerms.Leakage_tau_DevPtr      = d_SrcLeakage_tau;
+   SrcTerms.Leakage_chi_DevPtr      = d_SrcLeakage_chi;
+   SrcTerms.Leakage_HeatFlux_DevPtr = d_SrcLeakage_HeatFlux;
+   SrcTerms.Leakage_HeatERms_DevPtr = d_SrcLeakage_HeatERms;
+   SrcTerms.Leakage_HeatEAve_DevPtr = d_SrcLeakage_HeatEAve;
 #  endif
 
 #  if ( MODEL != HYDRO  &&  MODEL != ELBDM )

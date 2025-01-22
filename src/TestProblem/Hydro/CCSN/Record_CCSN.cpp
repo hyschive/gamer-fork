@@ -277,7 +277,7 @@ void Record_CCSN_Leakage()
                                     Src_Leakage_AuxArray_Flt, Src_Leakage_AuxArray_Int );
 
 // enable the record mode
-   Src_Leakage_AuxArray_Int[3] = 1;
+   Src_Leakage_AuxArray_Int[3] = LEAK_MODE_RECORD;
 
 // allocate memory for per-thread arrays
 #  ifdef OPENMP
@@ -413,8 +413,8 @@ void Record_CCSN_Leakage()
    }
 
 
-// disable the record mode
-   Src_Leakage_AuxArray_Int[3] = 0;
+// reset to the evolution mode
+   Src_Leakage_AuxArray_Int[3] = LEAK_MODE_EVOLVE;
 
 
 // free per-thread arrays

@@ -20,10 +20,10 @@
 #define SRC_AUX_YEMAX         9     // AuxArray_Flt: maximum allowed Ye after update in the leakge scheme
 #define SRC_AUX_VSQR2CODE    10     // AuxArray_Flt: convert velocity^2 to code unit
 
-#define SRC_AUX_MODE          0     // AuxArray_Int: mode of the leakage scheme
+#define SRC_AUX_RAYCONF       0     // AuxArray_Int: configuration of the leakage rays
 #define SRC_AUX_NRAD_LIN      1     // AuxArray_Int: number of linear bin in the radial direction
 #define SRC_AUX_STRIDE        2     // AuxArray_Int: stride for indexing
-#define SRC_AUX_RECORD        3     // AuxArray_Int: record mode
+#define SRC_AUX_MODE          3     // AuxArray_Int: control the behavior of the leakage scheme
 
 
 // additional physical constants for the leakage scheme

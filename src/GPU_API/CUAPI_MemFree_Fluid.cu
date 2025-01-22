@@ -106,12 +106,12 @@ void CUAPI_MemFree_Fluid( const int GPU_NStream )
    if ( d_SrcLeakage_HeatERms != NULL ) {  CUDA_CHECK_ERROR(  cudaFree( d_SrcLeakage_HeatERms )  );  d_SrcLeakage_HeatERms = NULL; }
    if ( d_SrcLeakage_HeatEAve != NULL ) {  CUDA_CHECK_ERROR(  cudaFree( d_SrcLeakage_HeatEAve )  );  d_SrcLeakage_HeatEAve = NULL; }
 
-   SrcTerms.Leakage_Radius_DevPtr    = NULL;
-   SrcTerms.Leakage_tau_DevPtr       = NULL;
-   SrcTerms.Leakage_chi_DevPtr       = NULL;
-   SrcTerms.Leakage_Heat_Flux_DevPtr = NULL;
-   SrcTerms.Leakage_HeatE_Rms_DevPtr = NULL;
-   SrcTerms.Leakage_HeatE_Ave_DevPtr = NULL;
+   SrcTerms.Leakage_Radius_DevPtr   = NULL;
+   SrcTerms.Leakage_tau_DevPtr      = NULL;
+   SrcTerms.Leakage_chi_DevPtr      = NULL;
+   SrcTerms.Leakage_HeatFlux_DevPtr = NULL;
+   SrcTerms.Leakage_HeatERms_DevPtr = NULL;
+   SrcTerms.Leakage_HeatEAve_DevPtr = NULL;
 #  endif
 
 #  if ( MODEL != HYDRO  &&  MODEL != ELBDM )

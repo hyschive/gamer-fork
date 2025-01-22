@@ -50,11 +50,11 @@ double Src_Leakage_ConstructSeries( const int NBin, const double xmin, const dou
 extern void Src_Leakage_ComputeTau( Profile_t *Ray[], double *Edge,
                                     const int NRadius, const int NTheta, const int NPhi,
                                     real *tau_Ruff, real *chi_Ross, real *Heat_Flux,
-                                    real *HeatE_Rms, real *HeatE_Ave );
+                                    real *Heat_ERms, real *Heat_Eave );
 extern void Src_Leakage_ComputeLeak( const real Dens_Code, const real Temp_Kelv, const real Ye, const real chi[], const real tau[],
-                                     const real Heat_Flux[], const real *HeatE_Rms, const real *HeatE_Ave,
+                                     const real Heat_Flux[], const real *Heat_ERms, const real *Heat_Eave,
                                      real *dEdt, real *dYedt, real *Lum, real *Heat, real *NetHeat,
-                                     const bool NuHeat, const real NuHeat_Fac, const real UNIT_D, const EoS_t *EoS  );
+                                     const bool NuHeat, const real NuHeat_Fac, const real UNIT_D, const EoS_t *EoS );
 
 #endif // #ifndef __CUDACC__
 
@@ -117,9 +117,9 @@ real Src_Leakage_TrilinearInterp( const real *array, const real *xs, const real 
 void Src_SetAuxArray_Leakage( double AuxArray_Flt[], int AuxArray_Int[] )
 {
 
-   const int    Mode    = (  (SrcTerms.Leakage_NTheta == 1) << 1  ) + (SrcTerms.Leakage_NPhi == 1);
-   const int    NRay    = SrcTerms.Leakage_NTheta * SrcTerms.Leakage_NPhi;
-   const double Ye_Frac = 0.01;
+   const int    RayConfig = (  (SrcTerms.Leakage_NTheta == 1) << 1  ) + (SrcTerms.Leakage_NPhi == 1);
+   const int    NRay      = SrcTerms.Leakage_NTheta * SrcTerms.Leakage_NPhi;
+   const double Ye_Frac   = 0.01;
 
    AuxArray_Flt[SRC_AUX_PNS_X     ] = amr->BoxCenter[0];
    AuxArray_Flt[SRC_AUX_PNS_Y     ] = amr->BoxCenter[1];
@@ -136,10 +136,10 @@ void Src_SetAuxArray_Leakage( double AuxArray_Flt[], int AuxArray_Int[] )
 #  endif
    AuxArray_Flt[SRC_AUX_VSQR2CODE ] = 1.0 / SQR( UNIT_V );
 
-   AuxArray_Int[SRC_AUX_MODE      ] = Mode;
+   AuxArray_Int[SRC_AUX_RAYCONF   ] = RayConfig;
    AuxArray_Int[SRC_AUX_NRAD_LIN  ] = int( SrcTerms.Leakage_RadiusMin_Log / SrcTerms.Leakage_BinSize_Radius );
    AuxArray_Int[SRC_AUX_STRIDE    ] = NRay * NType_Neutrino;
-   AuxArray_Int[SRC_AUX_RECORD    ] = 0;
+   AuxArray_Int[SRC_AUX_MODE      ] = LEAK_MODE_EVOLVE;
 
 } // FUNCTION : Src_SetAuxArray_Leakage
 #endif // #ifndef __CUDACC__
@@ -202,10 +202,10 @@ static void Src_Leakage( real fluid[], const real B[],
    const real YeMax      = AuxArray_Flt[SRC_AUX_YEMAX     ];
    const real sEint2Code = AuxArray_Flt[SRC_AUX_VSQR2CODE ];
 
-   const int  Mode       = AuxArray_Int[SRC_AUX_MODE      ];
+   const int  RayConfig  = AuxArray_Int[SRC_AUX_RAYCONF   ];
    const int  NRad_Lin   = AuxArray_Int[SRC_AUX_NRAD_LIN  ];
    const int  Stride     = AuxArray_Int[SRC_AUX_STRIDE    ];
-   const int  RecMode    = AuxArray_Int[SRC_AUX_RECORD    ];
+   const int  Mode       = AuxArray_Int[SRC_AUX_MODE      ];
 
 
    const int  NRadius = SrcTerms->Leakage_NRadius;
@@ -230,7 +230,7 @@ static void Src_Leakage( real fluid[], const real B[],
 // do nothing if the cell is beyond the sampled rays
    if ( rad > MaxRadius )
    {
-      if ( RecMode == 1 )
+      if ( Mode == LEAK_MODE_RECORD )
       {
          fluid[DENS] = (real)0.0;
          fluid[MOMX] = (real)0.0;
@@ -310,9 +310,9 @@ static void Src_Leakage( real fluid[], const real B[],
 #  ifdef __CUDACC__
    real *Ray_tau  = SrcTerms->Leakage_tau_DevPtr;
    real *Ray_chi  = SrcTerms->Leakage_chi_DevPtr;
-   real *Ray_Flux = SrcTerms->Leakage_Heat_Flux_DevPtr;
-   real *Ray_ERms = SrcTerms->Leakage_HeatE_Rms_DevPtr;
-   real *Ray_EAve = SrcTerms->Leakage_HeatE_Ave_DevPtr;
+   real *Ray_Flux = SrcTerms->Leakage_HeatFlux_DevPtr;
+   real *Ray_ERms = SrcTerms->Leakage_HeatERms_DevPtr;
+   real *Ray_EAve = SrcTerms->Leakage_HeatEAve_DevPtr;
 #  else
    real *Ray_tau  = h_SrcLeakage_tau;
    real *Ray_chi  = h_SrcLeakage_chi;
@@ -322,9 +322,9 @@ static void Src_Leakage( real fluid[], const real B[],
 #  endif
 
    real tau[NType_Neutrino], chi[NType_Neutrino], Heat_Flux[NType_Neutrino];
-   real HeatE_Ave[NType_Neutrino], HeatE_Rms[NType_Neutrino];
+   real Heat_EAve[NType_Neutrino], Heat_ERms[NType_Neutrino];
 
-   switch ( Mode )
+   switch ( RayConfig )
    {
       case 0: // NTheta != 1, NPhi != 1
       {
@@ -362,8 +362,8 @@ static void Src_Leakage( real fluid[], const real B[],
             tau      [n] = Src_Leakage_TrilinearInterp( tau_tmp , xs, ys, zs, rad, theta, phi );
             chi      [n] = Src_Leakage_TrilinearInterp( chi_tmp , xs, ys, zs, rad, theta, phi );
             Heat_Flux[n] = Src_Leakage_TrilinearInterp( Flux_tmp, xs, ys, zs, rad, theta, phi );
-            HeatE_Rms[n] = Src_Leakage_BilinearInterp ( ERms_tmp,     ys, zs,      theta, phi );
-            HeatE_Ave[n] = Src_Leakage_BilinearInterp ( EAve_tmp,     ys, zs,      theta, phi );
+            Heat_ERms[n] = Src_Leakage_BilinearInterp ( ERms_tmp,     ys, zs,      theta, phi );
+            Heat_EAve[n] = Src_Leakage_BilinearInterp ( EAve_tmp,     ys, zs,      theta, phi );
          } // for (int n=0; n<NType_Neutrino; n++)
       }
       break; // case 0
@@ -398,8 +398,8 @@ static void Src_Leakage( real fluid[], const real B[],
             tau      [n] = Src_Leakage_BilinearInterp( tau_tmp , xs, ys, rad, theta );
             chi      [n] = Src_Leakage_BilinearInterp( chi_tmp , xs, ys, rad, theta );
             Heat_Flux[n] = Src_Leakage_BilinearInterp( Flux_tmp, xs, ys, rad, theta );
-            HeatE_Rms[n] = Src_Leakage_LinearInterp  ( ERms_tmp,     ys,      theta );
-            HeatE_Ave[n] = Src_Leakage_LinearInterp  ( EAve_tmp,     ys,      theta );
+            Heat_ERms[n] = Src_Leakage_LinearInterp  ( ERms_tmp,     ys,      theta );
+            Heat_EAve[n] = Src_Leakage_LinearInterp  ( EAve_tmp,     ys,      theta );
          } // for (int n=0; n<NType_Neutrino; n++)
       }
       break; // case 1
@@ -434,8 +434,8 @@ static void Src_Leakage( real fluid[], const real B[],
             tau      [n] = Src_Leakage_BilinearInterp( tau_tmp , xs, zs, rad, phi );
             chi      [n] = Src_Leakage_BilinearInterp( chi_tmp , xs, zs, rad, phi );
             Heat_Flux[n] = Src_Leakage_BilinearInterp( Flux_tmp, xs, zs, rad, phi );
-            HeatE_Rms[n] = Src_Leakage_LinearInterp  ( ERms_tmp,     zs,      phi );
-            HeatE_Ave[n] = Src_Leakage_LinearInterp  ( EAve_tmp,     zs,      phi );
+            Heat_ERms[n] = Src_Leakage_LinearInterp  ( ERms_tmp,     zs,      phi );
+            Heat_EAve[n] = Src_Leakage_LinearInterp  ( EAve_tmp,     zs,      phi );
          } // for (int n=0; n<NType_Neutrino; n++)
       }
       break; // case 2
@@ -460,8 +460,8 @@ static void Src_Leakage( real fluid[], const real B[],
                Flux_tmp[iv2] = Ray_Flux[idx2];
             }
 
-            HeatE_Rms[n] = Ray_ERms[idx1];
-            HeatE_Ave[n] = Ray_EAve[idx1];
+            Heat_ERms[n] = Ray_ERms[idx1];
+            Heat_EAve[n] = Ray_EAve[idx1];
 
             tau      [n] = Src_Leakage_LinearInterp( tau_tmp , xs, rad );
             chi      [n] = Src_Leakage_LinearInterp( chi_tmp , xs, rad );
@@ -469,7 +469,7 @@ static void Src_Leakage( real fluid[], const real B[],
          } // for (int n=0; n<NType_Neutrino; n++)
       }
       break; // case 3
-   } // switch ( Mode )
+   } // switch ( RayConfig )
 
 
 // (2-2) prepare fluid data for the leakage scheme
@@ -536,7 +536,7 @@ static void Src_Leakage( real fluid[], const real B[],
    const real Unit_T     = SrcTerms->Unit_T;
          real dEdt_CGS, dYedt, Lum[NType_Neutrino], Heat[NType_Neutrino], NetHeat[NType_Neutrino];
 
-   Src_Leakage_ComputeLeak( Dens_Code, Temp_Kelv, Ye, chi, tau, Heat_Flux, HeatE_Rms, HeatE_Ave,
+   Src_Leakage_ComputeLeak( Dens_Code, Temp_Kelv, Ye, chi, tau, Heat_Flux, Heat_ERms, Heat_EAve,
                             &dEdt_CGS, &dYedt, Lum, Heat, NetHeat, NuHeat, NuHeat_Fac, Unit_D, EoS );
 
 // the returned dEdt_CGS is in erg/g/s, and dYedt is in 1/s
@@ -544,8 +544,8 @@ static void Src_Leakage( real fluid[], const real B[],
    const real dYedt_Code = dYedt * Unit_T;
 
 
-// (4) store the dEdt, luminosity, heating rate, and net heating rate for Record Mode
-   if ( RecMode == 1 )
+// (4) store the dEdt, luminosity, heating rate, and net heating rate for recording
+   if ( Mode == LEAK_MODE_RECORD )
    {
       fluid[DENS    ] = dEdt_CGS * Dens_Code * Unit_D;
       fluid[MOMX    ] = Lum [0];
@@ -566,10 +566,10 @@ static void Src_Leakage( real fluid[], const real B[],
 
 // (5-1) update the change rates of energy and Ye first
 #  ifdef DYEDT_NU
-   fluid[DEDT_NU ] = ( RecMode == 2 ) ? dEdt_Code  : FABS( dEdt_Code  );
-   fluid[DYEDT_NU] = ( RecMode == 2 ) ? dYedt_Code : FABS( dYedt_Code );
+   fluid[DEDT_NU ] = ( Mode == LEAK_MODE_CORRSIGN ) ? dEdt_Code  : FABS( dEdt_Code  );
+   fluid[DYEDT_NU] = ( Mode == LEAK_MODE_CORRSIGN ) ? dYedt_Code : FABS( dYedt_Code );
 
-   if ( RecMode == 2 )   return;
+   if ( Mode == LEAK_MODE_CORRSIGN )   return;
 #  endif
 
 // (5-2) make sure the new Ye is not within 1% of the table boundary
@@ -621,8 +621,8 @@ static void Src_Leakage( real fluid[], const real B[],
       printf( "   Radius=%13.7e cm, Temp=%13.7e Kelvin, dEdt=%13.7e, dYedt=%13.7e\n", rad * SrcTerms->Unit_L, Temp_Kelv, dEdt_Code, dYedt );
 
       for (int n=0; n<NType_Neutrino; n++)
-      printf( "   n=%d: tau=%13.7e, chi=%13.7e, Heat_Flux=%13.7e, HeatE_Rms=%13.7e, HeatE_Ave=%13.7e\n",
-                  n, tau[n], chi[n], Heat_Flux[n] / Const_hc_MeVcm_CUBE, HeatE_Rms[n], HeatE_Ave[n] );
+      printf( "   n=%d: tau=%13.7e, chi=%13.7e, Heat_Flux=%13.7e, Heat_ERms=%13.7e, Heat_EAve=%13.7e\n",
+                  n, tau[n], chi[n], Heat_Flux[n] / Const_hc_MeVcm_CUBE, Heat_ERms[n], Heat_EAve[n] );
    }
 #  endif // GAMER_DEBUG
 
@@ -774,7 +774,7 @@ void Src_WorkBeforeMajorFunc_Leakage( const int lv, const double TimeNew, const 
       if ( Ray_Ye.NCell[i] != 0L )   Ray_Ye.Data[i] /= Ray_Dens_Code.Data[i];
 
 
-// (4) compute tau_Ruff, chi_Ross, HeatE_Flux, HeatE_Rms, and HeatE_ave
+// (4) compute tau_Ruff, chi_Ross, HeatE_Flux, Heat_ERms, and Heat_EAve
    Src_Leakage_ComputeTau( Leakage_Ray, Edge, NRad, NTheta, NPhi,
                            h_SrcLeakage_tau, h_SrcLeakage_chi, h_SrcLeakage_HeatFlux,
                            h_SrcLeakage_HeatERms, h_SrcLeakage_HeatEAve );

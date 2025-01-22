@@ -248,7 +248,7 @@ void Output_DumpData( const int Stage )
         ( OutputData || OutputData_RunTime || OutputData_Walltime ) )
    {
 //    enable the record mode
-      Src_Leakage_AuxArray_Int[3] = 2;
+      Src_Leakage_AuxArray_Int[3] = LEAK_MODE_CORRSIGN;
 
 //    update leakage data at TimeNew on lv=0
       const int    lv      = 0;
@@ -307,7 +307,7 @@ void Output_DumpData( const int Stage )
       } // OpenMP parallel region
 
 //    reset the record mode
-      Src_Leakage_AuxArray_Int[3] = 0;
+      Src_Leakage_AuxArray_Int[3] = LEAK_MODE_EVOLVE;
    }
 #  endif
 

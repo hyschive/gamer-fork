@@ -74,12 +74,12 @@ void End_MemFree_Fluid()
    delete [] h_SrcLeakage_HeatERms;  h_SrcLeakage_HeatERms = NULL;
    delete [] h_SrcLeakage_HeatEAve;  h_SrcLeakage_HeatEAve = NULL;
 
-   SrcTerms.Leakage_Radius_DevPtr    = NULL;
-   SrcTerms.Leakage_tau_DevPtr       = NULL;
-   SrcTerms.Leakage_chi_DevPtr       = NULL;
-   SrcTerms.Leakage_Heat_Flux_DevPtr = NULL;
-   SrcTerms.Leakage_HeatE_Rms_DevPtr = NULL;
-   SrcTerms.Leakage_HeatE_Ave_DevPtr = NULL;
+   SrcTerms.Leakage_Radius_DevPtr   = NULL;
+   SrcTerms.Leakage_tau_DevPtr      = NULL;
+   SrcTerms.Leakage_chi_DevPtr      = NULL;
+   SrcTerms.Leakage_HeatFlux_DevPtr = NULL;
+   SrcTerms.Leakage_HeatERms_DevPtr = NULL;
+   SrcTerms.Leakage_HeatEAve_DevPtr = NULL;
 #  endif
 
 } // FUNCTION : End_MemFree_Fluid

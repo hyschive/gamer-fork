@@ -108,9 +108,9 @@ struct SrcTerms_t
    real     *Leakage_Radius_DevPtr;
    real     *Leakage_tau_DevPtr;
    real     *Leakage_chi_DevPtr;
-   real     *Leakage_Heat_Flux_DevPtr;
-   real     *Leakage_HeatE_Rms_DevPtr;
-   real     *Leakage_HeatE_Ave_DevPtr;
+   real     *Leakage_HeatFlux_DevPtr;
+   real     *Leakage_HeatERms_DevPtr;
+   real     *Leakage_HeatEAve_DevPtr;
 #  endif // if ( MODEL == HYDRO )
 
 // user-specified source term
