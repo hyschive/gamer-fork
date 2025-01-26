@@ -329,12 +329,15 @@ void Src_Leakage_ComputeTau( Profile_t *Ray[], double *Edge,
             }}
 
 //          integrate opacity to get optical depth; (A20)
+//          --> assume the optical depth is zero at the right edge of outermost bin
             for (int k=0; k<NType_Neutrino; k++)
             {
-               tau[TID][NRadius-1][k] = 0.0;
+               tau[TID][NRadius-1][k] = 0.5 * kappa_tot[TID][NRadius-1][k] * BinWidth[NRadius-1];
 
                for (int i=NRadius-2; i>=0; i--)
-                  tau[TID][i][k] = tau[TID][i+1][k] + kappa_tot[TID][i][k] * BinWidth[i];
+                  tau[TID][i][k] = tau[TID][i+1][k]
+                                 + 0.5 * kappa_tot[TID][i  ][k] * BinWidth[i  ]
+                                 + 0.5 * kappa_tot[TID][i+1][k] * BinWidth[i+1];
             }
 
 //          use new optical depth to update opacity
@@ -371,7 +374,7 @@ void Src_Leakage_ComputeTau( Profile_t *Ray[], double *Edge,
                Ypn = fmax( 0.0, Ypn );
 
 //             update opacity
-//             --> electron neutrino
+//             --> electron neutrino (nu_e)
                fac1 = Compute_FermiIntegral( 5, eta_nu_loc[TID][i][0] )
                     / Compute_FermiIntegral( 3, eta_nu_loc[TID][i][0] );
                fac2 = 1.0 + exp(   eta_e[TID][i] - Compute_FermiIntegral( 5, eta_nu_loc[TID][i][0] )
@@ -381,7 +384,7 @@ void Src_Leakage_ComputeTau( Profile_t *Ray[], double *Edge,
                kappa_scat_p[0] = kappa_scat_p_fac[TID][i] * Yp  * fac1;        // (A6)
                kappa_abs_n     = kappa_abs_fac   [TID][i] * Ynp * fac1 / fac2; // (A11)
 
-//             --> electron anti-neutrino
+//             --> electron anti-neutrino (nu_a)
                fac1 = Compute_FermiIntegral( 5, eta_nu_loc[TID][i][1] )
                     / Compute_FermiIntegral( 3, eta_nu_loc[TID][i][1] );
                fac2 = 1.0 + exp(  -eta_e[TID][i] - Compute_FermiIntegral( 5, eta_nu_loc[TID][i][1] )
@@ -391,7 +394,7 @@ void Src_Leakage_ComputeTau( Profile_t *Ray[], double *Edge,
                kappa_scat_p[1] = kappa_scat_p_fac[TID][i] * Yp  * fac1;        // (A6)
                kappa_abs_p     = kappa_abs_fac   [TID][i] * Ypn * fac1 / fac2; // (A11)
 
-//             --> heavy-lepton neutrino
+//             --> heavy-lepton neutrino (nu_x)
                fac1 = Compute_FermiIntegral( 5, eta_nu_loc[TID][i][2] )
                     / Compute_FermiIntegral( 3, eta_nu_loc[TID][i][2] );
 
@@ -518,11 +521,15 @@ void Src_Leakage_ComputeTau( Profile_t *Ray[], double *Edge,
          } // for (int i=0; i<NRadius; i++)
 
 //       (4-2) integrate zeta to get chi, where the energy dependence is factored out; (A23)
+//             --> assume chi is zero at the right edge of outermost bin
          for (int k=0; k<NType_Neutrino; k++)
          {
-                                               chi[TID][NRadius-1][k] = 0.0;
-            for (int i=NRadius-2; i>=0; i--)   chi[TID][i]        [k] = chi[TID][i+1][k] + zeta[TID][i][k] * BinWidth[i];
-                                               chi[TID][NRadius-1][k] = chi[TID][NRadius-2][k];
+            chi[TID][NRadius-1][k] = 0.5 * zeta[TID][NRadius-1][k] * BinWidth[NRadius-1];
+
+            for (int i=NRadius-2; i>=0; i--)
+               chi[TID][i][k] = chi[TID][i+1][k]
+                              + 0.5 * zeta[TID][i  ][k] * BinWidth[i  ]
+                              + 0.5 * zeta[TID][i+1][k] * BinWidth[i+1];
          }
 
 //       store chi with typecasting
@@ -602,7 +609,7 @@ void Src_Leakage_ComputeTau( Profile_t *Ray[], double *Edge,
             for (int k=0; k<NType_Neutrino-1; k++)
             {
                LumAcc              [k] += BinVol[i] * Lum[k];
-               Heat_Flux_3D[i+1][j][k]  = LumAcc[k] * lepton_blocking[k] / BinSurfArea[i];
+               Heat_Flux_3D[i+1][j][k]  = LumAcc[k] * lepton_blocking[k] / BinSurfArea[i+1];
             }
          } // for (int i=0; i<NRadius-1; i++)
 
