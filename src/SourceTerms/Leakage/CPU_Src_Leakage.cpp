@@ -742,13 +742,13 @@ void Src_WorkBeforeMajorFunc_Leakage( const int lv, const double TimeNew, const 
 // retrieve the temperature profile from the density, internal energy density, and Ye
    if ( SrcTerms.Leakage_Opt_Temp == LEAK_TEMP_BINDATA )
    {
+#     ifdef YE
       real Passive[NCOMP_PASSIVE] = { 0.0 };
 
       for (int i=0; i<NData; i++)
       {
          if ( Ray_Temp_Kelv.NCell[i] == 0L )   continue;
 
-#        ifdef YE
          Passive[ YE      - NCOMP_FLUID ] = Ray_Ye.Data[i];
 
 #        ifdef TEMP_IG
@@ -764,8 +764,8 @@ void Src_WorkBeforeMajorFunc_Leakage( const int lv, const double TimeNew, const 
                        __FUNCTION__, Ray_Dens_Code.Data[i], Ray_Temp_Kelv.Data[i], Ray_Ye.Data[i] );
 
          Ray_Temp_Kelv.Data[i] = Temp;
-#        endif // ifdef YE
       }
+#     endif // ifdef YE
    } // if ( SrcTerms.Leakage_Opt_Temp == LEAK_TEMP_BINDATA )
 
 
