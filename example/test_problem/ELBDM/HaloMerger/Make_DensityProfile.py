@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import os.path
 
 
 ###################################################################################################################
@@ -99,22 +100,32 @@ soliton_densprof_density = Soliton_fitting_analytical_dens( soliton_densprof_rad
 
 ###################################################################################################################
 # save to file
-np.savetxt( 'HaloDensityProfile',
-            np.column_stack( (halo_densprof_radius, halo_densprof_density) ),
-            fmt='          %9.8e',
-            header='                     r                  density' )
+filename = 'FitHaloDensityProfile'
 
-np.savetxt( 'SolitonDensityProfile',
+if os.path.exists( filename ):
+   print( '\nWARNING: file "%s" already exists and will be overwritten !!'%filename )
+
+np.savetxt( filename,
+            np.column_stack( (halo_densprof_radius, halo_densprof_density) ),
+            fmt='%24.8e',
+            header='%22s %24s'%( 'r', 'density' ) )
+
+filename = 'SolitonDensityProfile'
+
+if os.path.exists( filename ):
+   print( '\nWARNING: file "%s" already exists and will be overwritten !!'%filename )
+
+np.savetxt( filename,
             np.column_stack( (soliton_densprof_radius, soliton_densprof_density) ),
-            fmt='          %9.8e',
-            header='                     r                  density' )
+            fmt='%24.8e',
+            header='%22s %24s'%( 'r', 'density' ) )
 ###################################################################################################################
 
 
 ###################################################################################################################
 # plot to images
 fig = plt.figure()
-ax  = fig.add_subplot(111)
+ax  = fig.add_subplot( 111 )
 
 # plot some important values for reference
 ax.plot( [halo_fitting_r_0,                 halo_fitting_r_0                ], [0.3*np.min(halo_densprof_density), 3.0*np.max(halo_densprof_density)],    '--',  color='grey',  label=r'$r_0$'     )
@@ -135,8 +146,8 @@ ax.annotate( r'$\rho_{0}$ = %.8e'%(halo_fitting_rho_0)+'\n'+
              xy=(0.02,0.02), xycoords='axes fraction' )
 
 # setting for the figure
-ax.set_xscale('log')
-ax.set_yscale('log')
+ax.set_xscale( 'log' )
+ax.set_yscale( 'log' )
 ax.set_xlim( 0.5*np.min(halo_densprof_radius),  2.0*np.max(halo_densprof_radius)  )
 ax.set_ylim( 0.5*np.min(halo_densprof_density), 2.0*np.max(halo_densprof_density) )
 
@@ -148,11 +159,18 @@ ax.legend( loc='upper right' )
 
 # save the figure
 fig.subplots_adjust( top=0.93, bottom=0.1, left=0.1, right=0.97 )
-fig.savefig( 'fig_HaloDensityProfile.png' )
+
+filename_fig = 'fig_FitHaloDensityProfile.png'
+
+if os.path.exists( filename_fig ):
+   print( '\nWARNING: file "%s" already exists and will be overwritten !!'%filename_fig )
+
+fig.savefig( filename_fig )
 plt.close()
 
+
 fig = plt.figure()
-ax  = fig.add_subplot(111)
+ax  = fig.add_subplot( 111 )
 
 # plot some important values for reference
 ax.plot( [soliton_fitting_r_c,              soliton_fitting_r_c                   ], [0.3*np.min(soliton_densprof_density), 3.0*np.max(soliton_densprof_density)],    '--',  color='grey',  label=r'$r_{\rm c}$'     )
@@ -170,8 +188,8 @@ ax.annotate( r'$\rho_{\rm c}$ = %.8e'%(soliton_fitting_rho_c)+'\n'+
              xy=(0.02,0.02), xycoords='axes fraction' )
 
 # setting for the figure
-ax.set_xscale('log')
-ax.set_yscale('log')
+ax.set_xscale( 'log' )
+ax.set_yscale( 'log' )
 ax.set_xlim(    0.5*np.min(soliton_densprof_radius),  2.0*np.max(soliton_densprof_radius)  )
 ax.set_ylim( 0.0001*np.max(soliton_densprof_density), 3.0*np.max(soliton_densprof_density) )
 
@@ -183,6 +201,12 @@ ax.legend( loc='upper right' )
 
 # save the figure
 fig.subplots_adjust( top=0.93, bottom=0.1, left=0.1, right=0.97 )
-fig.savefig( 'fig_SolitonDensityProfile.png' )
+
+filename_fig = 'fig_SolitonDensityProfile.png'
+
+if os.path.exists( filename_fig ):
+   print( '\nWARNING: file "%s" already exists and will be overwritten !!'%filename_fig )
+
+fig.savefig( filename_fig )
 plt.close()
 ###################################################################################################################
