@@ -320,7 +320,7 @@ void Src_Leakage_ComputeTau( Profile_t *Ray[], double *Edge,
                int  NIter       = 0;
                bool IsConverged = false;
 
-         while ( NIter < NIter_Max )
+         while ( ! IsConverged  &&  NIter < NIter_Max )
          {
 //          back up the used opacity
             for (int i=0; i<NRadius;        i++) {
@@ -411,9 +411,8 @@ void Src_Leakage_ComputeTau( Profile_t *Ray[], double *Edge,
 //          compute the relative change in total opacity
             IsConverged = true;
 
-            for (int i=0; i<NRadius;        i++) {
-            for (int k=0; k<NType_Neutrino; k++) {
-               if ( ! IsConverged )   break;
+            for (int i=0; i<NRadius;        i++) {   if ( ! IsConverged )   break;
+            for (int k=0; k<NType_Neutrino; k++) {   if ( ! IsConverged )   break;
 
                double rel_diff = fabs( kappa_tot[TID][i][k] / kappa_tot_old[TID][i][k] - 1.0 );
 
@@ -421,7 +420,7 @@ void Src_Leakage_ComputeTau( Profile_t *Ray[], double *Edge,
             }}
 
             NIter++;
-         } // while ( NIter < NIter_Max )
+         } // while ( ! IsConverged  &&  NIter < NIter_Max )
 
          if ( ! IsConverged )
          {
