@@ -255,8 +255,8 @@ void Aux_ComputeRay( Profile_t *Ray[], const double Center[], const double Edge[
                const int PID = PID0 + LocalID;
                SkipPatch[LocalID] = false;
 
-               if ( amr->patch[0][lv][PID]->son != -1 )   SkipPatch[LocalID] = true;
-               if ( ! SkipPatch[LocalID]              )   SkipPatchGroup     = false;
+               if ( amr->patch[0][lv][PID]->son != -1  &&  lv != MAX_LEVEL )   SkipPatch[LocalID] = true;
+               if ( ! SkipPatch[LocalID]                                   )   SkipPatchGroup     = false;
             } // for (int LocalID=0; LocalID<8; LocalID++)
 
             if ( SkipPatchGroup )   continue;
