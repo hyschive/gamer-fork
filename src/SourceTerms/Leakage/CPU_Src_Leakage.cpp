@@ -29,7 +29,7 @@ extern real *d_SrcLeakage_HeatEAve;
 #ifndef __CUDACC__
 
 // construct the leakage profiles sequentially to minimize memory usage
-//#define LEAKAGE_SEQUENTIAL_MAPPING
+#define LEAKAGE_SEQUENTIAL_MAPPING
 
 static long Leakage_Step = -1;
 
@@ -52,7 +52,7 @@ extern void Src_Leakage_ComputeTau( Profile_t *Ray[], double *Edge,
                                     real *tau_Ruff, real *chi_Ross, real *Heat_Flux,
                                     real *Heat_ERms, real *Heat_Eave );
 extern void Src_Leakage_ComputeLeak( const real Dens_Code, const real Temp_Kelv, const real Ye, const real chi[], const real tau[],
-                                     const real Heat_Flux[], const real *Heat_ERms, const real *Heat_Eave,
+                                     const real Heat_Flux[], const real *Heat_ERms, const real *Heat_EAve,
                                      real *dEdt, real *dYedt, real *Lum, real *Heat, real *NetHeat,
                                      const bool NuHeat, const real NuHeat_Fac, const real UNIT_D, const EoS_t *EoS );
 

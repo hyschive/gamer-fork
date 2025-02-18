@@ -639,11 +639,11 @@ void Src_Leakage_ComputeTau( Profile_t *Ray[], double *Edge,
          Aux_Message( File, "# Heat_EAve_Nux : %14.6e\n", Heat_EAve_2D[j][2] );
          Aux_Message( File, "# -------------------------------------------------------------------------------\n" );
 
-         Aux_Message( File, "#%14s  %8s", "[ 1]", "[ 2]" );
+         Aux_Message( File, "# %14s  %8s", "[ 1]", "[ 2]" );
          for (int c=2; c<NColumn; c++)   Aux_Message( File, "  %10s[%2d]", "", c+1 );
          Aux_Message( File, "\n" );
 
-         Aux_Message( File, "#%14s  %8s",               "Radius", "NCell"                              );
+         Aux_Message( File, "# %14s  %8s",              "Radius", "NCell"                              );
          Aux_Message( File, "  %14s  %14s  %14s  %14s", "Dens", "Temp", "Ye", "sEint"                  );
          Aux_Message( File, "  %14s  %14s  %14s",       "tau_Ruff_Nue", "tau_Ruff_Nua", "tau_Ruff_Nux" );
          Aux_Message( File, "  %14s  %14s  %14s",       "chi_Ross_Nue", "chi_Ross_Nua", "chi_Ross_Nux" );
@@ -651,7 +651,7 @@ void Src_Leakage_ComputeTau( Profile_t *Ray[], double *Edge,
          Aux_Message( File, "  %14s  %14s",             "dEdt", "dYedt"                                );
          Aux_Message( File, "\n" );
 
-         Aux_Message( File, "#%14s  %8s",               "[cm]", "[1]"                               );
+         Aux_Message( File, "# %14s  %8s",              "[cm]", "[1]"                               );
          Aux_Message( File, "  %14s  %14s  %14s  %14s", "[g/cm^3]", "[Kelvin]", "[1]", "[cm^2/s^2]" );
          Aux_Message( File, "  %14s  %14s  %14s",       "[1]", "[1]", "[1]"                         );
          Aux_Message( File, "  %14s  %14s  %14s",       "[1]", "[1]", "[1]"                         );
@@ -662,7 +662,7 @@ void Src_Leakage_ComputeTau( Profile_t *Ray[], double *Edge,
 //       ray data
          for (int i=0; i<NRadius; i++)
          {
-            Aux_Message( File, " %14.7e  %8ld",                    0.5 * ( Edge_CGS[i] + Edge_CGS[i+1] ), NCell[TID][i]                                                 );
+            Aux_Message( File, "  %14.7e  %8ld",                   0.5 * ( Edge_CGS[i] + Edge_CGS[i+1] ), NCell[TID][i]                                                 );
             Aux_Message( File, "  %14.7e  %14.7e  %14.7e  %14.7e", Dens_CGS[TID][i], Temp_Kelv[TID][i], Ye[TID][i], Eint_Code[TID][i] / Dens_Code[TID][i] * SQR(UNIT_V) );
 
             for (int k=0; k<NType_Neutrino;   k++)   Aux_Message( File, "  %14.7e", tau_Ruff_3D [i][j][k] );

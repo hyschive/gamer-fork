@@ -39,9 +39,9 @@ double Mis_GetTimeStep_PostBounce( const int lv, const double dTime_dt )
    const int NT = 1;
 #  endif
 
-   double  dt_NuHeat         = HUGE_NUMBER;
-   double  dt_NuHeat_Inv     = -__DBL_MAX__;
-   double *OMP_dt_NuHeat_Inv = new double [NT];
+   double  dt_NuHeat        = HUGE_NUMBER;
+   double  dtInv_NuHeat     = -__DBL_MAX__;
+   double *OMP_dtInv_NuHeat = new double [NT];
 
 
 #  if ( defined DYEDT_NU  &&  NEUTRINO_SCHEME == LEAKAGE )
@@ -59,7 +59,7 @@ double Mis_GetTimeStep_PostBounce( const int lv, const double dTime_dt )
 #     endif
 
 //    initialize arrays
-      OMP_dt_NuHeat_Inv[TID] = -__DBL_MAX__;
+      OMP_dtInv_NuHeat[TID] = -__DBL_MAX__;
 
       const double dh = amr->dh[lv];
 
@@ -121,14 +121,14 @@ double Mis_GetTimeStep_PostBounce( const int lv, const double dTime_dt )
 #           endif // ifdef DYEDT_NU ... else ...
 
 
-            double dt_NuHeat_Inv_ThisCell = FABS( dEint_Code / Eint_Code );
+            double dtInv_NuHeat_ThisCell = FABS( dEint_Code / Eint_Code );
 
 #           if ( NEUTRINO_SCHEME == LEAKAGE )
-            dt_NuHeat_Inv_ThisCell = FMAX( FABS( dYedt / dYe ), dt_NuHeat_Inv_ThisCell );
+            dtInv_NuHeat_ThisCell = FMAX( FABS( dYedt / dYe ), dtInv_NuHeat_ThisCell );
 #           endif
 
 //          compare the inverse of ratio to avoid zero division, and store the maximum value
-            OMP_dt_NuHeat_Inv[TID] = FMAX( OMP_dt_NuHeat_Inv[TID], dt_NuHeat_Inv_ThisCell );
+            OMP_dtInv_NuHeat[TID] = FMAX( OMP_dtInv_NuHeat[TID], dtInv_NuHeat_ThisCell );
 
          }}} // i,j,k
       } // for (int PID=0; PID<amr->NPatchComma[lv][1]; PID++)
@@ -136,19 +136,19 @@ double Mis_GetTimeStep_PostBounce( const int lv, const double dTime_dt )
 
 
 // find the maximum over all OpenMP threads
-   for (int TID=0; TID<NT; TID++)   dt_NuHeat_Inv = FMAX( dt_NuHeat_Inv, OMP_dt_NuHeat_Inv[TID] );
+   for (int TID=0; TID<NT; TID++)   dtInv_NuHeat = FMAX( dtInv_NuHeat, OMP_dtInv_NuHeat[TID] );
 
 // free per-thread arrays
-   delete [] OMP_dt_NuHeat_Inv;
+   delete [] OMP_dtInv_NuHeat;
 
 
 // find the maximum over all MPI processes
 #  ifndef SERIAL
-   MPI_Allreduce( MPI_IN_PLACE, &dt_NuHeat_Inv, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD );
+   MPI_Allreduce( MPI_IN_PLACE, &dtInv_NuHeat, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD );
 #  endif
 
 
-   dt_NuHeat = CCSN_NuHeat_TimeFac / dt_NuHeat_Inv;
+   dt_NuHeat = CCSN_NuHeat_TimeFac / dtInv_NuHeat;
 
    return dt_NuHeat;
 

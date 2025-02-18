@@ -45,7 +45,7 @@ const double Const_me_MeV_SQR       = SQR ( Const_me_MeV   );
 const double Const_hc_MeVcm_CUBE    = CUBE( Const_hc_MeVcm );
 
 
-// Constant factor in the leakage scheme
+// constant factor in the leakage scheme
 // --> Ruffert scheme
 const double Const_sn_0             = ( 1.0 + 5.0 * Const_alpha_SQR ) / 24.0;                       // cross section coefficients
 const double Const_sp_0             = ( 4.0 * SQR(Const_Cv - 1.0) + 5.0 * Const_alpha_SQR ) / 24.0; // cross section coefficients
