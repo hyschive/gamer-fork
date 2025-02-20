@@ -46,7 +46,7 @@ for ds in ts.piter():
          sz = yt.SlicePlot( ds, 'z', field, center='c' )
 
          sz.set_axes_unit( 'code_length' )
-         sz.annotate_timestamp( time_unit='code_time', corner='upper_right' )
+         sz.annotate_timestamp( corner='upper_right' )
          sz.annotate_grids()
          sz.save()
 

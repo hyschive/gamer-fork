@@ -368,7 +368,7 @@ def Add_ELBDM_derived_fields(ds):
                  units         = "code_mass**0.5/code_length**1.5",
                  sampling_type = "cell" )
 
-   if ds.parameters["ELBDMScheme"] == 2: # ELBDM_HYBRID
+   if "ELBDMScheme" in ds.parameters and ds.parameters["ELBDMScheme"] == 2: # ELBDM_HYBRID
       ds.add_field(    ("gamer", "Real"),
                  function      = _Real,
                  display_name  =r"Real",
