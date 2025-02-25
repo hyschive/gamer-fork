@@ -30,10 +30,16 @@ Default setup:
 4. For Lightbulb:
    --> OPT__DT_USER = 1
    --> OPT__RESET_FLUID = 1
+   --> NEUTRINO_SCHEME = LIGHTBULB
 
 5. For Core collapse:
    --> MAX_LEVEL = 9
    --> OPT__RESET_FLUID = 1
+
+6. For Leakage:
+   --> OPT__DT_USER = 1
+   --> OPT__RESET_FLUID = 1
+   --> NEUTRINO_SCHEME = LEAKAGE
 
 Note:
 ========================================

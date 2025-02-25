@@ -215,6 +215,16 @@ void Init_Load_Parameter()
    ReadPara->Add( "SRC_LIGHTBULB",              &SrcTerms.Lightbulb,              false,           Useless_bool,  Useless_bool   );
    ReadPara->Add( "SRC_LIGHTBULB_LNUE",         &SrcTerms.Lightbulb_Lnue,         1.0e52,          0.0,           NoMax_double   );
    ReadPara->Add( "SRC_LIGHTBULB_TNUE",         &SrcTerms.Lightbulb_Tnue,         4.0,             0.0,           NoMax_double   );
+   ReadPara->Add( "SRC_LEAKAGE",                &SrcTerms.Leakage,                false,           Useless_bool,  Useless_bool   );
+   ReadPara->Add( "SRC_LEAKAGE_NRADIUS",        &SrcTerms.Leakage_NRadius,        768,             1,             NoMax_int      );
+   ReadPara->Add( "SRC_LEAKAGE_NTHETA",         &SrcTerms.Leakage_NTheta,         1,               1,             NoMax_int      );
+   ReadPara->Add( "SRC_LEAKAGE_NPHI",           &SrcTerms.Leakage_NPhi,           1,               1,             NoMax_int      );
+   ReadPara->Add( "SRC_LEAKAGE_BINSIZE_RADIUS", &SrcTerms.Leakage_BinSize_Radius, 1.0e5,           Eps_double,    NoMax_double   );
+   ReadPara->Add( "SRC_LEAKAGE_RADIUSMAX",      &SrcTerms.Leakage_RadiusMax,      3.0e8,           Eps_double,    NoMax_double   );
+   ReadPara->Add( "SRC_LEAKAGE_RADIUSMIN_LOG",  &SrcTerms.Leakage_RadiusMin_Log,  3.0e7,           Eps_double,    NoMax_double   );
+   ReadPara->Add( "SRC_LEAKAGE_NUHEAT",         &SrcTerms.Leakage_NuHeat,         true,            Useless_bool,  Useless_bool   );
+   ReadPara->Add( "SRC_LEAKAGE_NUHEAT_FAC",     &SrcTerms.Leakage_NuHeat_Fac,     1.0,             0.0,           NoMax_double   );
+   ReadPara->Add( "SRC_LEAKAGE_OPT_TEMP",       &SrcTerms.Leakage_Opt_Temp, LEAK_TEMP_BINDATA, LEAK_TEMP_INDCELL, LEAK_TEMP_BINDATA );
    ReadPara->Add( "SRC_USER",                   &SrcTerms.User,                   false,           Useless_bool,  Useless_bool   );
 // do not check SRC_GPU_NPGROUP since it may be reset by either Init_ResetDefaultParameter() or CUAPI_SetMemSize()
    ReadPara->Add( "SRC_GPU_NPGROUP",            &SRC_GPU_NPGROUP,                -1,               NoMin_int,     NoMax_int      );
@@ -505,11 +515,7 @@ void Init_Load_Parameter()
 #  ifdef MHD
    ReadPara->Add( "OPT__OUTPUT_DIVMAG",         &OPT__OUTPUT_DIVMAG,              false,           Useless_bool,  Useless_bool   );
 #  endif
-#  ifdef SRHD
-   ReadPara->Add( "OPT__OUTPUT_LORENTZ",        &OPT__OUTPUT_LORENTZ,             false,           Useless_bool,  Useless_bool   );
-   ReadPara->Add( "OPT__OUTPUT_3VELOCITY",      &OPT__OUTPUT_3VELOCITY,           false,           Useless_bool,  Useless_bool   );
-   ReadPara->Add( "OPT__OUTPUT_ENTHALPY",       &OPT__OUTPUT_ENTHALPY,            true,            Useless_bool,  Useless_bool   );
-#  endif
+   ReadPara->Add( "OPT__OUTPUT_LEAKAGE",        &OPT__OUTPUT_LEAKAGE,             false,           Useless_bool,  Useless_bool   );
    ReadPara->Add( "OPT__OUTPUT_USER_FIELD",     &OPT__OUTPUT_USER_FIELD,          false,           Useless_bool,  Useless_bool   );
    ReadPara->Add( "OPT__OUTPUT_MODE",           &OPT__OUTPUT_MODE,               -1,               1,             3              );
    ReadPara->Add( "OPT__OUTPUT_RESTART",        &OPT__OUTPUT_RESTART,             false,           Useless_bool,  Useless_bool   );
