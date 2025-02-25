@@ -30,7 +30,7 @@
 const double Const_Qnp              = 1.293333;          // m_n - m_p, MeV
 const double Const_Cv               = 0.5 + 2.0 * 0.23;  // vector coupling
 const double Const_Ca               = 0.5;               // axial coupling
-const double Const_alpha            = 1.23;              // gA
+const double Const_alpha            = 1.23;              // g_A
 const double Const_me_MeV           = 5.10998950e-1;     // electron mass in MeV
 const double Const_sigma0           = 1.76e-44;          // reference weak-interaction cross section in cm^2
 const double Const_mn               = 1.67492749804e-24; // neutron mass in gram
@@ -81,7 +81,7 @@ const double Const_leakage_heat     = 0.25  * ( 1.0 + 3.0 * Const_alpha_SQR ) * 
 const int    NType_Neutrino         = 3; // electron neutrino (e), electron anti-neutrino (a), heavy-lepton neutrino (x)
 const double TwoThirds              = 2.0 / 3.0;
 const double Kelvin2MeV             = 1.0e-6 * Const_kB_eV; // Kelvin to MeV
-const double Erg2MeV                = 1.0    / Const_MeV;   // Erg to MeV
+const double Erg2MeV                = 1.0    / Const_MeV;   // erg to MeV
 
 
 #endif // #ifndef __SRC_LEAKAGE_H__

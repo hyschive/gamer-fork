@@ -29,7 +29,8 @@ extern real *d_SrcLeakage_HeatEAve;
 #ifndef __CUDACC__
 
 // construct the leakage profiles sequentially to minimize memory usage
-#define LEAKAGE_SEQUENTIAL_MAPPING
+// --> avoid bad_alloc errors when invoking Aux_AllocateArray3D() in Aux_ComputeRay()
+//#define LEAKAGE_SEQUENTIAL_MAPPING
 
 static long Leakage_Step = -1;
 
@@ -196,7 +197,7 @@ static void Src_Leakage( real fluid[], const real B[],
    const real MaxRadius  = AuxArray_Flt[SRC_AUX_MAXRADIUS ];
    const real RadMin_Log = AuxArray_Flt[SRC_AUX_RADMIN_LOG];
    const real dRad       = AuxArray_Flt[SRC_AUX_DRAD      ];
-   const real dTheta     = AuxArray_Flt[SRC_AUX_DTHETA    ];
+   const real dTht       = AuxArray_Flt[SRC_AUX_DTHETA    ];
    const real dPhi       = AuxArray_Flt[SRC_AUX_DPHI      ];
    const real YeMin      = AuxArray_Flt[SRC_AUX_YEMIN     ];
    const real YeMax      = AuxArray_Flt[SRC_AUX_YEMAX     ];
@@ -220,15 +221,15 @@ static void Src_Leakage( real fluid[], const real B[],
    const double x0  = x - PNS_x;
    const double y0  = y - PNS_y;
    const double z0  = z - PNS_z;
-   const double rad = sqrt( SQR(x0) + SQR(y0) + SQR(z0) );
-         double theta, phi;
-         int    idx_rad, idx_theta, idx_phi;
-         int    NPhi_half = NPhi>>1;
+   const double Rad = sqrt( SQR(x0) + SQR(y0) + SQR(z0) );
+         double Tht, Phi;
          real   xs[2], ys[2], zs[2];
+         int    Idx_Rad, Idx_Tht, Idx_Phi;
+         int    NPhi_half = NPhi>>1;
 
 
 // do nothing if the cell is beyond the sampled rays
-   if ( rad > MaxRadius )
+   if ( Rad > MaxRadius )
    {
       if ( Mode == LEAK_MODE_RECORD )
       {
@@ -252,57 +253,56 @@ static void Src_Leakage( real fluid[], const real B[],
 
 
 // (1) set up the data index and coordinate
-// (1-1) radius:
+// (1-1) spherical radius:
 //       --> use data at boundary for cells outside of the radius range
-//       --> for rad <= RadMin_Log, add MIN( ..., NRadius-2 ) to deal with the special case RadMin_Log = MaxRadius
-   idx_rad = ( rad <= RadMin_Log )
-           ? MIN(  MAX( int( rad / dRad - (real)0.5 ), 0 ), NRadius-2  )
-           : Src_Leakage_BinarySearch( Radius, NRad_Lin-1, NRadius-2, rad );
+//       --> for Rad <= RadMin_Log, add MIN( ..., NRadius-2 ) to deal with the special case RadMin_Log = MaxRadius
+   Idx_Rad = ( Rad <= RadMin_Log )
+           ? MIN(  MAX( int( Rad / dRad - (real)0.5 ), 0 ), NRadius-2  )
+           : Src_Leakage_BinarySearch( Radius, NRad_Lin-1, NRadius-2, Rad );
 
-// check extrapolation here
-   xs[0] = Radius[idx_rad];
-   xs[1] = Radius[idx_rad+1];
+   xs[0] = Radius[Idx_Rad  ];
+   xs[1] = Radius[Idx_Rad+1];
 
-// (1-2) theta:
-//       --> for cells close to the pole (theta < 0.5 * dTheta or theta > PI - 0.5 * dTheta)
-//           (a) NPhi > 1, use data at phi + PI for interpolation
-//               --> idx_theta = -1                           if theta <      0.5 * dTheta
-//                               NTheta - 1                   if theta > PI - 0.5 * dTheta
-//                               int( theta / dTheta - 0.5 )  otherwise
+// (1-2) polar angle, theta:
+//       --> for cells close to the pole (Tht < 0.5 * dTht or Tht > PI - 0.5 * dTht)
+//           (a) NPhi > 1, use data at Phi + PI for interpolation
+//               --> Idx_Tht = -1                       if Tht <      0.5 * dTht
+//                             NTheta - 1               if Tht > PI - 0.5 * dTht
+//                             int( Tht / dTht - 0.5 )  otherwise
 //           (b) NPhi = 1, use data at boundary
-//               --> idx_theta = idx_theta = 0                if theta <      0.5 * dTheta
-//                               NTheta - 2                   if theta > PI - 0.5 * dTheta
-//                               int( theta / dTheta - 0.5 )  otherwise
+//               --> Idx_Tht = 0                        if Tht <      0.5 * dTht
+//                             NTheta - 2               if Tht > PI - 0.5 * dTht
+//                             int( Tht / dTht - 0.5 )  otherwise
    if ( NTheta > 1 )
    {
-//    set theta = 0.5 * PI arbitrarily if rad = 0
-      theta     = ( rad == 0.0 )
-                ? 0.5 * M_PI
-                : acos( z0 / rad );
-      idx_theta = ( NPhi > 1 )
-                ? int( theta / dTheta + 0.5 ) - 1
-                : MIN(  MAX( int( theta / dTheta - 0.5 ), 0 ), NTheta-2  );
+//    set theta = 0.5 * PI arbitrarily if the cell is at the reference center
+      Tht     = ( Rad == 0.0 )
+              ? 0.5 * M_PI
+              : acos( z0 / Rad );
+      Idx_Tht = ( NPhi > 1 )
+              ? int( Tht / dTht + 0.5 ) - 1
+              : MIN(  MAX( int( Tht / dTht - 0.5 ), 0 ), NTheta-2  );
 
-      ys[0] = ( (real)0.5 + (real)idx_theta ) * dTheta;
-      ys[1] = ( (real)1.5 + (real)idx_theta ) * dTheta;
+      ys[0] = ( (real)0.5 + (real)Idx_Tht ) * dTht;
+      ys[1] = ( (real)1.5 + (real)Idx_Tht ) * dTht;
    }
 
-// (1-3) phi:
+// (1-3) azimuthal angle, phi:
 //       --> use periodic boundary condition
-//           --> idx_phi = NPhi - 1                 if phi < 0.5 * dPhi or phi > PI - 0.5 * dPhi
-//                         int( phi / dPhi - 0.5 )  otherwise
+//           --> Idx_Phi = NPhi - 1                 if Phi < 0.5 * dPhi or Phi > 2 * PI - 0.5 * dPhi
+//                         int( Phi / dPhi - 0.5 )  otherwise
    if ( NPhi > 1 )
    {
-      phi     = (  ( x0 == 0.0 )  &&  ( y0 == 0.0 )  )
+      Phi     = (  ( x0 == 0.0 )  &&  ( y0 == 0.0 )  )
               ? 0.0
               : (  ( y0 >= 0.0 ) ? atan2( y0, x0 ) : atan2( y0, x0 ) + 2.0 * M_PI  );
-      idx_phi = int( phi / dPhi + 0.5 ) - 1;
+      Idx_Phi = int( Phi / dPhi + 0.5 ) - 1;
 
-//    deal with the case phi < 0.5 * dPhi
-      if ( idx_phi == -1 )  {  idx_phi += NPhi;  phi += 2.0 * M_PI;  }
+//    deal with the case Phi < 0.5 * dPhi
+      if ( Idx_Phi == -1 )  {  Idx_Phi += NPhi;  Phi += 2.0 * M_PI;  }
 
-      zs[0] = ( (real)0.5 + (real)idx_phi ) * dPhi;
-      zs[1] = ( (real)1.5 + (real)idx_phi ) * dPhi;
+      zs[0] = ( (real)0.5 + (real)Idx_Phi ) * dPhi;
+      zs[1] = ( (real)1.5 + (real)Idx_Phi ) * dPhi;
    }
 
 
@@ -332,10 +332,11 @@ static void Src_Leakage( real fluid[], const real B[],
 
          for (int n=0; n<NType_Neutrino; n++)
          {
-            int iv1 = 0, iv2 = 0;
+            int Idx_Out_2D = 0;
+            int Idx_Out_3D = 0;
 
-            for (int k=idx_phi;   k<idx_phi  +2; k++       )
-            for (int j=idx_theta; j<idx_theta+2; j++, iv1++)
+            for (int k=Idx_Phi; k<=Idx_Phi+1; k++              )
+            for (int j=Idx_Tht; j<=Idx_Tht+1; j++, Idx_Out_2D++)
             {
                const int jj   = ( j >= 0 )
                               ? ( j == NTheta ? NTheta-1 : j )
@@ -343,27 +344,28 @@ static void Src_Leakage( real fluid[], const real B[],
                const int kk   = ( j == -1  ||  j == NTheta )
                               ? k + NPhi_half
                               : k;
-               const int iray = jj + NTheta * ( kk % NPhi );
-               const int idx1 = n + iray * NType_Neutrino;
 
-               for (int i=idx_rad; i<idx_rad+2; i++, iv2++)
+               const int IRay      = jj + NTheta * ( kk % NPhi );
+               const int Idx_In_2D = n + IRay * NType_Neutrino;
+
+               for (int i=Idx_Rad; i<=Idx_Rad+1; i++, Idx_Out_3D++)
                {
-                  const int idx2 = idx1 + i * Stride;
+                  const int Idx_In_3D = Idx_In_2D + i * Stride;
 
-                  tau_tmp [iv2] = Ray_tau [idx2];
-                  chi_tmp [iv2] = Ray_chi [idx2];
-                  Flux_tmp[iv2] = Ray_Flux[idx2];
+                  tau_tmp [Idx_Out_3D] = Ray_tau [Idx_In_3D];
+                  chi_tmp [Idx_Out_3D] = Ray_chi [Idx_In_3D];
+                  Flux_tmp[Idx_Out_3D] = Ray_Flux[Idx_In_3D];
                }
 
-               ERms_tmp[iv1] = Ray_ERms[idx1];
-               EAve_tmp[iv1] = Ray_EAve[idx1];
+               ERms_tmp[Idx_Out_2D] = Ray_ERms[Idx_In_2D];
+               EAve_tmp[Idx_Out_2D] = Ray_EAve[Idx_In_2D];
             }
 
-            tau      [n] = Src_Leakage_TrilinearInterp( tau_tmp , xs, ys, zs, rad, theta, phi );
-            chi      [n] = Src_Leakage_TrilinearInterp( chi_tmp , xs, ys, zs, rad, theta, phi );
-            Heat_Flux[n] = Src_Leakage_TrilinearInterp( Flux_tmp, xs, ys, zs, rad, theta, phi );
-            Heat_ERms[n] = Src_Leakage_BilinearInterp ( ERms_tmp,     ys, zs,      theta, phi );
-            Heat_EAve[n] = Src_Leakage_BilinearInterp ( EAve_tmp,     ys, zs,      theta, phi );
+            tau      [n] = Src_Leakage_TrilinearInterp( tau_tmp , xs, ys, zs, Rad, Tht, Phi );
+            chi      [n] = Src_Leakage_TrilinearInterp( chi_tmp , xs, ys, zs, Rad, Tht, Phi );
+            Heat_Flux[n] = Src_Leakage_TrilinearInterp( Flux_tmp, xs, ys, zs, Rad, Tht, Phi );
+            Heat_ERms[n] = Src_Leakage_BilinearInterp ( ERms_tmp,     ys, zs,      Tht, Phi );
+            Heat_EAve[n] = Src_Leakage_BilinearInterp ( EAve_tmp,     ys, zs,      Tht, Phi );
          } // for (int n=0; n<NType_Neutrino; n++)
       }
       break; // case 0
@@ -375,31 +377,32 @@ static void Src_Leakage( real fluid[], const real B[],
 
          for (int n=0; n<NType_Neutrino; n++)
          {
-            int iv1 = 0, iv2 = 0;
+            int Idx_Out_2D = 0;
+            int Idx_Out_3D = 0;
 
-            for (int j=idx_theta; j<idx_theta+2; j++, iv1++)
+            for (int j=Idx_Tht; j<=Idx_Tht+1; j++, Idx_Out_2D++)
             {
-               const int iray = j;
-               const int idx1 = n + iray * NType_Neutrino;
+               const int IRay      = j;
+               const int Idx_In_2D = n + IRay * NType_Neutrino;
 
-               for (int i=idx_rad; i<idx_rad+2; i++, iv2++)
+               for (int i=Idx_Rad; i<=Idx_Rad+1; i++, Idx_Out_3D++)
                {
-                  const int idx2 = idx1 + i * Stride;
+                  const int Idx_In_3D = Idx_In_2D + i * Stride;
 
-                  tau_tmp [iv2] = Ray_tau [idx2];
-                  chi_tmp [iv2] = Ray_chi [idx2];
-                  Flux_tmp[iv2] = Ray_Flux[idx2];
+                  tau_tmp [Idx_Out_3D] = Ray_tau [Idx_In_3D];
+                  chi_tmp [Idx_Out_3D] = Ray_chi [Idx_In_3D];
+                  Flux_tmp[Idx_Out_3D] = Ray_Flux[Idx_In_3D];
                }
 
-               ERms_tmp[iv1] = Ray_ERms[idx1];
-               EAve_tmp[iv1] = Ray_EAve[idx1];
+               ERms_tmp[Idx_Out_2D] = Ray_ERms[Idx_In_2D];
+               EAve_tmp[Idx_Out_2D] = Ray_EAve[Idx_In_2D];
             }
 
-            tau      [n] = Src_Leakage_BilinearInterp( tau_tmp , xs, ys, rad, theta );
-            chi      [n] = Src_Leakage_BilinearInterp( chi_tmp , xs, ys, rad, theta );
-            Heat_Flux[n] = Src_Leakage_BilinearInterp( Flux_tmp, xs, ys, rad, theta );
-            Heat_ERms[n] = Src_Leakage_LinearInterp  ( ERms_tmp,     ys,      theta );
-            Heat_EAve[n] = Src_Leakage_LinearInterp  ( EAve_tmp,     ys,      theta );
+            tau      [n] = Src_Leakage_BilinearInterp( tau_tmp , xs, ys, Rad, Tht );
+            chi      [n] = Src_Leakage_BilinearInterp( chi_tmp , xs, ys, Rad, Tht );
+            Heat_Flux[n] = Src_Leakage_BilinearInterp( Flux_tmp, xs, ys, Rad, Tht );
+            Heat_ERms[n] = Src_Leakage_LinearInterp  ( ERms_tmp,     ys,      Tht );
+            Heat_EAve[n] = Src_Leakage_LinearInterp  ( EAve_tmp,     ys,      Tht );
          } // for (int n=0; n<NType_Neutrino; n++)
       }
       break; // case 1
@@ -411,31 +414,32 @@ static void Src_Leakage( real fluid[], const real B[],
 
          for (int n=0; n<NType_Neutrino; n++)
          {
-            int iv1 = 0, iv2 = 0;
+            int Idx_Out_2D = 0;
+            int Idx_Out_3D = 0;
 
-            for (int j=idx_phi; j<idx_phi+2; j++, iv1++)
+            for (int j=Idx_Phi; j<=Idx_Phi+1; j++, Idx_Out_2D++)
             {
-               const int iray = j % NPhi;
-               const int idx1 = n + iray * NType_Neutrino;
+               const int IRay      = j % NPhi;
+               const int Idx_In_2D = n + IRay * NType_Neutrino;
 
-               for (int i=idx_rad; i<idx_rad+2; i++, iv2++)
+               for (int i=Idx_Rad; i<=Idx_Rad+1; i++, Idx_Out_3D++)
                {
-                  const int idx2 =  idx1 + i * Stride;
+                  const int Idx_In_3D = Idx_In_2D + i * Stride;
 
-                  tau_tmp [iv2] = Ray_tau [idx2];
-                  chi_tmp [iv2] = Ray_chi [idx2];
-                  Flux_tmp[iv2] = Ray_Flux[idx2];
+                  tau_tmp [Idx_Out_3D] = Ray_tau [Idx_In_3D];
+                  chi_tmp [Idx_Out_3D] = Ray_chi [Idx_In_3D];
+                  Flux_tmp[Idx_Out_3D] = Ray_Flux[Idx_In_3D];
                }
 
-               ERms_tmp[iv1] = Ray_ERms[idx1];
-               EAve_tmp[iv1] = Ray_EAve[idx1];
+               ERms_tmp[Idx_Out_2D] = Ray_ERms[Idx_In_2D];
+               EAve_tmp[Idx_Out_2D] = Ray_EAve[Idx_In_2D];
             }
 
-            tau      [n] = Src_Leakage_BilinearInterp( tau_tmp , xs, zs, rad, phi );
-            chi      [n] = Src_Leakage_BilinearInterp( chi_tmp , xs, zs, rad, phi );
-            Heat_Flux[n] = Src_Leakage_BilinearInterp( Flux_tmp, xs, zs, rad, phi );
-            Heat_ERms[n] = Src_Leakage_LinearInterp  ( ERms_tmp,     zs,      phi );
-            Heat_EAve[n] = Src_Leakage_LinearInterp  ( EAve_tmp,     zs,      phi );
+            tau      [n] = Src_Leakage_BilinearInterp( tau_tmp , xs, zs, Rad, Phi );
+            chi      [n] = Src_Leakage_BilinearInterp( chi_tmp , xs, zs, Rad, Phi );
+            Heat_Flux[n] = Src_Leakage_BilinearInterp( Flux_tmp, xs, zs, Rad, Phi );
+            Heat_ERms[n] = Src_Leakage_LinearInterp  ( ERms_tmp,     zs,      Phi );
+            Heat_EAve[n] = Src_Leakage_LinearInterp  ( EAve_tmp,     zs,      Phi );
          } // for (int n=0; n<NType_Neutrino; n++)
       }
       break; // case 2
@@ -447,25 +451,25 @@ static void Src_Leakage( real fluid[], const real B[],
 
          for (int n=0; n<NType_Neutrino; n++)
          {
-            const int iray = 0;
-            const int idx1 = n + iray * NType_Neutrino;
-                  int iv2  = 0;
+            const int IRay       = 0;
+            const int Idx_In_2D  = n + IRay * NType_Neutrino;
+                  int Idx_Out_3D = 0;
 
-            for (int i=idx_rad; i<idx_rad+2; i++, iv2++)
+            for (int i=Idx_Rad; i<=Idx_Rad+1; i++, Idx_Out_3D++)
             {
-               const int idx2 = idx1 + i * Stride;
+               const int Idx_In_3D = Idx_In_2D + i * Stride;
 
-               tau_tmp [iv2] = Ray_tau [idx2];
-               chi_tmp [iv2] = Ray_chi [idx2];
-               Flux_tmp[iv2] = Ray_Flux[idx2];
+               tau_tmp [Idx_Out_3D] = Ray_tau [Idx_In_3D];
+               chi_tmp [Idx_Out_3D] = Ray_chi [Idx_In_3D];
+               Flux_tmp[Idx_Out_3D] = Ray_Flux[Idx_In_3D];
             }
 
-            Heat_ERms[n] = Ray_ERms[idx1];
-            Heat_EAve[n] = Ray_EAve[idx1];
+            Heat_ERms[n] = Ray_ERms[Idx_In_2D];
+            Heat_EAve[n] = Ray_EAve[Idx_In_2D];
 
-            tau      [n] = Src_Leakage_LinearInterp( tau_tmp , xs, rad );
-            chi      [n] = Src_Leakage_LinearInterp( chi_tmp , xs, rad );
-            Heat_Flux[n] = Src_Leakage_LinearInterp( Flux_tmp, xs, rad );
+            tau      [n] = Src_Leakage_LinearInterp( tau_tmp , xs, Rad );
+            chi      [n] = Src_Leakage_LinearInterp( chi_tmp , xs, Rad );
+            Heat_Flux[n] = Src_Leakage_LinearInterp( Flux_tmp, xs, Rad );
          } // for (int n=0; n<NType_Neutrino; n++)
       }
       break; // case 3
@@ -480,6 +484,7 @@ static void Src_Leakage( real fluid[], const real B[],
 #  endif
 
    const real Dens_Code = fluid[DENS];
+
 #  ifdef __CUDACC__
    const real Eint_Code = Hydro_Con2Eint( fluid[DENS], fluid[MOMX], fluid[MOMY], fluid[MOMZ], fluid[ENGY],
                                           true, MinEint, Emag, EoS->GuessHTilde_FuncPtr,
@@ -490,6 +495,7 @@ static void Src_Leakage( real fluid[], const real B[],
                                           true, MinEint, Emag, EoS_GuessHTilde_CPUPtr, EoS_HTilde2Temp_CPUPtr,
                                           EoS_AuxArray_Flt, EoS_AuxArray_Int, h_EoS_Table );
 #  endif
+
 #  ifdef YE
    const real Ye = fluid[YE] / fluid[DENS];
 #  else
@@ -529,22 +535,24 @@ static void Src_Leakage( real fluid[], const real B[],
    const real Temp_Kelv = Out[0];
 
 
-// (3) get the change rates in internal energy and Ye from the leakage scheme
+// (3) compute the local heating rates for internal energy and electron fraction
    const bool NuHeat     = SrcTerms->Leakage_NuHeat;
    const real NuHeat_Fac = SrcTerms->Leakage_NuHeat_Fac;
    const real Unit_D     = SrcTerms->Unit_D;
    const real Unit_T     = SrcTerms->Unit_T;
-         real dEdt_CGS, dYedt, Lum[NType_Neutrino], Heat[NType_Neutrino], NetHeat[NType_Neutrino];
+         real Lum[NType_Neutrino], Heat[NType_Neutrino], NetHeat[NType_Neutrino];
+         real dEdt_CGS, dYedt;
 
    Src_Leakage_ComputeLeak( Dens_Code, Temp_Kelv, Ye, chi, tau, Heat_Flux, Heat_ERms, Heat_EAve,
                             &dEdt_CGS, &dYedt, Lum, Heat, NetHeat, NuHeat, NuHeat_Fac, Unit_D, EoS );
 
-// the returned dEdt_CGS is in erg/g/s, and dYedt is in 1/s
+// convert the heating rates to code unit
+// --> the returned dEdt_CGS is in erg/g/s and dYedt is in 1/s
    const real dEdt_Code  = dEdt_CGS * sEint2Code * Unit_T * Dens_Code;
    const real dYedt_Code = dYedt * Unit_T;
 
 
-// (4) store the dEdt, luminosity, heating rate, and net heating rate for recording
+// (4) for recording mode, store the dEdt, luminosity, heating rate, and net heating rate, then return
    if ( Mode == LEAK_MODE_RECORD )
    {
       fluid[DENS    ] = dEdt_CGS * Dens_Code * Unit_D;
@@ -564,7 +572,8 @@ static void Src_Leakage( real fluid[], const real B[],
    }
 
 
-// (5-1) update the change rates of energy and Ye first
+// (5-1) store the heating rate before the corrections in (5-2)
+//       --> for LEAK_MODE_CORRSIGN mode, store the actual sign instead of the absolute value
 #  ifdef DYEDT_NU
    fluid[DEDT_NU ] = ( Mode == LEAK_MODE_CORRSIGN ) ? dEdt_Code  : FABS( dEdt_Code  );
    fluid[DYEDT_NU] = ( Mode == LEAK_MODE_CORRSIGN ) ? dYedt_Code : FABS( dYedt_Code );
@@ -572,22 +581,23 @@ static void Src_Leakage( real fluid[], const real B[],
    if ( Mode == LEAK_MODE_CORRSIGN )   return;
 #  endif
 
-// (5-2) make sure the new Ye is not within 1% of the table boundary
+// (5-2) check whether the updated Ye is at least 1% away from the table boundary
+//       --> skip this cell if it is not
    const real dYe = dYedt_Code * dt;
 
    if (  ( Ye + dYe < YeMin )  ||  ( Ye + dYe > YeMax )  )
    {
 #     ifdef GAMER_DEBUG
-      printf( "Invalid change rate of Ye: Ye=%13.7e, dYedt_Code=%13.7e, dt_Code=%13.7e, YeMin=%13.7e, YeMax=%13.7e\n",
+      printf( "Invalid heating rate of Ye: Ye=%13.7e, dYedt_Code=%13.7e, dt_Code=%13.7e, YeMin=%13.7e, YeMax=%13.7e\n",
               Ye, dYedt_Code, dt, YeMin, YeMax );
 #     endif
 
       return;
    }
 
-// (5-3) check if the new internal energy density and Ye are allowed for the nuclear EoS table
-   const real Eint_Update = Eint_Code + dEdt_Code * dt;
-   const real Ye_Update   = Ye + dYedt_Code * dt;
+// (5-3) verify whether the updated internal energy density and Ye are valid for the nuclear EoS table
+   const real Eint_Update = Eint_Code + dEdt_Code  * dt;
+   const real Ye_Update   = Ye        + dYedt_Code * dt;
 
    In_Flt[1] = Eint_Update;
    In_Flt[2] = Ye_Update;
@@ -600,7 +610,7 @@ static void Src_Leakage( real fluid[], const real B[],
 
    const real Temp_Chk = Out[0];
 
-// (5-4) update the input array if the EoS driver successes (Temp_Chk != NAN)
+// (5-4) update the internal energy density and Ye if the EoS solver succeeds (Temp_Chk != NAN)
    if ( Temp_Chk == Temp_Chk )
    {
       fluid[ENGY] = Hydro_ConEint2Etot( fluid[DENS], fluid[MOMX], fluid[MOMY], fluid[MOMZ], Eint_Update, Emag );
@@ -610,7 +620,6 @@ static void Src_Leakage( real fluid[], const real B[],
    }
 
 
-
 // (6) final check
 #  ifdef GAMER_DEBUG
    if (  Hydro_IsUnphysical( UNPHY_MODE_SING, &Eint_Update, "output internal energy density", (real)0.0,
@@ -618,7 +627,7 @@ static void Src_Leakage( real fluid[], const real B[],
                              ERROR_INFO, UNPHY_VERBOSE )  )
    {
       printf( "   Dens=%13.7e code units, Eint=%13.7e code units, Ye=%13.7e\n", Dens_Code, Eint_Code, Ye );
-      printf( "   Radius=%13.7e cm, Temp=%13.7e Kelvin, dEdt=%13.7e, dYedt=%13.7e\n", rad * SrcTerms->Unit_L, Temp_Kelv, dEdt_Code, dYedt );
+      printf( "   Radius=%13.7e cm, Temp=%13.7e Kelvin, dEdt=%13.7e, dYedt=%13.7e\n", Rad * SrcTerms->Unit_L, Temp_Kelv, dEdt_Code, dYedt );
 
       for (int n=0; n<NType_Neutrino; n++)
       printf( "   n=%d: tau=%13.7e, chi=%13.7e, Heat_Flux=%13.7e, Heat_ERms=%13.7e, Heat_EAve=%13.7e\n",
@@ -1085,8 +1094,8 @@ int Src_Leakage_BinarySearch( const real Array[], int Min, int Max, const real K
 // Function    :  Src_Leakage_LinearInterp
 // Description :  Linear interpolation
 //
-// Note        :  1. Return "array[0]" instead if "x_in < xs[0]"
-//                          "array[1]" instead if "x_in > xs[1]"
+// Note        :  1. Return array[0] instead if x_in < xs[0]
+//                          array[1] instead if x_in > xs[1]
 //-------------------------------------------------------------------------------------
 GPU_DEVICE static
 real Src_Leakage_LinearInterp( const real *array, const real *xs, const real x_in )
@@ -1096,6 +1105,7 @@ real Src_Leakage_LinearInterp( const real *array, const real *xs, const real x_i
    if ( x_in > xs[1] )   return array[1];
 
    const real frac_x = ( x_in - xs[0] ) / ( xs[1] - xs[0] );
+
 
    return array[0] + ( array[1] - array[0] ) * frac_x;
 
@@ -1115,6 +1125,7 @@ real Src_Leakage_BilinearInterp( const real *array, const real *xs, const real *
    real v[2] = {  Src_Leakage_LinearInterp( array,   xs, x_in ),
                   Src_Leakage_LinearInterp( array+2, xs, x_in )  };
 
+
    return Src_Leakage_LinearInterp( v, ys, y_in );
 
 } // FUNCTION : Src_Leakage_BilinearInterp
@@ -1132,6 +1143,7 @@ real Src_Leakage_TrilinearInterp( const real *array, const real *xs, const real 
 
    real v[2] = {  Src_Leakage_BilinearInterp( array,   xs, ys, x_in, y_in ),
                   Src_Leakage_BilinearInterp( array+4, xs, ys, x_in, y_in )  };
+
 
    return Src_Leakage_LinearInterp( v, zs, z_in );
 

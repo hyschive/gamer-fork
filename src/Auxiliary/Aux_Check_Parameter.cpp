@@ -1672,11 +1672,11 @@ void Aux_Check_Parameter()
 #  else
    if ( SrcTerms.Leakage_RadiusMax < SrcTerms.Leakage_BinSize_Radius )
       Aux_Error( ERROR_INFO, "%s (%14.7e) <= %s (%14.7e) !!\n",
-                 "SRC_LEAKAGE_RADIUSMAX", SrcTerms.Leakage_RadiusMax*UNIT_L, "SRC_LEAKAGE_BINSIZE_RADIUS", SrcTerms.Leakage_BinSize_Radius*UNIT_L );
+                 "SRC_LEAKAGE_RADIUSMAX", SrcTerms.Leakage_RadiusMax, "SRC_LEAKAGE_BINSIZE_RADIUS", SrcTerms.Leakage_BinSize_Radius );
 
    if ( SrcTerms.Leakage_RadiusMax < SrcTerms.Leakage_RadiusMin_Log  )
       Aux_Error( ERROR_INFO, "%s (%14.7e) <= %s (%14.7e) !!\n",
-                 "SRC_LEAKAGE_RADIUSMAX", SrcTerms.Leakage_RadiusMax*UNIT_L, "SRC_LEAKAGE_RADIUSMIN_LOG", SrcTerms.Leakage_RadiusMin_Log*UNIT_L );
+                 "SRC_LEAKAGE_RADIUSMAX", SrcTerms.Leakage_RadiusMax, "SRC_LEAKAGE_RADIUSMIN_LOG", SrcTerms.Leakage_RadiusMin_Log );
 
    if ( SrcTerms.Leakage_NPhi > 1  &&  SrcTerms.Leakage_NPhi % 2 )
       Aux_Error( ERROR_INFO, "For %s != 1, the value (%d) must be a multiple of 2 !!\n",
@@ -1684,7 +1684,7 @@ void Aux_Check_Parameter()
 
    if ( int( SrcTerms.Leakage_RadiusMin_Log / SrcTerms.Leakage_BinSize_Radius ) > SrcTerms.Leakage_NRadius )
       Aux_Error( ERROR_INFO, "%s (%14.7e) / %s (%14.7e) > %s (%d) !!\n",
-                 "SRC_LEAKAGE_RADIUSMIN_LOG", SrcTerms.Leakage_RadiusMin_Log*UNIT_L, "SRC_LEAKAGE_BINSIZE_RADIUS", SrcTerms.Leakage_BinSize_Radius*UNIT_L, "SRC_LEAKAGE_NRADIUS", SrcTerms.Leakage_NRadius );
+                 "SRC_LEAKAGE_RADIUSMIN_LOG", SrcTerms.Leakage_RadiusMin_Log, "SRC_LEAKAGE_BINSIZE_RADIUS", SrcTerms.Leakage_BinSize_Radius, "SRC_LEAKAGE_NRADIUS", SrcTerms.Leakage_NRadius );
 #  endif
 
 // warning

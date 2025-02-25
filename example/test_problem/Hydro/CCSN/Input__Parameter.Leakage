@@ -185,6 +185,7 @@ SRC_LEAKAGE                   0           # multiflavour neutrino leakage scheme
 SRC_LEAKAGE_NRADIUS           768         # number of bin in the radial    direction [768]
 SRC_LEAKAGE_NTHETA            1           # number of ray in the polar     direction [1]
 SRC_LEAKAGE_NPHI              1           # number of ray in the azimuthal direction [1]
+                                          # (must be 1 or a multiple of 2)
 SRC_LEAKAGE_BINSIZE_RADIUS    1.0e5       # bin size of linear bins in radius in cm [1.0e5]
 SRC_LEAKAGE_RADIUSMAX         3.0e8       # maximum radius in cm [3.0e8]
 SRC_LEAKAGE_RADIUSMIN_LOG     3.0e7       # minimum radius of logarithmic bins in cm [3.0e7]
