@@ -54,6 +54,8 @@ static double **HaloMerger_Soliton_DensProf                        = NULL; // ar
        double  *HaloMerger_ParCloud_DensProf_MaxR                  = NULL; // maximum radius for particles of each particle cloud
        int     *HaloMerger_ParCloud_RSeed                          = NULL; // random seed for particles of each particle cloud
        long    *HaloMerger_ParCloud_NPar                           = NULL; // number of particles of each particle cloud
+       int     *HaloMerger_ParCloud_BuiltWithExtPot                = NULL; // whether to consider an external potential for the velocity dispersion of each particle cloud
+       char   (*HaloMerger_ParCloud_ExtPot_Filename)[MAX_STRING]   = NULL; // filename of the external potential table of each particle cloud
 // =======================================================================================
 
 #if ( MODEL == ELBDM  &&  defined GRAVITY )
@@ -431,6 +433,8 @@ void SetParameter()
       HaloMerger_ParCloud_DensProf_MaxR     = new double [HaloMerger_ParCloud_Num];
       HaloMerger_ParCloud_RSeed             = new int    [HaloMerger_ParCloud_Num];
       HaloMerger_ParCloud_NPar              = new long   [HaloMerger_ParCloud_Num];
+      HaloMerger_ParCloud_BuiltWithExtPot   = new int    [HaloMerger_ParCloud_Num];
+      HaloMerger_ParCloud_ExtPot_Filename   = new char   [HaloMerger_ParCloud_Num][MAX_STRING];
       } // if ( HaloMerger_ParCloud_InitMode == 1 )
       else
          Aux_Error( ERROR_INFO, "unsupported initialization mode (%s = %d) !!\n",
@@ -451,6 +455,8 @@ void SetParameter()
       char HaloMerger_ParCloud_i_DensProf_MaxR[MAX_STRING];      // maximum radius for particles for the i-th particle cloud (must > 0.0) (HaloMerger_ParCloud_InitMode == 1 only)
       char HaloMerger_ParCloud_i_RSeed[MAX_STRING];              // random seed for setting particle position and velocity for the i-th particle cloud (must >= 0) (HaloMerger_ParCloud_InitMode == 1 only)
       char HaloMerger_ParCloud_i_NPar[MAX_STRING];               // number of particles for the i-th particle cloud (must >= 0) (HaloMerger_ParCloud_InitMode == 1 only)
+      char HaloMerger_ParCloud_i_BuiltWithExtPot[MAX_STRING];    // whether to consider an external potential for the velocity dispersion for the i-th particle cloud (HaloMerger_ParCloud_InitMode == 1 only)
+      char HaloMerger_ParCloud_i_ExtPot_Filename[MAX_STRING];    // filename of the external potential table for the i-th particle cloud (HaloMerger_ParCloud_InitMode == 1 only) (HaloMerger_ParCloud_i_BuiltWithExtPot == 1 only)
 
       for (int index_parcloud=0; index_parcloud<HaloMerger_ParCloud_Num; index_parcloud++)
       {
@@ -469,6 +475,8 @@ void SetParameter()
          sprintf( HaloMerger_ParCloud_i_DensProf_MaxR,     "HaloMerger_ParCloud_%d_DensProf_MaxR",     index_parcloud_input );
          sprintf( HaloMerger_ParCloud_i_RSeed,             "HaloMerger_ParCloud_%d_RSeed",             index_parcloud_input );
          sprintf( HaloMerger_ParCloud_i_NPar,              "HaloMerger_ParCloud_%d_NPar",              index_parcloud_input );
+         sprintf( HaloMerger_ParCloud_i_BuiltWithExtPot,   "HaloMerger_ParCloud_%d_BuiltWithExtPot",   index_parcloud_input );
+         sprintf( HaloMerger_ParCloud_i_ExtPot_Filename,   "HaloMerger_ParCloud_%d_ExtPot_Filename",   index_parcloud_input );
          } // if ( HaloMerger_ParCloud_InitMode == 1 )
          else
             Aux_Error( ERROR_INFO, "unsupported initialization mode (%s = %d) !!\n",
@@ -493,6 +501,8 @@ void SetParameter()
          ReadPara_ParCloud->Add( HaloMerger_ParCloud_i_DensProf_MaxR,     &HaloMerger_ParCloud_DensProf_MaxR[index_parcloud],      0.5*amr->BoxSize[0],  Eps_double,    NoMax_double     );
          ReadPara_ParCloud->Add( HaloMerger_ParCloud_i_RSeed,             &HaloMerger_ParCloud_RSeed[index_parcloud],              123,                  0,             NoMax_int        );
          ReadPara_ParCloud->Add( HaloMerger_ParCloud_i_NPar,              &HaloMerger_ParCloud_NPar[index_parcloud],               (long)0,              (long)0,       NoMax_long       );
+         ReadPara_ParCloud->Add( HaloMerger_ParCloud_i_BuiltWithExtPot,   &HaloMerger_ParCloud_BuiltWithExtPot[index_parcloud],    0,                    0,             1                );
+         ReadPara_ParCloud->Add( HaloMerger_ParCloud_i_ExtPot_Filename,    HaloMerger_ParCloud_ExtPot_Filename[index_parcloud],    NoDef_str,            Useless_str,   Useless_str      );
          } // if ( HaloMerger_ParCloud_InitMode == 1 )
          else
             Aux_Error( ERROR_INFO, "unsupported initialization mode (%s = %d) !!\n",
@@ -878,6 +888,15 @@ void SetParameter()
                Aux_Error( ERROR_INFO, "ParCloud_%d density profile file \"%s\" does not exist !!\n",
                           index_parcloud_input, HaloMerger_ParCloud_DensProf_Filename[index_parcloud] );
 
+            // check the external potential file exists
+            if ( HaloMerger_ParCloud_BuiltWithExtPot[index_parcloud]  &&  !Aux_CheckFileExist(HaloMerger_ParCloud_ExtPot_Filename[index_parcloud]) )
+               Aux_Error( ERROR_INFO, "ParCloud_%d \"BuiltWithExtPot\" is on, but external potential file \"%s\" does not exist !!\n",
+                          index_parcloud_input, HaloMerger_ParCloud_ExtPot_Filename[index_parcloud] );
+
+            // rename the external potential filename if it is not needed
+            if ( !HaloMerger_ParCloud_BuiltWithExtPot[index_parcloud] )
+               strcpy( HaloMerger_ParCloud_ExtPot_Filename[index_parcloud], "NONE" );
+
             // check whether the particle cloud touches the boundary of box
             for (int d=0; d<3; d++)
             {
@@ -1140,13 +1159,14 @@ void SetParameter()
          if ( HaloMerger_ParCloud_InitMode == 1 )
          {
             Aux_Message( stdout, "\n  particle cloud density profile information:\n" );
-            Aux_Message( stdout, "  %7s  %34s  %16s  %16s  %16s\n",
-                         "ID", "DensProf_Filename", "DensProf_MaxR", "RSeed", "NPar" );
+            Aux_Message( stdout, "  %7s  %34s  %16s  %16s  %16s  %16s  %34s\n",
+                         "ID", "DensProf_Filename", "DensProf_MaxR", "RSeed", "NPar", "BuiltWithExtPot", "ExtPot_Filename" );
 
             for (int index_parcloud=0; index_parcloud<HaloMerger_ParCloud_Num; index_parcloud++)
-               Aux_Message( stdout, "  %7d  %34s  %16.6e  %16d  %16ld\n",
+               Aux_Message( stdout, "  %7d  %34s  %16.6e  %16d  %16ld  %16d  %34s\n",
                             index_parcloud+1, HaloMerger_ParCloud_DensProf_Filename[index_parcloud], HaloMerger_ParCloud_DensProf_MaxR[index_parcloud],
-                            HaloMerger_ParCloud_RSeed[index_parcloud], HaloMerger_ParCloud_NPar[index_parcloud] );
+                            HaloMerger_ParCloud_RSeed[index_parcloud], HaloMerger_ParCloud_NPar[index_parcloud],
+                            HaloMerger_ParCloud_BuiltWithExtPot[index_parcloud], HaloMerger_ParCloud_ExtPot_Filename[index_parcloud] );
 
             Aux_Message( stdout, "  %26s-> Total number of particles in all particle clouds =  %16ld\n", "", HaloMerger_ParCloud_NPar_Total );
 
@@ -1437,6 +1457,8 @@ void End_HaloMerger()
          delete [] HaloMerger_ParCloud_DensProf_MaxR;
          delete [] HaloMerger_ParCloud_RSeed;
          delete [] HaloMerger_ParCloud_NPar;
+         delete [] HaloMerger_ParCloud_BuiltWithExtPot;
+         delete [] HaloMerger_ParCloud_ExtPot_Filename;
       } // if ( HaloMerger_ParCloud_InitMode == 1 )
       else
          Aux_Error( ERROR_INFO, "unsupported initialization mode (%s = %d) !!\n",
