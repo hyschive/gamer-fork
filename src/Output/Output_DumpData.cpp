@@ -306,7 +306,7 @@ void Output_DumpData( const int Stage )
          } // for (int lv=0; lv<=MAX_LEVEL; lv++)
       } // OpenMP parallel region
 
-//    reset the record mode
+//    reset to the evolution mode
       Src_Leakage_AuxArray_Int[3] = LEAK_MODE_EVOLVE;
    }
 #  endif

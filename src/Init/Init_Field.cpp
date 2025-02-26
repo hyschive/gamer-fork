@@ -128,7 +128,7 @@ void Init_Field()
 
    Idx_Ye       = AddField( "Ye",       FIXUP_FLUX_YES, FIXUP_REST_YES, NORMALIZE_NO, INTERP_FRAC_YES );
    if ( Idx_Ye       != YE       )  Aux_Error( ERROR_INFO, "inconsistent Idx_Ye       (%d != %d) !!\n", Idx_Ye,       YE );
-#  endif
+#  endif // # if ( EOS == EOS_NUCLEAR )
 
 #  ifdef COSMIC_RAY
    Idx_CRay    = AddField( "CRay",    FIXUP_FLUX_YES, FIXUP_REST_YES, NORMALIZE_NO, INTERP_FRAC_NO  );

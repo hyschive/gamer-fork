@@ -16,8 +16,8 @@
 #define SRC_AUX_DRAD          5     // AuxArray_Flt: spacing linear bins in the radial    direction
 #define SRC_AUX_DTHETA        6     // AuxArray_Flt: spacing             in the polar     direction
 #define SRC_AUX_DPHI          7     // AuxArray_Flt: spacing             in the azimuthal direction
-#define SRC_AUX_YEMIN         8     // AuxArray_Flt: minimum allowed Ye after update in the leakge scheme
-#define SRC_AUX_YEMAX         9     // AuxArray_Flt: maximum allowed Ye after update in the leakge scheme
+#define SRC_AUX_YEMIN         8     // AuxArray_Flt: minimum allowed Ye after update in the leakage scheme
+#define SRC_AUX_YEMAX         9     // AuxArray_Flt: maximum allowed Ye after update in the leakage scheme
 #define SRC_AUX_VSQR2CODE    10     // AuxArray_Flt: convert velocity^2 to code unit
 
 #define SRC_AUX_RAYCONF       0     // AuxArray_Int: configuration of the leakage rays

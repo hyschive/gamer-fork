@@ -1679,7 +1679,7 @@ void Aux_Check_Parameter()
                  "SRC_LEAKAGE_RADIUSMAX", SrcTerms.Leakage_RadiusMax, "SRC_LEAKAGE_RADIUSMIN_LOG", SrcTerms.Leakage_RadiusMin_Log );
 
    if ( SrcTerms.Leakage_NPhi > 1  &&  SrcTerms.Leakage_NPhi % 2 )
-      Aux_Error( ERROR_INFO, "For %s != 1, the value (%d) must be a multiple of 2 !!\n",
+      Aux_Error( ERROR_INFO, "(%d) must be 1 or a multiple of 2 !!\n",
                  "SRC_LEAKAGE_NPHI", SrcTerms.Leakage_NPhi );
 
    if ( int( SrcTerms.Leakage_RadiusMin_Log / SrcTerms.Leakage_BinSize_Radius ) > SrcTerms.Leakage_NRadius )

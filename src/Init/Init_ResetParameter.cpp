@@ -1127,7 +1127,7 @@ void Init_ResetParameter()
    PRINT_RESET_PARA( SrcTerms.Leakage_RadiusMax,      FORMAT_REAL, "to be consistent with the code units" );
    PRINT_RESET_PARA( SrcTerms.Leakage_RadiusMin_Log,  FORMAT_REAL, "to be consistent with the code units" );
 
-   if ( SrcTerms.Leakage_RadiusMax == SrcTerms.Leakage_RadiusMin_Log )
+   if (  Mis_CompareRealValue( SrcTerms.Leakage_RadiusMax, SrcTerms.Leakage_RadiusMin_Log, NULL, false )  )
    {
       SrcTerms.Leakage_NRadius = int( SrcTerms.Leakage_RadiusMin_Log / SrcTerms.Leakage_BinSize_Radius );
 

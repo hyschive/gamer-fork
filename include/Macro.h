@@ -187,7 +187,7 @@
 #  define NCOMP_PASSIVE_BUILTIN1    0
 # endif
 
-// electron fraction (YE), neutrino heating/cooling rate (DEDT_NU), Ye change rate (DYEDT_NU, leakage scheme only)
+// electron fraction (YE), neutrino heating/cooling rate (DEDT_NU), Ye change rate (DYEDT_NU, leakage scheme only),
 // and temperature initial guess (TEMP_IG)
 # if ( EOS == EOS_NUCLEAR )
 # if ( NEUTRINO_SCHEME == LEAKAGE )

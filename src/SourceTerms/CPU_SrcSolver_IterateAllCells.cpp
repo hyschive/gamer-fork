@@ -117,6 +117,7 @@ void CPU_SrcSolver_IterateAllCells(
          if ( SrcTerms.Lightbulb )
             SrcTerms.Lightbulb_FuncPtr( fluid, B, &SrcTerms, dt, dh, x, y, z, TimeNew, TimeOld, MinDens, MinPres, MinEint, &EoS,
                                         SrcTerms.Lightbulb_AuxArrayDevPtr_Flt, SrcTerms.Lightbulb_AuxArrayDevPtr_Int );
+
 //       (3) leakage
          if ( SrcTerms.Leakage )
             SrcTerms.Leakage_FuncPtr( fluid, B, &SrcTerms, dt, dh, x, y, z, TimeNew, TimeOld, MinDens, MinPres, MinEint, &EoS,

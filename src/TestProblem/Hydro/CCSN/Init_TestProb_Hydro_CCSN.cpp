@@ -502,7 +502,7 @@ void SetGridIC( real fluid[], const double x, const double y, const double z, co
 #  endif
 #  else
    real *Passive = NULL;
-#  endif // #if ( EOS == EOS_NUCLEAR ) ... else
+#  endif // #if ( EOS == EOS_NUCLEAR ) ... else ...
 
    if ( CCSN_Eint_Mode == 1 )   // Temperature Mode
    {
@@ -940,7 +940,9 @@ bool Flag_CCSN( const int i, const int j, const int k, const int lv, const int P
       if ( Flag )    return Flag;
    }
 
-   if (  ( CCSN_Prob == Post_Bounce )  ||  SrcTerms.Lightbulb  ||  SrcTerms.Leakage  )
+   if (  ( CCSN_Prob == Post_Bounce )                  &&
+         CCSN_Is_PostBounce                            &&
+         ( SrcTerms.Lightbulb  ||  SrcTerms.Leakage )     )
    {
       Flag |= Flag_PostBounce( i, j, k, lv, PID, Threshold );
       if ( Flag )    return Flag;
@@ -999,7 +1001,6 @@ void Init_TestProb_Hydro_CCSN()
 
 // set the function pointers of various problem-specific routines
    Init_Function_User_Ptr   = SetGridIC;
-   Flag_User_Ptr            = Flag_CCSN;
    Flag_Region_Ptr          = Flag_Region_CCSN;
    Aux_Record_User_Ptr      = Record_CCSN;
    End_User_Ptr             = End_CCSN;
@@ -1008,7 +1009,10 @@ void Init_TestProb_Hydro_CCSN()
 #  endif
 
    if ( CCSN_Prob != Migration_Test )
+   {
+      Flag_User_Ptr            = Flag_CCSN;
       Mis_GetTimeStep_User_Ptr = Mis_GetTimeStep_CCSN;
+   }
 
 
 #  ifdef MHD

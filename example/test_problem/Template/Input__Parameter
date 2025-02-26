@@ -245,6 +245,8 @@ MOLECULAR_WEIGHT              0.6         # mean molecular weight [0.6]
 MU_NORM                      -1.0         # normalization of MOLECULAR_WEIGHT (<0=m_H, 0=amu, >0=input manually) [-1.0]
 ISO_TEMP                      1.0e4       # isothermal temperature in kelvin ##EOS_ISOTHERMAL ONLY##
 NUC_TABLE                     LS220_eps.h5   # nuclear EoS table ##EOS_NUCLEAR ONLY##
+NUC_INT_SCHEME_MAIN           1           # interpolation scheme for nuclear EoS table (1=linear, 2=cubic) [1] ##EOS_NUCLEAR ONLY##
+NUC_INT_SCHEME_AUX            1           # interpolation scheme for auxiliary   table (1=linear, 2=cubic) [1] ##EOS_NUCLEAR ONLY##
 MINMOD_COEFF                  1.5         # coefficient of the generalized MinMod limiter (1.0~2.0) [1.5]
 MINMOD_MAX_ITER               0           # maximum number of iterations to reduce MINMOD_COEFF when data reconstruction fails (0=off) [0]
 OPT__LR_LIMITER              -1           # slope limiter of data reconstruction in the MHM/MHM_RP/CTU schemes:
