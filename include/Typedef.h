@@ -61,7 +61,7 @@ const TestProbID_t
    TESTPROB_HYDRO_CR_SOUNDWAVE                 =   20,
    TESTPROB_HYDRO_CR_SHOCKTUBE                 =   21,
    TESTPROB_HYDRO_CR_DIFFUSION                 =   23,
-   TESTPROB_HYDRO_CCSN                         =   24,
+   TESTPROB_HYDRO_CCSN                         =   50,
    TESTPROB_HYDRO_BARRED_POT                   =   51,
    TESTPROB_HYDRO_JET_ICM_WALL                 =   52,
    TESTPROB_HYDRO_CDM_LSS                      =  100,
@@ -523,6 +523,19 @@ typedef int ExtremaMode_t;
 const ExtremaMode_t
    EXTREMA_MIN = 1,
    EXTREMA_MAX = 2;
+
+
+// leakage source term
+typedef int Leakage_TempScheme_t;
+const Leakage_TempScheme_t
+   LEAK_TEMP_INDCELL = 1,
+   LEAK_TEMP_BINDATA = 2;
+
+typedef int Leakage_Mode_t;
+const Leakage_Mode_t
+   LEAK_MODE_EVOLVE   = 1,
+   LEAK_MODE_RECORD   = 2,
+   LEAK_MODE_CORRSIGN = 3;
 
 
 // function pointers

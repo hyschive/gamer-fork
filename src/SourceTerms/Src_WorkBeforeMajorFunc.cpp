@@ -9,6 +9,9 @@ void Src_WorkBeforeMajorFunc_Deleptonization( const int lv, const double TimeNew
 
 void Src_WorkBeforeMajorFunc_Lightbulb( const int lv, const double TimeNew, const double TimeOld, const double dt,
                                         double AuxArray_Flt[], int AuxArray_Int[] );
+
+void Src_WorkBeforeMajorFunc_Leakage( const int lv, const double TimeNew, const double TimeOld, const double dt,
+                                      double AuxArray_Flt[], int AuxArray_Int[] );
 #endif
 
 // this function pointer can be set by a test problem initializer for a user-specified source term
@@ -46,13 +49,18 @@ void Src_WorkBeforeMajorFunc( const int lv, const double TimeNew, const double T
       Src_WorkBeforeMajorFunc_Deleptonization( lv, TimeNew, TimeOld, dt,
                                                Src_Dlep_AuxArray_Flt, Src_Dlep_AuxArray_Int );
 
-// (2) Lightbulb
+// (2) lightbulb
    if ( SrcTerms.Lightbulb )
-      Src_WorkBeforeMajorFunc_Lightbulb( lv, TimeNew, TimeOld, dt,
-                                         Src_Lightbulb_AuxArray_Flt, Src_Lightbulb_AuxArray_Int );
-#  endif
+      Src_WorkBeforeMajorFunc_Lightbulb      ( lv, TimeNew, TimeOld, dt,
+                                               Src_Lightbulb_AuxArray_Flt, Src_Lightbulb_AuxArray_Int );
 
-// (3) user-specified source term
+// (3) leakage
+   if ( SrcTerms.Leakage  &&  lv == 0 )
+      Src_WorkBeforeMajorFunc_Leakage        ( lv, TimeNew, TimeOld, dt,
+                                               Src_Leakage_AuxArray_Flt, Src_Leakage_AuxArray_Int );
+#  endif // #if ( MODEL == HYDRO )
+
+// (4) user-specified source term
 // --> users may not define Src_WorkBeforeMajorFunc_User_Ptr
    if ( SrcTerms.User  &&  Src_WorkBeforeMajorFunc_User_Ptr != NULL )
       Src_WorkBeforeMajorFunc_User_Ptr       ( lv, TimeNew, TimeOld, dt,
