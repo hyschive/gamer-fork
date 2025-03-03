@@ -940,8 +940,7 @@ bool Flag_CCSN( const int i, const int j, const int k, const int lv, const int P
       if ( Flag )    return Flag;
    }
 
-   if (  ( CCSN_Prob == Post_Bounce )                  &&
-         CCSN_Is_PostBounce                            &&
+   if (  CCSN_Is_PostBounce                            &&
          ( SrcTerms.Lightbulb  ||  SrcTerms.Leakage )     )
    {
       Flag |= Flag_PostBounce( i, j, k, lv, PID, Threshold );
