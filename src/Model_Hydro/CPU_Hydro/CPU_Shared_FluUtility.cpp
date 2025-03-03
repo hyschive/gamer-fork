@@ -902,6 +902,14 @@ bool Hydro_IsUnphysical( const IsUnphyMode_t Mode, const real Fields[], const ch
 //          check passive scalars (which can be zero)
             else
             {
+//             temporarily disable heating rate checks to prevent runtime errors
+//             when restarting from a snapshot generated with OPT__OUTPUT_LEAKAGE=1
+#              ifdef DEDT_NU
+               if ( v != DEDT_NU )
+#              ifdef DYEDT_NU
+               if ( v != DYEDT_NU )
+#              endif
+#              endif
                if ( Fields[v] < (real)0.0  ||  Fields[v] > HUGE_NUMBER )
                   UnphyCell = true;
             }

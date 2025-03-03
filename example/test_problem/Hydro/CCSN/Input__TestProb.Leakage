@@ -13,8 +13,8 @@ CCSN_Mag_B0      1.0e14                            # magnetic field strength (in
 CCSN_Mag_np      0.0                               # dependence of magnetic field on density           [0.0]
 CCSN_Mag_R0      1.0e8                             # characteristic radius of magnetic field (in cm)   [1.0e8]
 
-CCSN_GW_OUTPUT   0                                 # output GW signal (0=off, 1=on)                    [0]
-CCSN_GW_DT       1.0                               # output interval of GW signal                      [1.0]
+CCSN_GW_OUTPUT   1                                 # output GW signal (0=off, 1=on)                    [0]
+CCSN_GW_DT       0.1                               # output interval of GW signal                      [1.0]
 
 CCSN_Eint_Mode   1                                 # Mode of obtaining internal energy in SetGridIC()  [2]
                                                    # ( 1=Temp Mode: Eint(dens, temp, [Ye])
@@ -28,15 +28,19 @@ CCSN_CC_MaxRefine_Dens1   1.0e11                   # central density threshold t
 CCSN_CC_MaxRefine_Dens2   1.0e12                   # central density threshold that reduces the maximum refinement level 2  [1.0e12]
 CCSN_CC_CentralDensFac    1.0e13                   # factor that reduces the dt constrained by the central density (in cgs) during the core collapse  [1.0e13]
 CCSN_CC_Red_DT            1.0e-5                   # reduced time step (in s) when the central density exceeds CCSN_CC_CentralDensFac before bounce  [1e-5]
-CCSN_NuHeat_TimeFac       0.10                     # factor that scales the dt constrained by the lightbulb/leakage scheme  [0.1]
+CCSN_NuHeat_TimeFac       0.01                     # factor that scales the dt constrained by the lightbulb/leakage scheme  [0.1]
 
-CCSN_CC_Rot               2                        # mode for rotational profile (0:off, 1:analytical, 2:table)                         [2]
+CCSN_CC_Rot               0                        # mode for rotational profile (0:off, 1:analytical, 2:table)                         [2]
                                                    # --> analytical formula: Omega(r)=Omega_0*[R_0^2/(r^2+R_0^2)], where r is the spherical radius
-CCSN_CC_Rot_R0            1.03376e8                # characteristic radius R_0 (in cm) in the analytical rotational profile             [2.0e8]
-CCSN_CC_Rot_Omega0        2.0                      # central angular frequency Omega_0 (in rad/s) in the analytical rotational profile  [0.5]
+CCSN_CC_Rot_R0            1.0e8                    # characteristic radius R_0 (in cm) in the analytical rotational profile             [2.0e8]
+CCSN_CC_Rot_Omega0        0.0                      # central angular frequency Omega_0 (in rad/s) in the analytical rotational profile  [0.5]
 CCSN_CC_Rot_Fac          -1.0                      # multiplication factor for the tabular rotational profile (<=0 -> off)              [-1.0]
 
-CCSN_Is_PostBounce        0                        # boolean that indicates whether core bounce has occurred   [0]
+CCSN_REF_RBase           -1.0;                     # reference distance for determining a maximum refinement level based on distance from the box center (in cm) [1.25e7]
+
+CCSN_Is_PostBounce        0                        # boolean that indicates whether core bounce has occurred  [0]
+
+CCSN_DT_YE                1                        # dt criterion on Ye (1=min(Ye_max-Ye, Ye-Ye_min), 2=Ye, 3=none) [1]
 
 CCSN_MaxRefine_Rad        3.0e6                    # radius in cm within which to refine to the maximum allowed level [3.0e6]
 CCSN_AngRes_Min          -1.0                      # minimum angular resolution in degrees (<=0=off) [-1.0]
@@ -44,4 +48,4 @@ CCSN_AngRes_Max          -1.0                      # maximum angular resolution 
 
 CCSN_Shock_ThresFac_Pres  0.5                      # pressure threshold factor for detecting postbounce shock  [0.5]
 CCSN_Shock_ThresFac_Vel   0.1                      # velocity threshold facotr for detecting postbounce shock  [0.1]
-CCSN_Shock_Weight         2                        # weighting of each cell    for detecting postbounce shock (1:volume, 2:1/volume) [2]
+CCSN_Shock_Weight         2                        # weighting method of the averaged shock radius (1:volume, 2:1/volume) [2]

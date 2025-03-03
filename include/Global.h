@@ -108,7 +108,7 @@ extern OptRSolver1st_t  OPT__1ST_FLUX_CORR_SCHEME;
 extern bool             OPT__FLAG_PRES_GRADIENT, OPT__FLAG_LOHNER_ENGY, OPT__FLAG_LOHNER_PRES, OPT__FLAG_LOHNER_TEMP, OPT__FLAG_LOHNER_ENTR;
 extern bool             OPT__FLAG_VORTICITY, OPT__FLAG_JEANS, JEANS_MIN_PRES, OPT__LAST_RESORT_FLOOR;
 extern bool             OPT__OUTPUT_DIVVEL, OPT__OUTPUT_MACH, OPT__OUTPUT_PRES, OPT__OUTPUT_CS;
-extern bool             OPT__OUTPUT_TEMP, OPT__OUTPUT_ENTR, OPT__INT_PRIM;
+extern bool             OPT__OUTPUT_TEMP, OPT__OUTPUT_ENTR, OPT__OUTPUT_LEAKAGE, OPT__INT_PRIM;
 extern int              OPT__CK_NEGATIVE, JEANS_MIN_PRES_LEVEL, JEANS_MIN_PRES_NCELL, OPT__CHECK_PRES_AFTER_FLU;
 extern int              MINMOD_MAX_ITER;
 extern double           MIN_DENS, MIN_PRES, MIN_EINT, MIN_TEMP, MIN_ENTR;
@@ -329,6 +329,8 @@ extern double     Src_Dlep_AuxArray_Flt     [SRC_NAUX_DLEP     ];
 extern int        Src_Dlep_AuxArray_Int     [SRC_NAUX_DLEP     ];
 extern double     Src_Lightbulb_AuxArray_Flt[SRC_NAUX_LIGHTBULB];
 extern int        Src_Lightbulb_AuxArray_Int[SRC_NAUX_LIGHTBULB];
+extern double     Src_Leakage_AuxArray_Flt  [SRC_NAUX_LEAKAGE  ];
+extern int        Src_Leakage_AuxArray_Int  [SRC_NAUX_LEAKAGE  ];
 #endif
 extern double     Src_User_AuxArray_Flt     [SRC_NAUX_USER     ];
 extern int        Src_User_AuxArray_Int     [SRC_NAUX_USER     ];
@@ -442,6 +444,15 @@ extern real       (*h_Flu_Array_S_Out[2])[FLU_NOUT_S][ CUBE(PS1)               ]
 extern real       (*h_Mag_Array_S_In [2])[NCOMP_MAG ][ SRC_NXT_P1*SQR(SRC_NXT) ];
 #endif
 extern double     (*h_Corner_Array_S[2])[3];
+
+#if ( MODEL == HYDRO )
+extern real        *h_SrcLeakage_Radius;
+extern real        *h_SrcLeakage_tau;
+extern real        *h_SrcLeakage_chi;
+extern real        *h_SrcLeakage_HeatFlux;
+extern real        *h_SrcLeakage_HeatERms;
+extern real        *h_SrcLeakage_HeatEAve;
+#endif
 
 
 
