@@ -15,11 +15,11 @@
 
 # simulation scale
 BOX_SIZE                      0.08        # box size along the longest side (in Mpc/h if COMOVING is adopted)
-NX0_TOT_X                     128         # number of base-level cells along x
-NX0_TOT_Y                     128         # number of base-level cells along y
-NX0_TOT_Z                     128         # number of base-level cells along z
+NX0_TOT_X                     256         # number of base-level cells along x
+NX0_TOT_Y                     256         # number of base-level cells along y
+NX0_TOT_Z                     256         # number of base-level cells along z
 OMP_NTHREAD                  -1           # number of OpenMP threads (<=0=auto) [-1] ##OPENMP ONLY##
-END_T                         1.00e0      # end physical time (<0=auto -> must be set by test problems or restart) [-1.0]
+END_T                         2.0e-3      # end physical time (<0=auto -> must be set by test problems or restart) [-1.0]
 END_STEP                     -1           # end step (<0=auto -> must be set by test problems or restart) [-1]
 
 
@@ -31,10 +31,10 @@ TESTPROB_ID                   1014        # test problem ID [0]
 # code units (in cgs)
 OPT__UNIT                     1           # specify code units -> must set exactly 3 basic units below [0] ##USELESS FOR COMOVING##
 UNIT_L            3.0856800e+21           # length unit        (<=0 -> set to UNIT_V*UNIT_T or (UNIT_M/UNIT_D)^(1/3)) [-1.0]
-UNIT_M                       -1.0         # mass unit          (<=0 -> set to UNIT_D*UNIT_L^3)                        [-1.0]
+UNIT_M            1.9890000e+43           # mass unit          (<=0 -> set to UNIT_D*UNIT_L^3)                        [-1.0]
 UNIT_T                       -1.0         # time unit          (<=0 -> set to UNIT_L/UNIT_V)                          [-1.0]
 UNIT_V            1.0000000e+05           # velocity unit      (<=0 -> set to UNIT_L/UNIT_T)                          [-1.0]
-UNIT_D            6.7698980e-22           # mass density unit  (<=0 -> set to UNIT_M/UNIT_L^3)                        [-1.0]
+UNIT_D                       -1.0         # mass density unit  (<=0 -> set to UNIT_M/UNIT_L^3)                        [-1.0]
 
 
 # boundary conditions
@@ -116,6 +116,7 @@ OPT__FLAG_CRAY                0           # flag: cosmic-ray energy (Input__Flag
 OPT__FLAG_ENGY_DENSITY        0           # flag: energy density (Input_Flag_EngyDensity) [0] ##ELBDM ONLY##
 OPT__FLAG_INTERFERENCE        0           # flag: interference level (Input__Flag_Interference) [0] ##ELBDM ONLY##
 OPT__FLAG_SPECTRAL            0           # flag: spectral refinement (Input__Flag_Spectral) [0] ##ELBDM ONLY##
+OPT__FLAG_SPECTRAL_N          2           # number of pol. coefficients to use for spectral refinement [2] ##ELBDM ONLY##
 OPT__FLAG_LOHNER_DENS         0           # flag: Lohner for mass density      (Input__Flag_Lohner) [0] ##BOTH HYDRO AND ELBDM##
 OPT__FLAG_LOHNER_ENGY         0           # flag: Lohner for energy density    (Input__Flag_Lohner) [0] ##HYDRO ONLY##
 OPT__FLAG_LOHNER_PRES         0           # flag: Lohner for pressure          (Input__Flag_Lohner) [0] ##HYDRO ONLY##
@@ -157,7 +158,7 @@ ELBDM_PLANCK_CONST            1.0         # reduced Planck constant (will be ove
 ELBDM_LAMBDA                  1.0         # quartic self-interaction coefficient [1.0] ##QUARTIC_SELF_INTERACTION ONLY##
 ELBDM_TAYLOR3_COEFF           0.166666667 # 3rd Taylor expansion coefficient [1.0/6.0] ##USELESS if ELBDM_TAYLOR3_AUTO is on##
 ELBDM_TAYLOR3_AUTO            0           # Optimize ELBDM_TAYLOR3_COEFF automatically to minimize the damping at kmax [0]
-ELBDM_REMOVE_MOTION_CM        1           # remove the motion of center-of-mass (must enable OPT__CK_CONSERVATION):
+ELBDM_REMOVE_MOTION_CM        0           # remove the motion of center-of-mass (must enable OPT__CK_CONSERVATION):
                                           # (0=off, 1=init, 2=every step) [0]
 ELBDM_BASE_SPECTRAL           1           # adopt the spectral method to evolve base-level wave function (must enable SUPPORT_FFTW) [0]
 ELBDM_MATCH_PHASE             1           # match child phases with father phases during data restriction [1] ##ELBDM_HYBRID ONLY##
@@ -169,7 +170,7 @@ GPU_NSTREAM                  -1           # number of CUDA streams for the async
 OPT__FIXUP_FLUX               1           # correct coarse grids by the fine-grid boundary fluxes [1] ##HYDRO and ELBDM ONLY##
 OPT__FIXUP_ELECTRIC           1           # correct coarse grids by the fine-grid boundary electric field [1] ##MHD ONLY##
 OPT__FIXUP_RESTRICT           1           # correct coarse grids by averaging the fine-grid data [1]
-OPT__CORR_AFTER_ALL_SYNC      2           # apply various corrections after all levels are synchronized (see "Flu_CorrAfterAllSync"):
+OPT__CORR_AFTER_ALL_SYNC     -1           # apply various corrections after all levels are synchronized (see "Flu_CorrAfterAllSync"):
                                           # (-1=auto, 0=off, 1=every step, 2=before dump) [-1]
 OPT__NORMALIZE_PASSIVE        0           # ensure "sum(passive_scalar_density) == gas_density" [1]
 OPT__INT_FRAC_PASSIVE_LR      1           # convert specified passive scalars to mass fraction during data reconstruction [1]
@@ -264,8 +265,8 @@ SPEC_INT_TABLE_PATH           ./          # path to tables for spectral interpol
 SPEC_INT_XY_INSTEAD_DEPHA     1           # interpolate x = density^0.5*cos( phase/SPEC_INT_WAVELENGTH_MAGNIFIER ),
                                           #             y = density^0.5*sin( phase/SPEC_INT_WAVELENGTH_MAGNIFIER ) instead of density and phase
                                           # for the spectral interpolation, which has the advantage of being well-defined across vortices [1]
-SPEC_INT_WAVELENGTH_MAGNIFIER 1.0e2       # stretching factor of wavelength for SPEC_INT_XY_INSTEAD_DEPHA
-                                          # --> for SPEC_INT_WAVELENGTH_MAGNIFIER=1, x=real part and y=imaginary part [1.0e2]
+SPEC_INT_VORTEX_THRESHOLD     0.1         # vortex detection threshold for SPEC_INT_XY_INSTEAD_DEPHA [0.1] ##ELBDM & SUPPORT_SPECTRAL_INT ONLY##
+SPEC_INT_GHOST_BOUNDARY       4           # ghost boundary size for spectral interpolation [4] ##ELBDM & SUPPORT_SPECTRAL_INT ONLY##
 
 
 # data dump
@@ -294,7 +295,7 @@ OPT__OUTPUT_USER_FIELD        0           # output user-defined derived fields [
 OPT__OUTPUT_MODE              2           # (1=const step, 2=const dt, 3=dump table) -> edit "Input__DumpTable" for 3
 OPT__OUTPUT_RESTART           0           # output data immediately after restart [0]
 OUTPUT_STEP                   5           # output data every OUTPUT_STEP step ##OPT__OUTPUT_MODE==1 ONLY##
-OUTPUT_DT                     0.35        # output data every OUTPUT_DT time interval ##OPT__OUTPUT_MODE==2 ONLY##
+OUTPUT_DT                     4.0e-5      # output data every OUTPUT_DT time interval ##OPT__OUTPUT_MODE==2 ONLY##
 OUTPUT_WALLTIME              -1.0         # output data every OUTPUT_WALLTIME walltime (<=0.0=off) [-1.0]
 OUTPUT_WALLTIME_UNIT          0           # unit of OUTPUT_WALLTIME (0=second, 1=minute, 2=hour, 3=day) [0]
 OUTPUT_PART_X                -1.0         # x coordinate for OPT__OUTPUT_PART [-1.0]
@@ -321,7 +322,7 @@ OPT__RECORD_MEMORY            1           # record the memory consumption [1]
 OPT__RECORD_PERFORMANCE       1           # record the code performance [1]
 OPT__MANUAL_CONTROL           1           # support manually dump data, stop run, or pause run during the runtime
                                           # (by generating the file DUMP_GAMER_DUMP, STOP_GAMER_STOP, PAUSE_GAMER_PAUSE, respectively) [1]
-OPT__RECORD_CENTER            1           # record the position of maximum density, minimum potential, and center of mass [0]
+OPT__RECORD_CENTER            0           # record the position of maximum density, minimum potential, and center of mass [0]
 COM_CEN_X                    -1.0         # x coordinate as an initial guess for determining center of mass (if one of COM_CEN_X/Y/Z < 0 -> peak density position x) [-1.0]
 COM_CEN_Y                    -1.0         # y coordinate as an initial guess for determining center of mass (if one of COM_CEN_X/Y/Z < 0 -> peak density position y) [-1.0]
 COM_CEN_Z                    -1.0         # z coordinate as an initial guess for determining center of mass (if one of COM_CEN_X/Y/Z < 0 -> peak density position z) [-1.0]

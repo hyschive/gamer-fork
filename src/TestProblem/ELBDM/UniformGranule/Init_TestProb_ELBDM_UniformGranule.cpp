@@ -10,30 +10,28 @@ static void End_UniformGranule( void );
 // problem-specific global variables
 // =======================================================================================
 static FieldIdx_t Idx_Dens0 = Idx_Undefined;  // field index for storing the **initial** density
-static bool     ComputeCorrelation;           // flag for compute correlation
-static bool     ReComputeCorrelation;         // flag for recompute correlation for restart; use the simulation time of RESTART as initial time for computing time correlation; only available for RESTART
-static char     FilePath_corr[MAX_STRING];    // output path for correlation function text files
-static int      MinLv;                        // do statistics from MinLv to MaxLv
-static int      MaxLv;                        // do statistics from MinLv to MaxLv
-static int      StepInitial;                  // inital step for recording correlation function
-static int      StepInterval;                 // interval for recording correlation function
-static int      StepEnd;                      // end step for recording correlation function
-static double   Center[3];                    // use CoM as center
+static bool     ComputeCorrelation;           // flag for computing correlation
+static bool     ReComputeCorrelation;         // flag for recomputing correlation during restart; use the simulation time of RESTART as the initial time for computing time correlation; only available for RESTART
+static char     FilePath_corr[MAX_STRING];    // folder for storing correlation function text files
+static int      MinLv_corr;                   // compute correlation function from AMR levels MinLv to MaxLv
+static int      MaxLv_corr;                   // compute correlation function from AMR levels MinLv to MaxLv
+static int      StepInitial_corr;             // inital step for recording correlation function
+static int      StepInterval_corr;            // interval for recording correlation function
+static int      StepEnd_corr;                 // end step for recording correlation function
+static double   Center_corr[3];               // center for computing correlation function (currently set to the center of mass)
 static double   RadiusMax_prof;               // maximum radius for correlation function statistics (profile)
-static double   dr_min_prof;                  // bin size of correlation function statistics (minimum size if logarithic bin) (profile)
+static double   dr_min_prof;                  // bin size of correlation function statistics (minimum size for logarithmic bin) (profile)
 static bool     LogBin_prof;                  // logarithmic bin or not (profile)
-static double   LogBinRatio_prof;             // ratio of bin size growing rate for logarithmic bin (profile)
-static bool     RemoveEmpty_prof;             // remove 0 sample bins; false: Data[empty_bin]=Weight[empty_bin]=NCell[empty_bin]=0 (profile)
+static double   LogBinRatio_prof;             // ratio of adjacent log bins for logarithmic bin (profile)
+static bool     RemoveEmpty_prof;             // remove bins without any samples; false: Data[empty_bin]=Weight[empty_bin]=NCell[empty_bin]=0 (profile)
 static double   RadiusMax_corr;               // maximum radius for correlation function statistics (correlation)
-static double   dr_min_corr;                  // bin size of correlation function statistics (minimum size if logarithic bin) (correlation)
+static double   dr_min_corr;                  // bin size of correlation function statistics (minimum size for logarithmic bin) (correlation)
 static bool     LogBin_corr;                  // logarithmic bin or not (correlation)
-static double   LogBinRatio_corr;             // ratio of bin size growing rate for logarithmic bin (correlation)
-static bool     RemoveEmpty_corr;             // remove 0 sample bins; false: Data[empty_bin]=Weight[empty_bin]=NCell[empty_bin]=0 (correlation)
+static double   LogBinRatio_corr;             // ratio of adjacent log bins for logarithmic bin (correlation)
+static bool     RemoveEmpty_corr;             // remove bins without any samples; false: Data[empty_bin]=Weight[empty_bin]=NCell[empty_bin]=0 (correlation)
 
 static Profile_with_Sigma_t *Prof_Dens_initial = new Profile_with_Sigma_t(); // pointer to save initial density profile
-static Profile_with_Sigma_t *Prof[1]           = { Prof_Dens_initial };
 static Profile_t            *Correlation_Dens  = new Profile_t();            // pointer to save density correlation function
-static Profile_t            *Correlation[1]    = { Correlation_Dens };
 // =======================================================================================
 
 //-------------------------------------------------------------------------------------------------------
@@ -64,17 +62,30 @@ void Validate()
    Aux_Error( ERROR_INFO, "COMOVING must be disabled !!\n" );
 #  endif
 
+#  if ( NCOMP_PASSIVE_USER != 1 )
+   Aux_Error( ERROR_INFO, "must set NCOMP_PASSIVE_USER to 1 !!\n" );
+#  endif
+
 // only accept OPT__INIT == INIT_BY_RESTART or OPT__INIT == INIT_BY_FILE
-   if ( OPT__INIT != INIT_BY_RESTART && OPT__INIT != INIT_BY_FILE )
-      Aux_Error( ERROR_INFO, "enforced to accept only OPT__INIT == INIT_BY_RESTART or OPT__INIT == INIT_BY_FILE !!\n" );
+   if ( OPT__INIT != INIT_BY_RESTART  &&  OPT__INIT != INIT_BY_FILE )
+      Aux_Error( ERROR_INFO, "only support OPT__INIT == INIT_BY_RESTART or OPT__INIT == INIT_BY_FILE !!\n" );
 
    if ( MPI_Rank == 0 )    Aux_Message( stdout, "   Validating test problem %d ... done\n", TESTPROB_ID );
+
+// check whether fluid boundary condition in Input__Parameter is set properly
+   for ( int direction = 0; direction < 6; direction++ )
+   {
+      if ( OPT__BC_FLU[direction] != BC_FLU_PERIODIC )
+         Aux_Error( ERROR_INFO, "must set periodic BC for fluid --> reset OPT__BC_FLU[%d] to 1 !!\n", direction );
+   }
+   if ( OPT__BC_POT != BC_POT_PERIODIC )
+      Aux_Error( ERROR_INFO, "must set periodic BC for gravity --> reset OPT__BC_POT to 1 !!\n" );
 
 } // FUNCTION : Validate
 
 
 
-#if ( MODEL == ELBDM  && defined GRAVITY )
+#if ( MODEL == ELBDM  &&  defined GRAVITY )
 //-------------------------------------------------------------------------------------------------------
 // Function    :  SetParameter
 // Description :  Load and set the problem-specific runtime parameters
@@ -110,11 +121,11 @@ void SetParameter()
    ReadPara->Add( "ComputeCorrelation",       &ComputeCorrelation,      false,         Useless_bool,     Useless_bool      );
    ReadPara->Add( "ReComputeCorrelation",     &ReComputeCorrelation,    false,         Useless_bool,     Useless_bool      );
    ReadPara->Add( "FilePath_corr",            FilePath_corr,            Useless_str,   Useless_str,      Useless_str       );
-   ReadPara->Add( "MinLv",                    &MinLv,                   0,             0,                MAX_LEVEL         );
-   ReadPara->Add( "MaxLv",                    &MaxLv,                   MAX_LEVEL,     0,                MAX_LEVEL         );
-   ReadPara->Add( "StepInitial",              &StepInitial,             0,             0,                NoMax_int         );
-   ReadPara->Add( "StepInterval",             &StepInterval,            1,             1,                NoMax_int         );
-   ReadPara->Add( "StepEnd",                  &StepEnd,                 NoMax_int,     0,                NoMax_int         );
+   ReadPara->Add( "MinLv_corr",               &MinLv_corr,              0,             0,                MAX_LEVEL         );
+   ReadPara->Add( "MaxLv_corr",               &MaxLv_corr,              MAX_LEVEL,     0,                MAX_LEVEL         );
+   ReadPara->Add( "StepInitial_corr",         &StepInitial_corr,        0,             0,                NoMax_int         );
+   ReadPara->Add( "StepInterval_corr",        &StepInterval_corr,       1,             1,                NoMax_int         );
+   ReadPara->Add( "StepEnd_corr",             &StepEnd_corr,            NoMax_int,     0,                NoMax_int         );
    ReadPara->Add( "RadiusMax_corr",           &RadiusMax_corr,          Eps_double,    NoMin_double,     NoMax_double      );
    ReadPara->Add( "dr_min_corr",              &dr_min_corr,             Eps_double,    NoMin_double,     NoMax_double      );
    ReadPara->Add( "LogBin_corr",              &LogBin_corr,             false,         Useless_bool,     Useless_bool      );
@@ -129,6 +140,9 @@ void SetParameter()
 // (1-2) set the default values
    if (ComputeCorrelation)
    {
+       if ( !OPT__RECORD_USER )
+          Aux_Error( ERROR_INFO, "OPT__RECORD_USER should be turned on to enable ComputeCorrelation !!\n" );
+
        if ( dr_min_corr <=Eps_double )          dr_min_corr = 1e-2*0.5*amr->BoxSize[0];
        if ( RadiusMax_corr<=Eps_double )        RadiusMax_corr = 0.5*amr->BoxSize[0];
        if ( LogBinRatio_corr<=1.0 )             LogBinRatio_corr = 2.0;
@@ -139,8 +153,8 @@ void SetParameter()
        LogBin_prof                              = false;                   // hard-coded by Test Problem
        RemoveEmpty_prof                         = false;                   // hard-coded by Test Problem
 
-       if ( MinLv < 0 ) MinLv = 0;
-       if ( MaxLv < MinLv ) MaxLv = MAX_LEVEL;
+       if ( MinLv_corr < 0 ) MinLv_corr = 0;
+       if ( MaxLv_corr < MinLv_corr ) MaxLv_corr = MAX_LEVEL;
        if ( FilePath_corr == "\0" )  sprintf( FilePath_corr, "./" );
        else
        {
@@ -153,25 +167,13 @@ void SetParameter()
    }
 
 // (1-3) check the runtime parameters
-   if ( OPT__INIT == INIT_BY_FUNCTION )
-      Aux_Error( ERROR_INFO, "OPT__INIT = 1 is not supported for this test problem !!\n" );
-
-// check whether fluid boundary condition in Input__Parameter is set properly
-   for ( int direction = 0; direction < 6; direction++ )
-   {
-      if ( OPT__BC_FLU[direction] != BC_FLU_PERIODIC )
-         Aux_Error( ERROR_INFO, "must set periodic BC for fluid --> reset OPT__BC_FLU[%d] to 1 !!\n", direction );
-   }
-   if ( OPT__BC_POT != BC_POT_PERIODIC )
-      Aux_Error( ERROR_INFO, "must set periodic BC for gravity --> reset OPT__BC_POT to 1 !!\n" );
-
 
 // (2) set the problem-specific derived parameters
 
 // (3) reset other general-purpose parameters
 //     --> a helper macro PRINT_WARNING is defined in TestProb.h
-   const long   End_Step_Default = 5.0e4;
-   const double End_T_Default    = 1.0;
+   const long   End_Step_Default = 50000;
+   const double End_T_Default    = 2.0e-3;
 
    if ( END_STEP < 0 ) {
       END_STEP = End_Step_Default;
@@ -202,9 +204,9 @@ void SetParameter()
          Aux_Message( stdout, "  use logarithmic bin (profile, hard-coded)   = %d\n"    , LogBin_prof            );
          Aux_Message( stdout, "  log bin ratio       (profile, no effect)    = %13.7e\n", LogBinRatio_prof       );
          Aux_Message( stdout, "  remove empty bin    (profile, hard-coded)   = %d\n"    , RemoveEmpty_prof       );
-         Aux_Message( stdout, "  minimum level                               = %d\n"    , MinLv                  );
-         Aux_Message( stdout, "  maximum level                               = %d\n"    , MaxLv                  );
-         Aux_Message( stdout, "  file path for correlation text file         = %s\n"    , FilePath_corr          );
+         Aux_Message( stdout, "  minimum level                               = %d\n"    , MinLv_corr             );
+         Aux_Message( stdout, "  maximum level                               = %d\n"    , MaxLv_corr             );
+         Aux_Message( stdout, "  folder for storing correlation text file    = %s\n"    , FilePath_corr          );
          if ( OPT__INIT == INIT_BY_RESTART )
          Aux_Message( stdout, "  re-compute correlation using restart time   = %d\n"    , ReComputeCorrelation   );
       }
@@ -281,12 +283,12 @@ static void Init_User_ELBDM_UniformGranule( void )
    if (ComputeCorrelation)
    {
       const double InitialTime = Time[0];
-      if ( MPI_Rank == 0 )  Aux_Message( stdout, "StepInitial = %d ; StepInterval = %d ; StepEnd = %d\n", StepInitial, StepInterval, StepEnd);
+      if ( MPI_Rank == 0 )  Aux_Message( stdout, "StepInitial_corr = %d ; StepInterval_corr = %d ; StepEnd_corr = %d\n", StepInitial_corr, StepInterval_corr, StepEnd_corr);
 
       if ( MPI_Rank == 0 )  Aux_Message( stdout, "InitialTime = %13.6e \n", InitialTime );
 
-//    compute the enter position for passive field
-      if ( MPI_Rank == 0 )  Aux_Message( stdout, "Calculate halo center for passive field:\n");
+//    determine the central position for computing correlation function
+      if ( MPI_Rank == 0 )  Aux_Message( stdout, "Calculate the initial center-of-mass position:\n");
 
       double FinaldR;
       int    FinalNIter;
@@ -310,15 +312,15 @@ static void Init_User_ELBDM_UniformGranule( void )
          CoM_ref[1] = COM_CEN_Y;
          CoM_ref[2] = COM_CEN_Z;
       }
-      Aux_FindWeightedAverageCenter( Center, CoM_ref, COM_MAX_R, COM_MIN_RHO, _TOTAL_DENS, COM_TOLERR_R, COM_MAX_ITER, &FinaldR, &FinalNIter );
+      Aux_FindWeightedAverageCenter( Center_corr, CoM_ref, COM_MAX_R, COM_MIN_RHO, _TOTAL_DENS, COM_TOLERR_R, COM_MAX_ITER, &FinaldR, &FinalNIter );
 
-      if ( MPI_Rank == 0 )  Aux_Message( stdout, "Center of passive field is ( %14.11e,%14.11e,%14.11e )\n", Center[0], Center[1], Center[2] );
+      if ( MPI_Rank == 0 )  Aux_Message( stdout, "Initial center-of-mass position is ( %14.11e,%14.11e,%14.11e )\n", Center_corr[0], Center_corr[1], Center_corr[2] );
 
 //    commpute density profile for passive field
-      if ( MPI_Rank == 0 )  Aux_Message( stdout, "Calculate density profile for passive field:\n");
+      if ( MPI_Rank == 0 )  Aux_Message( stdout, "Calculate initial density profile:\n");
 
       const long TVar[] = {BIDX(Idx_Dens0)};
-      Aux_ComputeProfile_with_Sigma( Prof, Center, RadiusMax_prof, dr_min_prof, LogBin_prof, LogBinRatio_prof, RemoveEmpty_prof, TVar, 1, MinLv, MaxLv, PATCH_LEAF, InitialTime );
+      Aux_ComputeProfile_with_Sigma( &Prof_Dens_initial, Center_corr, RadiusMax_prof, dr_min_prof, LogBin_prof, LogBinRatio_prof, RemoveEmpty_prof, TVar, 1, MinLv_corr, MaxLv_corr, PATCH_LEAF, InitialTime );
 
       if ( MPI_Rank == 0 )
       {
@@ -326,9 +328,9 @@ static void Init_User_ELBDM_UniformGranule( void )
          sprintf( Filename, "%s/initial_profile_with_Sigma.txt", FilePath_corr );
          FILE *output_initial_prof = fopen(Filename, "w");
          fprintf( output_initial_prof, "#%19s  %21s  %21s  %21s  %11s\n", "Radius", "Dens", "Dens_Sigma" , "Weighting", "Cell_Number");
-         for (int b=0; b<Prof[0]->NBin; b++)
+         for (int b=0; b<Prof_Dens_initial->NBin; b++)
             fprintf( output_initial_prof, "%20.14e  %21.14e  %21.14e  %21.14e  %11ld\n",
-                     Prof[0]->Radius[b], Prof[0]->Data[b], Prof[0]->Data_Sigma[b], Prof[0]->Weight[b], Prof[0]->NCell[b] );
+                     Prof_Dens_initial->Radius[b], Prof_Dens_initial->Data[b], Prof_Dens_initial->Data_Sigma[b], Prof_Dens_initial->Weight[b], Prof_Dens_initial->NCell[b] );
          fclose(output_initial_prof);
       }
    }
@@ -350,11 +352,11 @@ static void Do_CF( void )
 // Compute correlation if ComputeCorrelation flag is true
    if (ComputeCorrelation)
    {
-      if ( (Step>=StepInitial) && (((Step-StepInitial)%StepInterval)==0) && (Step<=StepEnd) )
+      if ( (Step>=StepInitial_corr) && (((Step-StepInitial_corr)%StepInterval_corr)==0) && (Step<=StepEnd_corr) )
       {
          const long TVar[] = {_DENS};
-         Aux_ComputeCorrelation( Correlation, (const Profile_with_Sigma_t**)Prof, Center, RadiusMax_corr, dr_min_corr, LogBin_corr, LogBinRatio_corr,
-                                 RemoveEmpty_corr, TVar, 1, MinLv, MaxLv, PATCH_LEAF, Time[0], dr_min_prof);
+         Aux_ComputeCorrelation( &Correlation_Dens, (const Profile_with_Sigma_t**) &Prof_Dens_initial, Center_corr, RadiusMax_corr, dr_min_corr, LogBin_corr, LogBinRatio_corr,
+                                 RemoveEmpty_corr, TVar, 1, MinLv_corr, MaxLv_corr, PATCH_LEAF, Time[0], dr_min_prof);
 
          if ( MPI_Rank == 0 )
          {
@@ -362,9 +364,9 @@ static void Do_CF( void )
             sprintf( Filename, "%s/correlation_function_t=%.4e.txt", FilePath_corr, Time[0] );
             FILE *output_correlation = fopen(Filename, "w");
             fprintf( output_correlation, "#%19s  %21s  %21s  %11s\n", "Radius", "Correlation_Function", "Weighting", "Cell_Number");
-            for (int b=0; b<Correlation[0]->NBin; b++)
+            for (int b=0; b<Correlation_Dens->NBin; b++)
                 fprintf( output_correlation, "%20.14e  %21.14e  %21.14e  %11ld\n",
-                         Correlation[0]->Radius[b], Correlation[0]->Data[b], Correlation[0]->Weight[b], Correlation[0]->NCell[b] );
+                         Correlation_Dens->Radius[b], Correlation_Dens->Data[b], Correlation_Dens->Weight[b], Correlation_Dens->NCell[b] );
             fclose(output_correlation);
          }
       }
@@ -382,6 +384,8 @@ void End_UniformGranule()
 
    delete Prof_Dens_initial;
    delete Correlation_Dens;
+   Prof_Dens_initial = NULL;
+   Correlation_Dens = NULL;
 
 } // FUNCTION : End_UniformGranule
 
@@ -405,15 +409,14 @@ void Init_TestProb_ELBDM_UniformGranule()
    Validate();
 
 
-// replace HYDRO by the target model (e.g., MHD/ELBDM) and also check other compilation flags if necessary (e.g., GRAVITY/PARTICLE)
 #  if ( MODEL == ELBDM )
 // set the problem-specific runtime parameters
    SetParameter();
 
-   Init_Field_User_Ptr    = AddNewField_ELBDM_UniformGranule;
-   Init_User_Ptr          = Init_User_ELBDM_UniformGranule;
-   Aux_Record_User_Ptr    = Do_CF;
-   End_User_Ptr           = End_UniformGranule;
+   Init_Field_User_Ptr = AddNewField_ELBDM_UniformGranule;
+   Init_User_Ptr       = Init_User_ELBDM_UniformGranule;
+   Aux_Record_User_Ptr = Do_CF;
+   End_User_Ptr        = End_UniformGranule;
 #  endif // #if ( MODEL == ELBDM )
 
    if ( MPI_Rank == 0 )    Aux_Message( stdout, "%s ... done\n", __FUNCTION__ );

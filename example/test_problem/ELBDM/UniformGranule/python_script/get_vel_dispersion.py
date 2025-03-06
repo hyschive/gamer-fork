@@ -78,7 +78,7 @@ for idx in range(idx_start, idx_end+1, didx):
 
    sigma_total = (sigma_bk**2+sigma_qp**2)**0.5
    print('bulk velocity dispersion = %g'%(sigma_bk))
-   print('quantum pressure velocity dispersion = %g'%(sigma_qp))
+   print('thermal velocity dispersion = %g'%(sigma_qp))
    print('total velocity dispersion = %g'%(sigma_total))
 
    d = 0.35*2*np.pi*hbar/(ma*sigma_total)

@@ -7,7 +7,7 @@ import yt
 
 # -------------------------------------------------------------------------------------------------------------------------
 # user-specified parameters
-sigma  = 5.1                                  # velocity dispersion in km/s
+sigma  = 6.0                                  # velocity dispersion in km/s
 # -------------------------------------------------------------------------------------------------------------------------
 ds     = yt.load( '../Data_000000' )
 UNIT_L = ds.parameters["Unit_L"]              # code length unit (default is kpc)

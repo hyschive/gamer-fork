@@ -15,14 +15,14 @@
 //                Allocated   : Whether or not member arrays such as Radius[] have been allocated
 //                Radius      : Radial coordinate at each bin
 //                Data        : Profile data at each bin
-//                Data_Sigma  : Profile data at each bin
+//                Data_Sigma  : Standard deviation of Data at each bin
 //                Weight      : Total weighting at each bin
 //                NCell       : Number of cells at each bin
 //
 // Method      :  Profile_with_Sigma_t      : Constructor
 //               ~Profile_with_Sigma_t      : Destructor
-//                AllocateMemory : Allocate memory
-//                FreeMemory     : Free memory
+//                AllocateMemory            : Allocate memory
+//                FreeMemory                : Free memory
 //-------------------------------------------------------------------------------------------------------
 struct Profile_with_Sigma_t
 {

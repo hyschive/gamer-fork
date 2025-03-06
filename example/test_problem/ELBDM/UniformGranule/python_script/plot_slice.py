@@ -33,9 +33,10 @@ colormap  = 'algae'
 #colormap  = 'magma'
 dpi       = 300
 
+yt.enable_parallelism()
+ts = yt.DatasetSeries( [ '../Data_%06d'%idx for idx in range(idx_start, idx_end+1, didx) ] )
 
-for idx in range(idx_start, idx_end+1, didx):
-   ds = yt.load("../Data_%06d"%idx)
+for ds in ts.piter():
    dd = ds.all_data()
    dens = np.array(dd["Dens"])
    avedens = np.mean(dens)
