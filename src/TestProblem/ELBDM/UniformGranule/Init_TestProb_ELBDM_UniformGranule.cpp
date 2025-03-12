@@ -1,11 +1,14 @@
 #include "GAMER.h"
-#include "Prototype_UniformGranule.h"
 
 static void AddNewField_ELBDM_UniformGranule( void );
 static void Init_User_ELBDM_UniformGranule( void );
 static void Do_CF( void );
 static void End_UniformGranule( void );
 
+void Aux_ComputeCorrelation( Profile_t *Correlation[], const Profile_t *prof_init[], const double Center[],
+                             const double r_max_input, const double dr_min, const bool LogBin, const double LogBinRatio,
+                             const bool RemoveEmpty, const long TVarBitIdx[], const int NProf, const int MinLv, const int MaxLv,
+                             const PatchType_t PatchType, const double PrepTime, const double dr_min_prof );
 
 // problem-specific global variables
 // =======================================================================================
@@ -30,8 +33,8 @@ static bool     LogBin_corr;                  // logarithmic bin or not (correla
 static double   LogBinRatio_corr;             // ratio of adjacent log bins for logarithmic bin (correlation)
 static bool     RemoveEmpty_corr;             // remove bins without any samples; false: Data[empty_bin]=Weight[empty_bin]=NCell[empty_bin]=0 (correlation)
 
-static Profile_with_Sigma_t *Prof_Dens_initial = new Profile_with_Sigma_t(); // pointer to save initial density profile
-static Profile_t            *Correlation_Dens  = new Profile_t();            // pointer to save density correlation function
+static Profile_t *Prof_Dens_initial = new Profile_t(); // pointer to save initial density profile
+static Profile_t *Correlation_Dens  = new Profile_t(); // pointer to save density correlation function
 // =======================================================================================
 
 //-------------------------------------------------------------------------------------------------------
@@ -302,6 +305,7 @@ static void Init_User_ELBDM_UniformGranule( void )
       Max_Dens.Center[2] = amr->BoxCenter[2];
 
       Aux_FindExtrema( &Max_Dens, EXTREMA_MAX, 0, TOP_LEVEL, PATCH_LEAF );
+
       if ( COM_CEN_X < 0.0  ||  COM_CEN_Y < 0.0  ||  COM_CEN_Z < 0.0 )
       {
          for (int d=0; d<3; d++) CoM_ref[d] = Max_Dens.Coord[d];
@@ -312,6 +316,7 @@ static void Init_User_ELBDM_UniformGranule( void )
          CoM_ref[1] = COM_CEN_Y;
          CoM_ref[2] = COM_CEN_Z;
       }
+
       Aux_FindWeightedAverageCenter( Center_corr, CoM_ref, COM_MAX_R, COM_MIN_RHO, _TOTAL_DENS, COM_TOLERR_R, COM_MAX_ITER, &FinaldR, &FinalNIter );
 
       if ( MPI_Rank == 0 )  Aux_Message( stdout, "Initial center-of-mass position is ( %14.11e,%14.11e,%14.11e )\n", Center_corr[0], Center_corr[1], Center_corr[2] );
@@ -320,12 +325,12 @@ static void Init_User_ELBDM_UniformGranule( void )
       if ( MPI_Rank == 0 )  Aux_Message( stdout, "Calculate initial density profile:\n");
 
       const long TVar[] = {BIDX(Idx_Dens0)};
-      Aux_ComputeProfile_with_Sigma( &Prof_Dens_initial, Center_corr, RadiusMax_prof, dr_min_prof, LogBin_prof, LogBinRatio_prof, RemoveEmpty_prof, TVar, 1, MinLv_corr, MaxLv_corr, PATCH_LEAF, InitialTime );
+      Aux_ComputeProfile( &Prof_Dens_initial, Center_corr, RadiusMax_prof, dr_min_prof, LogBin_prof, LogBinRatio_prof, RemoveEmpty_prof, TVar, 1, MinLv_corr, MaxLv_corr, PATCH_LEAF, InitialTime );
 
       if ( MPI_Rank == 0 )
       {
          char Filename[MAX_STRING];
-         sprintf( Filename, "%s/initial_profile_with_Sigma.txt", FilePath_corr );
+         sprintf( Filename, "%s/initial_profile.txt", FilePath_corr );
          FILE *output_initial_prof = fopen(Filename, "w");
          fprintf( output_initial_prof, "#%19s  %21s  %21s  %21s  %11s\n", "Radius", "Dens", "Dens_Sigma" , "Weighting", "Cell_Number");
          for (int b=0; b<Prof_Dens_initial->NBin; b++)
@@ -355,7 +360,7 @@ static void Do_CF( void )
       if ( (Step>=StepInitial_corr) && (((Step-StepInitial_corr)%StepInterval_corr)==0) && (Step<=StepEnd_corr) )
       {
          const long TVar[] = {_DENS};
-         Aux_ComputeCorrelation( &Correlation_Dens, (const Profile_with_Sigma_t**) &Prof_Dens_initial, Center_corr, RadiusMax_corr, dr_min_corr, LogBin_corr, LogBinRatio_corr,
+         Aux_ComputeCorrelation( &Correlation_Dens, (const Profile_t**) &Prof_Dens_initial, Center_corr, RadiusMax_corr, dr_min_corr, LogBin_corr, LogBinRatio_corr,
                                  RemoveEmpty_corr, TVar, 1, MinLv_corr, MaxLv_corr, PATCH_LEAF, Time[0], dr_min_prof);
 
          if ( MPI_Rank == 0 )

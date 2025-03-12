@@ -1,5 +1,4 @@
 #include "GAMER.h"
-#include "Profile_with_Sigma.h"
 
 extern void SetTempIntPara( const int lv, const int Sg0, const double PrepTime, const double Time0, const double Time1,
                             bool &IntTime, int &Sg, int &Sg_IntT, real &Weighting, real &Weighting_IntT );
@@ -16,14 +15,14 @@ extern void SetTempIntPara( const int lv, const int Sg0, const double PrepTime, 
 //
 // Parameter   :  mean_inter : interpolated mean value for all the target fields at r
 //                std_inter  : interpolated standard deviation for all the target fields at r
-//                prof_init  : Profile_with_Sigma_t object array for storing the mean and standard deviation quantities used for interpolation
+//                prof_init  : Profile_t object array for storing the mean and standard deviation quantities used for interpolation
 //                NProf      : Number of Profile_t objects in prof_init
 //                bin_index  : estimated bin index for a given target radius r
 //                r          : target radius
 //
 // Return      :  mean_inter, std_inter
 //-------------------------------------------------------------------------------------------------------
-void InterpolateMeanAndStd(real *mean_inter, real *std_inter, const Profile_with_Sigma_t *prof_init[], const int NProf, const int bin_index, const double r)
+void InterpolateMeanAndStd(real *mean_inter, real *std_inter, const Profile_t *prof_init[], const int NProf, const int bin_index, const double r)
 {
    double delta_r, x;
    if ( r > prof_init[0]->Radius[bin_index] )
@@ -97,7 +96,7 @@ void InterpolateMeanAndStd(real *mean_inter, real *std_inter, const Profile_with
 //                   --> If multiple fields are supported in the future, the order of fields to be returned follows TVarBitIdx[]
 //
 // Parameter   :  Correlation : Profile_t object array to store the correlation function
-//                prof_init   : Profile_with_Sigma_t object array for storing the mean and standard deviation quantities for calculating correlation function
+//                prof_init   : Profile_t object array for storing the mean and standard deviation quantities for calculating correlation function
 //                Center      : Target center coordinates
 //                r_max_input : Maximum radius for computing the profile
 //                              --> See also "Note-2" above
@@ -160,7 +159,7 @@ void InterpolateMeanAndStd(real *mean_inter, real *std_inter, const Profile_with
 //
 // Return      :  Correlation
 //-------------------------------------------------------------------------------------------------------
-void Aux_ComputeCorrelation( Profile_t *Correlation[], const Profile_with_Sigma_t *prof_init[], const double Center[],
+void Aux_ComputeCorrelation( Profile_t *Correlation[], const Profile_t *prof_init[], const double Center[],
                              const double r_max_input, const double dr_min, const bool LogBin, const double LogBinRatio,
                              const bool RemoveEmpty, const long TVarBitIdx[], const int NProf, const int MinLv, const int MaxLv,
                              const PatchType_t PatchType, const double PrepTime, const double dr_min_prof)
