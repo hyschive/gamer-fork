@@ -45,7 +45,7 @@ extern void SetTempIntPara( const int lv, const int Sg0, const double PrepTime, 
 //                              --> Right edge of log bin n = dr_min*LogBinRatio^n
 //                RemoveEmpty : true  --> remove empty bins from the data
 //                              false --> these empty bins will still be in the profile arrays with
-//                                        Data[empty_bin]=Weight[empty_bin]=NCell[empty_bin]=0
+//                                        Data[empty_bin]=Data_Sigma[empty_bin]=Weight[empty_bin]=NCell[empty_bin]=0
 //                TVarBitIdx  : Bitwise indices of target variables for computing the profiles
 //                              --> Supported indices (defined in Macro.h):
 //                                     HYDRO        : _DENS, _MOMX, _MOMY, _MOMZ, _ENGY, _VELX, _VELY, _VELZ, _VELR,
@@ -91,10 +91,10 @@ extern void SetTempIntPara( const int lv, const int Sg0, const double PrepTime, 
 //                      char Filename[MAX_STRING];
 //                      sprintf( Filename, "Profile%d.txt", p );
 //                      FILE *File = fopen( Filename, "w" );
-//                      fprintf( File, "#%19s  %21s  %21s  %10s\n", "Radius", "Data", "Weight", "Cells" );
+//                      fprintf( File, "#%19s  %21s  %21s  %10s\n", "Radius", "Data", "Data_Sigma", "Weight", "Cells" );
 //                      for (int b=0; b<Prof[p]->NBin; b++)
 //                         fprintf( File, "%20.14e  %21.14e  %21.14e  %10ld\n",
-//                                  Prof[p]->Radius[b], Prof[p]->Data[b], Prof[p]->Weight[b], Prof[p]->NCell[b] );
+//                                  Prof[p]->Radius[b], Prof[p]->Data[b], Prof[p]->Data_Sigma[b], Prof[p]->Weight[b], Prof[p]->NCell[b] );
 //                      fclose( File );
 //                   }
 //                }
