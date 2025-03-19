@@ -33,15 +33,18 @@ print( '-------------------------------------------------------------------\n' )
 GAMER_PS = True
 print('GAMER_PS='+str(GAMER_PS)+'\n')
 
-for idx in range(idx_start, idx_end+1, didx):
-   ds = yt.load("../Data_%06d"%idx)
-   N = ds.parameters["NX0"][0]
-   BoxSize = ds.parameters["BoxSize"][0]
-   dh = ds.parameters["CellSize"][0]
+yt.enable_parallelism()
+ts = yt.DatasetSeries( [ '../Data_%06d'%idx for idx in range(idx_start, idx_end+1, didx) ] )
 
-   dd = ds.covering_grid(level=0, left_edge=[0, 0, 0], dims=ds.domain_dimensions)
-   rho = dd["Dens"].d
-   rhok = np.fft.rfftn( rho )
+for ds in ts.piter():
+   idx     = ds.parameters["DumpID"]
+   time    = ds.parameters["Time"][0]
+   N       = ds.parameters["NX0"][0]
+   BoxSize = ds.parameters["BoxSize"][0]
+   dh      = ds.parameters["CellSize"][0]
+   dd      = ds.covering_grid(level=0, left_edge=[0, 0, 0], dims=ds.domain_dimensions)
+   rho     = dd["Dens"].d
+   rhok    = np.fft.rfftn( rho )
 
    kx = 2*np.pi*np.fft.fftfreq( N, dh )
    ky = 2*np.pi*np.fft.fftfreq( N, dh )
@@ -61,7 +64,7 @@ for idx in range(idx_start, idx_end+1, didx):
    Pk1d = np.divide(Pk_total, count, out=np.zeros_like(Pk_total), where=count!=0)
    k3Pk = Pk1d*kz**3
    d = 2*np.pi/kz[np.argmax(k3Pk)]
-   print('estimated granule diameter = %g\n'%(d))
+   print('estimated granule diameter = %13.7e, time = %13.7e\n'%(d, time))
 
    if(GAMER_PS):
       gamer_ps = np.loadtxt('../PowerSpec_%06d'%idx, skiprows=1, dtype=float)
