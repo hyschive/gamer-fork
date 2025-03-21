@@ -296,8 +296,12 @@ static void Init_User_ELBDM_UniformGranule( void )
       double FinaldR;
       int    FinalNIter;
       double CoM_ref[3];
-      Extrema_t Max_Dens;
+      double MaxR    = __FLT_MAX__;
+      double MinWD   = 0.0;
+      double TolErrR = amr->dh[MAX_LEVEL];
+      int    MaxIter = 10;
 
+      Extrema_t Max_Dens;
       Max_Dens.Field     = _DENS;
       Max_Dens.Radius    = __FLT_MAX__; // entire domain
       Max_Dens.Center[0] = amr->BoxCenter[0];
@@ -306,18 +310,9 @@ static void Init_User_ELBDM_UniformGranule( void )
 
       Aux_FindExtrema( &Max_Dens, EXTREMA_MAX, 0, TOP_LEVEL, PATCH_LEAF );
 
-      if ( COM_CEN_X < 0.0  ||  COM_CEN_Y < 0.0  ||  COM_CEN_Z < 0.0 )
-      {
-         for (int d=0; d<3; d++) CoM_ref[d] = Max_Dens.Coord[d];
-      }
-      else
-      {
-         CoM_ref[0] = COM_CEN_X;
-         CoM_ref[1] = COM_CEN_Y;
-         CoM_ref[2] = COM_CEN_Z;
-      }
+      for (int d=0; d<3; d++) CoM_ref[d] = Max_Dens.Coord[d];
 
-      Aux_FindWeightedAverageCenter( Center_corr, CoM_ref, COM_MAX_R, COM_MIN_RHO, _TOTAL_DENS, COM_TOLERR_R, COM_MAX_ITER, &FinaldR, &FinalNIter );
+      Aux_FindWeightedAverageCenter( Center_corr, CoM_ref, MaxR, MinWD, _TOTAL_DENS, TolErrR, MaxIter, &FinaldR, &FinalNIter );
 
       if ( MPI_Rank == 0 )  Aux_Message( stdout, "Initial center-of-mass position is ( %14.11e,%14.11e,%14.11e )\n", Center_corr[0], Center_corr[1], Center_corr[2] );
 
@@ -390,7 +385,7 @@ void End_UniformGranule()
    delete Prof_Dens_initial;
    delete Correlation_Dens;
    Prof_Dens_initial = NULL;
-   Correlation_Dens = NULL;
+   Correlation_Dens  = NULL;
 
 } // FUNCTION : End_UniformGranule
 

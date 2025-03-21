@@ -22,7 +22,7 @@ Default setup:
    OPT__BC_POT             1  (periodic)
 
 4. To enable ComputeCorrelation in Input_TestProb,
-   one must turn on OPT__RECORD_USER and set COM_* properly in Input__Parameter.
+   one must turn on OPT__RECORD_USER in Input__Parameter.
 
 Default UM_IC info:
 =======================================
@@ -30,5 +30,3 @@ BoxSize                 =  0.08 kpc
 dimension               =  256^3
 average density         =  0.25e10 Msun/kpc^3
 1-D velocity dispersion =  6.0 km/s (the actual computed dispersion ~5.75 km/s)
-
-
