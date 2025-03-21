@@ -325,7 +325,7 @@ static void Init_User_ELBDM_UniformGranule( void )
       if ( MPI_Rank == 0 )  Aux_Message( stdout, "Calculate initial density profile:\n");
 
       const long TVar[] = {BIDX(Idx_Dens0)};
-      Aux_ComputeProfile( &Prof_Dens_initial, Center_corr, RadiusMax_prof, dr_min_prof, LogBin_prof, LogBinRatio_prof, RemoveEmpty_prof, TVar, 1, MinLv_corr, MaxLv_corr, PATCH_LEAF, InitialTime );
+      Aux_ComputeProfile( &Prof_Dens_initial, Center_corr, RadiusMax_prof, dr_min_prof, LogBin_prof, LogBinRatio_prof, RemoveEmpty_prof, TVar, 1, MinLv_corr, MaxLv_corr, PATCH_LEAF, InitialTime, true );
 
       if ( MPI_Rank == 0 )
       {
