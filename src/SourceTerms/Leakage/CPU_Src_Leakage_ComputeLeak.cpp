@@ -4,6 +4,15 @@
 
 
 
+static const real ONETHIRD               = 1.0 / 3.0;
+static const real ONESIXTH               = 1.0 / 6.0;
+#ifdef FLOAT8
+static const real EXP_OVERFLOW_THRESHOLD = 709.782712893384;
+#else
+static const real EXP_OVERFLOW_THRESHOLD = 88.722839;
+#endif
+
+
 #ifndef __CUDACC__
 
 // not apply any correction to the leakage profiles for the stability issue
@@ -381,28 +390,23 @@ void Src_Leakage_ComputeTau( Profile_t *Ray[], double *Edge,
 
 //             update opacity
 //             --> electron neutrino (nu_e)
-               fac1 = Compute_FermiIntegral( 5, eta_nu_loc[TID][i][0] )
-                    / Compute_FermiIntegral( 3, eta_nu_loc[TID][i][0] );
-               fac2 = 1.0 + exp(   eta_e[TID][i] - Compute_FermiIntegral( 5, eta_nu_loc[TID][i][0] )
-                                                 / Compute_FermiIntegral( 4, eta_nu_loc[TID][i][0] )  ); // (A15)
+               fac1 = Compute_FermiIntegral( 53, eta_nu_loc[TID][i][0] );
+               fac2 = 1.0 + exp(   eta_e[TID][i] - Compute_FermiIntegral( 54, eta_nu_loc[TID][i][0] )  ); // (A15)
 
                kappa_scat_n[0] = kappa_scat_n_fac[TID][i] * Yn  * fac1;        // (A6)
                kappa_scat_p[0] = kappa_scat_p_fac[TID][i] * Yp  * fac1;        // (A6)
                kappa_abs_n     = kappa_abs_fac   [TID][i] * Ynp * fac1 / fac2; // (A11)
 
 //             --> electron anti-neutrino (nu_a)
-               fac1 = Compute_FermiIntegral( 5, eta_nu_loc[TID][i][1] )
-                    / Compute_FermiIntegral( 3, eta_nu_loc[TID][i][1] );
-               fac2 = 1.0 + exp(  -eta_e[TID][i] - Compute_FermiIntegral( 5, eta_nu_loc[TID][i][1] )
-                                                 / Compute_FermiIntegral( 4, eta_nu_loc[TID][i][1] )  ); // (A16)
+               fac1 = Compute_FermiIntegral( 53, eta_nu_loc[TID][i][1] );
+               fac2 = 1.0 + exp(  -eta_e[TID][i] - Compute_FermiIntegral( 54, eta_nu_loc[TID][i][1] )  ); // (A16)
 
                kappa_scat_n[1] = kappa_scat_n_fac[TID][i] * Yn  * fac1;        // (A6)
                kappa_scat_p[1] = kappa_scat_p_fac[TID][i] * Yp  * fac1;        // (A6)
                kappa_abs_p     = kappa_abs_fac   [TID][i] * Ypn * fac1 / fac2; // (A11)
 
 //             --> heavy-lepton neutrino (nu_x)
-               fac1 = Compute_FermiIntegral( 5, eta_nu_loc[TID][i][2] )
-                    / Compute_FermiIntegral( 3, eta_nu_loc[TID][i][2] );
+               fac1 = Compute_FermiIntegral( 53, eta_nu_loc[TID][i][2] );
 
                kappa_scat_n[2] = kappa_scat_n_fac[TID][i] * Yn  * fac1; // (A6)
                kappa_scat_p[2] = kappa_scat_p_fac[TID][i] * Yp  * fac1; // (A6)
@@ -486,10 +490,8 @@ void Src_Leakage_ComputeTau( Profile_t *Ray[], double *Edge,
 //          neutrino absorption; (A19) and (A20)
 //          --> the factor Const_NA is moved from eta_pn/eta_np to kappa_abs_fac_Rosswog
             kappa_abs_fac_Rosswog = Const_Rosswog_kappa_a;
-            blocking_factor_nue   = 1.0 + exp(  eta_e[TID][i] - Compute_FermiIntegral( 5, eta_nu[TID][i][0] )
-                                                              / Compute_FermiIntegral( 4, eta_nu[TID][i][0] )  );
-            blocking_factor_nua   = 1.0 + exp( -eta_e[TID][i] - Compute_FermiIntegral( 5, eta_nu[TID][i][1] )
-                                                              / Compute_FermiIntegral( 4, eta_nu[TID][i][1] )  );
+            blocking_factor_nue   = 1.0 + exp(  eta_e[TID][i] - Compute_FermiIntegral( 54, eta_nu[TID][i][0] )  );
+            blocking_factor_nua   = 1.0 + exp( -eta_e[TID][i] - Compute_FermiIntegral( 54, eta_nu[TID][i][1] )  );
 
             if ( Dens_CGS[TID][i] < 1.0e11 )
             {
@@ -548,8 +550,8 @@ void Src_Leakage_ComputeTau( Profile_t *Ray[], double *Edge,
 
 
 //       (5) neutrino heating in O'Connor & Ott (2010)
-         double FermiInte[3][NType_Neutrino];
-         double NS_Rad      [NType_Neutrino] = { 0.0, 0.0, 0.0 };
+         double FermiInte_NS[2][NType_Neutrino];
+         double NS_Rad         [NType_Neutrino] = { 0.0, 0.0, 0.0 };
 
 //       (5-1) compute the rms and mean energy at neutrino sphere (tau = 2/3)
          double eta_nu_NS, Temp_MeV_NS;
@@ -583,10 +585,11 @@ void Src_Leakage_ComputeTau( Profile_t *Ray[], double *Edge,
             Temp_MeV_NS   = Mis_InterpolateFromTable( 2, Table_tau, Table_Data, TwoThirds );
 
 //          compute the rms and mean neutrino energies
-            for (int i=0; i<3; i++)   FermiInte[i][k] = Compute_FermiIntegral( i+3, eta_nu_NS );
+            FermiInte_NS[0][k] = Compute_FermiIntegral( 53, eta_nu_NS );
+            FermiInte_NS[1][k] = Compute_FermiIntegral( 54, eta_nu_NS );
 
-            Heat_ERms_2D[j][k] = Temp_MeV_NS * sqrt( FermiInte[2][k] / FermiInte[0][k] ); // description following eq. (30) in O'Connor & Ott (2010)
-            Heat_EAve_2D[j][k] = Temp_MeV_NS *       FermiInte[2][k] / FermiInte[1][k];   // (A11) in Rosswog & Liebendoerfer (2003)
+            Heat_ERms_2D[j][k] = Temp_MeV_NS * sqrt( FermiInte_NS[0][k] ); // description following eq. (30) in O'Connor & Ott (2010)
+            Heat_EAve_2D[j][k] = Temp_MeV_NS *       FermiInte_NS[1][k];   // (A11) in Rosswog & Liebendoerfer (2003)
 
 //          sum the rms and mean neutrino energies of each ray for recording
             OMP_EAve [TID][k] += Heat_EAve_2D[j][k];
@@ -607,8 +610,8 @@ void Src_Leakage_ComputeTau( Profile_t *Ray[], double *Edge,
          for (int i=0; i<NRadius-1; i++)
          {
 //          compute the blocking factor at neutrino sphere
-            lepton_blocking[0] = 1.0 / (  1.0 + exp(  eta_e[TID][i] - FermiInte[2][0] / FermiInte[1][0] )  );
-            lepton_blocking[1] = 1.0 / (  1.0 + exp( -eta_e[TID][i] - FermiInte[2][1] / FermiInte[1][1] )  );
+            lepton_blocking[0] = 1.0 / (  1.0 + exp(  eta_e[TID][i] - FermiInte_NS[1][0] )  );
+            lepton_blocking[1] = 1.0 / (  1.0 + exp( -eta_e[TID][i] - FermiInte_NS[1][1] )  );
 
 //          compute the luminosity and corresponding flux
 //          --> the returned Lum represents the luminosity per unit volume
@@ -884,10 +887,8 @@ void Src_Leakage_ComputeLeak( const real Dens_Code, const real Temp_Kelv, const 
 // (2-3) neutrino absorption; (A19) and (A20)
 //       --> the factor Const_NA is moved from eta_pn/eta_np to kappa_abs_fac_Rosswog
    kappa_abs_fac_Rosswog = (real)Const_Rosswog_kappa_a;
-   blocking_factor[0]    = (real)1.0 + EXP(  eta_e - Compute_FermiIntegral( 5, eta_nu[0] )
-                                                   / Compute_FermiIntegral( 4, eta_nu[0] )  );
-   blocking_factor[1]    = (real)1.0 + EXP( -eta_e - Compute_FermiIntegral( 5, eta_nu[1] )
-                                                   / Compute_FermiIntegral( 4, eta_nu[1] )  );
+   blocking_factor[0]    = (real)1.0 + EXP(  eta_e - Compute_FermiIntegral( 54, eta_nu[0] )  );
+   blocking_factor[1]    = (real)1.0 + EXP( -eta_e - Compute_FermiIntegral( 54, eta_nu[1] )  );
 
    if ( Dens_CGS < (real)1.0e11 )
    {
@@ -948,12 +949,14 @@ void Src_Leakage_ComputeLeak( const real Dens_Code, const real Temp_Kelv, const 
    const real Temp_MeV_Quartic = CUBE(Temp_MeV)   * Temp_MeV;
    const real Temp_MeV_Quintic = Temp_MeV_Quartic * Temp_MeV;
    const real Temp_MeV_Sextic  = Temp_MeV_Quintic * Temp_MeV;
-   const real FermiInte_p[3]   = {  Compute_FermiIntegral( 3,  eta_e ),
-                                    Compute_FermiIntegral( 4,  eta_e ),
-                                    Compute_FermiIntegral( 5,  eta_e )  };
-   const real FermiInte_m[3]   = {  Compute_FermiIntegral( 3, -eta_e ),
-                                    Compute_FermiIntegral( 4, -eta_e ),
-                                    Compute_FermiIntegral( 5, -eta_e )  };
+   const real FermiInte_p[4]   = {  Compute_FermiIntegral(  3,  eta_e ),
+                                    Compute_FermiIntegral(  4,  eta_e ),
+                                    Compute_FermiIntegral(  5,  eta_e ),
+                                    Compute_FermiIntegral( 43,  eta_e )  };
+   const real FermiInte_m[4]   = {  Compute_FermiIntegral(  3, -eta_e ),
+                                    Compute_FermiIntegral(  4, -eta_e ),
+                                    Compute_FermiIntegral(  5, -eta_e ),
+                                    Compute_FermiIntegral( 43, -eta_e )  };
 
 // (4-1) electron capture and positron capture in the Rosswog scheme
 //       --> the factor Const_NA is moved from eta_pn/eta_np to beta
@@ -970,8 +973,7 @@ void Src_Leakage_ComputeLeak( const real Dens_Code, const real Temp_Kelv, const 
    const real epsilon_m     = Temp_MeV_Quartic * FermiInte_p[0]; // (B5)
    const real epsilon_p     = Temp_MeV_Quartic * FermiInte_m[0]; // (B5)
    const real pair_R_factor = epsilon_m * epsilon_p;             // for (B8) and (B10), factored out the constants
-   const real factor_pair   = (real)0.5 * ( FermiInte_p[1] / FermiInte_p[0]
-                                          + FermiInte_m[1] / FermiInte_m[0] ); // (B16)
+   const real factor_pair   = (real)0.5 * ( FermiInte_p[3] + FermiInte_m[3] ); // (B16)
          real R_pair, Q_pair;
 
    for (int k=0; k<NType_Neutrino; k++)
@@ -1089,7 +1091,9 @@ void Src_Leakage_ComputeLeak( const real Dens_Code, const real Temp_Kelv, const 
 //
 // Note        :  1. Invoked by Src_Leakage_ComputeTau() and Src_Leakage_ComputeLeak()
 //                2. Only support integer order <= 5
-//                3. Ref: K. Takahashi, M. F. El Eid, W. Hillebrandt, 1978, A&A, 67, 185
+//                3. Compute the ratio of Fermi integrals of different orders algebraically
+//                   to avoid underflow and zero division
+//                4. Ref: K. Takahashi, M. F. El Eid, W. Hillebrandt, 1978, A&A, 67, 185
 //
 // Parameter   :  Order : Order of Fermi integral
 //                eta   : Degeneracy
@@ -1104,35 +1108,60 @@ real Compute_FermiIntegral( const int Order, const real eta )
 
    if ( eta > (real)1.0e-3 )
    {
+      const real eta_sqr = SQR(eta);
+
       switch ( Order )
       {
-         case 0:
-            integral  = LOG( (real)1.0 + EXP(eta) );
+         case 0 :
+            integral = ( eta > EXP_OVERFLOW_THRESHOLD )
+                     ? eta
+                     : LOG( (real)1.0 + EXP(eta) );
          break;
 
-         case 1:
-            integral  = SQR(eta) / (real)2.0 + (real)1.6449;
+         case 1 :
+            integral  = (real)0.5 * eta_sqr + (real)1.6449;
             integral /= (real)1.0 + EXP( (real)-1.6855 * eta );
          break;
 
-         case 2:
-            integral  = CUBE(eta) / (real)3.0 + (real)3.2899 * eta;
+         case 2 :
+            integral  = ( ONETHIRD * eta_sqr + (real)3.2899 ) * eta;
             integral /= (real)1.0 - EXP( (real)-1.8246 * eta );
          break;
 
-         case 3:
-            integral  = SQR(eta) * SQR(eta) / (real)4.0 + (real)4.9348 * SQR(eta) + (real)11.3644;
+         case 3 :
+            integral  = ( (real)0.25 * eta_sqr + (real)4.9348 ) * eta_sqr + (real)11.3644;
             integral /= (real)1.0 + EXP( (real)-1.9039 * eta );
          break;
 
-         case 4:
-            integral  = CUBE(eta) * SQR(eta) / (real)5.0 + (real)6.5797 * CUBE(eta) + (real)45.4576 * eta;
+         case 4 :
+            integral  = (  ( (real)0.2 * eta_sqr + (real)6.5797 ) * eta_sqr + (real)45.4576  ) * eta;
             integral /= (real)1.0 - EXP( (real)-1.9484 * eta );
          break;
 
-         case 5:
-            integral  = CUBE(eta) * CUBE(eta) / (real)6.0 + (real)8.2247 * SQR(eta) * SQR(eta) + (real)113.6439 * SQR(eta) + (real)236.5323;
+         case 5 :
+            integral  = (  ( ONESIXTH * eta_sqr + (real)8.2247 ) * eta_sqr + (real)113.6439  ) * eta_sqr + (real)236.5323;
             integral /= (real)1.0 + EXP( (real)-1.9727 * eta );
+         break;
+
+         case 43: // case 4 / case 3
+            integral  = (  ( (real)0.2  * eta_sqr + (real)6.5797 ) * eta_sqr + (real) 45.4576  ) * eta;
+            integral /=    ( (real)0.25 * eta_sqr + (real)4.9348 ) * eta_sqr + (real) 11.3644;
+            integral *= (  (real)1.0 + EXP( (real)-1.9039 * eta )  )
+                      / (  (real)1.0 - EXP( (real)-1.9484 * eta )  );
+         break;
+
+         case 53: // case 5 / case 3
+            integral  = (  ( ONESIXTH   * eta_sqr + (real)8.2247 ) * eta_sqr + (real)113.6439  ) * eta_sqr + (real)236.5323;
+            integral /=    ( (real)0.25 * eta_sqr + (real)4.9348 ) * eta_sqr + (real) 11.3644;
+            integral *= (  (real)1.0 + EXP( (real)-1.9039 * eta )  )
+                      / (  (real)1.0 + EXP( (real)-1.9727 * eta )  );
+         break;
+
+         case 54: // case 5 / case 4
+            integral  = (  ( ONESIXTH   * eta_sqr + (real)8.2247 ) * eta_sqr + (real)113.6439  ) * eta_sqr + (real)236.5323;
+            integral /= (  ( (real)0.2  * eta_sqr + (real)6.5797 ) * eta_sqr + (real) 45.4576  ) * eta;
+            integral *= (  (real)1.0 - EXP( (real)-1.9484 * eta )  )
+                      / (  (real)1.0 + EXP( (real)-1.9727 * eta )  );
          break;
       } // switch ( Order )
    }
@@ -1141,33 +1170,48 @@ real Compute_FermiIntegral( const int Order, const real eta )
    {
       switch ( Order )
       {
-         case 0:
+         case 0 :
             integral = LOG( (real)1.0 + EXP(eta) );
          break;
 
-         case 1:
+         case 1 :
             integral  = EXP(eta);
             integral /= (real)1.0 + (real)0.2159 * EXP( (real)0.8857 * eta );
          break;
 
-         case 2:
+         case 2 :
             integral  = (real)2.0 * EXP(eta);
             integral /= (real)1.0 + (real)0.1092 * EXP( (real)0.8908 * eta );
          break;
 
-         case 3:
+         case 3 :
             integral  = (real)6.0 * EXP(eta);
             integral /= (real)1.0 + (real)0.0559 * EXP( (real)0.9069 * eta );
          break;
 
-         case 4:
+         case 4 :
             integral  = (real)24.0 * EXP(eta);
             integral /= (real)1.0 + (real)0.0287 * EXP( (real)0.9257 * eta );
          break;
 
-         case 5:
+         case 5 :
             integral  = (real)120.0 * EXP(eta);
             integral /= (real)1.0 + (real)0.0147 * EXP( (real)0.9431 * eta );
+         break;
+
+         case 43: // case 4 / case 3
+            integral  = (real)4.0  * (  (real)1.0 + (real)0.0559 * EXP( (real)0.9069 * eta )  )
+                                   / (  (real)1.0 + (real)0.0287 * EXP( (real)0.9257 * eta )  );
+         break;
+
+         case 53: // case 5 / case 3
+            integral  = (real)20.0 * (  (real)1.0 + (real)0.0559 * EXP( (real)0.9069 * eta )  )
+                                   / (  (real)1.0 + (real)0.0147 * EXP( (real)0.9431 * eta )  );
+         break;
+
+         case 54: // case 5 / case 4
+            integral  = (real)5.0  * (  (real)1.0 + (real)0.0287 * EXP( (real)0.9257 * eta )  )
+                                   / (  (real)1.0 + (real)0.0147 * EXP( (real)0.9431 * eta )  );
          break;
       } // switch ( Order )
    } // if ( eta > (real)1.0e-3 ) ... else ...
