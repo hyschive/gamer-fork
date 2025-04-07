@@ -34,7 +34,7 @@ r_sphere     = (100.0, 'kpc')
 dpi          = 150
 nbin         = 32
 
-Ref_DensProf_filename = '../HaloDensityProfile'
+Ref_DensProf_filename = '../FDMHaloDensityProfile'
 
 yt.enable_parallelism()
 ts = yt.DatasetSeries([ prefix+'Data_%06d'%idx for idx in range(idx_start, idx_end+1, didx) ])
@@ -71,8 +71,8 @@ for ds in ts.piter():
       # save the profile to text file
       np.savetxt( '%s_%s_profile'%(ds,field),
                   np.column_stack( (prof_dens.x.in_units('code_length').d, prof_dens[field].in_units('code_density').d) ),
-                  fmt='          %9.8e',
-                  header='       r (code_length)   density (code_density)' )
+                  fmt='%24.8e',
+                  header='%22s %24s'%( 'r (code_length)', 'density (code_density)' ) )
 
       # load the reference profiles
       Ref_DensProf_r, Ref_DensProf_dens = np.loadtxt( Ref_DensProf_filename,                 skiprows=1, unpack=True )

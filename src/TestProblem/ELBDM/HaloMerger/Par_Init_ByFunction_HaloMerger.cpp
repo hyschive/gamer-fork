@@ -11,6 +11,8 @@ extern char   (*HaloMerger_ParCloud_DensProf_Filename)[MAX_STRING];
 extern double  *HaloMerger_ParCloud_DensProf_MaxR;
 extern int     *HaloMerger_ParCloud_RSeed;
 extern long    *HaloMerger_ParCloud_NPar;
+extern int     *HaloMerger_ParCloud_BuiltWithExtPot;
+extern char   (*HaloMerger_ParCloud_ExtPot_Filename)[MAX_STRING];
 
 
 //-------------------------------------------------------------------------------------------------------
@@ -103,7 +105,8 @@ void Par_Init_ByFunction_HaloMerger( const long NPar_ThisRank, const long NPar_A
          Cloud_Constructor.params.Cloud_RSeed                 = HaloMerger_ParCloud_RSeed[index_parcloud];
          Cloud_Constructor.params.Cloud_Par_Num               = HaloMerger_ParCloud_NPar[index_parcloud];
          Cloud_Constructor.params.Cloud_R0                    = 1.0;  // will have no effect as long as the value is positive
-         Cloud_Constructor.params.AddExtPot                   = 0;    // no external potential
+         Cloud_Constructor.params.AddExtPot                   = HaloMerger_ParCloud_BuiltWithExtPot[index_parcloud];
+         strcpy( Cloud_Constructor.params.ExtPot_Table_Name,    HaloMerger_ParCloud_ExtPot_Filename[index_parcloud] );
 
          // initialize the particle cloud
          Cloud_Constructor.Init();
