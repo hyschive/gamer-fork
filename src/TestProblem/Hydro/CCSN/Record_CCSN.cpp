@@ -390,7 +390,7 @@ void Detect_CoreBounce()
    double Center[3];
 
 #  ifdef GRAVITY
-   for (int i=0; i<3; i++)   Center[i] = GREP_Center[i]
+   for (int i=0; i<3; i++)   Center[i] = GREP_Center[i];
 #  else
    for (int i=0; i<3; i++)   Center[i] = amr->BoxCenter[i];
 #  endif
@@ -533,7 +533,7 @@ void Detect_Shock()
    }
 
 #  ifdef GRAVITY
-   for (int i=0; i<3; i++)   Center[i] = GREP_Center[i]
+   for (int i=0; i<3; i++)   Center[i] = GREP_Center[i];
 #  else
    for (int i=0; i<3; i++)   Center[i] = amr->BoxCenter[i];
 #  endif

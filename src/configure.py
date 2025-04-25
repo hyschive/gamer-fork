@@ -530,7 +530,7 @@ def load_arguments( sys_setting : SystemSetting ):
     parser.add_argument( "--eos", type=str, metavar="TYPE", gamer_name="EOS", prefix="EOS_",
                          default=None, choices=["GAMMA", "ISOTHERMAL", "NUCLEAR", "TABULAR", "COSMIC_RAY", "TAUBMATHEWS", "USER"],
                          depend={"model":"HYDRO"},
-                         constraint={ "ISOTHERMAL":{"barotropic":True}, "COSMIC_RAY":{"cosmic_ray":True}, "TAUBMATHEWS":{"srhd":True}, "NUCLEAR":{"hdf5":True} },,
+                         constraint={ "ISOTHERMAL":{"barotropic":True}, "COSMIC_RAY":{"cosmic_ray":True}, "TAUBMATHEWS":{"srhd":True}, "NUCLEAR":{"hdf5":True} },
                          help="Equation of state. Must be set when <--model=HYDRO>. "\
                               "Must enable <--barotropic> for ISOTHERMAL. "\
                               "Must set <--hdf5=true>, <--nuc_table>, and <--nuc_solver> for NUCLEAR.\n"

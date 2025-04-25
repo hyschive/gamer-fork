@@ -517,6 +517,7 @@ void SetGridIC( real fluid[], const double x, const double y, const double z, co
 #  endif
 #  ifdef TEMP_IG
    fluid[ TEMP_IG   ] = Prim[ TEMP_IG   ]; // fix the temperature initial guess to 1 MeV for EoS_DensPres2Eint_CPUPtr(); it will later be overwritten by EoS_DensEint2Temp_CPUPtr()
+#  endif
 
 // compute and store the total gas energy
    Eint = EoS_DensPres2Eint_CPUPtr( fluid[DENS], Pres, fluid+NCOMP_FLUID,
