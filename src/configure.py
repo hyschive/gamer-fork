@@ -544,16 +544,17 @@ def load_arguments( sys_setting : SystemSetting ):
                               "Mandatory for <--eos=ISOTHEMAL>. Optional for <--eos=TABULAR> and <--eos=USER>.\n"
                        )
 
-    parser.add_argument( "--nuc_table", type=str, metavar="TYPE", gamer_name="NUC_TABLE_MODE",
-                         default="NUC_TABLE_MODE_TEMP", choices=["NUC_TABLE_MODE_TEMP", "NUC_TABLE_MODE_ENGY"],
+    parser.add_argument( "--nuc_table", type=str, metavar="TYPE", gamer_name="NUC_TABLE_MODE", prefix="NUC_TABLE_MODE_",
+                         default="TEMP", choices=["TEMP", "ENGY"],
                          depend={"model":"HYDRO", "eos":"NUCLEAR"},
                          help="Nuclear EoS table default mode.\n"
                        )
 
-    parser.add_argument( "--nuc_solver", type=str, metavar="TYPE", gamer_name="NUC_EOS_SOLVER",
-                         default="NUC_EOS_SOLVER_DIRECT", choices=["NUC_EOS_SOLVER_ORIG", "NUC_EOS_SOLVER_LUT", "NUC_EOS_SOLVER_DIRECT"],
+    parser.add_argument( "--nuc_solver", type=str, metavar="TYPE", gamer_name="NUC_EOS_SOLVER", prefix="NUC_EOS_SOLVER_",
+                         default="ORIG", choices=["ORIG", "LUT", "DIRECT"],
                          depend={"model":"HYDRO", "eos":"NUCLEAR"},
-                         help="Nuclear EoS solver. <--nuc_table=NUC_TABLE_MODE_ENGY> only supports NUC_EOS_SOLVER_LUT.\n"
+                         constraint={ "LUT":{"nuc_table":"ENGY"} },
+                         help="Nuclear EoS solver. NUC_EOS_SOLVER_LUT only supports <--nuc_table=NUC_TABLE_MODE_ENGY>.\n"
                        )
 
     parser.add_argument( "--neutrino", type=str, metavar="TYPE", gamer_name="NEUTRINO_SCHEME",

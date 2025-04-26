@@ -328,10 +328,8 @@ void Flu_FixUp_Flux( const int lv, const long TVar )
 
 //                check output temperature initial guess
 #                 ifdef GAMER_DEBUG
-                  if (  Hydro_IsUnphysical( UNPHY_MODE_SING, &CorrVal[TEMP_IG], "output temperature initial guess",
-                                            (real)0.0, __FLT_MAX__, Emag, EoS_DensEint2Pres_CPUPtr,
-                                            EoS_GuessHTilde_CPUPtr, EoS_HTilde2Temp_CPUPtr, EoS_AuxArray_Flt,
-                                            EoS_AuxArray_Int, h_EoS_Table, ERROR_INFO, UNPHY_VERBOSE )  )
+                  if (  Hydro_IsUnphysical_Single( CorrVal[TEMP_IG], "output temperature initial guess",
+                                                   (real)0.0, __FLT_MAX__, ERROR_INFO, UNPHY_VERBOSE )  )
                   {
                      Aux_Message( stderr, "Fluid: " );
                      for (int v=0; v<NCOMP_TOTAL; v++)   Aux_Message( stderr, " [%d]=%14.7e", v, CorrVal[v] );
