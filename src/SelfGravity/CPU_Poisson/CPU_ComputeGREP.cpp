@@ -141,7 +141,7 @@ void CPU_ComputeGREP( const int lv, const double Time, const Profile_t *DensAve,
       {
          char FileName[MAX_STRING];
 
-         sprintf( FileName, "GREP_Lv%02d_FailedTOVProfile", lv );
+         sprintf( FileName, "%s/GREP_Lv%02d_FailedTOVProfile", OUTPUT_DIR, lv );
          FILE *File = fopen( FileName, "w" );
 
 //       metadata
@@ -219,7 +219,7 @@ void CPU_ComputeGREP( const int lv, const double Time, const Profile_t *DensAve,
    {
       char FileName[MAX_STRING];
 
-      sprintf( FileName, "GREP_Lv%02d", lv );
+      sprintf( FileName, "%s/GREP_Lv%02d", OUTPUT_DIR, lv );
       FILE *File = fopen( FileName, "w" );
 
 //    metadata

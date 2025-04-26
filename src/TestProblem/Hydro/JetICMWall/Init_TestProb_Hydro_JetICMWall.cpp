@@ -1,11 +1,6 @@
 #include "GAMER.h"
-#include "TestProb.h"
 
-#if ( MODEL == HYDRO )
 
-static void JetBC( real Array[], const int ArraySize[], real fluid[], const int NVar_Flu,
-                   const int GhostSize, const int idx[], const double pos[], const double Time,
-                   const int lv, const int TFluVarIdxList[], double AuxArray[] );
 
 static FieldIdx_t JetFieldIdx  = Idx_Undefined;
 static FieldIdx_t ICMFieldIdx  = Idx_Undefined;
@@ -14,7 +9,6 @@ static FieldIdx_t IntFieldIdx  = Idx_Undefined;
 
 // problem-specific global variables
 // =======================================================================================
-
 // background parameters
 static double   ICM_Density;             // ICM density
 static double   Jump_Position_x;         // position of interface
@@ -44,8 +38,12 @@ static double   Jet_Cosine;              // jet relativistic gamma
 static double   Jet_Sine;                // jet relativistic gamma
 static double   Jump_Sine;
 static double   Jump_Cosine;
-
 // =======================================================================================
+
+static void JetBC( real Array[], const int ArraySize[], real fluid[], const int NVar_Flu,
+                   const int GhostSize, const int idx[], const double pos[], const double Time,
+                   const int lv, const int TFluVarIdxList[], double AuxArray[] );
+
 
 
 
@@ -97,6 +95,67 @@ void Validate()
 
 
 
+#if ( MODEL == HYDRO )
+//-------------------------------------------------------------------------------------------------------
+// Function    :  LoadInputTestProb
+// Description :  Read problem-specific runtime parameters from Input__TestProb and store them in HDF5 snapshots (Data_*)
+//
+// Note        :  1. Invoked by SetParameter() to read parameters
+//                2. Invoked by Output_DumpData_Total_HDF5() using the function pointer Output_HDF5_InputTest_Ptr to store parameters
+//                3. If there is no problem-specific runtime parameter to load, add at least one parameter
+//                   to prevent an empty structure in HDF5_Output_t
+//                   --> Example:
+//                       LOAD_PARA( load_mode, "TestProb_ID", &TESTPROB_ID, TESTPROB_ID, TESTPROB_ID, TESTPROB_ID );
+//
+// Parameter   :  load_mode      : Mode for loading parameters
+//                                 --> LOAD_READPARA    : Read parameters from Input__TestProb
+//                                     LOAD_HDF5_OUTPUT : Store parameters in HDF5 snapshots
+//                ReadPara       : Data structure for reading parameters (used with LOAD_READPARA)
+//                HDF5_InputTest : Data structure for storing parameters in HDF5 snapshots (used with LOAD_HDF5_OUTPUT)
+//
+// Return      :  None
+//-------------------------------------------------------------------------------------------------------
+void LoadInputTestProb( const LoadParaMode_t load_mode, ReadPara_t *ReadPara, HDF5_Output_t *HDF5_InputTest )
+{
+
+#  ifndef SUPPORT_HDF5
+   if ( load_mode == LOAD_HDF5_OUTPUT )   Aux_Error( ERROR_INFO, "please turn on SUPPORT_HDF5 in the Makefile for load_mode == LOAD_HDF5_OUTPUT !!\n" );
+#  endif
+
+   if ( load_mode == LOAD_READPARA     &&  ReadPara       == NULL )   Aux_Error( ERROR_INFO, "load_mode == LOAD_READPARA and ReadPara == NULL !!\n" );
+   if ( load_mode == LOAD_HDF5_OUTPUT  &&  HDF5_InputTest == NULL )   Aux_Error( ERROR_INFO, "load_mode == LOAD_HDF5_OUTPUT and HDF5_InputTest == NULL !!\n" );
+
+// add parameters in the following format:
+// --> note that VARIABLE, DEFAULT, MIN, and MAX must have the same data type
+// --> some handy constants (e.g., NoMin_int, Eps_float, ...) are defined in "include/ReadPara.h"
+// --> LOAD_PARA() is defined in "include/TestProb.h"
+// **************************************************************************************************************
+// LOAD_PARA( load_mode, "KEY_IN_THE_FILE",    &VARIABLE,          DEFAULT,       MIN,            MAX          );
+// **************************************************************************************************************
+// background parameters
+   LOAD_PARA( load_mode, "ICM_Density",        &ICM_Density,       NoDef_double,  NoMin_double,   NoMax_double );
+   LOAD_PARA( load_mode, "Jump_Position_x",    &Jump_Position_x,   NoDef_double,  NoMin_double,   NoMax_double );
+   LOAD_PARA( load_mode, "Jump_Position_y",    &Jump_Position_y,   NoDef_double,  NoMin_double,   NoMax_double );
+   LOAD_PARA( load_mode, "Jump_Angle",         &Jump_Angle,        NoDef_double,  NoMin_double,   NoMax_double );
+   LOAD_PARA( load_mode, "Amb_Pressure",       &Amb_Pressure,      NoDef_double,  NoMin_double,   NoMax_double );
+   LOAD_PARA( load_mode, "Lobe_ICM_Ratio",     &Lobe_ICM_Ratio,    NoDef_double,  NoMin_double,   NoMax_double );
+   LOAD_PARA( load_mode, "Jump_Width",         &Jump_Width,        NoDef_double,  NoMin_double,   NoMax_double );
+
+// jet parameters
+   LOAD_PARA( load_mode, "Jet_Fire",           &Jet_Fire,          false,         Useless_bool,   Useless_bool );
+   LOAD_PARA( load_mode, "Jet_Lobe_Ratio",     &Jet_Lobe_Ratio,    NoDef_double,  NoMin_double,   NoMax_double );
+   LOAD_PARA( load_mode, "Jet_Radius",         &Jet_Radius,        NoDef_double,  NoMin_double,   NoMax_double );
+   LOAD_PARA( load_mode, "Jet_Position",       &Jet_Position,      NoDef_double,  NoMin_double,   NoMax_double );
+   LOAD_PARA( load_mode, "Jet_Velocity",       &Jet_Velocity,      NoDef_double,  NoMin_double,   NoMax_double );
+   LOAD_PARA( load_mode, "Jet_VelSlope",       &Jet_VelSlope,      0.0,           NoMin_double,   0.0          );
+   LOAD_PARA( load_mode, "Jet_VelCenter",      &Jet_VelCenter,     NoDef_double,  0.0,            NoMax_double );
+   LOAD_PARA( load_mode, "Jet_PrecessAngle",   &Jet_PrecessAngle,  0.0,           0.0,            NoMax_double );
+   LOAD_PARA( load_mode, "Jet_PrecessPeriod",  &Jet_PrecessPeriod, 0.0,           0.0,            NoMax_double );
+
+} // FUNCITON : LoadInputTestProb
+
+
+
 //-------------------------------------------------------------------------------------------------------
 // Function    :  SetParameter
 // Description :  Load and set the problem-specific runtime parameters
@@ -119,35 +178,11 @@ void SetParameter()
 
 
 // (1) load the problem-specific runtime parameters
+// (1-1) read parameters from Input__TestProb
    const char FileName[] = "Input__TestProb";
    ReadPara_t *ReadPara  = new ReadPara_t;
 
-// (1-1) add parameters in the following format:
-// --> note that VARIABLE, DEFAULT, MIN, and MAX must have the same data type
-// --> some handy constants (e.g., Useless_bool, Eps_double, NoMin_int, ...) are defined in "include/ReadPara.h"
-// ************************************************************************************************************************
-// ReadPara->Add( "KEY_IN_THE_FILE",    &VARIABLE,          DEFAULT,       MIN,            MAX          );
-// ************************************************************************************************************************
-
-// background parameters
-   ReadPara->Add( "ICM_Density",        &ICM_Density,       NoDef_double,  NoMin_double,   NoMax_double );
-   ReadPara->Add( "Jump_Position_x",    &Jump_Position_x,   NoDef_double,  NoMin_double,   NoMax_double );
-   ReadPara->Add( "Jump_Position_y",    &Jump_Position_y,   NoDef_double,  NoMin_double,   NoMax_double );
-   ReadPara->Add( "Jump_Angle",         &Jump_Angle,        NoDef_double,  NoMin_double,   NoMax_double );
-   ReadPara->Add( "Amb_Pressure",       &Amb_Pressure,      NoDef_double,  NoMin_double,   NoMax_double );
-   ReadPara->Add( "Lobe_ICM_Ratio",     &Lobe_ICM_Ratio,    NoDef_double,  NoMin_double,   NoMax_double );
-   ReadPara->Add( "Jump_Width",         &Jump_Width,        NoDef_double,  NoMin_double,   NoMax_double );
-
-// jet parameters
-   ReadPara->Add( "Jet_Fire",           &Jet_Fire,          false,         Useless_bool,   Useless_bool );
-   ReadPara->Add( "Jet_Lobe_Ratio",     &Jet_Lobe_Ratio,    NoDef_double,  NoMin_double,   NoMax_double );
-   ReadPara->Add( "Jet_Radius",         &Jet_Radius,        NoDef_double,  NoMin_double,   NoMax_double );
-   ReadPara->Add( "Jet_Position",       &Jet_Position,      NoDef_double,  NoMin_double,   NoMax_double );
-   ReadPara->Add( "Jet_Velocity",       &Jet_Velocity,      NoDef_double,  NoMin_double,   NoMax_double );
-   ReadPara->Add( "Jet_VelSlope",       &Jet_VelSlope,      0.0,           NoMin_double,   0.0          );
-   ReadPara->Add( "Jet_VelCenter",      &Jet_VelCenter,     NoDef_double,  0.0,            NoMax_double );
-   ReadPara->Add( "Jet_PrecessAngle",   &Jet_PrecessAngle,  0.0,           0.0,            NoMax_double );
-   ReadPara->Add( "Jet_PrecessPeriod",  &Jet_PrecessPeriod, 0.0,           0.0,            NoMax_double );
+   LoadInputTestProb( LOAD_READPARA, ReadPara, NULL );
 
    ReadPara->Read( FileName );
 
@@ -166,8 +201,8 @@ void SetParameter()
    Jump_Width        *= Const_kpc / UNIT_L;
    Jet_PrecessPeriod *= 1000.0*Const_yr / UNIT_T;
 
-// (2) set the problem-specific derived parameters
 
+// (2) set the problem-specific derived parameters
    Jump_Tangent     = tan( Jump_Angle*M_PI/180.0 );
    Jump_Sine        = sin( Jump_Angle*M_PI/180.0 );
    Jump_Cosine      = cos( Jump_Angle*M_PI/180.0 );
@@ -179,20 +214,21 @@ void SetParameter()
    Jet_Cosine       = cos( Jet_PrecessAngle*M_PI/180.0 );
    Jet_Sine         = sin( Jet_PrecessAngle*M_PI/180.0 );
 
+
 // (3) reset other general-purpose parameters
-//     --> a helper macro PRINT_RESET_PARA is defined in TestProb.h
    const long   End_Step_Default = __INT_MAX__;
    const double End_T_Default    = 100.0*Const_kyr / UNIT_T;
 
    if ( END_STEP < 0 ) {
       END_STEP = End_Step_Default;
-      PRINT_RESET_PARA(END_STEP, FORMAT_LONG, "" );
+      PRINT_RESET_PARA( END_STEP, FORMAT_LONG, "" );
    }
 
    if ( END_T < 0.0 ) {
       END_T = End_T_Default;
-      PRINT_RESET_PARA(END_T, FORMAT_REAL, "" );
+      PRINT_RESET_PARA( END_T, FORMAT_REAL, "" );
    }
+
 
 // (4) make a note
    if ( MPI_Rank == 0 )
@@ -223,6 +259,7 @@ void SetParameter()
    {
      Aux_Message( stdout, "=============================================================================\n" );
    }
+
 
    if ( MPI_Rank == 0 )    Aux_Message( stdout, "   Setting runtime parameters ... done\n" );
 
@@ -410,7 +447,9 @@ void AddNewField_JetICMWall()
   if ( IntFieldIdx == Idx_Undefined )
     IntFieldIdx = AddField( "IntField", FIXUP_FLUX_YES, FIXUP_REST_YES,
                             NORMALIZE_YES, INTERP_FRAC_NO );
-}
+
+} // FUNCTION : AddNewField_JetICMWall
+#endif // #if ( MODEL == HYDRO )
 
 
 
@@ -434,24 +473,28 @@ void Init_TestProb_Hydro_JetICMWall()
    Validate();
 
 
+#  if ( MODEL == HYDRO )
 // set the problem-specific runtime parameters
    SetParameter();
 
 
-// get enclosed mass
-   Init_Function_User_Ptr   = SetGridIC;
-   Init_Field_User_Ptr      = AddNewField_JetICMWall;
-   Flag_User_Ptr            = NULL;
-   Flag_Region_Ptr          = NULL;
-   Mis_GetTimeStep_User_Ptr = NULL;
-   BC_User_Ptr              = JetBC;
-   Flu_ResetByUser_Func_Ptr = NULL;
-   Output_User_Ptr          = NULL;
-   Aux_Record_User_Ptr      = NULL;
-   End_User_Ptr             = NULL;
+// set the function pointers of various problem-specific routines
+   Init_Function_User_Ptr    = SetGridIC;
+   Init_Field_User_Ptr       = AddNewField_JetICMWall;
+   Flag_User_Ptr             = NULL;
+   Flag_Region_Ptr           = NULL;
+   Mis_GetTimeStep_User_Ptr  = NULL;
+   BC_User_Ptr               = JetBC;
+   Flu_ResetByUser_Func_Ptr  = NULL;
+   Output_User_Ptr           = NULL;
+   Aux_Record_User_Ptr       = NULL;
+   End_User_Ptr              = NULL;
+#  ifdef SUPPORT_HDF5
+   Output_HDF5_InputTest_Ptr = LoadInputTestProb;
+#  endif
+#  endif // #if ( MODEL == HYDRO )
 
 
    if ( MPI_Rank == 0 )    Aux_Message( stdout, "%s ... done\n", __FUNCTION__ );
 
 } // FUNCTION : Init_TestProb_SRHydro_JetICMWall
-#endif // #if ( MODEL == HYDRO )

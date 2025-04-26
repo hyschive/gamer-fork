@@ -93,7 +93,7 @@ void nuc_eos_C_ReadTable( char *nuceos_table_name )
 #  define READ_EOS_HDF5( NAME, VAR, TYPE, MEM )                                        \
    {                                                                                   \
       hid_t dataset;                                                                   \
-      HDF5_ERROR(  dataset = H5Dopen( file, NAME )  );                                 \
+      HDF5_ERROR(  dataset = H5Dopen( file, NAME, H5P_DEFAULT )  );                    \
       HDF5_ERROR(  H5Dread( dataset, TYPE, MEM, H5S_ALL, H5P_DEFAULT, VAR )  );        \
       HDF5_ERROR(  H5Dclose( dataset )  );                                             \
    }
