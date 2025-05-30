@@ -20,7 +20,7 @@ CCSN_Eint_Mode   1                                 # Mode of obtaining internal 
                                                    # ( 1=Temp Mode: Eint(dens, temp, [Ye])
                                                    #   2=Pres Mode: Eint(dens, pres, [Ye]) )
 
-CCSN_LB_TimeFac           0.10                     # factor that scales the dt constrained by lightbulb scheme  [0.1]
+CCSN_NuHeat_TimeFac       0.10                     # factor that scales the dt constrained by the lightbulb/leakage scheme  [0.1]
 
 CCSN_Is_PostBounce        0                        # boolean that indicates whether core bounce has occurred    [0]
 

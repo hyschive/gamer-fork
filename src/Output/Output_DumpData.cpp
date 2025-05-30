@@ -247,6 +247,76 @@ void Output_DumpData( const int Stage )
 #  endif
 
 
+// record the neutrino heating rate with the correct signs
+#  if ( defined NEUTRINO_SCHEME  &&  NEUTRINO_SCHEME == LEAKAGE )
+   if ( OPT__OUTPUT_LEAKAGE  &&  SrcTerms.Leakage  &&
+        ( OutputData || OutputData_RunTime || OutputData_Walltime ) )
+   {
+//    enable the record mode
+      Src_Leakage_AuxArray_Int[3] = LEAK_MODE_CORRSIGN;
+
+//    update leakage data at TimeNew on lv=0
+      const int    lv      = 0;
+      const double dt      = 0.0;
+      const double TimeNew = amr->FluSgTime[lv][ amr->FluSg[lv] ];
+
+      Src_WorkBeforeMajorFunc( lv, TimeNew, TimeNew, dt );
+
+//    update the neutrino heating rate
+#     pragma omp parallel
+      {
+         for (int lv=0; lv<=MAX_LEVEL; lv++)
+         {
+            if ( NPatchTotal[lv] == 0 )   continue;
+
+            const int    FluSg = amr->FluSg[lv];
+            const double dh    = amr->dh[lv];
+
+#           pragma omp for schedule( static )
+            for (int PID=0; PID<amr->NPatchComma[lv][1]; PID++)
+            {
+//             skip non-leaf patches
+               if ( amr->patch[0][lv][PID]->son != -1 )   continue;
+
+               const double z0 = amr->patch[0][lv][PID]->EdgeL[2];
+               const double y0 = amr->patch[0][lv][PID]->EdgeL[1];
+               const double x0 = amr->patch[0][lv][PID]->EdgeL[0];
+
+               for (int k=0; k<PS1; k++)  {  const double z = z0 + (k+0.5)*dh;
+               for (int j=0; j<PS1; j++)  {  const double y = y0 + (j+0.5)*dh;
+               for (int i=0; i<PS1; i++)  {  const double x = x0 + (i+0.5)*dh;
+
+//                get the input arrays
+                  real fluid[FLU_NIN_S];
+
+                  for (int v=0; v<FLU_NIN_S; v++)  fluid[v] = amr->patch[FluSg][lv][PID]->fluid[v][k][j][i];
+
+#                 ifdef MHD
+                  real B[NCOMP_MAG];
+
+                  MHD_GetCellCenteredBFieldInPatch( B, lv, PID, i, j, k, amr->MagSg[lv] );
+#                 else
+                  real *B = NULL;
+#                 endif
+
+                  SrcTerms.Leakage_CPUPtr( fluid, B, &SrcTerms, dt, NULL_REAL, x, y, z, NULL_REAL, NULL_REAL,
+                                           MIN_DENS, MIN_PRES, MIN_EINT, NULL,
+                                           Src_Leakage_AuxArray_Flt, Src_Leakage_AuxArray_Int );
+
+                  amr->patch[FluSg][lv][PID]->fluid[DEDT_NU ][k][j][i] = fluid[DEDT_NU ];
+                  amr->patch[FluSg][lv][PID]->fluid[DYEDT_NU][k][j][i] = fluid[DYEDT_NU];
+
+               }}} // i,j,k
+            } // for (int PID=0; PID<amr->NPatchComma[lv][1]; PID++)
+         } // for (int lv=0; lv<=MAX_LEVEL; lv++)
+      } // OpenMP parallel region
+
+//    reset to the evolution mode
+      Src_Leakage_AuxArray_Int[3] = LEAK_MODE_EVOLVE;
+   }
+#  endif
+
+
 // output data
    if ( OutputData || OutputData_RunTime || OutputData_Walltime )
    {
@@ -306,6 +376,48 @@ void Output_DumpData( const int Stage )
 
       PreviousDumpStep = Step;
    } // if ( OutputData || OutputData_RunTime )
+
+
+// set the neutrino heating rate to absolute values
+#  if ( defined NEUTRINO_SCHEME  &&  NEUTRINO_SCHEME == LEAKAGE )
+   if ( OPT__OUTPUT_LEAKAGE  &&  SrcTerms.Leakage  &&
+        ( OutputData || OutputData_RunTime || OutputData_Walltime ) )
+   {
+#     pragma omp parallel
+      {
+//       loop over all levels
+         for (int lv=0; lv<=MAX_LEVEL; lv++)
+         {
+            if ( NPatchTotal[lv] == 0 )   continue;
+
+#           pragma omp for schedule( static )
+            for (int PID=0; PID<amr->NPatchComma[lv][1]; PID++)
+            {
+//             skip non-leaf patches
+               if ( amr->patch[0][lv][PID]->son != -1 )   continue;
+
+               real (*Fluid)[PS1][PS1][PS1] = amr->patch[ amr->FluSg[lv] ][lv][PID]->fluid;
+
+               for (int k=0; k<PS1; k++)  {
+               for (int j=0; j<PS1; j++)  {
+               for (int i=0; i<PS1; i++)  {
+
+                  Fluid[DEDT_NU ][k][j][i] = FABS( Fluid[DEDT_NU ][k][j][i] );
+                  Fluid[DYEDT_NU][k][j][i] = FABS( Fluid[DYEDT_NU][k][j][i] );
+
+               }}} // i,j,k
+            } // for (int PID=0; PID<amr->NPatchComma[lv][1]; PID++)
+         } // for (int lv=0; lv<=MAX_LEVEL; lv++)
+      } // OpenMP parallel region
+
+
+      for (int lv=0; lv<=MAX_LEVEL; lv++)
+      {
+         Buf_GetBufferData( lv, amr->FluSg[lv], NULL_INT, NULL_INT, DATA_GENERAL,
+                            _DEDT_NU | _DYEDT_NU, _NONE, Flu_ParaBuf, USELB_YES );
+      }
+   }
+#  endif
 
 } // FUNCTION : Output_DumpData
 
