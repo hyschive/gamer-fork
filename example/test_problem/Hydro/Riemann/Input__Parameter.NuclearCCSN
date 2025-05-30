@@ -94,7 +94,7 @@ OPT__MINIMIZE_MPI_BARRIER     1           # minimize MPI barriers to improve loa
 # fluid solver in HYDRO (MODEL==HYDRO only)
 GAMMA                         1.666666667 # ratio of specific heats (i.e., adiabatic index) [5.0/3.0]
 MOLECULAR_WEIGHT              0.6         # mean molecular weight -> currently only for post-processing [0.6]
-NUC_TABLE                     LS220_eps_higher-eint.h5   # nuclear EoS table ##EOS_NUCLEAR ONLY##
+NUC_TABLE                     LS220.h5    # nuclear EoS table ##EOS_NUCLEAR ONLY##
 NUC_INT_SCHEME_AUX            1           # interpolation scheme for auxiliary   table (1=linear, 2=cubic) [1] ##EOS_NUCLEAR ONLY##
 NUC_INT_SCHEME_MAIN           1           # interpolation scheme for nuclear EoS table (1=linear, 2=cubic) [1] ##EOS_NUCLEAR ONLY##
 MINMOD_COEFF                  2.0         # coefficient of the generalized MinMod limiter (1.0~2.0) [1.5]

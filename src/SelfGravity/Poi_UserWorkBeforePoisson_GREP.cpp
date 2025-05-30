@@ -74,7 +74,7 @@ void Poi_UserWorkBeforePoisson_GREP( const double Time, const int lv )
             else
             {
                Extrema.Field     = _DENS;
-               Extrema.Radius    = HUGE_NUMBER;
+               Extrema.Radius    = __FLT_MAX__;
                Extrema.Center[0] = amr->BoxCenter[0];
                Extrema.Center[1] = amr->BoxCenter[1];
                Extrema.Center[2] = amr->BoxCenter[2];
@@ -89,7 +89,7 @@ void Poi_UserWorkBeforePoisson_GREP( const double Time, const int lv )
          case GREP_CENTER_POT: // potential minimum
          {
             Extrema.Field     = _POTE;
-            Extrema.Radius    = HUGE_NUMBER;
+            Extrema.Radius    = __FLT_MAX__;
             Extrema.Center[0] = amr->BoxCenter[0];
             Extrema.Center[1] = amr->BoxCenter[1];
             Extrema.Center[2] = amr->BoxCenter[2];

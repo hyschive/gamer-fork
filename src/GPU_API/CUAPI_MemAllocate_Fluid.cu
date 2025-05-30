@@ -52,6 +52,18 @@ extern real  *d_SrcLeakage_HeatERms;
 extern real  *d_SrcLeakage_HeatEAve;
 #endif
 
+#if ( MODEL == ELBDM )
+extern bool (*d_IsCompletelyRefined);
+#endif
+
+#if ( ELBDM_SCHEME == ELBDM_HYBRID )
+extern bool (*d_HasWaveCounterpart)[ CUBE(HYB_NXT) ];
+#endif
+
+#if ( GRAMFE_SCHEME == GRAMFE_MATMUL )
+extern gramfe_matmul_float (*d_Flu_TimeEvo)[ 2*FLU_NXT ];
+#endif
+
 #if ( MODEL != HYDRO  &&  MODEL != ELBDM )
 #  warning : DO YOU WANT TO ADD SOMETHING HERE FOR THE NEW MODEL ??
 #endif
@@ -129,6 +141,18 @@ int CUAPI_MemAllocate_Fluid( const int Flu_NPG, const int Pot_NPG, const int Src
 #  endif
 #  endif // FLU_SCHEME
 
+#  if ( MODEL == ELBDM )
+   const long Flu_MemSize_IsCompletelyRefined = sizeof(bool )*Flu_NPG;
+#  endif
+
+#  if ( ELBDM_SCHEME == ELBDM_HYBRID )
+   const long Flu_MemSize_HasWaveCounterpart  = sizeof(bool )*Flu_NPG*CUBE(HYB_NXT);
+#  endif
+
+#  if ( GRAMFE_SCHEME == GRAMFE_MATMUL )
+   const long GramFE_TimeEvo_MemSize          = sizeof(gramfe_matmul_float)*2*PS2*FLU_NXT;
+#  endif
+
 #  if ( MODEL != HYDRO  &&  MODEL != ELBDM )
 #     warning : DO YOU WANT TO ADD SOMETHING HERE FOR THE NEW MODEL ??
 #  endif
@@ -169,6 +193,18 @@ int CUAPI_MemAllocate_Fluid( const int Flu_NPG, const int Pot_NPG, const int Src
    TotalSize += FC_Mag_Half_MemSize + EC_Ele_MemSize;
 #  endif
 #  endif // MHM/MHM_RP/CTU
+
+#  if ( MODEL == ELBDM )
+   TotalSize += Flu_MemSize_IsCompletelyRefined;
+#  endif
+
+#  if ( ELBDM_SCHEME == ELBDM_HYBRID )
+   TotalSize += Flu_MemSize_HasWaveCounterpart;
+#  endif
+
+#  if ( GRAMFE_SCHEME == GRAMFE_MATMUL )
+   TotalSize += GramFE_TimeEvo_MemSize;
+#  endif
 
 #  if ( MODEL != HYDRO  &&  MODEL != ELBDM )
 #     warning : DO YOU WANT TO ADD SOMETHING HERE FOR THE NEW MODEL ??
@@ -265,6 +301,20 @@ int CUAPI_MemAllocate_Fluid( const int Flu_NPG, const int Pot_NPG, const int Src
    SrcTerms.Leakage_HeatEAve_DevPtr = d_SrcLeakage_HeatEAve;
 #  endif
 
+
+#  if ( MODEL == ELBDM )
+   CUDA_CHECK_MALLOC(  cudaMalloc( (void**) &d_IsCompletelyRefined,  Flu_MemSize_IsCompletelyRefined )  );
+#  endif
+
+#  if ( ELBDM_SCHEME == ELBDM_HYBRID )
+   CUDA_CHECK_MALLOC(  cudaMalloc( (void**) &d_HasWaveCounterpart,   Flu_MemSize_HasWaveCounterpart  )  );
+#  endif
+
+#  if ( GRAMFE_SCHEME == GRAMFE_MATMUL )
+   CUDA_CHECK_MALLOC(  cudaMalloc( (void**) &d_Flu_TimeEvo,          GramFE_TimeEvo_MemSize          )  );
+#  endif
+
+
 #  if ( MODEL != HYDRO  &&  MODEL != ELBDM )
 #     warning : DO YOU WANT TO ADD SOMETHING HERE FOR THE NEW MODEL ??
 #  endif
@@ -273,55 +323,66 @@ int CUAPI_MemAllocate_Fluid( const int Flu_NPG, const int Pot_NPG, const int Src
 // allocate the host memory by CUDA
    for (int t=0; t<2; t++)
    {
-      CUDA_CHECK_MALLOC(  cudaMallocHost( (void**) &h_Flu_Array_F_In [t],  Flu_MemSize_F_In     )  );
-      CUDA_CHECK_MALLOC(  cudaMallocHost( (void**) &h_Flu_Array_F_Out[t],  Flu_MemSize_F_Out    )  );
+      CUDA_CHECK_MALLOC(  cudaMallocHost( (void**) &h_Flu_Array_F_In     [t],  Flu_MemSize_F_In     )  );
+      CUDA_CHECK_MALLOC(  cudaMallocHost( (void**) &h_Flu_Array_F_Out    [t],  Flu_MemSize_F_Out    )  );
 
       if ( amr->WithFlux )
-      CUDA_CHECK_MALLOC(  cudaMallocHost( (void**) &h_Flux_Array     [t],  Flux_MemSize         )  );
+      CUDA_CHECK_MALLOC(  cudaMallocHost( (void**) &h_Flux_Array         [t],  Flux_MemSize         )  );
 
 #     ifdef UNSPLIT_GRAVITY
-      CUDA_CHECK_MALLOC(  cudaMallocHost( (void**) &h_Pot_Array_USG_F[t],  Pot_MemSize_USG_F    )  );
+      CUDA_CHECK_MALLOC(  cudaMallocHost( (void**) &h_Pot_Array_USG_F    [t],  Pot_MemSize_USG_F    )  );
 
       if ( OPT__EXT_ACC )
-      CUDA_CHECK_MALLOC(  cudaMallocHost( (void**) &h_Corner_Array_F [t],  Corner_MemSize_F     )  );
+      CUDA_CHECK_MALLOC(  cudaMallocHost( (void**) &h_Corner_Array_F     [t],  Corner_MemSize_F     )  );
 #     endif
 
 #     ifdef DUAL_ENERGY
-      CUDA_CHECK_MALLOC(  cudaMallocHost( (void**) &h_DE_Array_F_Out [t],  DE_MemSize_F_Out     )  );
+      CUDA_CHECK_MALLOC(  cudaMallocHost( (void**) &h_DE_Array_F_Out     [t],  DE_MemSize_F_Out     )  );
 #     endif
 
 #     ifdef MHD
-      CUDA_CHECK_MALLOC(  cudaMallocHost( (void**) &h_Mag_Array_F_In [t],  Mag_MemSize_F_In     )  );
-      CUDA_CHECK_MALLOC(  cudaMallocHost( (void**) &h_Mag_Array_F_Out[t],  Mag_MemSize_F_Out    )  );
+      CUDA_CHECK_MALLOC(  cudaMallocHost( (void**) &h_Mag_Array_F_In     [t],  Mag_MemSize_F_In     )  );
+      CUDA_CHECK_MALLOC(  cudaMallocHost( (void**) &h_Mag_Array_F_Out    [t],  Mag_MemSize_F_Out    )  );
 
       if ( amr->WithElectric )
-      CUDA_CHECK_MALLOC(  cudaMallocHost( (void**) &h_Ele_Array      [t],  Ele_MemSize          )  );
+      CUDA_CHECK_MALLOC(  cudaMallocHost( (void**) &h_Ele_Array          [t],  Ele_MemSize          )  );
 
-      CUDA_CHECK_MALLOC(  cudaMallocHost( (void**) &h_Mag_Array_T    [t],  Mag_MemSize_T        )  );
+      CUDA_CHECK_MALLOC(  cudaMallocHost( (void**) &h_Mag_Array_T        [t],  Mag_MemSize_T        )  );
 #     endif
 
-      CUDA_CHECK_MALLOC(  cudaMallocHost( (void**) &h_dt_Array_T     [t],  dt_MemSize_T         )  );
-      CUDA_CHECK_MALLOC(  cudaMallocHost( (void**) &h_Flu_Array_T    [t],  Flu_MemSize_T        )  );
+      CUDA_CHECK_MALLOC(  cudaMallocHost( (void**) &h_dt_Array_T         [t],  dt_MemSize_T         )  );
+      CUDA_CHECK_MALLOC(  cudaMallocHost( (void**) &h_Flu_Array_T        [t],  Flu_MemSize_T        )  );
 
       if ( SrcTerms.Any ) {
-      CUDA_CHECK_MALLOC(  cudaMallocHost( (void**) &h_Flu_Array_S_In [t],  Flu_MemSize_S_In     )  );
-      CUDA_CHECK_MALLOC(  cudaMallocHost( (void**) &h_Flu_Array_S_Out[t],  Flu_MemSize_S_Out    )  );
+      CUDA_CHECK_MALLOC(  cudaMallocHost( (void**) &h_Flu_Array_S_In     [t],  Flu_MemSize_S_In     )  );
+      CUDA_CHECK_MALLOC(  cudaMallocHost( (void**) &h_Flu_Array_S_Out    [t],  Flu_MemSize_S_Out    )  );
 #     ifdef MHD
-      CUDA_CHECK_MALLOC(  cudaMallocHost( (void**) &h_Mag_Array_S_In [t],  Mag_MemSize_S_In     )  );
+      CUDA_CHECK_MALLOC(  cudaMallocHost( (void**) &h_Mag_Array_S_In     [t],  Mag_MemSize_S_In     )  );
 #     endif
-      CUDA_CHECK_MALLOC(  cudaMallocHost( (void**) &h_Corner_Array_S [t],  Corner_MemSize_S     )  );
+      CUDA_CHECK_MALLOC(  cudaMallocHost( (void**) &h_Corner_Array_S     [t],  Corner_MemSize_S     )  );
       }
+
+#     if ( MODEL == ELBDM )
+      CUDA_CHECK_MALLOC(  cudaMallocHost( (void**) &h_IsCompletelyRefined[t],  Flu_MemSize_IsCompletelyRefined  )  );
+#     endif
+
+#     if ( ELBDM_SCHEME == ELBDM_HYBRID )
+      CUDA_CHECK_MALLOC(  cudaMallocHost( (void**) &h_HasWaveCounterpart [t],  Flu_MemSize_HasWaveCounterpart   )  );
+#     endif
    } // for (int t=0; t<2; t++)
 
-#  if ( MODEL == HYDRO  &&  NEUTRINO_SCHEME == LEAKAGE )
-      CUDA_CHECK_MALLOC(  cudaMallocHost( (void**) &h_SrcLeakage_Radius,   Leak_Rad_MemSize     )  );
-      CUDA_CHECK_MALLOC(  cudaMallocHost( (void**) &h_SrcLeakage_tau,      Leak_Tau_MemSize     )  );
-      CUDA_CHECK_MALLOC(  cudaMallocHost( (void**) &h_SrcLeakage_chi,      Leak_Chi_MemSize     )  );
-      CUDA_CHECK_MALLOC(  cudaMallocHost( (void**) &h_SrcLeakage_HeatFlux, Leak_Flux_MemSize    )  );
-      CUDA_CHECK_MALLOC(  cudaMallocHost( (void**) &h_SrcLeakage_HeatERms, Leak_ERms_MemSize    )  );
-      CUDA_CHECK_MALLOC(  cudaMallocHost( (void**) &h_SrcLeakage_HeatEAve, Leak_EAve_MemSize    )  );
+#  if ( GRAMFE_SCHEME == GRAMFE_MATMUL )
+   CUDA_CHECK_MALLOC(  cudaMallocHost( (void**) &h_GramFE_TimeEvo,  GramFE_TimeEvo_MemSize )  );
 #  endif
 
+#  if ( MODEL == HYDRO  &&  NEUTRINO_SCHEME == LEAKAGE )
+   CUDA_CHECK_MALLOC(  cudaMallocHost( (void**) &h_SrcLeakage_Radius,   Leak_Rad_MemSize  )  );
+   CUDA_CHECK_MALLOC(  cudaMallocHost( (void**) &h_SrcLeakage_tau,      Leak_Tau_MemSize  )  );
+   CUDA_CHECK_MALLOC(  cudaMallocHost( (void**) &h_SrcLeakage_chi,      Leak_Chi_MemSize  )  );
+   CUDA_CHECK_MALLOC(  cudaMallocHost( (void**) &h_SrcLeakage_HeatFlux, Leak_Flux_MemSize )  );
+   CUDA_CHECK_MALLOC(  cudaMallocHost( (void**) &h_SrcLeakage_HeatERms, Leak_ERms_MemSize )  );
+   CUDA_CHECK_MALLOC(  cudaMallocHost( (void**) &h_SrcLeakage_HeatEAve, Leak_EAve_MemSize )  );
+#  endif
 
 // create streams
    Stream = new cudaStream_t [GPU_NStream];

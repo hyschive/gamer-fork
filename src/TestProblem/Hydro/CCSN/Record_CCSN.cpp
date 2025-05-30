@@ -36,8 +36,6 @@ extern void Src_WorkBeforeMajorFunc_Leakage( const int lv, const double TimeNew,
 void Record_CCSN_CentralQuant()
 {
 
-   const char FileName[] = "Record__CentralQuant";
-
 // allocate memory for per-thread arrays
 #  ifdef OPENMP
    const int NT = OMP_NTHREAD;
@@ -149,6 +147,9 @@ void Record_CCSN_CentralQuant()
    {
 
       static bool FirstTime = true;
+
+      char     FileName[2*MAX_STRING];
+      sprintf( FileName, "%s/Record__CentralQuant", OUTPUT_DIR );
 
 //    file header
       if ( FirstTime )
@@ -440,8 +441,6 @@ void Record_CCSN_Leakage()
 void Record_CCSN_GWSignal()
 {
 
-   const char   filename_QuadMom_2nd[ ] = "Record__QuadMom_2nd";
-
 // allocate memory for per-thread arrays
 #  ifdef OPENMP
    const int NT = OMP_NTHREAD;   // number of OpenMP threads
@@ -570,6 +569,9 @@ void Record_CCSN_GWSignal()
    {
 
       static bool FirstTime = true;
+
+      char filename_QuadMom_2nd[2*MAX_STRING];
+      sprintf( filename_QuadMom_2nd, "%s/Record__QuadMom_2nd", OUTPUT_DIR );
 
 //    file header
       if ( FirstTime )

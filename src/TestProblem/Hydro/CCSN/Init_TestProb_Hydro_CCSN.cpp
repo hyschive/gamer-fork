@@ -129,6 +129,80 @@ void Validate()
 
 #if ( MODEL == HYDRO )
 //-------------------------------------------------------------------------------------------------------
+// Function    :  LoadInputTestProb
+// Description :  Read problem-specific runtime parameters from Input__TestProb and store them in HDF5 snapshots (Data_*)
+//
+// Note        :  1. Invoked by SetParameter() to read parameters
+//                2. Invoked by Output_DumpData_Total_HDF5() using the function pointer Output_HDF5_InputTest_Ptr to store parameters
+//                3. If there is no problem-specific runtime parameter to load, add at least one parameter
+//                   to prevent an empty structure in HDF5_Output_t
+//                   --> Example:
+//                       LOAD_PARA( load_mode, "TestProb_ID", &TESTPROB_ID, TESTPROB_ID, TESTPROB_ID, TESTPROB_ID );
+//
+// Parameter   :  load_mode      : Mode for loading parameters
+//                                 --> LOAD_READPARA    : Read parameters from Input__TestProb
+//                                     LOAD_HDF5_OUTPUT : Store parameters in HDF5 snapshots
+//                ReadPara       : Data structure for reading parameters (used with LOAD_READPARA)
+//                HDF5_InputTest : Data structure for storing parameters in HDF5 snapshots (used with LOAD_HDF5_OUTPUT)
+//
+// Return      :  None
+//-------------------------------------------------------------------------------------------------------
+void LoadInputTestProb( const LoadParaMode_t load_mode, ReadPara_t *ReadPara, HDF5_Output_t *HDF5_InputTest )
+{
+
+#  ifndef SUPPORT_HDF5
+   if ( load_mode == LOAD_HDF5_OUTPUT )   Aux_Error( ERROR_INFO, "please turn on SUPPORT_HDF5 in the Makefile for load_mode == LOAD_HDF5_OUTPUT !!\n" );
+#  endif
+
+   if ( load_mode == LOAD_READPARA     &&  ReadPara       == NULL )   Aux_Error( ERROR_INFO, "load_mode == LOAD_READPARA and ReadPara == NULL !!\n" );
+   if ( load_mode == LOAD_HDF5_OUTPUT  &&  HDF5_InputTest == NULL )   Aux_Error( ERROR_INFO, "load_mode == LOAD_HDF5_OUTPUT and HDF5_InputTest == NULL !!\n" );
+
+// add parameters in the following format:
+// --> note that VARIABLE, DEFAULT, MIN, and MAX must have the same data type
+// --> some handy constants (e.g., NoMin_int, Eps_float, ...) are defined in "include/ReadPara.h"
+// --> LOAD_PARA() is defined in "include/TestProb.h"
+// ******************************************************************************************************************************
+// LOAD_PARA( load_mode, "KEY_IN_THE_FILE",          &VARIABLE,                  DEFAULT,      MIN,              MAX               );
+// ******************************************************************************************************************************
+   LOAD_PARA( load_mode, "CCSN_Prob",                &CCSN_Prob,                -1,            0,                2                 );
+   LOAD_PARA( load_mode, "CCSN_Prof_File",            CCSN_Prof_File,            Useless_str,  Useless_str,      Useless_str       );
+#  ifdef MHD
+   LOAD_PARA( load_mode, "CCSN_Mag",                 &CCSN_Mag,                  1,            0,                1                 );
+   LOAD_PARA( load_mode, "CCSN_Mag_B0",              &CCSN_Mag_B0,               1.0e14,       0.0,              NoMax_double      );
+   LOAD_PARA( load_mode, "CCSN_Mag_np",              &CCSN_Mag_np,               0.0,          NoMin_double,     NoMax_double      );
+   LOAD_PARA( load_mode, "CCSN_Mag_R0",              &CCSN_Mag_R0,               1.0e8,        Eps_double,       NoMax_double      );
+#  endif
+   LOAD_PARA( load_mode, "CCSN_GW_OUTPUT",           &CCSN_GW_OUTPUT,            false,        Useless_bool,     Useless_bool      );
+   LOAD_PARA( load_mode, "CCSN_GW_DT",               &CCSN_GW_DT,                1.0,          Eps_double,       NoMax_double      );
+   LOAD_PARA( load_mode, "CCSN_Eint_Mode",           &CCSN_Eint_Mode,            2,            1,                2                 );
+   LOAD_PARA( load_mode, "CCSN_CC_MaxRefine_Flag1",  &CCSN_CC_MaxRefine_Flag1,   false,        Useless_bool,     Useless_bool      );
+   LOAD_PARA( load_mode, "CCSN_CC_MaxRefine_Flag2",  &CCSN_CC_MaxRefine_Flag2,   false,        Useless_bool,     Useless_bool      );
+   LOAD_PARA( load_mode, "CCSN_CC_MaxRefine_LV1",    &CCSN_CC_MaxRefine_LV1,    -1,            NoMin_int,        MAX_LEVEL-1       );
+   LOAD_PARA( load_mode, "CCSN_CC_MaxRefine_LV2",    &CCSN_CC_MaxRefine_LV2,    -1,            NoMin_int,        MAX_LEVEL-1       );
+   LOAD_PARA( load_mode, "CCSN_CC_MaxRefine_Dens1",  &CCSN_CC_MaxRefine_Dens1,   1.0e11,       0.0,              NoMax_double      );
+   LOAD_PARA( load_mode, "CCSN_CC_MaxRefine_Dens2",  &CCSN_CC_MaxRefine_Dens2,   1.0e12,       0.0,              NoMax_double      );
+   LOAD_PARA( load_mode, "CCSN_CC_CentralDensFac",   &CCSN_CC_CentralDensFac,    1.0e13,       Eps_double,       NoMax_double      );
+   LOAD_PARA( load_mode, "CCSN_CC_Red_DT",           &CCSN_CC_Red_DT,            1.0e-5,       Eps_double,       NoMax_double      );
+   LOAD_PARA( load_mode, "CCSN_NuHeat_TimeFac",      &CCSN_NuHeat_TimeFac,       0.1,          Eps_double,       1.0               );
+   LOAD_PARA( load_mode, "CCSN_CC_Rot",              &CCSN_CC_Rot,               2,            0,                2                 );
+   LOAD_PARA( load_mode, "CCSN_CC_Rot_R0",           &CCSN_CC_Rot_R0,            2.0e8,        Eps_double,       NoMax_double      );
+   LOAD_PARA( load_mode, "CCSN_CC_Rot_Omega0",       &CCSN_CC_Rot_Omega0,        0.5,          0.0,              NoMax_double      );
+   LOAD_PARA( load_mode, "CCSN_CC_Rot_Fac",          &CCSN_CC_Rot_Fac,          -1.0,          NoMin_double,     NoMax_double      );
+   LOAD_PARA( load_mode, "CCSN_REF_RBase",           &CCSN_REF_RBase,           1.25e7,        NoMin_double,     NoMax_double      );
+   LOAD_PARA( load_mode, "CCSN_Is_PostBounce",       &CCSN_Is_PostBounce,        false,        Useless_bool,     Useless_bool      );
+   LOAD_PARA( load_mode, "CCSN_MaxRefine_Rad",       &CCSN_MaxRefine_Rad,        3.0e6,        Eps_double,       NoMax_double      );
+   LOAD_PARA( load_mode, "CCSN_AngRes_Min",          &CCSN_AngRes_Min,          -1.0,          NoMin_double,     NoMax_double      );
+   LOAD_PARA( load_mode, "CCSN_AngRes_Max",          &CCSN_AngRes_Max,          -1.0,          NoMin_double,     NoMax_double      );
+   LOAD_PARA( load_mode, "CCSN_Shock_ThresFac_Pres", &CCSN_Shock_ThresFac_Pres,  0.5,          Eps_double,       NoMax_double      );
+   LOAD_PARA( load_mode, "CCSN_Shock_ThresFac_Vel" , &CCSN_Shock_ThresFac_Vel,   0.1,          Eps_double,       NoMax_double      );
+   LOAD_PARA( load_mode, "CCSN_Shock_Weight" ,       &CCSN_Shock_Weight,         2,            1,                2                 );
+   LOAD_PARA( load_mode, "CCSN_DT_YE" ,              &CCSN_DT_YE,               1,             1,                3                 );
+
+} // FUNCITON : LoadInputTestProb
+
+
+
+//-------------------------------------------------------------------------------------------------------
 // Function    :  SetParameter
 // Description :  Load and set the problem-specific runtime parameters
 //
@@ -150,48 +224,11 @@ void SetParameter()
 
 
 // (1) load the problem-specific runtime parameters
+// (1-1) read parameters from Input__TestProb
    const char FileName[] = "Input__TestProb";
    ReadPara_t *ReadPara  = new ReadPara_t;
 
-// (1-1) add parameters in the following format:
-// --> note that VARIABLE, DEFAULT, MIN, and MAX must have the same data type
-// --> some handy constants (e.g., Useless_bool, Eps_double, NoMin_int, ...) are defined in "include/ReadPara.h"
-// ********************************************************************************************************************************
-// ReadPara->Add( "KEY_IN_THE_FILE",          &VARIABLE,                 DEFAULT,       MIN,              MAX               );
-// ********************************************************************************************************************************
-   ReadPara->Add( "CCSN_Prob",                &CCSN_Prob,                -1,            0,                2                 );
-   ReadPara->Add( "CCSN_Prof_File",            CCSN_Prof_File,           Useless_str,   Useless_str,      Useless_str       );
-#  ifdef MHD
-   ReadPara->Add( "CCSN_Mag",                 &CCSN_Mag,                 1,             0,                1                 );
-   ReadPara->Add( "CCSN_Mag_B0",              &CCSN_Mag_B0,              1.0e14,        0.0,              NoMax_double      );
-   ReadPara->Add( "CCSN_Mag_np",              &CCSN_Mag_np,              0.0,           NoMin_double,     NoMax_double      );
-   ReadPara->Add( "CCSN_Mag_R0",              &CCSN_Mag_R0,              1.0e8,         Eps_double,       NoMax_double      );
-#  endif
-   ReadPara->Add( "CCSN_GW_OUTPUT",           &CCSN_GW_OUTPUT,           false,         Useless_bool,     Useless_bool      );
-   ReadPara->Add( "CCSN_GW_DT",               &CCSN_GW_DT,               1.0,           Eps_double,       NoMax_double      );
-   ReadPara->Add( "CCSN_Eint_Mode",           &CCSN_Eint_Mode,           2,             1,                2                 );
-   ReadPara->Add( "CCSN_CC_MaxRefine_Flag1",  &CCSN_CC_MaxRefine_Flag1,  false,         Useless_bool,     Useless_bool      );
-   ReadPara->Add( "CCSN_CC_MaxRefine_Flag2",  &CCSN_CC_MaxRefine_Flag2,  false,         Useless_bool,     Useless_bool      );
-   ReadPara->Add( "CCSN_CC_MaxRefine_LV1",    &CCSN_CC_MaxRefine_LV1,    -1,            NoMin_int,        MAX_LEVEL-1       );
-   ReadPara->Add( "CCSN_CC_MaxRefine_LV2",    &CCSN_CC_MaxRefine_LV2,    -1,            NoMin_int,        MAX_LEVEL-1       );
-   ReadPara->Add( "CCSN_CC_MaxRefine_Dens1",  &CCSN_CC_MaxRefine_Dens1,  1.0e11,        0.0,              NoMax_double      );
-   ReadPara->Add( "CCSN_CC_MaxRefine_Dens2",  &CCSN_CC_MaxRefine_Dens2,  1.0e12,        0.0,              NoMax_double      );
-   ReadPara->Add( "CCSN_CC_CentralDensFac",   &CCSN_CC_CentralDensFac,   1.0e13,        Eps_double,       NoMax_double      );
-   ReadPara->Add( "CCSN_CC_Red_DT",           &CCSN_CC_Red_DT,           1.0e-5,        Eps_double,       NoMax_double      );
-   ReadPara->Add( "CCSN_NuHeat_TimeFac",      &CCSN_NuHeat_TimeFac,      0.1,           Eps_double,       1.0               );
-   ReadPara->Add( "CCSN_CC_Rot",              &CCSN_CC_Rot,              2,             0,                2                 );
-   ReadPara->Add( "CCSN_CC_Rot_R0",           &CCSN_CC_Rot_R0,           2.0e8,         Eps_double,       NoMax_double      );
-   ReadPara->Add( "CCSN_CC_Rot_Omega0",       &CCSN_CC_Rot_Omega0,       0.5,           0.0,              NoMax_double      );
-   ReadPara->Add( "CCSN_CC_Rot_Fac",          &CCSN_CC_Rot_Fac,          -1.0,          NoMin_double,     NoMax_double      );
-   ReadPara->Add( "CCSN_REF_RBase",           &CCSN_REF_RBase,           1.25e7,        NoMin_double,     NoMax_double      );
-   ReadPara->Add( "CCSN_Is_PostBounce",       &CCSN_Is_PostBounce,       false,         Useless_bool,     Useless_bool      );
-   ReadPara->Add( "CCSN_MaxRefine_Rad",       &CCSN_MaxRefine_Rad,       3.0e6,         Eps_double,       NoMax_double      );
-   ReadPara->Add( "CCSN_AngRes_Min",          &CCSN_AngRes_Min,         -1.0,           NoMin_double,     NoMax_double      );
-   ReadPara->Add( "CCSN_AngRes_Max",          &CCSN_AngRes_Max,         -1.0,           NoMin_double,     NoMax_double      );
-   ReadPara->Add( "CCSN_Shock_ThresFac_Pres", &CCSN_Shock_ThresFac_Pres, 0.5,           Eps_double,       NoMax_double      );
-   ReadPara->Add( "CCSN_Shock_ThresFac_Vel" , &CCSN_Shock_ThresFac_Vel,  0.1,           Eps_double,       NoMax_double      );
-   ReadPara->Add( "CCSN_Shock_Weight" ,       &CCSN_Shock_Weight,        2,             1,                2                 );
-   ReadPara->Add( "CCSN_DT_YE" ,              &CCSN_DT_YE,               1,             1,                3                 );
+   LoadInputTestProb( LOAD_READPARA, ReadPara, NULL );
 
    ReadPara->Read( FileName );
 
@@ -999,12 +1036,17 @@ void Init_TestProb_Hydro_CCSN()
    if ( OPT__INIT != INIT_BY_RESTART )   Load_IC_Prof_CCSN();
 
 // set the function pointers of various problem-specific routines
-   Init_Function_User_Ptr   = SetGridIC;
-   Flag_Region_Ptr          = Flag_Region_CCSN;
-   Aux_Record_User_Ptr      = Record_CCSN;
-   End_User_Ptr             = End_CCSN;
+   Init_Function_User_Ptr    = SetGridIC;
+   Flag_Region_Ptr           = Flag_Region_CCSN;
+   Aux_Record_User_Ptr       = Record_CCSN;
+   End_User_Ptr              = End_CCSN;
+
 #  if ( EOS == EOS_NUCLEAR  &&  NUC_TABLE_MODE == NUC_TABLE_MODE_TEMP )
-   Flu_ResetByUser_Func_Ptr = Flu_ResetByUser_CCSN;
+   Flu_ResetByUser_Func_Ptr  = Flu_ResetByUser_CCSN;
+#  endif
+
+#  ifdef SUPPORT_HDF5
+   Output_HDF5_InputTest_Ptr = LoadInputTestProb;
 #  endif
 
    if ( CCSN_Prob != Migration_Test )
@@ -1012,7 +1054,6 @@ void Init_TestProb_Hydro_CCSN()
       Flag_User_Ptr            = Flag_CCSN;
       Mis_GetTimeStep_User_Ptr = Mis_GetTimeStep_CCSN;
    }
-
 
 #  ifdef MHD
    switch ( CCSN_Mag )
