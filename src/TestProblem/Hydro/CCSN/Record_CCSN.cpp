@@ -22,8 +22,6 @@ extern int    CCSN_Shock_Weight;
 void Record_CCSN_CentralQuant()
 {
 
-   const char   filename_central_quant[] = "Record__CentralQuant";
-
 // allocate memory for per-thread arrays
 #  ifdef OPENMP
    const int NT = OMP_NTHREAD;
@@ -130,6 +128,9 @@ void Record_CCSN_CentralQuant()
 
       static bool FirstTime = true;
 
+      char     filename_central_quant[2*MAX_STRING];
+      sprintf( filename_central_quant, "%s/Record__CentralQuant", OUTPUT_DIR );
+
 //    file header
       if ( FirstTime )
       {
@@ -205,8 +206,6 @@ void Record_CCSN_CentralQuant()
 //-------------------------------------------------------------------------------------------------------
 void Record_CCSN_GWSignal()
 {
-
-   const char   filename_QuadMom_2nd[ ] = "Record__QuadMom_2nd";
 
 // allocate memory for per-thread arrays
 #  ifdef OPENMP
@@ -337,6 +336,9 @@ void Record_CCSN_GWSignal()
 
       static bool FirstTime = true;
 
+      char filename_QuadMom_2nd[2*MAX_STRING];
+      sprintf( filename_QuadMom_2nd, "%s/Record__QuadMom_2nd", OUTPUT_DIR );
+
 //    file header
       if ( FirstTime )
       {
@@ -390,7 +392,7 @@ void Detect_CoreBounce()
    double Center[3];
 
 #  ifdef GRAVITY
-   for (int i=0; i<3; i++)   Center[i] = GREP_Center[i]
+   for (int i=0; i<3; i++)   Center[i] = GREP_Center[i];
 #  else
    for (int i=0; i<3; i++)   Center[i] = amr->BoxCenter[i];
 #  endif
@@ -533,7 +535,7 @@ void Detect_Shock()
    }
 
 #  ifdef GRAVITY
-   for (int i=0; i<3; i++)   Center[i] = GREP_Center[i]
+   for (int i=0; i<3; i++)   Center[i] = GREP_Center[i];
 #  else
    for (int i=0; i<3; i++)   Center[i] = amr->BoxCenter[i];
 #  endif
