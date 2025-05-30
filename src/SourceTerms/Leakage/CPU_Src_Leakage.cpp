@@ -622,9 +622,8 @@ static void Src_Leakage( real fluid[], const real B[],
 
 // (6) final check
 #  ifdef GAMER_DEBUG
-   if (  Hydro_IsUnphysical( UNPHY_MODE_SING, &Eint_Update, "output internal energy density", (real)0.0,
-                             __FLT_MAX__, NULL_REAL, NULL, NULL, NULL, NULL, NULL, NULL,
-                             ERROR_INFO, UNPHY_VERBOSE )  )
+   if (  Hydro_IsUnphysical_Single( Eint_Update, "output internal energy density",
+                                    (real)0.0, __FLT_MAX__, ERROR_INFO, UNPHY_VERBOSE )  )
    {
       printf( "   Dens=%13.7e code units, Eint=%13.7e code units, Ye=%13.7e\n", Dens_Code, Eint_Code, Ye );
       printf( "   Radius=%13.7e cm, Temp=%13.7e Kelvin, dEdt=%13.7e, dYedt=%13.7e\n", Rad * SrcTerms->Unit_L, Temp_Kelv, dEdt_Code, dYedt );
