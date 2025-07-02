@@ -188,7 +188,7 @@ void LoadInputTestProb( const LoadParaMode_t load_mode, ReadPara_t *ReadPara, HD
    LOAD_PARA( load_mode, "CCSN_CC_Rot_R0",           &CCSN_CC_Rot_R0,            2.0e8,        Eps_double,       NoMax_double      );
    LOAD_PARA( load_mode, "CCSN_CC_Rot_Omega0",       &CCSN_CC_Rot_Omega0,        0.5,          0.0,              NoMax_double      );
    LOAD_PARA( load_mode, "CCSN_CC_Rot_Fac",          &CCSN_CC_Rot_Fac,          -1.0,          NoMin_double,     NoMax_double      );
-   LOAD_PARA( load_mode, "CCSN_REF_RBase",           &CCSN_REF_RBase,           1.25e7,        NoMin_double,     NoMax_double      );
+   LOAD_PARA( load_mode, "CCSN_REF_RBase",           &CCSN_REF_RBase,            1.25e7,       NoMin_double,     NoMax_double      );
    LOAD_PARA( load_mode, "CCSN_Is_PostBounce",       &CCSN_Is_PostBounce,        false,        Useless_bool,     Useless_bool      );
    LOAD_PARA( load_mode, "CCSN_MaxRefine_Rad",       &CCSN_MaxRefine_Rad,        3.0e6,        Eps_double,       NoMax_double      );
    LOAD_PARA( load_mode, "CCSN_AngRes_Min",          &CCSN_AngRes_Min,          -1.0,          NoMin_double,     NoMax_double      );
@@ -196,7 +196,7 @@ void LoadInputTestProb( const LoadParaMode_t load_mode, ReadPara_t *ReadPara, HD
    LOAD_PARA( load_mode, "CCSN_Shock_ThresFac_Pres", &CCSN_Shock_ThresFac_Pres,  0.5,          Eps_double,       NoMax_double      );
    LOAD_PARA( load_mode, "CCSN_Shock_ThresFac_Vel" , &CCSN_Shock_ThresFac_Vel,   0.1,          Eps_double,       NoMax_double      );
    LOAD_PARA( load_mode, "CCSN_Shock_Weight" ,       &CCSN_Shock_Weight,         2,            1,                2                 );
-   LOAD_PARA( load_mode, "CCSN_DT_YE" ,              &CCSN_DT_YE,               1,             1,                3                 );
+   LOAD_PARA( load_mode, "CCSN_DT_YE",               &CCSN_DT_YE,                1,            1,                3                 );
 
 } // FUNCITON : LoadInputTestProb
 
