@@ -225,7 +225,7 @@ void Aux_ComputeRay( Profile_t *Ray[], const double Center[], const double Edge[
       if ( NeedPar )
       {
 //       these two routines should NOT be put inside an OpenMP parallel region
-         Par_CollectParticle2OneLevel( lv, _PAR_MASS|_PAR_POSX|_PAR_POSY|_PAR_POSZ|_PAR_TYPE, PredictPos,
+         Par_CollectParticle2OneLevel( lv, _PAR_MASS|_PAR_POSX|_PAR_POSY|_PAR_POSZ, _PAR_TYPE, PredictPos,
                                        PrepTime, SibBufPatch, FaSibBufPatch, JustCountNPar_No, TimingSendPar_No );
 
          Prepare_PatchData_InitParticleDensityArray( lv, PrepTime );

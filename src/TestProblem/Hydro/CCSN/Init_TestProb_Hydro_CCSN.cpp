@@ -194,8 +194,8 @@ void LoadInputTestProb( const LoadParaMode_t load_mode, ReadPara_t *ReadPara, HD
    LOAD_PARA( load_mode, "CCSN_AngRes_Min",          &CCSN_AngRes_Min,          -1.0,          NoMin_double,     NoMax_double      );
    LOAD_PARA( load_mode, "CCSN_AngRes_Max",          &CCSN_AngRes_Max,          -1.0,          NoMin_double,     NoMax_double      );
    LOAD_PARA( load_mode, "CCSN_Shock_ThresFac_Pres", &CCSN_Shock_ThresFac_Pres,  0.5,          Eps_double,       NoMax_double      );
-   LOAD_PARA( load_mode, "CCSN_Shock_ThresFac_Vel" , &CCSN_Shock_ThresFac_Vel,   0.1,          Eps_double,       NoMax_double      );
-   LOAD_PARA( load_mode, "CCSN_Shock_Weight" ,       &CCSN_Shock_Weight,         2,            1,                2                 );
+   LOAD_PARA( load_mode, "CCSN_Shock_ThresFac_Vel",  &CCSN_Shock_ThresFac_Vel,   0.1,          Eps_double,       NoMax_double      );
+   LOAD_PARA( load_mode, "CCSN_Shock_Weight",        &CCSN_Shock_Weight,         2,            1,                2                 );
    LOAD_PARA( load_mode, "CCSN_DT_YE",               &CCSN_DT_YE,                1,            1,                3                 );
 
 } // FUNCITON : LoadInputTestProb
