@@ -56,12 +56,14 @@ static int        CCSN_Eint_Mode;                  // Mode of obtaining internal
        double     CCSN_MaxRefine_Rad;              // radius in cm within which to refine to the maximum allowed level
        double     CCSN_CC_CentralDensFac;          // factor that reduces the dt constrained by the central density (in cgs) during the core collapse
        double     CCSN_CC_Red_DT;                  // reduced time step (in s) when the central density exceeds CCSN_CC_CentralDensFac before bounce
-       double     CCSN_LB_TimeFac;                 // factor that scales the dt constrained by lightbulb scheme
+       double     CCSN_NuHeat_TimeFac;             // factor that scales the dt constrained by the lightbulb/leakage scheme
        int        CCSN_CC_Rot;                     // mode for rotational profile (0:off, 1:analytical, 2:table)
                                                    // --> analytical formula: Omega(r)=Omega_0*[R_0^2/(r^2+R_0^2)], where r is the spherical radius
        double     CCSN_CC_Rot_R0;                  // characteristic radius R_0 (in cm) in the analytical rotational profile
        double     CCSN_CC_Rot_Omega0;              // central angular frequency Omega_0 (in rad/s) in the analytical rotational profile
        double     CCSN_CC_Rot_Fac;                 // multiplication factor for the tabular rotational profile
+
+       double     CCSN_REF_RBase;                  // reference distance for determining a maximum refinement level based on distance from the box center (in cm)
 
        bool       CCSN_Is_PostBounce = false;      // boolean that indicates whether core bounce has occurred
 
@@ -70,19 +72,22 @@ static int        CCSN_Eint_Mode;                  // Mode of obtaining internal
        double     CCSN_Shock_ThresFac_Pres;        // pressure threshold factor for detecting postbounce shock
        double     CCSN_Shock_ThresFac_Vel;         // velocity threshold facotr for detecting postbounce shock
        int        CCSN_Shock_Weight;               // weighting of each cell    for detecting postbounce shock (1:volume, 2:1/volume)
+
+       int        CCSN_DT_YE;                      // dt criterion on Ye (1=min(Ye_max-Ye, Ye-Ye_min), 2=Ye, 3=none) [1]
 // =======================================================================================
 
 
 // problem-specific function prototypes
 void   Record_CCSN_CentralQuant();
+void   Record_CCSN_Leakage();
 void   Record_CCSN_GWSignal();
 void   Detect_CoreBounce();
 void   Detect_Shock();
-double Mis_GetTimeStep_Lightbulb( const int lv, const double dTime_dt );
 double Mis_GetTimeStep_CoreCollapse( const int lv, const double dTime_dt );
+double Mis_GetTimeStep_PostBounce( const int lv, const double dTime_dt );
 bool   Flag_Region_CCSN( const int i, const int j, const int k, const int lv, const int PID );
 bool   Flag_CoreCollapse( const int i, const int j, const int k, const int lv, const int PID, const double *Threshold );
-bool   Flag_Lightbulb( const int i, const int j, const int k, const int lv, const int PID, const double *Threshold );
+bool   Flag_PostBounce( const int i, const int j, const int k, const int lv, const int PID, const double *Threshold );
 
 
 
@@ -178,18 +183,20 @@ void LoadInputTestProb( const LoadParaMode_t load_mode, ReadPara_t *ReadPara, HD
    LOAD_PARA( load_mode, "CCSN_CC_MaxRefine_Dens2",  &CCSN_CC_MaxRefine_Dens2,   1.0e12,       0.0,              NoMax_double      );
    LOAD_PARA( load_mode, "CCSN_CC_CentralDensFac",   &CCSN_CC_CentralDensFac,    1.0e13,       Eps_double,       NoMax_double      );
    LOAD_PARA( load_mode, "CCSN_CC_Red_DT",           &CCSN_CC_Red_DT,            1.0e-5,       Eps_double,       NoMax_double      );
-   LOAD_PARA( load_mode, "CCSN_LB_TimeFac",          &CCSN_LB_TimeFac,           0.1,          Eps_double,       1.0               );
+   LOAD_PARA( load_mode, "CCSN_NuHeat_TimeFac",      &CCSN_NuHeat_TimeFac,       0.1,          Eps_double,       1.0               );
    LOAD_PARA( load_mode, "CCSN_CC_Rot",              &CCSN_CC_Rot,               2,            0,                2                 );
    LOAD_PARA( load_mode, "CCSN_CC_Rot_R0",           &CCSN_CC_Rot_R0,            2.0e8,        Eps_double,       NoMax_double      );
    LOAD_PARA( load_mode, "CCSN_CC_Rot_Omega0",       &CCSN_CC_Rot_Omega0,        0.5,          0.0,              NoMax_double      );
    LOAD_PARA( load_mode, "CCSN_CC_Rot_Fac",          &CCSN_CC_Rot_Fac,          -1.0,          NoMin_double,     NoMax_double      );
+   LOAD_PARA( load_mode, "CCSN_REF_RBase",           &CCSN_REF_RBase,            1.25e7,       NoMin_double,     NoMax_double      );
    LOAD_PARA( load_mode, "CCSN_Is_PostBounce",       &CCSN_Is_PostBounce,        false,        Useless_bool,     Useless_bool      );
    LOAD_PARA( load_mode, "CCSN_MaxRefine_Rad",       &CCSN_MaxRefine_Rad,        3.0e6,        Eps_double,       NoMax_double      );
    LOAD_PARA( load_mode, "CCSN_AngRes_Min",          &CCSN_AngRes_Min,          -1.0,          NoMin_double,     NoMax_double      );
    LOAD_PARA( load_mode, "CCSN_AngRes_Max",          &CCSN_AngRes_Max,          -1.0,          NoMin_double,     NoMax_double      );
    LOAD_PARA( load_mode, "CCSN_Shock_ThresFac_Pres", &CCSN_Shock_ThresFac_Pres,  0.5,          Eps_double,       NoMax_double      );
-   LOAD_PARA( load_mode, "CCSN_Shock_ThresFac_Vel" , &CCSN_Shock_ThresFac_Vel,   0.1,          Eps_double,       NoMax_double      );
-   LOAD_PARA( load_mode, "CCSN_Shock_Weight" ,       &CCSN_Shock_Weight,         2,            1,                2                 );
+   LOAD_PARA( load_mode, "CCSN_Shock_ThresFac_Vel",  &CCSN_Shock_ThresFac_Vel,   0.1,          Eps_double,       NoMax_double      );
+   LOAD_PARA( load_mode, "CCSN_Shock_Weight",        &CCSN_Shock_Weight,         2,            1,                2                 );
+   LOAD_PARA( load_mode, "CCSN_DT_YE",               &CCSN_DT_YE,                1,            1,                3                 );
 
 } // FUNCITON : LoadInputTestProb
 
@@ -342,6 +349,8 @@ void SetParameter()
 
 
 // (2) set the problem-specific derived parameters
+// convert runtime parameters to the code unit
+   CCSN_REF_RBase /= UNIT_L;
 
 
 // (3) reset other general-purpose parameters
@@ -377,7 +386,7 @@ void SetParameter()
       Aux_Message( stdout, "  sampling interval of GW signals                                    = %13.7e\n", CCSN_GW_DT               );
       Aux_Message( stdout, "  mode for obtaining internal energy                                 = %d\n",     CCSN_Eint_Mode           );
       if ( CCSN_Prob != Migration_Test ) {
-      Aux_Message( stdout, "  scaling factor for lightbulb dt                                    = %13.7e\n", CCSN_LB_TimeFac          );
+      Aux_Message( stdout, "  scaling factor for lightbulb/leakage dt                            = %13.7e\n", CCSN_NuHeat_TimeFac      );
       Aux_Message( stdout, "  has core bounce occurred                                           = %d\n",     CCSN_Is_PostBounce       );
       Aux_Message( stdout, "  pressure threshold factor for detecting shock                      = %13.7e\n", CCSN_Shock_ThresFac_Pres );
       Aux_Message( stdout, "  velocity threshold factor for detecting shock                      = %13.7e\n", CCSN_Shock_ThresFac_Vel  );
@@ -400,6 +409,8 @@ void SetParameter()
       Aux_Message( stdout, "  radius within which to refine to the maximum allowed level (in cm) = %13.7e\n", CCSN_MaxRefine_Rad       );
       Aux_Message( stdout, "  minimum angular resolution (in degrees)                            = %13.7e\n", CCSN_AngRes_Min/Deg2Rad  );
       Aux_Message( stdout, "  maximum angular resolution (in degrees)                            = %13.7e\n", CCSN_AngRes_Max/Deg2Rad  );
+      Aux_Message( stdout, "  reference distance for the maximum refinement level                = %13.7e\n", CCSN_REF_RBase           );
+      Aux_Message( stdout, "  dt criterion on Ye                                                 = %d\n",     CCSN_DT_YE               );
       Aux_Message( stdout, "=======================================================================================\n"  );
    }
 
@@ -518,14 +529,17 @@ void SetGridIC( real fluid[], const double x, const double y, const double z, co
 #  if ( EOS == EOS_NUCLEAR )
    real *Passive = new real [NCOMP_PASSIVE];
 
-   Passive[ YE      - NCOMP_FLUID ] = Ye*Dens;
-   Passive[ DEDT_NU - NCOMP_FLUID ] = TINY_NUMBER;
+   Passive[ YE       - NCOMP_FLUID ] = Ye*Dens;
+   Passive[ DEDT_NU  - NCOMP_FLUID ] = TINY_NUMBER;
+#  ifdef DYEDT_NU
+   Passive[ DYEDT_NU - NCOMP_FLUID ] = TINY_NUMBER;
+#  endif
 #  ifdef TEMP_IG
-   Passive[ TEMP_IG - NCOMP_FLUID ] = Temp;
+   Passive[ TEMP_IG  - NCOMP_FLUID ] = Temp;
 #  endif
 #  else
    real *Passive = NULL;
-#  endif
+#  endif // #if ( EOS == EOS_NUCLEAR ) ... else ...
 
    if ( CCSN_Eint_Mode == 1 )   // Temperature Mode
    {
@@ -810,16 +824,62 @@ void Load_IC_Prof_CCSN()
 void Record_CCSN()
 {
 
-// (1) shock detection
+// (1) check whether the core bounce occurs
+   if ( !CCSN_Is_PostBounce )
+   {
+      Detect_CoreBounce();
+
+      if ( CCSN_Is_PostBounce )
+      {
+//       dump the bounce time in standard output
+         if ( MPI_Rank == 0 )   Aux_Message( stdout, "Bounce time = %13.7e seconds !!\n", Time[0] * UNIT_T );
+
+//       disable the deleptonization scheme, and enable the lightbulb/leakage scheme
+         SrcTerms.Deleptonization = false;
+
+#        ifdef NEUTRINO_SCHEME
+#           if   ( NEUTRINO_SCHEME == LIGHTBULB )
+               SrcTerms.Lightbulb = true;
+               if ( MPI_Rank == 0 )   Aux_Message( stdout, "Enable the lightbulb scheme !!\n" );
+#           elif ( NEUTRINO_SCHEME == LEAKAGE )
+               SrcTerms.Leakage   = true;
+               if ( MPI_Rank == 0 )   Aux_Message( stdout, "Enable the leakage scheme !!\n" );
+#           else
+               if ( MPI_Rank == 0 )   Aux_Message( stdout, "No NEUTRINO_SCHEME specified !!\n" );
+#           endif
+#        endif
+
+         Src_Init();
+
+//       initialize the dEdt_Nu field
+         for (int lv=0; lv<NLEVEL; lv++)
+         {
+            Src_AdvanceDt( lv, Time[lv], Time[lv], 0.0, amr->FluSg[lv], amr->MagSg[lv], false, false );
+
+            Buf_GetBufferData( lv, amr->FluSg[lv], amr->MagSg[lv], NULL_INT, DATA_GENERAL, _TOTAL, _MAG, Flu_ParaBuf, USELB_YES );
+         }
+
+//       forced output data at core bounce
+         Output_DumpData( 2 );
+
+      }
+   } // if ( !CCSN_Is_PostBounce )
+
+
+// (2) shock detection
    if ( CCSN_Prob != Migration_Test  &&  CCSN_Is_PostBounce )
       Detect_Shock();
 
 
-// (2) record quantities at the center
+// (3) record quantities at the center
+#  if ( defined NEUTRINO_SCHEME  &&  NEUTRINO_SCHEME == LEAKAGE )
+   if ( CCSN_Is_PostBounce )   Record_CCSN_Leakage();
+#  endif
+
    Record_CCSN_CentralQuant();
 
 
-// (3) GW signal
+// (4) GW signal
 #  ifdef GRAVITY
    if ( CCSN_GW_OUTPUT )
    {
@@ -852,29 +912,6 @@ void Record_CCSN()
    } // if ( CCSN_GW_OUTPUT )
 #  endif
 
-
-// (4) check whether the core bounce occurs
-   if ( !CCSN_Is_PostBounce )
-   {
-      Detect_CoreBounce();
-
-      if ( CCSN_Is_PostBounce )
-      {
-//       dump the bounce time in standard output
-         if ( MPI_Rank == 0 )   Aux_Message( stdout, "Bounce time = %13.7e seconds !!\n", Time[0] * UNIT_T );
-
-//       disable the deleptonization scheme, and enable the lightbulb scheme
-         SrcTerms.Deleptonization = false;
-         SrcTerms.Lightbulb       = true;
-
-         Src_Init();
-
-//       forced output data at core bounce
-         Output_DumpData( 2 );
-
-      }
-   } // if ( !CCSN_Is_PostBounce )
-
 } // FUNCTION : Record_CCSN()
 
 
@@ -882,21 +919,26 @@ void Record_CCSN()
 //-------------------------------------------------------------------------------------------------------
 // Function    :  Mis_GetTimeStep_CCSN
 // Description :  Interface for invoking several functions for estimating the evolution time-step
+//                for CCSN simulations
 //-------------------------------------------------------------------------------------------------------
 double Mis_GetTimeStep_CCSN( const int lv, const double dTime_dt )
 {
 
    double dt_CCSN = HUGE_NUMBER;
 
-   if ( SrcTerms.Lightbulb )
+   if ( ! CCSN_Is_PostBounce )
    {
-      const double dt_LB = Mis_GetTimeStep_Lightbulb( lv, dTime_dt );
-
-      dt_CCSN = fmin( dt_CCSN, dt_LB );
+      if ( SrcTerms.Deleptonization )
+         dt_CCSN = fmin(  dt_CCSN, Mis_GetTimeStep_CoreCollapse( lv, dTime_dt )  );
    }
 
-   if ( !CCSN_Is_PostBounce  &&  SrcTerms.Deleptonization )
-      dt_CCSN = fmin(  dt_CCSN, Mis_GetTimeStep_CoreCollapse( lv, dTime_dt )  );
+   else
+   {
+#     if ( NEUTRINO_SCHEME == LIGHTBULB  ||  NEUTRINO_SCHEME == LEAKAGE )
+      if ( SrcTerms.Lightbulb  ||  SrcTerms.Leakage )
+         dt_CCSN = fmin(  dt_CCSN, Mis_GetTimeStep_PostBounce  ( lv, dTime_dt )  );
+#     endif
+   }
 
 
    return dt_CCSN;
@@ -935,9 +977,10 @@ bool Flag_CCSN( const int i, const int j, const int k, const int lv, const int P
       if ( Flag )    return Flag;
    }
 
-   if (  ( CCSN_Prob == Post_Bounce )  ||  SrcTerms.Lightbulb  )
+   if (  CCSN_Is_PostBounce                            &&
+         ( SrcTerms.Lightbulb  ||  SrcTerms.Leakage )     )
    {
-      Flag |= Flag_Lightbulb( i, j, k, lv, PID, Threshold );
+      Flag |= Flag_PostBounce( i, j, k, lv, PID, Threshold );
       if ( Flag )    return Flag;
    }
 
@@ -994,11 +1037,9 @@ void Init_TestProb_Hydro_CCSN()
 
 // set the function pointers of various problem-specific routines
    Init_Function_User_Ptr    = SetGridIC;
-   Flag_User_Ptr             = Flag_CCSN;
    Flag_Region_Ptr           = Flag_Region_CCSN;
    Aux_Record_User_Ptr       = Record_CCSN;
    End_User_Ptr              = End_CCSN;
-   Mis_GetTimeStep_User_Ptr  = Mis_GetTimeStep_CCSN;
 
 #  if ( EOS == EOS_NUCLEAR  &&  NUC_TABLE_MODE == NUC_TABLE_MODE_TEMP )
    Flu_ResetByUser_Func_Ptr  = Flu_ResetByUser_CCSN;
@@ -1007,6 +1048,12 @@ void Init_TestProb_Hydro_CCSN()
 #  ifdef SUPPORT_HDF5
    Output_HDF5_InputTest_Ptr = LoadInputTestProb;
 #  endif
+
+   if ( CCSN_Prob != Migration_Test )
+   {
+      Flag_User_Ptr            = Flag_CCSN;
+      Mis_GetTimeStep_User_Ptr = Mis_GetTimeStep_CCSN;
+   }
 
 #  ifdef MHD
    switch ( CCSN_Mag )

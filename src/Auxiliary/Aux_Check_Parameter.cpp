@@ -925,8 +925,8 @@ void Aux_Check_Parameter()
 #     endif
 #  endif // #ifdef BAROTROPIC_EOS ... else ...
 
-#  if ( defined NEUTRINO_SCHEME  &&  NEUTRINO_SCHEME != LIGHTBULB  &&  NEUTRINO_SCHEME != IDSA  &&  NEUTRINO_SCHEME != M1 )
-#     error : ERROR : unsupported neutrino updating scheme (LIGHTBULB/IDSA/M1) !!
+#  if ( defined NEUTRINO_SCHEME  &&  NEUTRINO_SCHEME != LIGHTBULB  &&  NEUTRINO_SCHEME != IDSA  &&  NEUTRINO_SCHEME != M1  &&  NEUTRINO_SCHEME != LEAKAGE )
+#     error : ERROR : unsupported neutrino updating scheme (LIGHTBULB/IDSA/M1/LEAKAGE) !!
 #  endif
 
    if ( OPT__1ST_FLUX_CORR != FIRST_FLUX_CORR_NONE )
@@ -1866,6 +1866,38 @@ void Aux_Check_Parameter()
 
    if ( SrcTerms.Lightbulb )
       Aux_Error( ERROR_INFO, "SRC_LIGHTBULB is only supported in HYDRO and must work with EOS_NUCLEAR !!\n" );
+
+   if ( SrcTerms.Leakage )
+      Aux_Error( ERROR_INFO, "SRC_LEAKAGE is only supported in HYDRO and must work with EOS_NUCLEAR !!\n" );
+#  endif
+
+   if ( SrcTerms.Lightbulb  &&  SrcTerms.Leakage )
+      Aux_Error( ERROR_INFO, "SRC_LIGHTBULB and SRC_LEAKAGE cannot be enabled simultaneously !!\n" );
+
+#  if ( NEUTRINO_SCHEME != LIGHTBULB )
+   if ( SrcTerms.Lightbulb )
+      Aux_Error( ERROR_INFO, "NEUTRINO_SCHEME != LIGHTBULB for the lightbulb scheme !!\n" );
+#  endif
+
+#  if ( NEUTRINO_SCHEME != LEAKAGE )
+   if ( SrcTerms.Leakage )
+      Aux_Error( ERROR_INFO, "NEUTRINO_SCHEME != LEAKAGE for the leakage scheme !!\n" );
+#  else
+   if ( SrcTerms.Leakage_RadiusMax < SrcTerms.Leakage_BinSize_Radius )
+      Aux_Error( ERROR_INFO, "%s (%14.7e) <= %s (%14.7e) !!\n",
+                 "SRC_LEAKAGE_RADIUSMAX", SrcTerms.Leakage_RadiusMax, "SRC_LEAKAGE_BINSIZE_RADIUS", SrcTerms.Leakage_BinSize_Radius );
+
+   if ( SrcTerms.Leakage_RadiusMax < SrcTerms.Leakage_RadiusMin_Log  )
+      Aux_Error( ERROR_INFO, "%s (%14.7e) <= %s (%14.7e) !!\n",
+                 "SRC_LEAKAGE_RADIUSMAX", SrcTerms.Leakage_RadiusMax, "SRC_LEAKAGE_RADIUSMIN_LOG", SrcTerms.Leakage_RadiusMin_Log );
+
+   if ( SrcTerms.Leakage_NPhi > 1  &&  SrcTerms.Leakage_NPhi % 2 )
+      Aux_Error( ERROR_INFO, "(%d) must be 1 or a multiple of 2 !!\n",
+                 "SRC_LEAKAGE_NPHI", SrcTerms.Leakage_NPhi );
+
+   if ( int( SrcTerms.Leakage_RadiusMin_Log / SrcTerms.Leakage_BinSize_Radius ) > SrcTerms.Leakage_NRadius )
+      Aux_Error( ERROR_INFO, "%s (%14.7e) / %s (%14.7e) > %s (%d) !!\n",
+                 "SRC_LEAKAGE_RADIUSMIN_LOG", SrcTerms.Leakage_RadiusMin_Log, "SRC_LEAKAGE_BINSIZE_RADIUS", SrcTerms.Leakage_BinSize_Radius, "SRC_LEAKAGE_NRADIUS", SrcTerms.Leakage_NRadius );
 #  endif
 
 // warning
