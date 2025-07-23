@@ -114,11 +114,13 @@ void findtemp_NR_bisection( const real lr, const real lt0, const real ye, const 
    nuc_eos_C_linterp_for_temp( lr, lt, ye, &var, alltables, nrho, ntemp, nye,
                                logrho, logtemp, yes, &dvardlt, keymode );
 
+#  if 0
    if ( FABS( var-var0 ) < prec*FABS( var0 ) )
    {
       *ltout = lt0;
       return;
    }
+#  endif
 
    lt1  = lt;
    var1 = var;
@@ -207,11 +209,13 @@ void findtemp_NR_bisection( const real lr, const real lt0, const real ye, const 
       nuc_eos_C_linterp_for_temp( lr, lt, ye, &var, alltables, nrho, ntemp, nye,
                                   logrho, logtemp, yes, &dvardlt, keymode );
 
+#     if 0
       if (  FABS( var - var0 ) < prec*FABS( var0 )  )
       {
          *ltout = lt;
          return;
       }
+#     endif
 
 
 //    if we are closer than 10^-3  to the root (prs-prs0)=0, we are switching to the secant method,
@@ -436,8 +440,9 @@ void bisection( const real lr, const real lt0, const real ye, const real var0,
          int bcount    = 0;
 
 // temporary local vars
-   const real ltmin = logtemp[0];
-   const real ltmax = logtemp[ntemp-1];
+   const real ltmin   = logtemp[0];
+   const real ltmax   = logtemp[ntemp-1];
+   const real dlt_min = logtemp[1] - logtemp[0];
 
    real f1, f2, fmid, dlt, ltmid;
    real lt, lt1, lt2;
@@ -507,32 +512,60 @@ void bisection( const real lr, const real lt0, const real ye, const real var0,
    } // while ( f1*f2 >= 0.0 )
 
 
-   if ( f1 < 0.0 )
+   if ( f1 <= 0.0 )
    {
-      lt  = lt1;
-      dlt = LOG10( POW( (real)10.0, lt2 ) - POW( (real)10.0, lt1 ) );
+      f1  = f1a[iv];
+      f2  = f2a[iv];
    }
 
    else
    {
-      lt  = lt2;
-      dlt = LOG10( POW( (real)10.0, lt1 ) - POW( (real)10.0, lt2 ) );
+      f1  = f2a[iv];
+      f2  = f1a[iv];
+      lt  = lt1;
+      lt1 = lt2;
+      lt2 = lt;
    }
+
+   dlt = lt2 - lt1;
 
 
    int it;
    for (it=0; it<itmax; it++)
    {
-      dlt   = LOG10( POW( (real)10.0, dlt )*(real)0.5 );
-      ltmid = LOG10( POW( (real)10.0, lt ) + POW( (real)10.0, dlt ) );
+      dlt   *= (real)0.5;
+      ltmid  = lt1 + dlt;
+
       nuc_eos_C_linterp_some( lr, ltmid, ye, TargetIdx, f2a, alltables,
                               nrho, ntemp, nye, nvars, logrho, logtemp, yes );
       fmid = f2a[iv] - var0;
-      if ( fmid <= 0.0 ) lt=ltmid;
 
+      if ( fmid <= 0.0 )
+      {
+         lt1 = ltmid;
+         f1  = f2a[iv];
+      }
+
+      else
+      {
+         lt2 = ltmid;
+         f2  = f2a[iv];
+      }
+
+#     if 0
       if ( FABS( (real)1.0 - f2a[iv]/var0 ) <= (real)prec )
       {
          *ltout = ltmid;
+         return;
+      }
+#     endif
+
+      if ( dlt < dlt_min )
+      {
+         *ltout = ( f1 != f2 )
+                ? lt1 + (var0 - f1) * (lt2 - lt1) / (f2 - f1)
+                : ltmid;
+
          return;
       }
    }
