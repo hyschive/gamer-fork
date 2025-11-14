@@ -126,6 +126,7 @@ void Src_SetAuxArray_Deleptonization( double AuxArray_Flt[], int AuxArray_Int[] 
 //                TimeOld           : Physical time before update
 //                                    --> This function updates physical time from TimeOld to TimeNew
 //                MinDens/Pres/Eint : Density, pressure, and internal energy floors
+//                PassiveFloor      : Bitwise flag to specify the passive scalars to be floored
 //                EoS               : EoS object
 //                AuxArray_*        : Auxiliary arrays (see the Note above)
 //
@@ -136,7 +137,7 @@ static void Src_Deleptonization( real fluid[], const real B[],
                                  const SrcTerms_t *SrcTerms, const real dt, const real dh,
                                  const double x, const double y, const double z,
                                  const double TimeNew, const double TimeOld,
-                                 const real MinDens, const real MinPres, const real MinEint,
+                                 const real MinDens, const real MinPres, const real MinEint, const long PassiveFloor,
                                  const EoS_t *EoS, const double AuxArray_Flt[], const int AuxArray_Int[] )
 {
 
@@ -178,7 +179,7 @@ static void Src_Deleptonization( real fluid[], const real B[],
    const real Dens_Code = fluid[DENS];
    const real Dens_CGS  = Dens_Code * Dens2CGS;
    const real Eint_Code = Hydro_Con2Eint( fluid[DENS], fluid[MOMX], fluid[MOMY], fluid[MOMZ], fluid[ENGY],
-                                          true, MinEint, Emag, EoS->GuessHTilde_FuncPtr,
+                                          true, MinEint, PassiveFloor, Emag, EoS->GuessHTilde_FuncPtr,
                                           EoS->HTilde2Temp_FuncPtr, EoS->AuxArrayDevPtr_Flt,
                                           EoS->AuxArrayDevPtr_Int, EoS->Table );
          real Eint_Update;

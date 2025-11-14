@@ -389,7 +389,7 @@ struct SymConst_t
 // Structure   :  InputPara_t
 // Description :  Data structure for outputting the run-time parameters
 //
-// Note        :  1. All run-time parameters are loaded from the files "Input__XXX"
+// Note        :  1. Most of the run-time parameters are loaded from the files "Input__XXX"
 //-------------------------------------------------------------------------------------------------------
 struct InputPara_t
 {
@@ -445,6 +445,7 @@ struct InputPara_t
    int    Par_GhostSize;
    int    Par_GhostSizeTracer;
    int    Par_TracerVelCorr;
+   int    Opt__ParInitCheck;
    char  *ParAttFltLabel[PAR_NATT_FLT_TOTAL];
    char  *ParAttIntLabel[PAR_NATT_INT_TOTAL];
 #  endif
@@ -627,6 +628,7 @@ struct InputPara_t
    int    Opt__FixUp_Restrict;
    long   FixUpRestrict_Var;
    int    Opt__CorrAfterAllSync;
+   long   PassiveFloor_Var;
    int    Opt__NormalizePassive;
    int    NormalizePassive_NVar;
    int    NormalizePassive_VarIdx[NCOMP_PASSIVE];
