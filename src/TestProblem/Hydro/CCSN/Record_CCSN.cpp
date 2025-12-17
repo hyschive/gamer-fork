@@ -451,7 +451,7 @@ void Detect_CoreBounce()
 #              endif
 
                Entr = Hydro_Con2Entr( u[DENS], u[MOMX], u[MOMY], u[MOMZ], u[ENGY], u+NCOMP_FLUID,
-                                      false, NULL_REAL, Emag, EoS_DensEint2Entr_CPUPtr,
+                                      false, NULL_REAL, PassiveFloorMask, Emag, EoS_DensEint2Entr_CPUPtr,
                                       EoS_AuxArray_Flt, EoS_AuxArray_Int, h_EoS_Table );
 
                OMP_MaxEntr[TID] = FMAX( OMP_MaxEntr[TID], Entr );
