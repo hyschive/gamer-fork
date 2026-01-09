@@ -56,9 +56,9 @@ void Output_DumpData( const int Stage )
                DumpTime = round( int(Time[0]/OUTPUT_DT) + 1.0 )*OUTPUT_DT;
 
 //             be careful about round-off errors
-               if (   (  DumpTime <= Time[0]  )                                            ||
-                      (  Time[0] != 0.0 && fabs( (Time[0]-DumpTime)/Time[0] ) < 1.0e-8  )  ||
-                      (  Time[0] == 0.0 && fabs(  Time[0]-DumpTime          ) < 1.0e-12 )      )   DumpTime += OUTPUT_DT;
+               if (   (  DumpTime <= Time[0]  )                                             ||
+                      (  Time[0] != 0.0 && fabs( (Time[0]-DumpTime)/Time[0] ) < 1.0e-8   )  ||
+                      (  Time[0] == 0.0 && fabs(  Time[0]-DumpTime          ) < 1.0e-12  )      )  DumpTime += OUTPUT_DT;
             }
          }
          break;
@@ -71,9 +71,9 @@ void Output_DumpData( const int Stage )
                {
                   DumpTime = DumpTable[DumpTableID];
 
-                  if (   (  DumpTime >= Time[0]  )                                            ||
-                         (  Time[0] != 0.0 && fabs( (Time[0]-DumpTime)/Time[0] ) < 1.0e-8  )  ||
-                         (  Time[0] == 0.0 && fabs(  Time[0]-DumpTime          ) < 1.0e-12 )      )   break;
+                  if (   (  DumpTime >= Time[0]  )                                             ||
+                         (  Time[0] != 0.0 && fabs( (Time[0]-DumpTime)/Time[0] ) < 1.0e-8   )  ||
+                         (  Time[0] == 0.0 && fabs(  Time[0]-DumpTime          ) < 1.0e-12  )      )  break;
                }
             }
 
@@ -300,7 +300,7 @@ void Output_DumpData( const int Stage )
 #                 endif
 
                   SrcTerms.Leakage_CPUPtr( fluid, B, &SrcTerms, dt, NULL_REAL, x, y, z, NULL_REAL, NULL_REAL,
-                                           MIN_DENS, MIN_PRES, MIN_EINT, NULL,
+                                           MIN_DENS, MIN_PRES, MIN_EINT, PassiveFloorMask, NULL,
                                            Src_Leakage_AuxArray_Flt, Src_Leakage_AuxArray_Int );
 
                   amr->patch[FluSg][lv][PID]->fluid[DEDT_NU ][k][j][i] = fluid[DEDT_NU ];

@@ -356,7 +356,7 @@ void Record_CCSN_Leakage()
 #              endif
 
                SrcTerms.Leakage_CPUPtr( fluid, B, &SrcTerms, 0.0, NULL_REAL, x, y, z, NULL_REAL, NULL_REAL,
-                                        MIN_DENS, MIN_PRES, MIN_EINT, &EoS,
+                                        MIN_DENS, MIN_PRES, MIN_EINT, PassiveFloorMask, &EoS,
                                         Src_Leakage_AuxArray_Flt, Src_Leakage_AuxArray_Int );
 
                if ( fluid[DENS] > 0.0 )
@@ -685,7 +685,7 @@ void Detect_CoreBounce()
 #              endif
 
                Entr = Hydro_Con2Entr( u[DENS], u[MOMX], u[MOMY], u[MOMZ], u[ENGY], u+NCOMP_FLUID,
-                                      false, NULL_REAL, Emag, EoS_DensEint2Entr_CPUPtr,
+                                      false, NULL_REAL, PassiveFloorMask, Emag, EoS_DensEint2Entr_CPUPtr,
                                       EoS_AuxArray_Flt, EoS_AuxArray_Int, h_EoS_Table );
 
                OMP_MaxEntr[TID] = FMAX( OMP_MaxEntr[TID], Entr );
@@ -864,7 +864,7 @@ void Detect_Shock()
 
                const real Pres = Hydro_Con2Pres( FluidForEoS[DENS], FluidForEoS[MOMX], FluidForEoS[MOMY],
                                                  FluidForEoS[MOMZ], FluidForEoS[ENGY], FluidForEoS+NCOMP_FLUID,
-                                                 (MIN_PRES>=(real)0.0), MIN_PRES, Emag,
+                                                 (MIN_PRES>=(real)0.0), MIN_PRES, PassiveFloorMask, Emag,
                                                  EoS_DensEint2Pres_CPUPtr, EoS_GuessHTilde_CPUPtr, EoS_HTilde2Temp_CPUPtr,
                                                  EoS_AuxArray_Flt, EoS_AuxArray_Int, h_EoS_Table, NULL );
 
