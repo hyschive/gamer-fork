@@ -456,7 +456,7 @@ void Flu_FixUp_Restrict( const int FaLv, const int SonFluSg, const int FaFluSg, 
                               amr->patch[FaFluSg][FaLv][FaPID]->fluid[MOMZ][k][j][i],
                               amr->patch[FaFluSg][FaLv][FaPID]->fluid[ENGY][k][j][i],
                               Passive,
-                              CheckMinTemp_No, NULL_REAL, Emag, PassiveFloorMask,
+                              CheckMinTemp_No, NULL_REAL, PassiveFloorMask, Emag,
                               EoS_DensEint2Temp_CPUPtr,
                               EoS_GuessHTilde_CPUPtr, EoS_HTilde2Temp_CPUPtr,
                               EoS_AuxArray_Flt, EoS_AuxArray_Int, h_EoS_Table );
