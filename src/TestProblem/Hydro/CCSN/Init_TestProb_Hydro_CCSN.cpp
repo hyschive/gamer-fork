@@ -332,7 +332,7 @@ void SetParameter()
 
    if ( CCSN_AngRes_Max > 0.0 ) {
       CCSN_AngRes_Max *= Deg2Rad;
-      PRINT_RESET_PARA( CCSN_AngRes_Max, FORMAT_DOUBLE, "" );
+      PRINT_RESET_PARA( CCSN_AngRes_Max, FORMAT_REAL, "" );
 
       if ( !OPT__FLAG_REGION )
          Aux_Error( ERROR_INFO, "%s is disabled for %s = %13.7e !!\n", "OPT__FLAG_REGION", "CCSN_AngRes_Max", CCSN_AngRes_Max );
@@ -340,7 +340,7 @@ void SetParameter()
 
    if ( CCSN_AngRes_Min > 0.0 ) {
       CCSN_AngRes_Min *= Deg2Rad;
-      PRINT_RESET_PARA( CCSN_AngRes_Min, FORMAT_DOUBLE, "" );
+      PRINT_RESET_PARA( CCSN_AngRes_Min, FORMAT_REAL, "" );
    }
 
    if ( CCSN_AngRes_Min > 0.0  &&  CCSN_AngRes_Max > 0.0  &&
