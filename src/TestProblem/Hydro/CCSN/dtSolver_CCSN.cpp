@@ -111,9 +111,9 @@ double Mis_GetTimeStep_PostBounce( const int lv, const double dTime_dt )
 
             switch ( CCSN_DT_YE )
             {
-               case 1 : dYe  = FMIN(  FABS( YeMax - Ye ), FABS( Ye - YeMin )  );   break;
-               case 2 : dYe  = Ye;                                                 break;
-               case 3 : dYe  = __FLT_MAX__;                                        break;
+               case 1 : dYe  = ( dYedt > 0.0 ) ? ( YeMax - Ye ) : ( YeMin - Ye );   break;
+               case 2 : dYe  = Ye;                                                  break;
+               case 3 : dYe  = __FLT_MAX__;                                         break;
             }
 #           else
             const real dYedt = NULL_REAL;
@@ -124,7 +124,7 @@ double Mis_GetTimeStep_PostBounce( const int lv, const double dTime_dt )
             double dtInv_NuHeat_ThisCell = FABS( dEint_Code / Eint_Code );
 
 #           if ( NEUTRINO_SCHEME == LEAKAGE )
-            dtInv_NuHeat_ThisCell = FMAX( FABS( dYedt / dYe ), dtInv_NuHeat_ThisCell );
+            dtInv_NuHeat_ThisCell = FMAX( dYedt / dYe, dtInv_NuHeat_ThisCell );
 #           endif
 
 //          compare the inverse of ratio to avoid zero division, and store the maximum value

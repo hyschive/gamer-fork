@@ -40,7 +40,7 @@ CCSN_REF_RBase           -1.0;                     # reference distance for dete
 
 CCSN_Is_PostBounce        0                        # boolean that indicates whether core bounce has occurred  [0]
 
-CCSN_DT_YE                1                        # dt criterion on Ye (1=min(Ye_max-Ye, Ye-Ye_min), 2=Ye, 3=none) [1]
+CCSN_DT_YE                1                        # dt criterion on Ye (1=Ye-Ye_min/Ye_max, 2=Ye, 3=none) [1]
 
 CCSN_MaxRefine_Rad        3.0e6                    # radius in cm within which to refine to the maximum allowed level [3.0e6]
 CCSN_AngRes_Min          -1.0                      # minimum angular resolution in degrees (<=0=off) [-1.0]

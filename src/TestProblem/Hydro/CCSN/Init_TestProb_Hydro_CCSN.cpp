@@ -73,7 +73,7 @@ static int        CCSN_Eint_Mode;                  // Mode of obtaining internal
        double     CCSN_Shock_ThresFac_Vel;         // velocity threshold facotr for detecting postbounce shock
        int        CCSN_Shock_Weight;               // weighting of each cell    for detecting postbounce shock (1:volume, 2:1/volume)
 
-       int        CCSN_DT_YE;                      // dt criterion on Ye (1=min(Ye_max-Ye, Ye-Ye_min), 2=Ye, 3=none) [1]
+       int        CCSN_DT_YE;                      // dt criterion on Ye (1=Ye-Ye_min/Ye_max, 2=Ye, 3=none) [1]
 // =======================================================================================
 
 
