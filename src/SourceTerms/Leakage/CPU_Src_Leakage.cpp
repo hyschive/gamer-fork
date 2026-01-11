@@ -572,13 +572,10 @@ static void Src_Leakage( real fluid[], const real B[],
    }
 
 
-// (5-1) store the heating rate before the corrections in (5-2)
-//       --> for LEAK_MODE_CORRSIGN mode, store the actual sign instead of the absolute value
+// (5-1) store the heating rate
 #  ifdef DYEDT_NU
-   fluid[DEDT_NU ] = ( Mode == LEAK_MODE_CORRSIGN ) ? dEdt_Code  : FABS( dEdt_Code  );
-   fluid[DYEDT_NU] = ( Mode == LEAK_MODE_CORRSIGN ) ? dYedt_Code : FABS( dYedt_Code );
-
-   if ( Mode == LEAK_MODE_CORRSIGN )   return;
+   fluid[DEDT_NU ] = dEdt_Code;
+   fluid[DYEDT_NU] = dYedt_Code;
 #  endif
 
 // (5-2) check whether the updated Ye is at least 1% away from the table boundary

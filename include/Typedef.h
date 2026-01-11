@@ -602,8 +602,7 @@ const Leakage_TempScheme_t
 typedef int Leakage_Mode_t;
 const Leakage_Mode_t
    LEAK_MODE_EVOLVE   = 1,
-   LEAK_MODE_RECORD   = 2,
-   LEAK_MODE_CORRSIGN = 3;
+   LEAK_MODE_RECORD   = 2;
 
 
 // function pointers
