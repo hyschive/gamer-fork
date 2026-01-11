@@ -213,7 +213,7 @@ static void Src_Lightbulb( real fluid[], const real B[],
 
    fluid[ENGY] = Hydro_ConEint2Etot( fluid[DENS], fluid[MOMX], fluid[MOMY], fluid[MOMZ], Eint_Update, Emag );
 #  ifdef DEDT_NU
-   fluid[DEDT_NU] = FABS( rate_Code * Dens_Code );
+   fluid[DEDT_NU] = rate_Code * Dens_Code;
 #  endif
 
 
