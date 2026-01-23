@@ -1258,6 +1258,24 @@ void Init_ResetParameter()
 #  endif // #ifdef STAR_FORMATION
 
 
+#  if ( defined NEUTRINO_SCHEME  &&  NEUTRINO_SCHEME == LEAKAGE )
+   SrcTerms.Leakage_BinSize_Radius /= UNIT_L;
+   SrcTerms.Leakage_RadiusMax      /= UNIT_L;
+   SrcTerms.Leakage_RadiusMin_Log  /= UNIT_L;
+
+   PRINT_RESET_PARA( SrcTerms.Leakage_BinSize_Radius, FORMAT_REAL, "to be consistent with the code units" );
+   PRINT_RESET_PARA( SrcTerms.Leakage_RadiusMax,      FORMAT_REAL, "to be consistent with the code units" );
+   PRINT_RESET_PARA( SrcTerms.Leakage_RadiusMin_Log,  FORMAT_REAL, "to be consistent with the code units" );
+
+   if (  Mis_CompareRealValue( SrcTerms.Leakage_RadiusMax, SrcTerms.Leakage_RadiusMin_Log, NULL, false )  )
+   {
+      SrcTerms.Leakage_NRadius = int( SrcTerms.Leakage_RadiusMin_Log / SrcTerms.Leakage_BinSize_Radius );
+
+      PRINT_RESET_PARA( SrcTerms.Leakage_NRadius,  FORMAT_INT, "to be consistent with the specified maximum radius" );
+   }
+#  endif // if ( defined NEUTRINO_SCHEME  &&  NEUTRINO_SCHEME == LEAKAGE )
+
+
 // disable OPT__MINIMIZE_MPI_BARRIER in the serial mode
 #  ifdef SERIAL
    if ( OPT__MINIMIZE_MPI_BARRIER )
@@ -1330,14 +1348,14 @@ void Init_ResetParameter()
    {
       GREP_MINBINSIZE = amr->dh[MAX_LEVEL];
 
-      PRINT_RESET_PARA( GREP_MINBINSIZE, FORMAT_FLT, "" );
+      PRINT_RESET_PARA( GREP_MINBINSIZE, FORMAT_REAL, "" );
    }
 
    if ( GREP_MAXRADIUS <= 0.0 )
    {
       GREP_MAXRADIUS = sqrt(3.0) * amr->BoxSize[0];
 
-      PRINT_RESET_PARA( GREP_MAXRADIUS, FORMAT_FLT, "" );
+      PRINT_RESET_PARA( GREP_MAXRADIUS, FORMAT_REAL, "" );
    }
 #  endif
 
