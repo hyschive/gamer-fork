@@ -593,6 +593,14 @@ const LoadParaMode_t
    LOAD_HDF5_OUTPUT = 2;
 
 
+// whether to enforce consistency of magnetic field at the patch interface
+typedef int SameInterfaceB_t;
+const SameInterfaceB_t
+   SAME_INTERFACE_B_DEFAULT = -1,
+   SAME_INTERFACE_B_NO      = 0,
+   SAME_INTERFACE_B_YES     = 1;
+
+
 // leakage source term
 typedef int Leakage_TempScheme_t;
 const Leakage_TempScheme_t
