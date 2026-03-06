@@ -117,9 +117,14 @@ void CPU_SrcSolver_IterateAllCells(
          if ( SrcTerms.Lightbulb )
             SrcTerms.Lightbulb_FuncPtr( fluid, B, &SrcTerms, dt, dh, x, y, z, TimeNew, TimeOld, MinDens, MinPres, MinEint, PassiveFloor, &EoS,
                                         SrcTerms.Lightbulb_AuxArrayDevPtr_Flt, SrcTerms.Lightbulb_AuxArrayDevPtr_Int );
-#        endif
 
-//       (3) user-defined
+//       (3) leakage
+         if ( SrcTerms.Leakage )
+            SrcTerms.Leakage_FuncPtr  ( fluid, B, &SrcTerms, dt, dh, x, y, z, TimeNew, TimeOld, MinDens, MinPres, MinEint, PassiveFloor, &EoS,
+                                        SrcTerms.Leakage_AuxArrayDevPtr_Flt, SrcTerms.Leakage_AuxArrayDevPtr_Int );
+#        endif // if ( MODEL == HYDRO )
+
+//       (4) user-defined
          if ( SrcTerms.User )
             SrcTerms.User_FuncPtr     ( fluid, B, &SrcTerms, dt, dh, x, y, z, TimeNew, TimeOld, MinDens, MinPres, MinEint, PassiveFloor, &EoS,
                                         SrcTerms.User_AuxArrayDevPtr_Flt,      SrcTerms.User_AuxArrayDevPtr_Int );

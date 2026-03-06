@@ -36,6 +36,8 @@ SET_GLOBAL( __constant__ double c_Src_Dlep_AuxArray_Flt     [SRC_NAUX_DLEP     ]
 SET_GLOBAL( __constant__ int    c_Src_Dlep_AuxArray_Int     [SRC_NAUX_DLEP     ] );
 SET_GLOBAL( __constant__ double c_Src_Lightbulb_AuxArray_Flt[SRC_NAUX_LIGHTBULB] );
 SET_GLOBAL( __constant__ int    c_Src_Lightbulb_AuxArray_Int[SRC_NAUX_LIGHTBULB] );
+SET_GLOBAL( __constant__ double c_Src_Leakage_AuxArray_Flt  [SRC_NAUX_LEAKAGE  ] );
+SET_GLOBAL( __constant__ int    c_Src_Leakage_AuxArray_Int  [SRC_NAUX_LEAKAGE  ] );
 #endif
 SET_GLOBAL( __constant__ double c_Src_User_AuxArray_Flt     [SRC_NAUX_USER     ] );
 SET_GLOBAL( __constant__ int    c_Src_User_AuxArray_Int     [SRC_NAUX_USER     ] );

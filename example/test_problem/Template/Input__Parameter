@@ -48,7 +48,7 @@ TESTPROB_ID                   0           # test problem ID [0]
                                           #   20: HYDRO MHD Cosmic Ray Soundwave
                                           #   21: HYDRO MHD Cosmic Ray Shocktube
                                           #   23: HYDRO MHD Cosmic Ray Diffusion
-                                          #   24: HYDRO CCSN (+GRAVITY & GREP & EOS_GAMMA/EOS_NUCLEAR) [+MHD]
+                                          #   50: HYDRO CCSN (+GRAVITY & GREP & EOS_GAMMA/EOS_NUCLEAR) [+MHD]
                                           #  100: HYDRO CDM cosmological simulation (+GRAVITY & COMOVING & PARTICLE)
                                           #  101: HYDRO Zeldovich pancake collapse (+GRAVITY & COMOVING & PARTICLE)
                                           # 1000: ELBDM external potential (+GRAVITY)
@@ -208,6 +208,18 @@ SRC_DELEP_YEC                 0.0601082693    # deleptonization parameter Ye_c [
 SRC_LIGHTBULB                 0           # lightbulb scheme for neutrino heating and cooling [0] ##HYDRO ONLY##
 SRC_LIGHTBULB_LNUE            4.0e52      # electron neutrino luminosity in erg/s [1e52] ##HYDRO ONLY##
 SRC_LIGHTBULB_TNUE            4.0         # electron neutrino temperature in MeV [4.0] ##HYDRO ONLY##
+SRC_LEAKAGE                   0           # multiflavour neutrino leakage scheme [0]
+SRC_LEAKAGE_NRADIUS           768         # number of bin in the radial    direction [768]
+SRC_LEAKAGE_NTHETA            1           # number of ray in the polar     direction [1]
+SRC_LEAKAGE_NPHI              1           # number of ray in the azimuthal direction [1]
+                                          # (must be 1 or a multiple of 2)
+SRC_LEAKAGE_BINSIZE_RADIUS    1.0e5       # bin size of linear bins in radius in cm [1.0e5]
+SRC_LEAKAGE_RADIUSMAX         3.0e8       # maximum radius in cm [3.0e8]
+SRC_LEAKAGE_RADIUSMIN_LOG     3.0e7       # minimum radius of logarithmic bins in cm [3.0e7]
+SRC_LEAKAGE_NUHEAT            1           # include a parameterized neutrino heating scheme [1]
+SRC_LEAKAGE_NUHEAT_FAC        1.0         # rescale the parameterized heating rate by SRC_LEAKAGE_NUHEAT_FAC [1.0]
+SRC_LEAKAGE_OPT_TEMP          2           # temperature computation scheme [2]
+                                          # (1=individual cell, 2=binned data)
 SRC_USER                      0           # user-defined source terms -> edit "Src_User.cpp" [0]
 SRC_GPU_NPGROUP              -1           # number of patch groups sent into the CPU/GPU source-term solver (<=0=auto) [-1]
 
@@ -261,6 +273,8 @@ MOLECULAR_WEIGHT              0.6         # mean molecular weight [0.6]
 MU_NORM                      -1.0         # normalization of MOLECULAR_WEIGHT (<0=m_H, 0=amu, >0=input manually) [-1.0]
 ISO_TEMP                      1.0e4       # isothermal temperature in kelvin ##EOS_ISOTHERMAL ONLY##
 NUC_TABLE                     LS220_eps.h5   # nuclear EoS table ##EOS_NUCLEAR ONLY##
+NUC_INT_SCHEME_MAIN           1           # interpolation scheme for nuclear EoS table (1=linear, 2=cubic) [1] ##EOS_NUCLEAR ONLY##
+NUC_INT_SCHEME_AUX            1           # interpolation scheme for auxiliary   table (1=linear, 2=cubic) [1] ##EOS_NUCLEAR ONLY##
 MINMOD_COEFF                  1.5         # coefficient of the generalized MinMod limiter (1.0~2.0) [1.5]
 MINMOD_MAX_ITER               0           # maximum number of iterations to reduce MINMOD_COEFF when data reconstruction fails (0=off) [0]
 OPT__LR_LIMITER              -1           # slope limiter of data reconstruction in the MHM/MHM_RP/CTU schemes:
