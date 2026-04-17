@@ -11,6 +11,8 @@ extern char   (*HaloMerger_ParCloud_DensProf_Filename)[MAX_STRING];
 extern double  *HaloMerger_ParCloud_DensProf_MaxR;
 extern int     *HaloMerger_ParCloud_RSeed;
 extern long    *HaloMerger_ParCloud_NPar;
+extern int     *HaloMerger_ParCloud_BuiltWithExtPot;
+extern char   (*HaloMerger_ParCloud_ExtPot_Filename)[MAX_STRING];
 
 
 //-------------------------------------------------------------------------------------------------------
@@ -103,6 +105,7 @@ void Par_Init_ByFunction_HaloMerger( const long NPar_ThisRank, const long NPar_A
          Cloud_Constructor.setParticleParameters( HaloMerger_ParCloud_NPar[index_parcloud], HaloMerger_ParCloud_DensProf_MaxR[index_parcloud], 5000, HaloMerger_ParCloud_RSeed[index_parcloud] ); // the number of bins is hard-coded as 5000 for now since the results are insensitive to it
 
          Cloud_Constructor.setDensProfTableFilename( HaloMerger_ParCloud_DensProf_Filename[index_parcloud] );
+         Cloud_Constructor.setExtPotParameters( 0, HaloMerger_ParCloud_BuiltWithExtPot[index_parcloud], HaloMerger_ParCloud_ExtPot_Filename[index_parcloud] );
 
 //       construct the distribution for the particle cloud
          Cloud_Constructor.constructDistribution();
