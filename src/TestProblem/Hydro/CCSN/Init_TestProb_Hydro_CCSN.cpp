@@ -16,6 +16,7 @@ typedef int CCSN_Mag_t;
 const CCSN_Mag_t
    Liu2008  = 0
   ,Suwa2007 = 1
+  ,Obergaulinger2017 = 2
   ;
 
 static CCSN_t     CCSN_Prob;                       // target CCSN problem
@@ -858,6 +859,62 @@ double SetBFieldIC_VecPot_Suwa2007( const double x, const double y, const double
    return mag_vecpot;
 
 } // FUNCTION : SetBFieldIC_VecPot_Suwa2007
+
+
+
+//-------------------------------------------------------------------------------------------------------
+// Function    :  SetBFieldIC_VecPot_Obergaulinger2017
+// Description :  Set the problem-specific initial condition of magnetic vector potential
+//
+// Note        :  1. This function will be invoked by multiple OpenMP threads when OPENMP is enabled
+//                   (unless OPT__INIT_GRID_WITH_OMP is disabled)
+//                   --> Please ensure that everything here is thread-safe
+//                2. Generate the poloidal B field from the vector potential in
+//                   Obergaulinger & Aloy 2017, MNRAS, 469, L43:
+//                       A_r   = 0.5 * B0 * ( R0^3 / (r^3 + R0^3) ) * r * cos(theta)
+//                       A_phi = 0.5 * B0 * ( R0^3 / (r^3 + R0^3) ) * r * sin(theta)
+//                       A_theta = 0
+//
+// Parameter   :  x/y/z     : Target physical coordinates
+//                Time      : Target physical time
+//                lv        : Target refinement level
+//                Component : Component of the output magnetic vector potential
+//                            --> Supported components: 'x', 'y', 'z'
+//                AuxArray  : Auxiliary array
+//                            --> Useless since it is currently fixed to NULL
+//
+// Return      :  "XYZ" component of the magnetic vector potential at (x, y, z, Time)
+//-------------------------------------------------------------------------------------------------------
+double SetBFieldIC_VecPot_Obergaulinger2017( const double x, const double y, const double z, const double Time,
+                                             const int lv, const char Component, double AuxArray[] )
+{
+
+   const double BoxCenter[3] = { amr->BoxCenter[0], amr->BoxCenter[1], amr->BoxCenter[2] };
+
+   const double x0 = x - BoxCenter[0];
+   const double y0 = y - BoxCenter[1];
+   const double z0 = z - BoxCenter[2];
+   const double r  = sqrt(  SQR( x0 ) + SQR( y0 ) + SQR( z0 )  );
+
+   const double B0  = CCSN_Mag_B0 / UNIT_B;
+   const double R0  = CCSN_Mag_R0 / UNIT_L;
+   const double fac = 0.5 * B0 / (  1.0 + CUBE( r / R0 )  );
+
+   double mag_vecpot;
+
+
+   switch ( Component )
+   {
+      case 'x' :   mag_vecpot = fac * ( x0 * y0 / r - y0 );   break;
+      case 'y' :   mag_vecpot = fac * ( y0 * z0 / r + x0 );   break;
+      case 'z' :   mag_vecpot = fac * ( z0 * z0 / r      );   break;
+      default  :   Aux_Error( ERROR_INFO, "unsupported Axis (%d) !!\n", Component );
+   }
+
+
+   return mag_vecpot;
+
+} // FUNCTION : SetBFieldIC_VecPot_Obergaulinger2017
 #endif // #ifdef MHD
 
 
@@ -1176,8 +1233,9 @@ void Init_TestProb_Hydro_CCSN()
    {
       switch ( CCSN_Mag )
       {
-         case Liu2008  : Init_BField_ByVecPot_User_Ptr = SetBFieldIC_VecPot_Liu2008;    break;
-         case Suwa2007 : Init_BField_ByVecPot_User_Ptr = SetBFieldIC_VecPot_Suwa2007;   break;
+         case Liu2008           : Init_BField_ByVecPot_User_Ptr = SetBFieldIC_VecPot_Liu2008;           break;
+         case Suwa2007          : Init_BField_ByVecPot_User_Ptr = SetBFieldIC_VecPot_Suwa2007;          break;
+         case Obergaulinger2017 : Init_BField_ByVecPot_User_Ptr = SetBFieldIC_VecPot_Obergaulinger2017; break;
       }
    }
 
@@ -1185,8 +1243,9 @@ void Init_TestProb_Hydro_CCSN()
    {
       switch ( CCSN_Mag )
       {
-         case Liu2008  : Init_Function_BField_User_Ptr = SetBFieldIC_Liu2008;    break;
-         case Suwa2007 : Init_Function_BField_User_Ptr = SetBFieldIC_Suwa2007;   break;
+         case Liu2008           : Init_Function_BField_User_Ptr = SetBFieldIC_Liu2008;                                    break;
+         case Suwa2007          : Init_Function_BField_User_Ptr = SetBFieldIC_Suwa2007;                                   break;
+         case Obergaulinger2017 : Aux_Error( ERROR_INFO, "unsupported. use OPT__INIT_BFIELD_BYVECPOT = 2 instead.\n" );   break;
       }
    }
 #  endif // #if MHD
