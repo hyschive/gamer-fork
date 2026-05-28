@@ -23,6 +23,7 @@ extern double CCSN_Shock_ThresFac_Pres;
 extern double CCSN_Shock_ThresFac_Vel;
 extern int    CCSN_Shock_Weight;
 
+       void Record_CCSN_Leakage();
 extern void Src_WorkBeforeMajorFunc_Leakage( const int lv, const double TimeNew, const double TimeOld, const double dt,
                                              double AuxArray_Flt[], int AuxArray_Int[] );
 
@@ -50,13 +51,17 @@ void Record_CCSN_CentralQuant()
    Aux_FindExtrema( &Extrema, EXTREMA_MAX, 0, TOP_LEVEL, PATCH_LEAF );
 
 
-// write to the file "Record__CentralQuant" by the MPI process which has the target patch
-#  if ( NEUTRINO_SCHEME == LEAKAGE )
+// get the leakage scheme quantities
+#  if ( defined NEUTRINO_SCHEME  &&  NEUTRINO_SCHEME == LEAKAGE )
+   if ( CCSN_Is_PostBounce )   Record_CCSN_Leakage();
+
    const int NColumn = 28;
 #  else
    const int NColumn = 14;
 #  endif
 
+
+// write to the file "Record__CentralQuant" by the MPI process which has the target patch
    if ( MPI_Rank == Extrema.Rank )
    {
 
