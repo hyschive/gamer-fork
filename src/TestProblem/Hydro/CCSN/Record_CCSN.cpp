@@ -493,34 +493,48 @@ void Record_CCSN_GWSignal()
 
       static bool FirstTime = true;
 
-      char filename_QuadMom_2nd[2*MAX_STRING];
-      sprintf( filename_QuadMom_2nd, "%s/Record__QuadMom_2nd", OUTPUT_DIR );
+      char FileName[2*MAX_STRING];
+      sprintf( FileName, "%s/Record__QuadMom_2nd", OUTPUT_DIR );
 
 //    file header
       if ( FirstTime )
       {
-         if ( Aux_CheckFileExist(filename_QuadMom_2nd) )
+         if ( Aux_CheckFileExist(FileName) )
          {
-             Aux_Message( stderr, "WARNING : file \"%s\" already exists !!\n", filename_QuadMom_2nd );
+            Aux_Message( stderr, "WARNING : file \"%s\" already exists !!\n", FileName );
          }
          else
          {
-             FILE *file_QuadMom_2nd = fopen( filename_QuadMom_2nd, "w" );
-             fprintf( file_QuadMom_2nd, "#%14s %12s %16s %16s %16s %16s %16s %16s\n",
-                                        "Time [sec]", "Step", "Ixx", "Ixy", "Ixz", "Iyy", "Iyz", "Izz" );
-             fclose( file_QuadMom_2nd );
+            FILE *File = fopen( FileName, "w" );
+
+//          column index
+            Aux_Message( File, "# %13s  %8s", "[1]", "[2]" );
+            for (int c=2; c<8; c++)   Aux_Message( File, "  %14s[%1d]", "", c+1 );
+            Aux_Message( File, "\n" );
+
+//          field name
+            Aux_Message( File, "# %13s  %8s",                          "Time", "Step"                           );
+            Aux_Message( File, "  %17s  %17s  %17s  %17s  %17s  %17s", "Ixx", "Ixy", "Ixz", "Iyy", "Iyz", "Izz" );
+            Aux_Message( File, "\n" );
+
+//          field unit
+            Aux_Message( File, "# %13s  %8s",                          "[sec]", "[1]"                                 );
+            Aux_Message( File, "  %17s  %17s  %17s  %17s  %17s  %17s", "[cm]", "[cm]", "[cm]", "[cm]", "[cm]", "[cm]" );
+            Aux_Message( File, "\n" );
+
+            fclose( File );
          }
 
          FirstTime = false;
       }
 
-      FILE *file_QuadMom_2nd = fopen( filename_QuadMom_2nd, "a" );
+      FILE *File = fopen( FileName, "a" );
 
-                                    fprintf( file_QuadMom_2nd, "%15.7e %12ld", Time[0] * UNIT_T, Step );
-      for (int b=0; b<NData; b++)   fprintf( file_QuadMom_2nd, "%17.7e", QuadMom_2nd[b] );
-                                    fprintf( file_QuadMom_2nd, "\n" );
+                                    Aux_Message( File, "%15.7e  %8ld", Time[0] * UNIT_T, Step );
+      for (int b=0; b<NData; b++)   Aux_Message( File, "%19.7e", QuadMom_2nd[b] );
+                                    Aux_Message( File, "\n" );
 
-      fclose( file_QuadMom_2nd );
+      fclose( File );
 
    } // if ( MPI_Rank == 0 )
 
