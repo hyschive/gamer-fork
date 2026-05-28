@@ -602,13 +602,14 @@ void SetGridIC( real fluid[], const double x, const double y, const double z, co
 //                   --> Please ensure that everything here is thread-safe
 //                2. Generate the poloidal B field from a variant form of the vector potential in
 //                   Liu+ 2008, Phys. Rev. D78, 024012:
-//                       A_phi = B0 * varpi^2 * (1 - rho / rho_max)^np * (P / P_max)
-//                       A_r = A_theta = 0
+//                      A_r     = 0.0
+//                      A_phi   = B0 * varpi^2 * (1 - rho / rho_max)^np * (P / P_max)
+//                      A_theta = 0.0
 //                   where
-//                       varpi^2 =  x^2 + y^2
-//                       A_x      = -(y / varpi^2) * A_phi
-//                       A_y      =  (x / varpi^2) * A_phi
-//                       A_z      =  0
+//                      varpi^2 =  x^2 + y^2
+//                      A_x     = -(y / varpi^2) * A_phi
+//                      A_y     =  (x / varpi^2) * A_phi
+//                      A_z     =  0.0
 //
 // Parameter   :  magnetic : Array to store the output magnetic field
 //                x/y/z    : Target physical coordinates
@@ -653,28 +654,20 @@ void SetBFieldIC_Liu2008( real magnetic[], const double x, const double y, const
    dens_yp = Mis_InterpolateFromTable( CCSN_Prof_NBin, Table_R, Table_Dens, r_yp );
    dens_zp = Mis_InterpolateFromTable( CCSN_Prof_NBin, Table_R, Table_Dens, r_zp );
 
-   if ( dens    == NULL_REAL )
-      Aux_Error( ERROR_INFO, "interpolation failed for dens    at radius %13.7e !!\n", r    );
-   if ( dens_xp == NULL_REAL )
-      Aux_Error( ERROR_INFO, "interpolation failed for dens_xp at radius %13.7e !!\n", r_xp );
-   if ( dens_yp == NULL_REAL )
-      Aux_Error( ERROR_INFO, "interpolation failed for dens_yp at radius %13.7e !!\n", r_yp );
-   if ( dens_zp == NULL_REAL )
-      Aux_Error( ERROR_INFO, "interpolation failed for dens_zp at radius %13.7e !!\n", r_zp );
+   if ( dens    == NULL_REAL )   Aux_Error( ERROR_INFO, "interpolation failed for dens    at radius %13.7e !!\n", r    );
+   if ( dens_xp == NULL_REAL )   Aux_Error( ERROR_INFO, "interpolation failed for dens_xp at radius %13.7e !!\n", r_xp );
+   if ( dens_yp == NULL_REAL )   Aux_Error( ERROR_INFO, "interpolation failed for dens_yp at radius %13.7e !!\n", r_yp );
+   if ( dens_zp == NULL_REAL )   Aux_Error( ERROR_INFO, "interpolation failed for dens_zp at radius %13.7e !!\n", r_zp );
 
    pres    = Mis_InterpolateFromTable( CCSN_Prof_NBin, Table_R, Table_Pres, r    );
    pres_xp = Mis_InterpolateFromTable( CCSN_Prof_NBin, Table_R, Table_Pres, r_xp );
    pres_yp = Mis_InterpolateFromTable( CCSN_Prof_NBin, Table_R, Table_Pres, r_yp );
    pres_zp = Mis_InterpolateFromTable( CCSN_Prof_NBin, Table_R, Table_Pres, r_zp );
 
-   if ( pres    == NULL_REAL )
-      Aux_Error( ERROR_INFO, "interpolation failed for pres    at radius %13.7e !!\n", r    );
-   if ( pres_xp == NULL_REAL )
-      Aux_Error( ERROR_INFO, "interpolation failed for pres_xp at radius %13.7e !!\n", r_xp );
-   if ( pres_yp == NULL_REAL )
-      Aux_Error( ERROR_INFO, "interpolation failed for pres_yp at radius %13.7e !!\n", r_yp );
-   if ( pres_zp == NULL_REAL )
-      Aux_Error( ERROR_INFO, "interpolation failed for pres_zp at radius %13.7e !!\n", r_zp );
+   if ( pres    == NULL_REAL )   Aux_Error( ERROR_INFO, "interpolation failed for pres    at radius %13.7e !!\n", r    );
+   if ( pres_xp == NULL_REAL )   Aux_Error( ERROR_INFO, "interpolation failed for pres_xp at radius %13.7e !!\n", r_xp );
+   if ( pres_yp == NULL_REAL )   Aux_Error( ERROR_INFO, "interpolation failed for pres_yp at radius %13.7e !!\n", r_yp );
+   if ( pres_zp == NULL_REAL )   Aux_Error( ERROR_INFO, "interpolation failed for pres_zp at radius %13.7e !!\n", r_zp );
 
 
    double dAy_dx = (  ( x0 + delta )*POW( 1.0 - dens_xp/dens_c, CCSN_Mag_np )*( pres_xp / pres_c )   \
@@ -706,8 +699,9 @@ void SetBFieldIC_Liu2008( real magnetic[], const double x, const double y, const
 //                   --> Please ensure that everything here is thread-safe
 //                2. Generate the poloidal B field from the vector potential in
 //                   Suwa+ 2007, PASJ, 59, 771:
-//                       A_phi = 0.5 * B0 * ( R0^3 / (r^3 + R0^3) ) * r * sin(theta)
-//                       A_r = A_theta = 0
+//                      A_r     = 0.0
+//                      A_phi   = 0.5 * B0 * ( R0^3 / (r^3 + R0^3) ) * r * sin(theta)
+//                      A_theta = 0.0
 //
 // Parameter   :  magnetic : Array to store the output magnetic field
 //                x/y/z    : Target physical coordinates
@@ -739,6 +733,131 @@ void SetBFieldIC_Suwa2007( real magnetic[], const double x, const double y, cons
                   - 1.5 * B0 * SQR( frac ) * ( r * x0 * x0 + r * y0 * y0 ) / R0_cub;
 
 } // FUNCTION : SetBFieldIC_Suwa2007
+
+
+
+//-------------------------------------------------------------------------------------------------------
+// Function    :  SetBFieldIC_VecPot_Liu2008
+// Description :  Set the problem-specific initial condition of magnetic vector potential
+//
+// Note        :  1. This function will be invoked by multiple OpenMP threads when OPENMP is enabled
+//                   (unless OPT__INIT_GRID_WITH_OMP is disabled)
+//                   --> Please ensure that everything here is thread-safe
+//                2. Generate the poloidal B field from a variant form of the vector potential in
+//                   Liu+ 2008, Phys. Rev. D78, 024012:
+//                      A_r     = 0.0
+//                      A_phi   = B0 * varpi^2 * (1 - rho / rho_max)^np * (P / P_max)
+//                      A_theta = 0.0
+//                   where
+//                      varpi^2 =  x^2 + y^2
+//                      A_x     = -(y / varpi^2) * A_phi
+//                      A_y     =  (x / varpi^2) * A_phi
+//                      A_z     =  0.0
+//
+// Parameter   :  x/y/z     : Target physical coordinates
+//                Time      : Target physical time
+//                lv        : Target refinement level
+//                Component : Component of the output magnetic vector potential
+//                            --> Supported components: 'x', 'y', 'z'
+//                AuxArray  : Auxiliary array
+//                            --> Useless since it is currently fixed to NULL
+//
+// Return      :  "XYZ" component of the magnetic vector potential at (x, y, z, Time)
+//-------------------------------------------------------------------------------------------------------
+double SetBFieldIC_VecPot_Liu2008( const double x, const double y, const double z, const double Time,
+                                   const int lv, const char Component, double AuxArray[] )
+{
+
+   const double BoxCenter[3] = { amr->BoxCenter[0], amr->BoxCenter[1], amr->BoxCenter[2] };
+
+   const double *Table_R    = CCSN_Prof + CCSN_ColIdx_R   *CCSN_Prof_NBin;
+   const double *Table_Dens = CCSN_Prof + CCSN_ColIdx_Dens*CCSN_Prof_NBin;
+   const double *Table_Pres = CCSN_Prof + CCSN_ColIdx_Pres*CCSN_Prof_NBin;
+
+   const double x0 = x - BoxCenter[0];
+   const double y0 = y - BoxCenter[1];
+   const double z0 = z - BoxCenter[2];
+   const double r  = sqrt(  SQR( x0 ) + SQR( y0 ) + SQR( z0 )  );
+
+// approximate the central density and pressure by the data at the first row
+   const double Dens_cen = Table_Dens[0];
+   const double Pres_cen = Table_Pres[0];
+   const double Dens     = Mis_InterpolateFromTable( CCSN_Prof_NBin, Table_R, Table_Dens, r );
+   const double Pres     = Mis_InterpolateFromTable( CCSN_Prof_NBin, Table_R, Table_Pres, r );
+   const double B0       = CCSN_Mag_B0 / UNIT_B;
+   const double Fac_Dens = pow( 1.0 - Dens / Dens_cen, CCSN_Mag_np );
+   const double Fac_Pres = Pres / Pres_cen;
+
+   double mag_vecpot;
+
+
+   switch ( Component )
+   {
+      case 'x' :   mag_vecpot = -y0 * B0 * Fac_Dens * Fac_Pres;   break;
+      case 'y' :   mag_vecpot =  x0 * B0 * Fac_Dens * Fac_Pres;   break;
+      case 'z' :   mag_vecpot =  0.0;                             break;
+      default  :   Aux_Error( ERROR_INFO, "unsupported Component (%d) !!\n", Component );
+   }
+
+
+   return mag_vecpot;
+
+} // FUNCTION : SetBFieldIC_VecPot_Liu2008
+
+
+
+//-------------------------------------------------------------------------------------------------------
+// Function    :  SetBFieldIC_VecPot_Suwa2007
+// Description :  Set the problem-specific initial condition of magnetic vector potential
+//
+// Note        :  1. This function will be invoked by multiple OpenMP threads when OPENMP is enabled
+//                   (unless OPT__INIT_GRID_WITH_OMP is disabled)
+//                   --> Please ensure that everything here is thread-safe
+//                2. Generate the poloidal B field from the vector potential in
+//                   Suwa+ 2007, PASJ, 59, 771:
+//                      A_r     = 0.0
+//                      A_phi   = 0.5 * B0 * ( R0^3 / (r^3 + R0^3) ) * r * sin(theta)
+//                      A_theta = 0.0
+//
+// Parameter   :  x/y/z     : Target physical coordinates
+//                Time      : Target physical time
+//                lv        : Target refinement level
+//                Component : Component of the output magnetic vector potential
+//                            --> Supported components: 'x', 'y', 'z'
+//                AuxArray  : Auxiliary array
+//                            --> Useless since it is currently fixed to NULL
+//
+// Return      :  "XYZ" component of the magnetic vector potential at (x, y, z, Time)
+//-------------------------------------------------------------------------------------------------------
+double SetBFieldIC_VecPot_Suwa2007( const double x, const double y, const double z, const double Time,
+                                    const int lv, const char Component, double AuxArray[] )
+{
+
+   const double BoxCenter[3] = { amr->BoxCenter[0], amr->BoxCenter[1], amr->BoxCenter[2] };
+
+   const double x0 = x - BoxCenter[0];
+   const double y0 = y - BoxCenter[1];
+   const double z0 = z - BoxCenter[2];
+   const double r  = sqrt(  SQR( x0 ) + SQR( y0 ) + SQR( z0 )  );
+
+   const double B0 = CCSN_Mag_B0 / UNIT_B;
+   const double R0 = CCSN_Mag_R0 / UNIT_L;
+
+   double mag_vecpot;
+
+
+   switch ( Component )
+   {
+      case 'x' :   mag_vecpot = -0.5 * y0 * B0 / (  1.0 + CUBE( r / R0 )  );   break;
+      case 'y' :   mag_vecpot =  0.5 * x0 * B0 / (  1.0 + CUBE( r / R0 )  );   break;
+      case 'z' :   mag_vecpot =  0.0;                                          break;
+      default  :   Aux_Error( ERROR_INFO, "unsupported Axis (%d) !!\n", Component );
+   }
+
+
+   return mag_vecpot;
+
+} // FUNCTION : SetBFieldIC_VecPot_Suwa2007
 #endif // #ifdef MHD
 
 
@@ -1053,10 +1172,22 @@ void Init_TestProb_Hydro_CCSN()
    }
 
 #  ifdef MHD
-   switch ( CCSN_Mag )
+   if ( OPT__INIT_BFIELD_BYVECPOT == INIT_MAG_BYVECPOT_FUNC )
    {
-      case Liu2008  : Init_Function_BField_User_Ptr = SetBFieldIC_Liu2008;    break;
-      case Suwa2007 : Init_Function_BField_User_Ptr = SetBFieldIC_Suwa2007;   break;
+      switch ( CCSN_Mag )
+      {
+         case Liu2008  : Init_BField_ByVecPot_User_Ptr = SetBFieldIC_VecPot_Liu2008;    break;
+         case Suwa2007 : Init_BField_ByVecPot_User_Ptr = SetBFieldIC_VecPot_Suwa2007;   break;
+      }
+   }
+
+   else
+   {
+      switch ( CCSN_Mag )
+      {
+         case Liu2008  : Init_Function_BField_User_Ptr = SetBFieldIC_Liu2008;    break;
+         case Suwa2007 : Init_Function_BField_User_Ptr = SetBFieldIC_Suwa2007;   break;
+      }
    }
 #  endif // #if MHD
 #  endif // #if ( MODEL == HYDRO )
