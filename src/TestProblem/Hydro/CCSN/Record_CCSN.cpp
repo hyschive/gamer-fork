@@ -38,104 +38,16 @@ extern void Src_WorkBeforeMajorFunc_Leakage( const int lv, const double TimeNew,
 void Record_CCSN_CentralQuant()
 {
 
-// allocate memory for per-thread arrays
-#  ifdef OPENMP
-   const int NT = OMP_NTHREAD;
-#  else
-   const int NT = 1;
-#  endif
+// find the peak density and its location
+   Extrema_t Extrema;
 
-   const int      NData_Int = 6; // MPI_Rank, lv, PID, i, j, k
-   const int      NData_Flt = 4; // dens, x, y, z
-         int      Data_Int[NData_Int] = { 0 };
-         double   Data_Flt[NData_Flt] = { -__DBL_MAX__ };
-         int      OMP_Data_Int[NT][NData_Int];
-         double **OMP_Data_Flt = NULL;
+   Extrema.Field     = _DENS;
+   Extrema.Radius    = __FLT_MAX__;
+   Extrema.Center[0] = amr->BoxCenter[0];
+   Extrema.Center[1] = amr->BoxCenter[1];
+   Extrema.Center[2] = amr->BoxCenter[2];
 
-   Aux_AllocateArray2D( OMP_Data_Flt, NT, NData_Flt );
-
-
-#  pragma omp parallel
-   {
-#     ifdef OPENMP
-      const int TID = omp_get_thread_num();
-#     else
-      const int TID = 0;
-#     endif
-
-//    initialize arrays
-      for (int b=0; b<NData_Int; b++)   OMP_Data_Int[TID][b] = -1;
-      for (int b=0; b<NData_Flt; b++)   OMP_Data_Flt[TID][b] = -__DBL_MAX__;
-
-      for (int lv=0; lv<NLEVEL; lv++)
-      {
-         const double dh = amr->dh[lv];
-
-#        pragma omp for schedule( runtime )
-         for (int PID=0; PID<amr->NPatchComma[lv][1]; PID++)
-         {
-            if ( amr->patch[0][lv][PID]->son != -1 )  continue;
-
-            for (int k=0; k<PS1; k++)  {  const double z = amr->patch[0][lv][PID]->EdgeL[2] + (k+0.5)*dh;
-            for (int j=0; j<PS1; j++)  {  const double y = amr->patch[0][lv][PID]->EdgeL[1] + (j+0.5)*dh;
-            for (int i=0; i<PS1; i++)  {  const double x = amr->patch[0][lv][PID]->EdgeL[0] + (i+0.5)*dh;
-
-               const double dens = amr->patch[ amr->FluSg[lv] ][lv][PID]->fluid[DENS][k][j][i];
-
-               if ( dens > OMP_Data_Flt[TID][0] )
-               {
-                  OMP_Data_Int[TID][0] = MPI_Rank;
-                  OMP_Data_Int[TID][1] = lv;
-                  OMP_Data_Int[TID][2] = PID;
-                  OMP_Data_Int[TID][3] = i;
-                  OMP_Data_Int[TID][4] = j;
-                  OMP_Data_Int[TID][5] = k;
-
-                  OMP_Data_Flt[TID][0] = dens;
-                  OMP_Data_Flt[TID][1] = x;
-                  OMP_Data_Flt[TID][2] = y;
-                  OMP_Data_Flt[TID][3] = z;
-               }
-
-            }}} // i,j,k
-         } // for (int PID=0; PID<amr->NPatchComma[lv][1]; PID++)
-      } // for (int lv=0; lv<NLEVEL; lv++)
-   } // OpenMP parallel region
-
-
-// find the maximum over all OpenMP threads
-   for (int TID=0; TID<NT; TID++)
-   {
-      if ( OMP_Data_Flt[TID][0] > Data_Flt[0] )
-      {
-         for (int b=0; b<NData_Int; b++)   Data_Int[b] = OMP_Data_Int[TID][b];
-         for (int b=0; b<NData_Flt; b++)   Data_Flt[b] = OMP_Data_Flt[TID][b];
-      }
-   }
-
-// free per-thread arrays
-   Aux_DeallocateArray2D( OMP_Data_Flt );
-
-
-// collect data from all ranks
-#  ifndef SERIAL
-   {
-      int    Data_Int_All[MPI_NRank * NData_Int];
-      double Data_Flt_All[MPI_NRank * NData_Flt];
-
-      MPI_Allgather( Data_Int, NData_Int, MPI_INT,    Data_Int_All, NData_Int, MPI_INT,    MPI_COMM_WORLD );
-      MPI_Allgather( Data_Flt, NData_Flt, MPI_DOUBLE, Data_Flt_All, NData_Flt, MPI_DOUBLE, MPI_COMM_WORLD );
-
-      for (int i=0; i<MPI_NRank; i++)
-      {
-         if ( Data_Flt_All[i * NData_Flt] >= Data_Flt[0] )
-         {
-            for (int b=0; b<NData_Int; b++)   Data_Int[b] = Data_Int_All[i * NData_Int + b];
-            for (int b=0; b<NData_Flt; b++)   Data_Flt[b] = Data_Flt_All[i * NData_Flt + b];
-         }
-      }
-   }
-#  endif // ifndef SERIAL
+   Aux_FindExtrema( &Extrema, EXTREMA_MAX, 0, TOP_LEVEL, PATCH_LEAF );
 
 
 // write to the file "Record__CentralQuant" by the MPI process which has the target patch
@@ -145,7 +57,7 @@ void Record_CCSN_CentralQuant()
    const int NColumn = 14;
 #  endif
 
-   if ( MPI_Rank == Data_Int[0] )
+   if ( MPI_Rank == Extrema.Rank )
    {
 
       static bool FirstTime = true;
@@ -209,26 +121,24 @@ void Record_CCSN_CentralQuant()
       }
 
 //    output data
-      const int  lv  = Data_Int[1];
-      const int  PID = Data_Int[2];
-      const int  i   = Data_Int[3];
-      const int  j   = Data_Int[4];
-      const int  k   = Data_Int[5];
-            real u[NCOMP_TOTAL];
+      const int  lv  = Extrema.Level;
+      const int  PID = Extrema.PID;
+      const int  i   = Extrema.Cell[0];
+      const int  j   = Extrema.Cell[1];
+      const int  k   = Extrema.Cell[2];
 
-      for (int v=0; v<NCOMP_TOTAL; v++)   u[v] = amr->patch[ amr->FluSg[lv] ][lv][PID]->fluid[v][k][j][i];
-
+      const real PeakDens        = amr->patch[ amr->FluSg[lv] ][lv][PID]->fluid[DENS][k][j][i];
 #     ifdef YE
-      const real Ye = u[YE] / u[DENS];
+      const real PeakDens_YeDens = amr->patch[ amr->FluSg[lv] ][lv][PID]->fluid[YE  ][k][j][i];
 #     else
-      const real Ye = (real)0.0;
+      const real PeakDens_YeDens = (real)0.0;
 #     endif
 
       FILE *File = fopen( FileName, "a" );
 
       Aux_Message( File, " %14.7e  %8ld",                    Time[0]*UNIT_T, Step                                                                      );
-      Aux_Message( File, "  %17.7e  %17.7e  %17.7e",         Data_Flt[1]*UNIT_L, Data_Flt[2]*UNIT_L, Data_Flt[3]*UNIT_L                                );
-      Aux_Message( File, "  %17.7e  %17.7e",                 u[DENS]*UNIT_D, Ye                                                                        );
+      Aux_Message( File, "  %17.7e  %17.7e  %17.7e",         Extrema.Coord[0]*UNIT_L, Extrema.Coord[1]*UNIT_L, Extrema.Coord[2]*UNIT_L                 );
+      Aux_Message( File, "  %17.7e  %17.7e",                 PeakDens*UNIT_D, PeakDens_YeDens / PeakDens                                               );
       Aux_Message( File, "  %17.7e  %17.7e  %17.7e  %17.7e", CCSN_Rsh_Min*UNIT_L, CCSN_Rsh_Ave_V*UNIT_L, CCSN_Rsh_Ave_Vinv*UNIT_L, CCSN_Rsh_Max*UNIT_L );
 #     ifdef GREP
       for (int i=0; i<3; i++)   Aux_Message( File, "  %17.7e", GREP_Center   [i]*UNIT_L );
@@ -252,7 +162,7 @@ void Record_CCSN_CentralQuant()
 
 
 // store the central density in cgs unit for detecting core bounces
-   CCSN_CentralDens = Data_Flt[0] * UNIT_D;
+   CCSN_CentralDens = Extrema.Value * UNIT_D;
 
 } // FUNCTION : Record_CCSN_CentralQuant()
 
