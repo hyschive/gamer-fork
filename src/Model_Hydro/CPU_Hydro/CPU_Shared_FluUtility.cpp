@@ -909,7 +909,7 @@ bool Hydro_IsUnphysical( const IsUnphyMode_t Mode, const real Fields[],
 
 #        ifndef BAROTROPIC_EOS
 //       check internal energy (which can be zero or slightly negative if it's within machine precision)
-         const real CheckMinEint_No = false;
+         const bool CheckMinEint_No = false;
          const real Eint = Hydro_Con2Eint( Fields[DENS], Fields[MOMX], Fields[MOMY], Fields[MOMZ], Fields[ENGY],
                                            CheckMinEint_No, NULL_REAL, PassiveFloor, Emag,
                                            NULL, NULL, NULL, NULL, NULL );

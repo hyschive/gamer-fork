@@ -446,7 +446,7 @@ void Interpolate_Iterate( real CData[], const int CSize[3], const int CStart[3],
                }
 
                else {
-                  const real CheckMinPres_No = false;
+                  const bool CheckMinPres_No = false;
                   const real Pres = Hydro_Con2Pres( Temp[DENS], Temp[MOMX], Temp[MOMY], Temp[MOMZ], Temp[ENGY], Temp+NCOMP_FLUID,
                                                     CheckMinPres_No, NULL_REAL, PassiveFloorMask, Emag,
                                                     EoS_DensEint2Pres_CPUPtr, EoS_GuessHTilde_CPUPtr, EoS_HTilde2Temp_CPUPtr,
