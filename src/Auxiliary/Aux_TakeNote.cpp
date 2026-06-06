@@ -530,6 +530,13 @@ void Aux_TakeNote()
       fprintf( Note, "FB_SEP_FLUOUT                   OFF\n" );
 #     endif
 
+#     ifdef CHECK_UNPHY_ROUNDING
+      fprintf( Note, "CHECK_UNPHY_ROUNDING            ON\n" );
+#     else
+      fprintf( Note, "CHECK_UNPHY_ROUNDING            OFF\n" );
+#     endif
+      fprintf( Note, "CHECK_UNPHY_ROUNDING_FACTOR    % 21.14e\n", CHECK_UNPHY_ROUNDING_FACTOR );
+
 #     if   ( MODEL == HYDRO )
 #     ifdef CHECK_UNPHYSICAL_IN_FLUID
       fprintf( Note, "CHECK_UNPHYSICAL_IN_FLUID       ON\n" );
