@@ -914,18 +914,31 @@ bool Hydro_IsUnphysical( const IsUnphyMode_t Mode, const real Fields[],
                                            CheckMinEint_No, NULL_REAL, PassiveFloor, Emag,
                                            NULL, NULL, NULL, NULL, NULL );
 
-         if ( Eint < (real)-3.0*Fields[ENGY]*MACHINE_EPSILON  ||  Eint > HUGE_NUMBER  ||  Eint != Eint )
+         if ( Eint < -CHECK_UNPHY_ROUNDING_FACTOR*Fields[ENGY]*MACHINE_EPSILON  ||  Eint > HUGE_NUMBER  ||  Eint != Eint )
             UnphyCell = true;
 
 //       check pressure for non-trivial EoS (which cannot be negative)
 //       --> for trivial EoS like EOS_GAMMA, checking internal energy is sufficient and pressure can be
 //           slightly negative if it's within machine precision
 #        if ( EOS != EOS_GAMMA )
-         const real Pres = EoS_DensEint2Pres( Fields[DENS], Eint, Fields+NCOMP_FLUID,
-                                              EoS_AuxArray_Flt, EoS_AuxArray_Int, EoS_Table );
+         real Pres;
+         for (int i=CHECK_UNPHY_ROUNDING_IMIN; i<=CHECK_UNPHY_ROUNDING_IMAX; i++)
+         {
+//          only perturb the total energy since the internal energy is subtracted from it
+            const real Etot_Check      = Fields[ENGY]*( (real)1.0 + (real)i*CHECK_UNPHY_ROUNDING_FACTOR*MACHINE_EPSILON );
+            const bool CheckMinPres_No = false;
 
-         if ( Pres < (real)0.0  ||  Pres > HUGE_NUMBER  ||  Pres != Pres )
-            UnphyCell = true;
+            Pres = Hydro_Con2Pres( Fields[DENS], Fields[MOMX], Fields[MOMY], Fields[MOMZ], Etot_Check, Fields+NCOMP_FLUID,
+                                   CheckMinPres_No, NULL_REAL, PassiveFloor, Emag,
+                                   EoS_DensEint2Pres, NULL, NULL,
+                                   EoS_AuxArray_Flt, EoS_AuxArray_Int, EoS_Table, NULL );
+
+            if ( Pres < (real)0.0  ||  Pres > HUGE_NUMBER  ||  Pres != Pres )
+            {
+               UnphyCell = true;
+               break;
+            }
+         }
 #        endif // #if ( EOS != EOS_GAMMA )
 #        endif // #ifndef BAROTROPIC_EOS
 
@@ -1621,7 +1634,7 @@ void NewtonRaphsonSolver( void (*FuncPtr)( real Unknown, void *Params, real *Fun
 #     endif
 
       Delta     = Func/DiffFunc;
-      Tolerance =  EpsRel*FABS(*Root) + EpsAbs;
+      Tolerance = EpsRel*FABS(*Root) + EpsAbs;
       *Root     = *Root - Delta;
 
    } while ( FABS(Delta) >= Tolerance  &&  Iter < MaxIter );
