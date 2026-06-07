@@ -530,6 +530,12 @@ void Aux_TakeNote()
       fprintf( Note, "FB_SEP_FLUOUT                   OFF\n" );
 #     endif
 
+#     ifdef EXTRA_EOS_CHECK
+      fprintf( Note, "EXTRA_EOS_CHECK                 ON\n" );
+#     else
+      fprintf( Note, "EXTRA_EOS_CHECK                 OFF\n" );
+#     endif
+
 #     ifdef CHECK_UNPHY_ROUNDING
       fprintf( Note, "CHECK_UNPHY_ROUNDING            ON\n" );
 #     else

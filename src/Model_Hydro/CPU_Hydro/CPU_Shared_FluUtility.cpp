@@ -920,7 +920,7 @@ bool Hydro_IsUnphysical( const IsUnphyMode_t Mode, const real Fields[],
 //       check pressure for non-trivial EoS (which cannot be negative)
 //       --> for trivial EoS like EOS_GAMMA, checking internal energy is sufficient and pressure can be
 //           slightly negative if it's within machine precision
-#        if ( EOS != EOS_GAMMA )
+#        ifdef EXTRA_EOS_CHECK
          real Pres;
          for (int i=CHECK_UNPHY_ROUNDING_IMIN; i<=CHECK_UNPHY_ROUNDING_IMAX; i++)
          {
@@ -939,7 +939,7 @@ bool Hydro_IsUnphysical( const IsUnphyMode_t Mode, const real Fields[],
                break;
             }
          }
-#        endif // #if ( EOS != EOS_GAMMA )
+#        endif // #ifdef EXTRA_EOS_CHECK
 #        endif // #ifndef BAROTROPIC_EOS
 
 #        endif // #ifdef SRHD ... else ...
@@ -962,7 +962,7 @@ bool Hydro_IsUnphysical( const IsUnphyMode_t Mode, const real Fields[],
 #           else
 #           ifndef BAROTROPIC_EOS
             printf( " Eint=%14.7e", Eint );
-#           if ( EOS != EOS_GAMMA )
+#           ifdef EXTRA_EOS_CHECK
             printf( " Pres=%14.7e", Pres );
 #           endif
 #           endif // #ifndef BAROTROPIC_EOS

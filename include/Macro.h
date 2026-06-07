@@ -960,8 +960,14 @@
 #endif
 
 
+// apply additional checks on equation-of-state calculations
+#if ( MODEL == HYDRO  &&  !defined BAROTROPIC_EOS  &&  EOS != EOS_GAMMA )
+#  define EXTRA_EOS_CHECK
+#endif
+
+
 // extend the unphysical-state check to account for floating-point rounding errors
-#if (  MODEL == HYDRO  &&  ( EOS != EOS_GAMMA && EOS != EOS_ISOTHERMAL )  )
+#ifdef EXTRA_EOS_CHECK
 #  define CHECK_UNPHY_ROUNDING
 #endif
 
