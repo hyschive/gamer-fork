@@ -227,7 +227,7 @@ void Flu_FixUp_Flux( const int lv, const long TVar )
 #              error : DE_EINT is NOT supported yet !!
 #              endif
 
-#              endif // #if ( MODEL == HYDRO  &&  !defined BAROTROPIC_EOS )
+#              endif // #if ( MODEL == HYDRO  &&  !defined BAROTROPIC_EOS  &&  !defined SRHD )
 
 
 //###EXPERIMENTAL: (does not work well and thus has been disabled for now)
@@ -260,8 +260,7 @@ void Flu_FixUp_Flux( const int lv, const long TVar )
 #                   error : DE_EINT is NOT supported yet !!
 #                   endif
                   )
-
-#              endif
+#              endif // #ifdef SRHD ... else ...
 
 #              elif ( MODEL == ELBDM  &&  defined CONSERVE_MASS )
 //             throw error if corrected density is unphysical
@@ -319,7 +318,7 @@ void Flu_FixUp_Flux( const int lv, const long TVar )
 #                 endif // DUAL_ENERGY
 
 #                 endif // #ifdef BAROTROPIC_EOS ... else ...
-#                 endif // #if ( MODEL == HYDRO )
+#                 endif // #if ( MODEL == HYDRO  &&  !defined SRHD )
 
 
 //                store the corrected results

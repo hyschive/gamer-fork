@@ -408,7 +408,7 @@ void Interpolate_Iterate( real CData[], const int CSize[3], const int CStart[3],
 #                 endif
 
 //                check whether floating-point rounding errors introduced when recovering the internal energy from
-//                the total energy would lead to unphysical pressure
+//                the total energy would lead to unphysical results
 #                 ifdef CHECK_UNPHY_ROUNDING
                   Hydro_Pri2Con( Temp, Cons, OPT__INT_FRAC_PASSIVE_LR, PassiveIntFrac_NVar, PassiveIntFrac_VarIdx,
                                  EoS_DensPres2Eint_CPUPtr, EoS_Temp2HTilde_CPUPtr, EoS_HTilde2Temp_CPUPtr,
