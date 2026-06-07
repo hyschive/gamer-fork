@@ -318,10 +318,21 @@ void Flu_FixUp_Flux( const int lv, const long TVar )
 #                 endif // DUAL_ENERGY
 
 #                 endif // #ifdef BAROTROPIC_EOS ... else ...
+
+
+//                check whether floating-point rounding errors introduced when recovering the internal energy from
+//                the total energy would lead to unphysical results
+#                 ifdef CHECK_UNPHY_ROUNDING
+                  ApplyFix = ! Hydro_IsUnphysical( UNPHY_MODE_CONS, CorrVal, Emag,
+                                                   EoS_DensEint2Pres_CPUPtr, EoS_GuessHTilde_CPUPtr, EoS_HTilde2Temp_CPUPtr,
+                                                   EoS_AuxArray_Flt, EoS_AuxArray_Int, h_EoS_Table,
+                                                   PassiveFloorMask, ERROR_INFO, UNPHY_SILENCE );
+#                 endif
 #                 endif // #if ( MODEL == HYDRO  &&  !defined SRHD )
 
 
 //                store the corrected results
+                  if ( ApplyFix )
                   for (int v=0; v<NFLUX_TOTAL; v++)
                   {
                      if ( TVar & BIDX(v) )   *FluidPtr1D[v] = CorrVal[v];
