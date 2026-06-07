@@ -406,6 +406,20 @@ void Interpolate_Iterate( real CData[], const int CSize[3], const int CStart[3],
                                                    ERROR_INFO, UNPHY_SILENCE )  )
                      Fail_ThisCell = true;
 #                 endif
+
+//                check whether floating-point rounding errors introduced when recovering the internal energy from
+//                the total energy would lead to unphysical pressure
+#                 ifdef CHECK_UNPHY_ROUNDING
+                  Hydro_Pri2Con( Temp, Cons, OPT__INT_FRAC_PASSIVE_LR, PassiveIntFrac_NVar, PassiveIntFrac_VarIdx,
+                                 EoS_DensPres2Eint_CPUPtr, EoS_Temp2HTilde_CPUPtr, EoS_HTilde2Temp_CPUPtr,
+                                 EoS_AuxArray_Flt, EoS_AuxArray_Int, h_EoS_Table, NULL );
+
+                  if (  Hydro_IsUnphysical( UNPHY_MODE_CONS, Cons, Emag,
+                                            EoS_DensEint2Pres_CPUPtr, EoS_GuessHTilde_CPUPtr, EoS_HTilde2Temp_CPUPtr,
+                                            EoS_AuxArray_Flt, EoS_AuxArray_Int, h_EoS_Table,
+                                            PassiveFloorMask, ERROR_INFO, UNPHY_SILENCE )  )
+                     Fail_ThisCell = true;
+#                 endif
                } // if ( EoS_DensPres2Eint_CPUPtr != NULL )
             } // if ( FData_is_Prim )
 
