@@ -79,7 +79,7 @@ Procedure for outputting new variables:
 
 
 //-------------------------------------------------------------------------------------------------------
-// Function    :  Output_DumpData_Total_HDF5 (FormatVersion = 2508)
+// Function    :  Output_DumpData_Total_HDF5 (FormatVersion = 2509)
 // Description :  Output all simulation data in the HDF5 format, which can be used as a restart file
 //                or loaded by YT
 //
@@ -287,6 +287,7 @@ Procedure for outputting new variables:
 //                                             OPT__OUTPUT_GRACKLE_TEMP, OPT__OUTPUT_GRACKLE_MU, OPT__OUTPUT_GRACKLE_TCOOL,
 //                                             DT__GRACKLE_COOLING, OPT__FLAG_COOLING_LEN, FlagTable_CoolingLen
 //                2508 : 2026/03/26 --> output particle unique id
+//                2509 : 2026/06/07 --> output EXTRA_EOS_CHECK, CHECK_UNPHY_ROUNDING, CHECK_UNPHY_ROUNDING_FACTOR
 //-------------------------------------------------------------------------------------------------------
 void Output_DumpData_Total_HDF5( const char *FileName )
 {
@@ -1753,7 +1754,7 @@ void FillIn_KeyInfo( KeyInfo_t &KeyInfo, const int NFieldStored )
 
    const time_t CalTime = time( NULL );   // calendar time
 
-   KeyInfo.FormatVersion        = 2508;
+   KeyInfo.FormatVersion        = 2509;
    KeyInfo.Model                = MODEL;
    KeyInfo.NLevel               = NLEVEL;
    KeyInfo.NCompFluid           = NCOMP_FLUID;
@@ -2310,14 +2311,30 @@ void FillIn_SymConst( SymConst_t &SymConst )
    SymConst.FB_SepFluOut         = 0;
 #  endif
 
+#  if ( MODEL == HYDRO )
+#  ifdef EXTRA_EOS_CHECK
+   SymConst.ExtraEoSCheck        = 1;
+#  else
+   SymConst.ExtraEoSCheck        = 0;
+#  endif
+#  endif // HYDRO
+
+#  ifdef CHECK_UNPHY_ROUNDING
+   SymConst.CheckUnphyRnd        = 1;
+#  else
+   SymConst.CheckUnphyRnd        = 0;
+#  endif
+
+   SymConst.CheckUnphyRndFactor  = CHECK_UNPHY_ROUNDING_FACTOR;
+
 
 #  if   ( MODEL == HYDRO )
    SymConst.Flu_BlockSize_x      = FLU_BLOCK_SIZE_X;
    SymConst.Flu_BlockSize_y      = FLU_BLOCK_SIZE_Y;
 #  ifdef CHECK_UNPHYSICAL_IN_FLUID
-   SymConst.CheckUnphyInFluid = 1;
+   SymConst.CheckUnphyInFluid    = 1;
 #  else
-   SymConst.CheckUnphyInFluid = 0;
+   SymConst.CheckUnphyInFluid    = 0;
 #  endif
 #  ifdef CHAR_RECONSTRUCTION
    SymConst.CharReconstruction   = 1;
@@ -3372,6 +3389,11 @@ void GetCompound_SymConst( hid_t &H5_TypeID )
 #  endif
    H5Tinsert( H5_TypeID, "InterpMask",           HOFFSET(SymConst_t,InterpMask          ), H5T_NATIVE_INT    );
    H5Tinsert( H5_TypeID, "FB_SepFluOut",         HOFFSET(SymConst_t,FB_SepFluOut        ), H5T_NATIVE_INT    );
+#  if ( MODEL == HYDRO )
+   H5Tinsert( H5_TypeID, "ExtraEoSCheck",        HOFFSET(SymConst_t,ExtraEoSCheck       ), H5T_NATIVE_INT    );
+#  endif
+   H5Tinsert( H5_TypeID, "CheckUnphyRnd",        HOFFSET(SymConst_t,CheckUnphyRnd       ), H5T_NATIVE_INT    );
+   H5Tinsert( H5_TypeID, "CheckUnphyRndFactor",  HOFFSET(SymConst_t,CheckUnphyRndFactor ), H5T_NATIVE_DOUBLE );
 
 #  if   ( MODEL == HYDRO )
    H5Tinsert( H5_TypeID, "Flu_BlockSize_x",      HOFFSET(SymConst_t,Flu_BlockSize_x     ), H5T_NATIVE_INT    );

@@ -1827,6 +1827,11 @@ void Check_SymConst( const char *FileName, const int FormatVersion )
 #  endif
    LoadField( "InterpMask",           &RS.InterpMask,           SID, TID, NonFatal, &RT.InterpMask,            1, NonFatal );
    LoadField( "FB_SepFluOut",         &RS.FB_SepFluOut,         SID, TID, NonFatal, &RT.FB_SepFluOut,          1, NonFatal );
+#  if ( MODEL == HYDRO )
+   LoadField( "ExtraEoSCheck",        &RS.ExtraEoSCheck,        SID, TID, NonFatal, &RT.ExtraEoSCheck,         1, NonFatal );
+#  endif
+   LoadField( "CheckUnphyRnd",        &RS.CheckUnphyRnd,        SID, TID, NonFatal, &RT.CheckUnphyRnd,         1, NonFatal );
+   LoadField( "CheckUnphyRndFactor",  &RS.CheckUnphyRndFactor,  SID, TID, NonFatal, &RT.CheckUnphyRndFactor,   1, NonFatal );
 
 #  if   ( MODEL == HYDRO )
    LoadField( "Flu_BlockSize_x",      &RS.Flu_BlockSize_x,      SID, TID, NonFatal, &RT.Flu_BlockSize_x,       1, NonFatal );
