@@ -924,14 +924,10 @@ bool Hydro_IsUnphysical( const IsUnphyMode_t Mode, const real Fields[],
          real Pres;
          for (int i=CHECK_UNPHY_ROUNDING_IMIN; i<=CHECK_UNPHY_ROUNDING_IMAX; i++)
          {
-//          only perturb the total energy since the internal energy is subtracted from it
-            const real Etot_Check      = Fields[ENGY]*( (real)1.0 + (real)i*CHECK_UNPHY_ROUNDING_FACTOR*MACHINE_EPSILON );
-            const bool CheckMinPres_No = false;
-
-            Pres = Hydro_Con2Pres( Fields[DENS], Fields[MOMX], Fields[MOMY], Fields[MOMZ], Etot_Check, Fields+NCOMP_FLUID,
-                                   CheckMinPres_No, NULL_REAL, PassiveFloor, Emag,
-                                   EoS_DensEint2Pres, NULL, NULL,
-                                   EoS_AuxArray_Flt, EoS_AuxArray_Int, EoS_Table, NULL );
+//          add machine-precision-level perturbations to the internal energy relative to the total energy
+            const real Eint_Check = Eint + Fields[ENGY]*(real)i*CHECK_UNPHY_ROUNDING_FACTOR*MACHINE_EPSILON;
+            Pres = EoS_DensEint2Pres( Fields[DENS], Eint_Check, Fields+NCOMP_FLUID,
+                                      EoS_AuxArray_Flt, EoS_AuxArray_Int, EoS_Table );
 
             if ( Pres < (real)0.0  ||  Pres > HUGE_NUMBER  ||  Pres != Pres )
             {
