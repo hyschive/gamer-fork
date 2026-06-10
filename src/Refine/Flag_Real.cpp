@@ -464,7 +464,7 @@ void Flag_Real( const int lv, const UseLBFunc_t UseLBFunc )
                      Hydro_IsUnphysical( UNPHY_MODE_CONS, Cons, NULL_REAL,
                                          EoS_DensEint2Pres_CPUPtr, EoS_GuessHTilde_CPUPtr, EoS_HTilde2Temp_CPUPtr,
                                          EoS_AuxArray_Flt, EoS_AuxArray_Int, h_EoS_Table,
-                                         PassiveFloorMask, ERROR_INFO, UNPHY_VERBOSE );
+                                         PassiveFloorMask, ERROR_INFO, UNPHY_VERBOSE, CK_UNPHY_RND_NA );
 #                    endif
 
                      HTilde = Hydro_Con2HTilde( Cons, EoS_GuessHTilde_CPUPtr, EoS_HTilde2Temp_CPUPtr,

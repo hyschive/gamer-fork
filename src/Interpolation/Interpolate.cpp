@@ -357,7 +357,7 @@ void Interpolate_Iterate( real CData[], const int CSize[3], const int CStart[3],
             = Hydro_IsUnphysical( (FData_is_Prim)?UNPHY_MODE_PRIM:UNPHY_MODE_CONS, Temp, Emag,
                                   EoS_DensEint2Pres_CPUPtr, EoS_GuessHTilde_CPUPtr, EoS_HTilde2Temp_CPUPtr,
                                   EoS_AuxArray_Flt, EoS_AuxArray_Int, h_EoS_Table,
-                                  PassiveFloorMask, ERROR_INFO, UNPHY_SILENCE );
+                                  PassiveFloorMask, ERROR_INFO, UNPHY_SILENCE, CK_UNPHY_RND_YES );
 
 
 //       5-3. additional check
@@ -417,7 +417,7 @@ void Interpolate_Iterate( real CData[], const int CSize[3], const int CStart[3],
                   if (  Hydro_IsUnphysical( UNPHY_MODE_CONS, Cons, Emag,
                                             EoS_DensEint2Pres_CPUPtr, EoS_GuessHTilde_CPUPtr, EoS_HTilde2Temp_CPUPtr,
                                             EoS_AuxArray_Flt, EoS_AuxArray_Int, h_EoS_Table,
-                                            PassiveFloorMask, ERROR_INFO, UNPHY_SILENCE )  )
+                                            PassiveFloorMask, ERROR_INFO, UNPHY_SILENCE, CK_UNPHY_RND_YES )  )
                      Fail_ThisCell = true;
 #                 endif
                } // if ( EoS_DensPres2Eint_CPUPtr != NULL )
@@ -488,10 +488,11 @@ void Interpolate_Iterate( real CData[], const int CSize[3], const int CStart[3],
                               EoS_AuxArray_Flt, EoS_AuxArray_Int, h_EoS_Table, NULL );
 
 #              ifdef GAMER_DEBUG
+//             adopt CK_UNPHY_RND_NO since the following check is for debugging rather than correcting unphysical results
                if (  Hydro_IsUnphysical( UNPHY_MODE_CONS, Cons, Emag,
                                          EoS_DensEint2Pres_CPUPtr, EoS_GuessHTilde_CPUPtr, EoS_HTilde2Temp_CPUPtr,
                                          EoS_AuxArray_Flt, EoS_AuxArray_Int, h_EoS_Table,
-                                         PassiveFloorMask, ERROR_INFO, UNPHY_VERBOSE )  )
+                                         PassiveFloorMask, ERROR_INFO, UNPHY_VERBOSE, CK_UNPHY_RND_NO )  )
                   Aux_Error( ERROR_INFO, "unphysical interpolated energy in %s() !!\n", __FUNCTION__ );
 #              endif
             }

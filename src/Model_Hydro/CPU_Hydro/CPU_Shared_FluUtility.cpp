@@ -41,7 +41,8 @@ static bool Hydro_IsUnphysical( const IsUnphyMode_t Mode, const real Fields[],
                                 const EoS_GUESS_t EoS_GuessHTilde, const EoS_H2TEM_t EoS_HTilde2Temp,
                                 const double EoS_AuxArray_Flt[], const int EoS_AuxArray_Int[],
                                 const real *const EoS_Table[EOS_NTABLE_MAX], const long PassiveFloor,
-                                const char File[], const int Line, const char Function[], const IsUnphVerb_t Verbose );
+                                const char File[], const int Line, const char Function[], const IsUnphVerb_t Verbose,
+                                const CkUnphyRnd_t CkUnphyRnd );
 GPU_DEVICE
 static bool Hydro_IsUnphysical_Single( const real Field, const char SingleFieldName[], const real Min, const real Max,
                                        const char File[], const int Line, const char Function[], const IsUnphVerb_t Verbose );
@@ -223,7 +224,7 @@ void Hydro_Con2Pri( const real In[], real Out[], const real MinPres, const long 
    Hydro_IsUnphysical( UNPHY_MODE_CONS, In, NULL_REAL,
                        EoS_DensEint2Pres, EoS_GuessHTilde, EoS_HTilde2Temp,
                        EoS_AuxArray_Flt, EoS_AuxArray_Int, EoS_Table,
-                       PassiveFloor, ERROR_INFO, UNPHY_VERBOSE );
+                       PassiveFloor, ERROR_INFO, UNPHY_VERBOSE, CK_UNPHY_RND_NA );
 #  endif
 
    HTilde = Hydro_Con2HTilde( In, EoS_GuessHTilde, EoS_HTilde2Temp, EoS_AuxArray_Flt, EoS_AuxArray_Int, EoS_Table );
@@ -835,6 +836,17 @@ real Hydro_CheckMinEintInEngy( const real Dens, const real MomX, const real MomY
 //                Function          : __FUNCTION__
 //                Verbose           : UNPHY_VERBOSE --> Show error messages
 //                                    UNPHY_SILENCE --> Show nothing
+//                CkUnphyRnd        : Check for unphysical results caused by floating-point rounding errors
+//                                    --> Supported modes:
+//                                        CK_UNPHY_RND_YES: enable the check
+//                                        --> Intended mainly for correcting unphysical results arising from machine-precision-level errors
+//                                            (currently applicable only when Mode == UNPHY_MODE_CONS)
+//                                        CK_UNPHY_RND_NO: disable the check
+//                                        --> Useful in situations where we intentionally do *not* want to
+//                                            check for rounding errors (e.g., OPT__CK_INPUT_FLUID and when debugging)
+//                                        CK_UNPHY_RND_NA: not applicable
+//                                        --> Currently used for SRHD, UNPHY_MODE_PRIM, and UNPHY_MODE_PASSIVE_ONLY
+//                                    --> Ignored when CHECK_UNPHY_ROUNDING is disabled in Macro.h
 //
 // Return      :  true  --> Input field is unphysical
 //                false --> Otherwise
@@ -845,7 +857,8 @@ bool Hydro_IsUnphysical( const IsUnphyMode_t Mode, const real Fields[],
                          const EoS_GUESS_t EoS_GuessHTilde, const EoS_H2TEM_t EoS_HTilde2Temp,
                          const double EoS_AuxArray_Flt[], const int EoS_AuxArray_Int[],
                          const real *const EoS_Table[EOS_NTABLE_MAX], const long PassiveFloor,
-                         const char File[], const int Line, const char Function[], const IsUnphVerb_t Verbose )
+                         const char File[], const int Line, const char Function[], const IsUnphVerb_t Verbose,
+                         const CkUnphyRnd_t CkUnphyRnd )
 {
 
 // check
@@ -922,7 +935,10 @@ bool Hydro_IsUnphysical( const IsUnphyMode_t Mode, const real Fields[],
 //           slightly negative if it's within machine precision
 #        ifdef EXTRA_EOS_CHECK
          real Pres;
-         for (int i=CHECK_UNPHY_ROUNDING_IMIN; i<=CHECK_UNPHY_ROUNDING_IMAX; i++)
+//       must parenthesize i<=() since ?: has lower precedence than <=
+         for (int i =((CkUnphyRnd==CK_UNPHY_RND_YES)?CHECK_UNPHY_ROUNDING_IMIN:0);
+                  i<=((CkUnphyRnd==CK_UNPHY_RND_YES)?CHECK_UNPHY_ROUNDING_IMAX:0);
+                  i++)
          {
 //          add machine-precision-level perturbations to the internal energy relative to the total energy
             const real Eint_Check = Eint + Fields[ENGY]*(real)i*CHECK_UNPHY_ROUNDING_FACTOR*MACHINE_EPSILON;

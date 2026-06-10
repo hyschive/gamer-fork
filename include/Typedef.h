@@ -266,6 +266,14 @@ const IsUnphyMode_t
    UNPHY_MODE_PASSIVE_ONLY = 2;  // only check passive scalars
 
 
+// whether to check rounding errors in Hydro_IsUnphysical()
+typedef int CkUnphyRnd_t;
+const CkUnphyRnd_t
+   CK_UNPHY_RND_NA  = 0,   // not applicable
+   CK_UNPHY_RND_YES = 1,   // enable the check
+   CK_UNPHY_RND_NO  = 2;   // disable the check
+
+
 // verbosity levels of Hydro_IsUnphysical()
 typedef int IsUnphVerb_t;
 const IsUnphVerb_t
