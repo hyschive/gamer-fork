@@ -304,6 +304,9 @@ void Interpolate_Iterate( real CData[], const int CSize[3], const int CStart[3],
 
 //       ensure IntMonoCoeff is non-negative
          IntMonoCoeff = FMAX( IntMonoCoeff, (real)0.0 );
+
+//       force IntMonoCoeff=0.0 at the last iteration to eliminate residual rounding errors
+         if ( Iteration == MaxIter )   IntMonoCoeff = (real)0.0;
       }
 
 
@@ -311,6 +314,12 @@ void Interpolate_Iterate( real CData[], const int CSize[3], const int CStart[3],
       IntSchemeFunc( CData, CSize, CStart, CRange, FData_tmp, FSize, FStart, NComp,
                      UnwrapPhase, Monotonic, IntMonoCoeff, OppSign0thOrder );
 
+
+//    do not check for floating-point rounding errors at the last iteration to avoid false alarms
+//    --> otherwise, the run may be terminated at step "6-1. skip failed cells" even though the
+//        interpolation results are physically valid before applying the additional machine-precision-level
+//        perturbations (CHECK_UNPHY_ROUNDING_FACTOR*MACHINE_EPSILON)
+      const CkUnphyRnd_t CkUnphyRnd = ( Iteration == MaxIter ) ? CK_UNPHY_RND_NO : CK_UNPHY_RND_YES;
 
       Fail_AnyCell = false;
 
@@ -357,7 +366,7 @@ void Interpolate_Iterate( real CData[], const int CSize[3], const int CStart[3],
             = Hydro_IsUnphysical( (FData_is_Prim)?UNPHY_MODE_PRIM:UNPHY_MODE_CONS, Temp, Emag,
                                   EoS_DensEint2Pres_CPUPtr, EoS_GuessHTilde_CPUPtr, EoS_HTilde2Temp_CPUPtr,
                                   EoS_AuxArray_Flt, EoS_AuxArray_Int, h_EoS_Table,
-                                  PassiveFloorMask, ERROR_INFO, UNPHY_SILENCE, CK_UNPHY_RND_YES );
+                                  PassiveFloorMask, ERROR_INFO, UNPHY_SILENCE, CkUnphyRnd );
 
 
 //       5-3. additional check
@@ -417,7 +426,7 @@ void Interpolate_Iterate( real CData[], const int CSize[3], const int CStart[3],
                   if (  Hydro_IsUnphysical( UNPHY_MODE_CONS, Cons, Emag,
                                             EoS_DensEint2Pres_CPUPtr, EoS_GuessHTilde_CPUPtr, EoS_HTilde2Temp_CPUPtr,
                                             EoS_AuxArray_Flt, EoS_AuxArray_Int, h_EoS_Table,
-                                            PassiveFloorMask, ERROR_INFO, UNPHY_SILENCE, CK_UNPHY_RND_YES )  )
+                                            PassiveFloorMask, ERROR_INFO, UNPHY_SILENCE, CkUnphyRnd )  )
                      Fail_ThisCell = true;
 #                 endif
                } // if ( EoS_DensPres2Eint_CPUPtr != NULL )
