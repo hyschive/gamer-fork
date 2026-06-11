@@ -458,7 +458,7 @@ bool Unphysical( const real Fluid[], const int CheckMode, const real Emag )
       if ( Eint < (real)MIN_EINT  ||  !Aux_IsFinite(Eint) )
          return true;
 #     endif // DUAL_ENERGY
-   } // f ( CheckMode == CheckMinEint )
+   } // if ( CheckMode == CheckMinEint )
 
    if ( OPT__CHECK_PRES_AFTER_FLU )
    {
@@ -477,7 +477,7 @@ bool Unphysical( const real Fluid[], const int CheckMode, const real Emag )
          if ( Pres < (real)MIN_PRES  ||  !Aux_IsFinite(Pres) )
             return true;
       }
-   }
+   } // if ( OPT__CHECK_PRES_AFTER_FLU )
 #  endif // #ifndef BAROTROPIC_EOS
 
 #  ifndef SRHD
