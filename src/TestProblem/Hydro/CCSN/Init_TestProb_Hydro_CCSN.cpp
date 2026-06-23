@@ -362,6 +362,14 @@ void SetParameter()
       }
    }
 
+   if ( CCSN_Prob == CCSN )
+   {
+#     if ( NEUTRINO_SCHEME == LEAKAGE )
+      if ( ! SrcTerms.Leakage  &&  CCSN_Is_PostBounce )
+         Aux_Error( ERROR_INFO, "SRC_LEAKAGE must be set to 1 in the postbounce phase !!\n" );
+#     endif
+   }
+
 
    if ( CCSN_Eint_Mode == 1 )
    {
