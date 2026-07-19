@@ -552,6 +552,22 @@ static void Src_Leakage( real fluid[], const real B[],
    const real dYedt_Code = dYedt * Unit_T;
 
 
+#  ifdef GAMER_DEBUG
+   if (  Hydro_IsUnphysical_Single( dEdt_Code, "leakage energy heating rate",
+                                    (real)0.0, __FLT_MAX__, ERROR_INFO, UNPHY_VERBOSE )  ||
+         Hydro_IsUnphysical_Single( dYedt_Code, "leakage Ye heating rate",
+                                    (real)0.0, __FLT_MAX__, ERROR_INFO, UNPHY_VERBOSE )     )
+   {
+      printf( "   Dens=%13.7e code units, Temp=%13.7e code units, Ye=%13.7e\n", Dens_Code, Temp_Kelv, Ye );
+      printf( "   dEdt=%13.7e, dYedt=%13.7e\n", dEdt_Code, dYedt_Code );
+
+      for (int n=0; n<NType_Neutrino; n++)
+      printf( "   n=%d: tau=%13.7e, chi=%13.7e, Heat_Flux=%13.7e, Heat_ERms=%13.7e, Heat_EAve=%13.7e\n",
+                  n, tau[n], chi[n], Heat_Flux[n] / Const_hc_MeVcm_CUBE, Heat_ERms[n], Heat_EAve[n] );
+   }
+#  endif // GAMER_DEBUG
+
+
 // (4) for recording mode, store the dEdt, luminosity, heating rate, and net heating rate, then return
    if ( Mode == LEAK_MODE_RECORD )
    {
