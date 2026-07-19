@@ -561,8 +561,16 @@ void Src_Leakage_ComputeTau( Profile_t *Ray[], double *Edge,
          {
             int Idx_NS;
 
+//          check if neutrino sphere exists
+            if (  ( tau[TID][0]        [k] <  TwoThirds )  ||
+                  ( tau[TID][NRadius-1][k] >= TwoThirds )     )
+            {
+               Aux_Error( ERROR_INFO, "failed in finding neutrino sphere for Ray (%d) in %s !!\n",
+                          j, __FUNCTION__ );
+            }
+
 //          find the index that brackets tau = 2/3
-            for (Idx_NS=0; Idx_NS<NRadius; Idx_NS++)
+            for (Idx_NS=1; Idx_NS<NRadius; Idx_NS++)
             {
                if ( tau[TID][Idx_NS][k] < TwoThirds )   break;
             }
