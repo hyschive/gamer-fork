@@ -362,8 +362,8 @@ void Src_Leakage_ComputeTau( Profile_t *Ray[], double *Edge,
             {
 //             compute neutrino degeneracy using the new optical depth
 //             --> the eta^0_nu is set to 0.0
-               eta_nu_loc[TID][i][0] = eta_nu[TID][i][0] * (  1.0 - exp( -tau[TID][i][0] )  ); // (A3)
-               eta_nu_loc[TID][i][1] = eta_nu[TID][i][1] * (  1.0 - exp( -tau[TID][i][1] )  ); // (A4)
+               eta_nu_loc[TID][i][0] = -eta_nu[TID][i][0] * expm1( -tau[TID][i][0] ); // (A3)
+               eta_nu_loc[TID][i][1] = -eta_nu[TID][i][1] * expm1( -tau[TID][i][1] ); // (A4)
                eta_nu_loc[TID][i][2] = 0.0;                                                    // (A2)
 
 //             number fraction with Pauli blocking effects (Y_NN), assumed completely dissociated
@@ -373,10 +373,11 @@ void Src_Leakage_ComputeTau( Profile_t *Ray[], double *Edge,
 //             number fraction with Fermion blocking effects
                if ( x_h[TID][i] < 0.5 )
                {
-                  fac1 = exp( -eta_hat[TID][i] );
+                  fac1 = 2.0 * Ye[TID][i] - 1.0;
+                  fac2 = 1.0 / expm1( -eta_hat[TID][i] );
 
-                  Ynp = ( 2.0 * Ye[TID][i] - 1.0 ) / ( fac1 - 1.0 ); // (A13)
-                  Ypn = fac1 * Ynp;                                  // (A14)
+                  Ynp = fac1 * fac2;           // (A13)
+                  Ypn = fac1 * ( 1.0 + fac2 ); // (A14)
                }
 
                else
@@ -504,8 +505,8 @@ void Src_Leakage_ComputeTau( Profile_t *Ray[], double *Edge,
             {
                fac1   = Dens_CGS[TID][i] * ( x_n[TID][i] - x_p[TID][i] );
 
-               eta_pn =  fac1 / ( exp(  eta_hat[TID][i] ) - 1.0 ); // (A9)
-               eta_np = -fac1 / ( exp( -eta_hat[TID][i] ) - 1.0 ); // (A9)
+               eta_pn =  fac1 / expm1(  eta_hat[TID][i] ); // (A9)
+               eta_np = -fac1 / expm1( -eta_hat[TID][i] ); // (A9)
             }
 
             eta_pn = fmax( 0.0, eta_pn );
@@ -860,7 +861,7 @@ void Src_Leakage_ComputeLeak( const real Dens_Code, const real Temp_Kelv, const 
    }
 
 // (1-3) interpolate eta using the optical depth obtained from the Ruffert scheme
-   for (int k=0; k<NType_Neutrino-1; k++)   eta_nu[k] *= (real)1.0 - EXP( -tau[k] );
+   for (int k=0; k<NType_Neutrino-1; k++)   eta_nu[k] *= -EXPM1( -tau[k] );
 
 
 // (2) compute the local energy-independent opacity (zeta) using the Rosswog scheme
@@ -909,8 +910,8 @@ void Src_Leakage_ComputeLeak( const real Dens_Code, const real Temp_Kelv, const 
    {
       const real factor = Dens_CGS * ( x_n - x_p );
 
-      eta_pn =  factor / ( EXP(  eta_hat ) - (real)1.0 ); // (A9)
-      eta_np = -factor / ( EXP( -eta_hat ) - (real)1.0 ); // (A9)
+      eta_pn =  factor / EXPM1(  eta_hat ); // (A9)
+      eta_np = -factor / EXPM1( -eta_hat ); // (A9)
    }
 
    eta_pn = FMAX( (real)0.0, eta_pn );
@@ -1133,7 +1134,7 @@ real Compute_FermiIntegral( const int Order, const real eta )
 
          case 2 :
             integral  = ( ONETHIRD * eta_sqr + (real)3.2899 ) * eta;
-            integral /= (real)1.0 - EXP( (real)-1.8246 * eta );
+            integral /= -EXPM1( (real)-1.8246 * eta );
          break;
 
          case 3 :
@@ -1143,7 +1144,7 @@ real Compute_FermiIntegral( const int Order, const real eta )
 
          case 4 :
             integral  = (  ( (real)0.2 * eta_sqr + (real)6.5797 ) * eta_sqr + (real)45.4576  ) * eta;
-            integral /= (real)1.0 - EXP( (real)-1.9484 * eta );
+            integral /= -EXPM1( (real)-1.9484 * eta );
          break;
 
          case 5 :
@@ -1154,8 +1155,8 @@ real Compute_FermiIntegral( const int Order, const real eta )
          case 43: // case 4 / case 3
             integral  = (  ( (real)0.2  * eta_sqr + (real)6.5797 ) * eta_sqr + (real) 45.4576  ) * eta;
             integral /=    ( (real)0.25 * eta_sqr + (real)4.9348 ) * eta_sqr + (real) 11.3644;
-            integral *= (  (real)1.0 + EXP( (real)-1.9039 * eta )  )
-                      / (  (real)1.0 - EXP( (real)-1.9484 * eta )  );
+            integral *= -(  (real)1.0 + EXP( (real)-1.9039 * eta )  )
+                      / EXPM1( (real)-1.9484 * eta );
          break;
 
          case 53: // case 5 / case 3
@@ -1168,7 +1169,7 @@ real Compute_FermiIntegral( const int Order, const real eta )
          case 54: // case 5 / case 4
             integral  = (  ( ONESIXTH   * eta_sqr + (real)8.2247 ) * eta_sqr + (real)113.6439  ) * eta_sqr + (real)236.5323;
             integral /= (  ( (real)0.2  * eta_sqr + (real)6.5797 ) * eta_sqr + (real) 45.4576  ) * eta;
-            integral *= (  (real)1.0 - EXP( (real)-1.9484 * eta )  )
+            integral *= -EXPM1( (real)-1.9484 * eta )
                       / (  (real)1.0 + EXP( (real)-1.9727 * eta )  );
          break;
       } // switch ( Order )
