@@ -291,10 +291,12 @@ void Init_GAMER( int *argc, char ***argv )
 
 //    utilize the box center as the reference point for GREP center during the initialization stage
 //    since the potential is not initialized yet
+#     ifdef GREP
       const GREP_Center_t Backup_GREP_Center = GREP_CENTER_METHOD;
 
       if ( OPT__EXT_POT == EXT_POT_GREP )
          GREP_CENTER_METHOD = ( OPT__INIT == INIT_BY_RESTART ) ? GREP_CENTER_NONE : GREP_CENTER_BOX;
+#     endif
 
 
       for (int lv=0; lv<NLEVEL; lv++)
@@ -315,7 +317,9 @@ void Init_GAMER( int *argc, char ***argv )
 
 
 //    restore the GREP center
+#     ifdef GREP
       if ( OPT__EXT_POT == EXT_POT_GREP )   GREP_CENTER_METHOD = Backup_GREP_Center;
+#     endif
    } // if ( OPT__SELF_GRAVITY  ||  OPT__EXT_POT )
 #  endif // #ifdef GARVITY
 

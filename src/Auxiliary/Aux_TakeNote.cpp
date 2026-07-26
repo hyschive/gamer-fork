@@ -815,7 +815,9 @@ void Aux_TakeNote()
 #     ifdef GRAVITY
       fprintf( Note, "#define EXT_POT_NAUX_MAX       % d\n",      EXT_POT_NAUX_MAX      );
       fprintf( Note, "#define EXT_ACC_NAUX_MAX       % d\n",      EXT_ACC_NAUX_MAX      );
+#     ifdef GREP
       fprintf( Note, "#define EXT_POT_GREP_NAUX_MAX  % d\n",      EXT_POT_GREP_NAUX_MAX );
+#     endif
       fprintf( Note, "#define EXT_POT_NGENE_MAX      % d\n",      EXT_POT_NGENE_MAX     );
 #     endif
 #     if ( MODEL == HYDRO )
@@ -1173,6 +1175,7 @@ void Aux_TakeNote()
       fprintf( Note, "Parameters of Source Terms\n" );
       fprintf( Note, "***********************************************************************************\n" );
       fprintf( Note, "SRC_ANY                        % d\n",      SrcTerms.Any              );
+#     if ( MODEL == HYDRO )
       fprintf( Note, "SRC_DELEPTONIZATION            % d\n",      SrcTerms.Deleptonization  );
       fprintf( Note, "SRC_LIGHTBULB                  % d\n",      SrcTerms.Lightbulb        );
       if ( SrcTerms.Deleptonization ) {
@@ -1185,6 +1188,7 @@ void Aux_TakeNote()
       if ( SrcTerms.Lightbulb ) {
       fprintf( Note, "SRC_LIGHTBULB_LNUE             % 14.7e\n",  SrcTerms.Lightbulb_Lnue   );
       fprintf( Note, "SRC_LIGHTBULB_TNUE             % 14.7e\n",  SrcTerms.Lightbulb_Tnue   ); }
+#     endif
       fprintf( Note, "SRC_USER                       % d\n",      SrcTerms.User             );
       fprintf( Note, "SRC_GPU_NPGROUP                % d\n",      SRC_GPU_NPGROUP           );
       fprintf( Note, "***********************************************************************************\n" );
@@ -1508,6 +1512,7 @@ void Aux_TakeNote()
       fprintf( Note, "EXT_POT_TABLE_EDGEL_Y          % 14.7e\n",  EXT_POT_TABLE_EDGEL[1]  );
       fprintf( Note, "EXT_POT_TABLE_EDGEL_Z          % 14.7e\n",  EXT_POT_TABLE_EDGEL[2]  );
       fprintf( Note, "EXT_POT_TABLE_FLOAT8           % d\n",      EXT_POT_TABLE_FLOAT8    ); }
+#     ifdef GREP
       if ( OPT__EXT_POT == EXT_POT_GREP ) {
       fprintf( Note, "GREP_CENTER_METHOD             % d\n",      GREP_CENTER_METHOD      );
       fprintf( Note, "GREP_MAXITER                   % d\n",      GREP_MAXITER            );
@@ -1517,6 +1522,7 @@ void Aux_TakeNote()
       fprintf( Note, "GREP_MINBINSIZE                % 14.7e\n",  GREP_MINBINSIZE         );
       fprintf( Note, "GREP_OPT_FIXUP                 % d\n",      GREP_OPT_FIXUP          );
       fprintf( Note, "GREP_OPT_PRES                  % d\n",      GREP_OPT_PRES           ); }
+#     endif
       fprintf( Note, "OPT__GRAVITY_EXTRA_MASS        % d\n",      OPT__GRAVITY_EXTRA_MASS );
       fprintf( Note, "AveDensity_Init                % 14.7e\n",  AveDensity_Init         );
       fprintf( Note, "***********************************************************************************\n" );

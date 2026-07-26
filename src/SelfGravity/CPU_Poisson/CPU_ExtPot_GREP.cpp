@@ -6,6 +6,8 @@
 #include "GAMER.h"
 #endif
 
+#ifdef GREP
+
 
 #define LinearInterp( x, xa, xb, ya, yb )   (  (ya) + ((yb) - (ya)) * ((x) - (xa)) / ((xb) - (xa))  )
 
@@ -445,3 +447,7 @@ void ExtPot_PassData2GPU_GREP( const real *h_Table )
 
 } // FUNCTION : ExtPot_PassData2GPU_GREP
 #endif // #ifdef __CUDACC__
+
+
+
+#endif // #ifdef GREP

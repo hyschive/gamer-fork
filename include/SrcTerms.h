@@ -44,8 +44,10 @@ struct SrcTerms_t
 {
 
    bool   Any;
+#  if ( MODEL == HYDRO )
    bool   Deleptonization;
    bool   Lightbulb;
+#  endif
    bool   User;
 
    double BoxCenter[3];

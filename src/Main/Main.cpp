@@ -205,6 +205,7 @@ ExtPot_t GPUExtPot_Ptr = NULL;
 #endif
 
 // GREP
+#ifdef GREP
 GREP_Center_t        GREP_CENTER_METHOD;
 int                  GREP_MAXITER;
 bool                 GREP_LOGBIN;
@@ -214,6 +215,7 @@ double               GREP_MINBINSIZE;
 bool                 GREP_OPT_FIXUP;
 GREP_PresScheme_t    GREP_OPT_PRES;
 double               GREP_Center[3];
+#endif
 #endif // #ifdef GRAVITY
 
 // (2-3) cosmological simulations

@@ -262,7 +262,9 @@ void Init_ByRestart_HDF5( const char *FileName )
    LoadField( "dTime_AllLv",           KeyInfo.dTime_AllLv,          H5_SetID_KeyInfo, H5_TypeID_KeyInfo, NonFatal,  NullPtr,              -1, NonFatal );
 #  ifdef GRAVITY
    LoadField( "AveDens_Init",         &KeyInfo.AveDens_Init,         H5_SetID_KeyInfo, H5_TypeID_KeyInfo,    Fatal,  NullPtr,              -1, NonFatal );
+#  ifdef GREP
    LoadField( "GREP_Center",           KeyInfo.GREP_Center,          H5_SetID_KeyInfo, H5_TypeID_KeyInfo, NonFatal,  NullPtr,              -1, NonFatal );
+#  endif
 #  endif
 #  if ( ELBDM_SCHEME == ELBDM_HYBRID )
    LoadField( "UseWaveScheme",         KeyInfo.UseWaveScheme,        H5_SetID_KeyInfo, H5_TypeID_KeyInfo,    Fatal,  NullPtr,              -1, NonFatal );
@@ -327,7 +329,7 @@ void Init_ByRestart_HDF5( const char *FileName )
    }
 
 // 1-5-3. reset GREP center
-#  ifdef GRAVITY
+#  ifdef GREP
    for (int i=0; i<3; i++)  GREP_Center[i] = KeyInfo.GREP_Center[i];
 #  endif
 
@@ -1822,7 +1824,9 @@ void Check_SymConst( const char *FileName, const int FormatVersion )
    LoadField( "Gra_BlockSize",        &RS.Gra_BlockSize,        SID, TID, NonFatal, &RT.Gra_BlockSize,         1, NonFatal );
    LoadField( "ExtPotNAuxMax",        &RS.ExtPotNAuxMax,        SID, TID, NonFatal, &RT.ExtPotNAuxMax,         1, NonFatal );
    LoadField( "ExtAccNAuxMax",        &RS.ExtAccNAuxMax,        SID, TID, NonFatal, &RT.ExtAccNAuxMax,         1, NonFatal );
+#  ifdef GREP
    LoadField( "ExtPotGREPNAuxMax",    &RS.ExtPotGREPNAuxMax,    SID, TID, NonFatal, &RT.ExtPotGREPNAuxMax,     1, NonFatal );
+#  endif
    LoadField( "ExtPotNGeneMax",       &RS.ExtPotNGeneMax,       SID, TID, NonFatal, &RT.ExtPotNGeneMax,        1, NonFatal );
 #  if   ( POT_SCHEME == SOR )
    LoadField( "Pot_BlockSize_z",      &RS.Pot_BlockSize_z,      SID, TID, NonFatal, &RT.Pot_BlockSize_z,       1, NonFatal );
@@ -2287,6 +2291,7 @@ void Check_InputPara( const char *FileName, const int FormatVersion )
    LoadField( "ExtPotTable_EdgeL",        RS.ExtPotTable_EdgeL,       SID, TID, NonFatal,  RT.ExtPotTable_EdgeL,        3, NonFatal );
    LoadField( "ExtPotTable_Float8",      &RS.ExtPotTable_Float8,      SID, TID, NonFatal, &RT.ExtPotTable_Float8,       1, NonFatal );
 
+#  ifdef GREP
    LoadField( "GREP_Center_Method",      &RS.GREP_Center_Method,      SID, TID, NonFatal, &RT.GREP_Center_Method,       1, NonFatal );
    LoadField( "GREP_MaxIter",            &RS.GREP_MaxIter,            SID, TID, NonFatal, &RT.GREP_MaxIter,             1, NonFatal );
    LoadField( "GREP_LogBin",             &RS.GREP_LogBin,             SID, TID, NonFatal, &RT.GREP_LogBin,              1, NonFatal );
@@ -2295,10 +2300,13 @@ void Check_InputPara( const char *FileName, const int FormatVersion )
    LoadField( "GREP_MinBinSize",         &RS.GREP_MinBinSize,         SID, TID, NonFatal, &RT.GREP_MinBinSize,          1, NonFatal );
    LoadField( "GREP_Opt_FixUp",          &RS.GREP_Opt_FixUp,          SID, TID, NonFatal, &RT.GREP_Opt_FixUp,           1, NonFatal );
    LoadField( "GREP_Opt_Pres",           &RS.GREP_Opt_Pres,           SID, TID, NonFatal, &RT.GREP_Opt_Pres,            1, NonFatal );
+#  endif
 #  endif // #ifdef GRAVITY
 
 // source terms
+#  if ( MODEL == HYDRO )
    LoadField( "Src_Deleptonization",     &RS.Src_Deleptonization,     SID, TID, NonFatal, &RT.Src_Deleptonization,      1, NonFatal );
+#  endif
    LoadField( "Src_User",                &RS.Src_User,                SID, TID, NonFatal, &RT.Src_User,                 1, NonFatal );
    LoadField( "Src_GPU_NPGroup",         &RS.Src_GPU_NPGroup,         SID, TID, NonFatal, &RT.Src_GPU_NPGroup,          1, NonFatal );
 

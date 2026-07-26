@@ -1912,12 +1912,12 @@ void Aux_Check_Parameter()
 #     error : ERROR : SRC_GHOST_SIZE must be zero for now !!
 #  endif
 
-#  if ( MODEL != HYDRO  ||  EOS != EOS_NUCLEAR )
+#  if ( MODEL == HYDRO  &&  EOS != EOS_NUCLEAR )
    if ( SrcTerms.Deleptonization )
-      Aux_Error( ERROR_INFO, "SRC_DELEPTONIZATION is only supported in HYDRO and must work with EOS_NUCLEAR !!\n" );
+      Aux_Error( ERROR_INFO, "SRC_DELEPTONIZATION must work with EOS_NUCLEAR !!\n" );
 
    if ( SrcTerms.Lightbulb )
-      Aux_Error( ERROR_INFO, "SRC_LIGHTBULB is only supported in HYDRO and must work with EOS_NUCLEAR !!\n" );
+      Aux_Error( ERROR_INFO, "SRC_LIGHTBULB must work with EOS_NUCLEAR !!\n" );
 #  endif
 
 // warning

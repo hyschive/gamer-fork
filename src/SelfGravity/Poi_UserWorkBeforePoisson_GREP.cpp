@@ -1,5 +1,7 @@
 #include "GAMER.h"
 
+#ifdef GREP
+
 
 static void Poi_Prepare_GREP( const double Time, const int lv );
 static void GREP_Compute_Profile( const int lv, const int Sg, const PatchType_t PatchType );
@@ -582,3 +584,6 @@ void GREP_Check_Profile( const int lv, Profile_t *Prof[], const int NProf )
    } // if ( MPI_Rank == 0 )
 
 } // FUNCTION : GREP_Check_Profile
+
+
+#endif // #ifdef GREP

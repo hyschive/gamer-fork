@@ -1773,8 +1773,10 @@ void FillIn_KeyInfo( KeyInfo_t &KeyInfo, const int NFieldStored )
 #  ifdef GRAVITY
    KeyInfo.AveDens_Init         = AveDensity_Init;
    KeyInfo.Gravity              = 1;
+#  ifdef GREP
    for (int d=0; d<3; d++)
       KeyInfo.GREP_Center[d]    = GREP_Center[d];
+#  endif
 #  else
    KeyInfo.Gravity              = 0;
 #  endif
@@ -2256,7 +2258,9 @@ void FillIn_SymConst( SymConst_t &SymConst )
    SymConst.Gra_BlockSize        = GRA_BLOCK_SIZE;
    SymConst.ExtPotNAuxMax        = EXT_POT_NAUX_MAX;
    SymConst.ExtAccNAuxMax        = EXT_ACC_NAUX_MAX;
+#  ifdef GREP
    SymConst.ExtPotGREPNAuxMax    = EXT_POT_GREP_NAUX_MAX;
+#  endif
    SymConst.ExtPotNGeneMax       = EXT_POT_NGENE_MAX;
 
 #  if   ( POT_SCHEME == SOR )
@@ -2808,6 +2812,7 @@ void FillIn_InputPara( InputPara_t &InputPara, const int NFieldStored, char Fiel
    InputPara.ExtPotTable_EdgeL[d]    = EXT_POT_TABLE_EDGEL[d];
    InputPara.ExtPotTable_Float8      = EXT_POT_TABLE_FLOAT8;
 
+#  ifdef GREP
    InputPara.GREP_Center_Method      = GREP_CENTER_METHOD;
    InputPara.GREP_MaxIter            = GREP_MAXITER;
    InputPara.GREP_LogBin             = GREP_LOGBIN;
@@ -2816,10 +2821,13 @@ void FillIn_InputPara( InputPara_t &InputPara, const int NFieldStored, char Fiel
    InputPara.GREP_MinBinSize         = GREP_MINBINSIZE;
    InputPara.GREP_Opt_FixUp          = GREP_OPT_FIXUP;
    InputPara.GREP_Opt_Pres           = GREP_OPT_PRES;
+#  endif
 #  endif // #ifdef GRAVITY
 
 // source terms
+#  if ( MODEL == HYDRO )
    InputPara.Src_Deleptonization     = SrcTerms.Deleptonization;
+#  endif
    InputPara.Src_User                = SrcTerms.User;
    InputPara.Src_GPU_NPGroup         = SRC_GPU_NPGROUP;
 
@@ -3214,8 +3222,10 @@ void GetCompound_KeyInfo( hid_t &H5_TypeID )
    H5Tinsert( H5_TypeID, "dTime_AllLv",          HOFFSET(KeyInfo_t,dTime_AllLv         ), H5_TypeID_Arr_NLvDouble );
 #  ifdef GRAVITY
    H5Tinsert( H5_TypeID, "AveDens_Init",         HOFFSET(KeyInfo_t,AveDens_Init        ), H5T_NATIVE_DOUBLE       );
+#  ifdef GREP
    H5Tinsert( H5_TypeID, "GREP_Center",          HOFFSET(KeyInfo_t,GREP_Center         ), H5_TypeID_Arr_3Double   );
 #  endif
+#  endif // #ifdef GRAVITY
 #  if ( ELBDM_SCHEME == ELBDM_HYBRID )
    H5Tinsert( H5_TypeID, "UseWaveScheme",        HOFFSET(KeyInfo_t,UseWaveScheme       ), H5_TypeID_Arr_NLvInt    );
 #  endif
@@ -3398,7 +3408,9 @@ void GetCompound_SymConst( hid_t &H5_TypeID )
    H5Tinsert( H5_TypeID, "Gra_BlockSize",        HOFFSET(SymConst_t,Gra_BlockSize       ), H5T_NATIVE_INT    );
    H5Tinsert( H5_TypeID, "ExtPotNAuxMax",        HOFFSET(SymConst_t,ExtPotNAuxMax       ), H5T_NATIVE_INT    );
    H5Tinsert( H5_TypeID, "ExtAccNAuxMax",        HOFFSET(SymConst_t,ExtAccNAuxMax       ), H5T_NATIVE_INT    );
+#  ifdef GREP
    H5Tinsert( H5_TypeID, "ExtPotGREPNAuxMax",    HOFFSET(SymConst_t,ExtPotGREPNAuxMax   ), H5T_NATIVE_INT    );
+#  endif
    H5Tinsert( H5_TypeID, "ExtPotNGeneMax",       HOFFSET(SymConst_t,ExtPotNGeneMax      ), H5T_NATIVE_INT    );
 #  if   ( POT_SCHEME == SOR )
    H5Tinsert( H5_TypeID, "Pot_BlockSize_z",      HOFFSET(SymConst_t,Pot_BlockSize_z     ), H5T_NATIVE_INT    );
@@ -3925,6 +3937,7 @@ void GetCompound_InputPara( hid_t &H5_TypeID, const int NFieldStored )
    H5Tinsert( H5_TypeID, "ExtPotTable_EdgeL",       HOFFSET(InputPara_t,ExtPotTable_EdgeL      ), H5_TypeID_Arr_3Double       );
    H5Tinsert( H5_TypeID, "ExtPotTable_Float8",      HOFFSET(InputPara_t,ExtPotTable_Float8     ), H5T_NATIVE_INT              );
 
+#  ifdef GREP
    H5Tinsert( H5_TypeID, "GREP_Center_Method",      HOFFSET(InputPara_t,GREP_Center_Method     ), H5T_NATIVE_INT     );
    H5Tinsert( H5_TypeID, "GREP_MaxIter",            HOFFSET(InputPara_t,GREP_MaxIter           ), H5T_NATIVE_INT     );
    H5Tinsert( H5_TypeID, "GREP_LogBin",             HOFFSET(InputPara_t,GREP_LogBin            ), H5T_NATIVE_INT     );
@@ -3933,10 +3946,13 @@ void GetCompound_InputPara( hid_t &H5_TypeID, const int NFieldStored )
    H5Tinsert( H5_TypeID, "GREP_MinBinSize",         HOFFSET(InputPara_t,GREP_MinBinSize        ), H5T_NATIVE_DOUBLE  );
    H5Tinsert( H5_TypeID, "GREP_Opt_FixUp",          HOFFSET(InputPara_t,GREP_Opt_FixUp         ), H5T_NATIVE_INT     );
    H5Tinsert( H5_TypeID, "GREP_Opt_Pres",           HOFFSET(InputPara_t,GREP_Opt_Pres          ), H5T_NATIVE_INT     );
+#  endif
 #  endif // #ifdef GRAVITY
 
 // source terms
+#  if ( MODEL == HYDRO )
    H5Tinsert( H5_TypeID, "Src_Deleptonization",     HOFFSET(InputPara_t,Src_Deleptonization    ), H5T_NATIVE_INT              );
+#  endif
    H5Tinsert( H5_TypeID, "Src_User",                HOFFSET(InputPara_t,Src_User               ), H5T_NATIVE_INT              );
    H5Tinsert( H5_TypeID, "Src_GPU_NPGroup",         HOFFSET(InputPara_t,Src_GPU_NPGroup        ), H5T_NATIVE_INT              );
 

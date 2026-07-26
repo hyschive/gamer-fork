@@ -1,5 +1,7 @@
 #include "GAMER.h"
 
+#if ( MODEL == HYDRO )
+
 
        double CCSN_CentralDens;
        double CCSN_Rsh_Min = 0.0;
@@ -697,3 +699,7 @@ void Detect_Shock()
    CCSN_Rsh_Ave = ( Shock_Found ) ? Shock_Ave / Shock_Weight : 0.0;
 
 } // FUNCTION : Detect_Shock()
+
+
+
+#endif // #if ( MODEL == HYDRO )

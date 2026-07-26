@@ -96,8 +96,10 @@ struct KeyInfo_t
    double dTime_AllLv[NLEVEL];
 #  ifdef GRAVITY
    double AveDens_Init;             // AveDensity_Init
+#  ifdef GREP
    double GREP_Center[3];           // GREP center
 #  endif
+#  endif // #ifdef GRAVITY
 #  if ( ELBDM_SCHEME == ELBDM_HYBRID )
    int    UseWaveScheme[NLEVEL];    // AMR levels where wave solver is used
 #  endif
@@ -264,7 +266,9 @@ struct SymConst_t
    int    Gra_BlockSize;
    int    ExtPotNAuxMax;
    int    ExtAccNAuxMax;
+#  ifdef GREP
    int    ExtPotGREPNAuxMax;
+#  endif
    int    ExtPotNGeneMax;
 
 #  if   ( POT_SCHEME == SOR )
@@ -701,6 +705,7 @@ struct InputPara_t
    double ExtPotTable_dh[3];
    double ExtPotTable_EdgeL[3];
    int    ExtPotTable_Float8;
+#  ifdef GREP
    int    GREP_Center_Method;
    int    GREP_MaxIter;
    int    GREP_LogBin;
@@ -709,10 +714,13 @@ struct InputPara_t
    double GREP_MinBinSize;
    int    GREP_Opt_FixUp;
    int    GREP_Opt_Pres;
+#  endif
 #  endif // #ifdef GRAVITY
 
 // source terms
+#  if ( MODEL == HYDRO )
    int    Src_Deleptonization;
+#  endif
    int    Src_User;
    int    Src_GPU_NPGroup;
 

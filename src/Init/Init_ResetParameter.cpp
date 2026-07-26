@@ -1333,7 +1333,7 @@ void Init_ResetParameter()
 
 
 // GREP
-#  ifdef GRAVITY
+#  ifdef GREP
 // initialize GREP center to the box center
    GREP_Center[0] = amr->BoxCenter[0];
    GREP_Center[1] = amr->BoxCenter[1];

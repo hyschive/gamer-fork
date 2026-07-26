@@ -211,6 +211,7 @@ extern ExtAcc_t GPUExtAcc_Ptr;
 extern ExtPot_t GPUExtPot_Ptr;
 #endif
 
+#ifdef GREP
 extern GREP_Center_t     GREP_CENTER_METHOD;
 extern int               GREP_MAXITER;
 extern bool              GREP_LOGBIN;
@@ -220,6 +221,7 @@ extern double            GREP_MINBINSIZE;
 extern bool              GREP_OPT_FIXUP;
 extern GREP_PresScheme_t GREP_OPT_PRES;
 extern double            GREP_Center[3];
+#endif
 #endif // #ifdef GRAVITY
 
 

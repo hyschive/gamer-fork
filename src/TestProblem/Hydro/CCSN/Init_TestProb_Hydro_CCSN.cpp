@@ -769,7 +769,6 @@ int Flu_ResetByUser_CCSN( real fluid[], const double Emag, const double x, const
 
 } // FUNCTION : Flu_ResetByUser_CCSN
 #endif // #if ( EOS == EOS_NUCLEAR  &&  NUC_TABLE_MODE == NUC_TABLE_MODE_TEMP )
-#endif // #if ( MODEL == HYDRO )
 
 
 
@@ -962,6 +961,7 @@ void End_CCSN()
    delete [] CCSN_Prof;         CCSN_Prof       = NULL;
 
 } // FUNCTION : End_CCSN
+#endif // #if ( MODEL == HYDRO )
 
 
 

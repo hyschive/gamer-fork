@@ -242,6 +242,7 @@ void Init_Load_Parameter()
 
 
 // source terms
+#  if ( MODEL == HYDRO )
    ReadPara->Add( "SRC_DELEPTONIZATION",        &SrcTerms.Deleptonization,        false,           Useless_bool,  Useless_bool   );
    ReadPara->Add( "SRC_DELEP_ENU",              &SrcTerms.Dlep_Enu,               10.0,            0.0,           NoMax_double   );
    ReadPara->Add( "SRC_DELEP_RHO1",             &SrcTerms.Dlep_Rho1,              3.0e7,           0.0,           NoMax_double   );
@@ -252,6 +253,7 @@ void Init_Load_Parameter()
    ReadPara->Add( "SRC_LIGHTBULB",              &SrcTerms.Lightbulb,              false,           Useless_bool,  Useless_bool   );
    ReadPara->Add( "SRC_LIGHTBULB_LNUE",         &SrcTerms.Lightbulb_Lnue,         1.0e52,          0.0,           NoMax_double   );
    ReadPara->Add( "SRC_LIGHTBULB_TNUE",         &SrcTerms.Lightbulb_Tnue,         4.0,             0.0,           NoMax_double   );
+#  endif
    ReadPara->Add( "SRC_USER",                   &SrcTerms.User,                   false,           Useless_bool,  Useless_bool   );
 // do not check SRC_GPU_NPGROUP since it may be reset by either Init_ResetParameter() or CUAPI_SetMemSize()
    ReadPara->Add( "SRC_GPU_NPGROUP",            &SRC_GPU_NPGROUP,                -1,               NoMin_int,     NoMax_int      );
@@ -451,6 +453,7 @@ void Init_Load_Parameter()
 // fix EXT_POT_TABLE_FLOAT8 to -1 for now since this option is not supported yet
    ReadPara->Add( "EXT_POT_TABLE_FLOAT8",       &EXT_POT_TABLE_FLOAT8,           -1,              -1,            -1              );
    ReadPara->Add( "OPT__GRAVITY_EXTRA_MASS",    &OPT__GRAVITY_EXTRA_MASS,         false,           Useless_bool,  Useless_bool   );
+#  ifdef GREP
    ReadPara->Add( "GREP_CENTER_METHOD",         &GREP_CENTER_METHOD,           GREP_CENTER_POT, GREP_CENTER_BOX, GREP_CENTER_COM );
    ReadPara->Add( "GREP_MAXITER",               &GREP_MAXITER,                    1000,            100,           NoMax_int      );
    ReadPara->Add( "GREP_LOGBIN",                &GREP_LOGBIN,                     true,            Useless_bool,  Useless_bool   );
@@ -459,6 +462,7 @@ void Init_Load_Parameter()
    ReadPara->Add( "GREP_MINBINSIZE",            &GREP_MINBINSIZE,                -1.0,             NoMin_double,  NoMax_double   );
    ReadPara->Add( "GREP_OPT_FIXUP",             &GREP_OPT_FIXUP,                  true,            Useless_bool,  Useless_bool   );
    ReadPara->Add( "GREP_OPT_PRES",              &GREP_OPT_PRES,        GREP_PRES_BINDATA, GREP_PRES_INDIVCELL, GREP_PRES_BINDATA );
+#  endif
 #  endif // #ifdef GRAVITY
 
 

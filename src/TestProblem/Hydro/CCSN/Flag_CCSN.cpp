@@ -1,5 +1,7 @@
 #include "GAMER.h"
 
+#if ( MODEL == HYDRO )
+
 
 extern bool   CCSN_CC_MaxRefine_Flag1;
 extern bool   CCSN_CC_MaxRefine_Flag2;
@@ -12,6 +14,7 @@ extern double CCSN_CentralDens;
 extern double CCSN_MaxRefine_Rad;
 extern double CCSN_AngRes_Min;
 extern double CCSN_AngRes_Max;
+
 
 
 
@@ -183,3 +186,7 @@ bool Flag_Region_CCSN( const int i, const int j, const int k, const int lv, cons
    return Within;
 
 } // FUNCTION : Flag_Region_CCSN
+
+
+
+#endif // #if ( MODEL == HYDRO )
