@@ -143,7 +143,9 @@ void nuc_eos_C_short( real *Out, const real *In,
    const real  xye      = In[2];
          real  ltoreps  = NULL_REAL;
          real  var_mode = NULL_REAL;
+#        if ( NUC_EOS_SOLVER != NUC_EOS_SOLVER_ORIG )
          int   var_idx;
+#        endif
               *keyerr   = 0;
 
 #  if ( NUC_TABLE_MODE == NUC_TABLE_MODE_TEMP )
@@ -174,10 +176,12 @@ void nuc_eos_C_short( real *Out, const real *In,
          const real leps = LOG10( In[1] + energy_shift );
 
 #        if ( NUC_TABLE_MODE == NUC_TABLE_MODE_TEMP )
+#        if ( NUC_EOS_SOLVER != NUC_EOS_SOLVER_ORIG )
          const int   npt_chk   = nmode_Aux;
          const real *table_chk = mode_Aux;
-                     var_mode  = leps;
                      var_idx   = NUC_VAR_IDX_EORT;
+#        endif
+                     var_mode  = leps;
 #        else
          const int   npt_chk   = ntoreps;
          const real *table_chk = logtoreps;
@@ -210,7 +214,9 @@ void nuc_eos_C_short( real *Out, const real *In,
          const int   npt_chk   = nmode_Aux;
          const real *table_chk = mode_Aux;
                      var_mode  = lt;
+#                    if ( NUC_EOS_SOLVER != NUC_EOS_SOLVER_ORIG )
                      var_idx   = NUC_VAR_IDX_EORT;
+#                    endif
 #        endif
 
          if ( lt   >  table_chk[npt_chk-1]  )  {  *keyerr = 120;  return;  }
@@ -224,7 +230,9 @@ void nuc_eos_C_short( real *Out, const real *In,
       {
          const real entr     = In[1];
                     var_mode = entr;
+#                   if ( NUC_EOS_SOLVER != NUC_EOS_SOLVER_ORIG )
                     var_idx  = NUC_VAR_IDX_ENTR;
+#                   endif
 
 #        if ( NUC_EOS_SOLVER != NUC_EOS_SOLVER_ORIG )
          if ( entr >  mode_Aux[nmode_Aux-1] )  {  *keyerr = 130;           }
@@ -239,7 +247,9 @@ void nuc_eos_C_short( real *Out, const real *In,
       {
          const real lprs     = LOG10( In[1] );
                     var_mode = lprs;
+#                   if ( NUC_EOS_SOLVER != NUC_EOS_SOLVER_ORIG )
                     var_idx  = NUC_VAR_IDX_PRES;
+#                   endif
 
 #        if ( NUC_EOS_SOLVER != NUC_EOS_SOLVER_ORIG )
          if ( lprs >  mode_Aux[nmode_Aux-1] )  {  *keyerr = 140;           }
