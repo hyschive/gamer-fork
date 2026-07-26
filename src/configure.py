@@ -653,6 +653,7 @@ def load_arguments( sys_setting : SystemSetting ):
     parser.add_argument( "--grep", type=str2bool, metavar="BOOLEAN", gamer_name="GREP",
                          default=False,
                          depend={"gravity":True},
+                         constraint={ True:{"model":"HYDRO"} },
                          help="Effective general-relativistic potential. Must set OPT__EXT_POT=3 in Input__Parameter.\n"
                        )
 
