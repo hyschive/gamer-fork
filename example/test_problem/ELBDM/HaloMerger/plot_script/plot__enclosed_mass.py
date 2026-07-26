@@ -73,8 +73,8 @@ for ds in ts.piter():
       # save the profile to text file
       np.savetxt( '%s_EnclosedTotalMass_profile'%(ds),
                   np.column_stack( (prof_mass.x.in_units('code_length').d, prof_mass[field_mass].in_units('code_mass').d) ),
-                  fmt='          %9.8e',
-                  header='       r (code_length)         mass (code_mass)' )
+                  fmt='%24.8e',
+                  header='%22s %24s'%( 'r (code_length)', 'mass (code_mass)' ) )
 
       # decide the units for plotting
       #UNIT_L_PLOT = 'code_length'
