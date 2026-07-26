@@ -399,7 +399,7 @@ void GREP_Compute_Profile( const int lv, const int Sg, const PatchType_t PatchTy
 
 
    Aux_ComputeProfile( Prof_List, GREP_Center, GREP_MAXRADIUS, GREP_MINBINSIZE, GREP_LOGBIN,
-                       GREP_LOGBINRATIO, RemoveEmpty_No, TVar, NVar, lv, lv, PatchType, PrepTime_No );
+                       GREP_LOGBINRATIO, RemoveEmpty_No, TVar, NVar, lv, lv, PatchType, PrepTime_No, false );
 
 } // FUNCTION : GREP_Compute_Profile
 

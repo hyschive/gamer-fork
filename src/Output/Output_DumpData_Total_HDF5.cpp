@@ -79,7 +79,7 @@ Procedure for outputting new variables:
 
 
 //-------------------------------------------------------------------------------------------------------
-// Function    :  Output_DumpData_Total_HDF5 (FormatVersion = 2505)
+// Function    :  Output_DumpData_Total_HDF5 (FormatVersion = 2510)
 // Description :  Output all simulation data in the HDF5 format, which can be used as a restart file
 //                or loaded by YT
 //
@@ -279,6 +279,16 @@ Procedure for outputting new variables:
 //                                             Input__TestProb parameters in "Info/InputTest"
 //                2504 : 2025/04/29 --> output OPT__PAR_INIT_CHECK
 //                2505 : 2025/05/07 --> output PassiveFloor_Var
+//                2506 : 2025/12/01 --> output ELBDM_RESCALE_MASS_ERROR, ELBDM_RESCALE_MASS_STEPS
+//                2507 : 2026/02/15 --> output GRACKLE_USE_V_HEATING_RATE, GRACKLE_USE_S_HEATING_RATE,
+//                                             GRACKLE_USE_TEMP_FLOOR, GRACKLE_TEMP_FLOOR_SCALAR,
+//                                             GRACKLE_REDSHIFT,
+//                                             GRACKLE_HYDROGEN_MFRAC, OPT__UNFREEZE_GRACKLE,
+//                                             OPT__OUTPUT_GRACKLE_TEMP, OPT__OUTPUT_GRACKLE_MU, OPT__OUTPUT_GRACKLE_TCOOL,
+//                                             DT__GRACKLE_COOLING, OPT__FLAG_COOLING_LEN, FlagTable_CoolingLen
+//                2508 : 2026/03/26 --> output particle unique id
+//                2509 : 2026/04/18 --> output OPT__FLAG_PAR_TARGET, OPT__FLAG_PAR_TARGET_SIB, Par->FlagInit, particle integer attribute PAR_FLAG
+//                2510 : 2026/06/07 --> output EXTRA_EOS_CHECK, CHECK_UNPHY_ROUNDING, CHECK_UNPHY_ROUNDING_FACTOR
 //
 //                **** : 2024/**/** --> output CCSN related (see below)
 //                CCSN branch update
@@ -388,7 +398,6 @@ void Output_DumpData_Total_HDF5( const char *FileName )
    if ( MachDumpIdx >= NFIELD_STORED_MAX )
       Aux_Error( ERROR_INFO, "exceed NFIELD_STORED_MAX (%d) !!\n", NFIELD_STORED_MAX );
    if ( OPT__OUTPUT_MACH   )  sprintf( FieldLabelOut[MachDumpIdx  ], "%s", "Mach"   );
-#  endif
 
 #  ifdef MHD
    const int DivMagDumpIdx = ( OPT__OUTPUT_DIVMAG ) ? NFieldStored++ : NoDump;
@@ -419,6 +428,24 @@ void Output_DumpData_Total_HDF5( const char *FileName )
       Aux_Error( ERROR_INFO, "exceed NFIELD_STORED_MAX (%d) !!\n", NFIELD_STORED_MAX );
    if ( OPT__OUTPUT_ENTHALPY )  sprintf( FieldLabelOut[EnthalpyDumpIdx], "%s", "Enth" );
 #  endif // #ifdef SRHD
+
+#  ifdef SUPPORT_GRACKLE
+   const int GrackleTempDumpIdx = ( OPT__OUTPUT_GRACKLE_TEMP ) ? NFieldStored++ : NoDump;
+   if ( GrackleTempDumpIdx >= NFIELD_STORED_MAX )
+      Aux_Error( ERROR_INFO, "exceed NFIELD_STORED_MAX (%d) !!\n", NFIELD_STORED_MAX );
+   if ( OPT__OUTPUT_GRACKLE_TEMP )  sprintf( FieldLabelOut[GrackleTempDumpIdx], "%s", "GrackleTemp" );
+
+   const int GrackleMuDumpIdx = ( OPT__OUTPUT_GRACKLE_MU ) ? NFieldStored++ : NoDump;
+   if ( GrackleMuDumpIdx >= NFIELD_STORED_MAX )
+      Aux_Error( ERROR_INFO, "exceed NFIELD_STORED_MAX (%d) !!\n", NFIELD_STORED_MAX );
+   if ( OPT__OUTPUT_GRACKLE_MU )  sprintf( FieldLabelOut[GrackleMuDumpIdx], "%s", "GrackleMu" );
+
+   const int GrackleTCoolDumpIdx = ( OPT__OUTPUT_GRACKLE_TCOOL ) ? NFieldStored++ : NoDump;
+   if ( GrackleTCoolDumpIdx >= NFIELD_STORED_MAX )
+      Aux_Error( ERROR_INFO, "exceed NFIELD_STORED_MAX (%d) !!\n", NFIELD_STORED_MAX );
+   if ( OPT__OUTPUT_GRACKLE_TCOOL )  sprintf( FieldLabelOut[GrackleTCoolDumpIdx], "%s", "GrackleTCool" );
+#  endif // ifdef SUPPORT_GRACKLE
+#  endif // if ( MODEL == HYDRO )
 
    const int UserDumpIdx0 = ( OPT__OUTPUT_USER_FIELD ) ? NFieldStored : NoDump;
    if ( UserDumpIdx0+UserDerField_Num-1 >= NFIELD_STORED_MAX )
@@ -783,7 +810,8 @@ void Output_DumpData_Total_HDF5( const char *FileName )
    const int Der_NP = 8;
 
    real (*Der_FluIn)[NCOMP_TOTAL][ CUBE(DER_NXT)            ] = new real [Der_NP][NCOMP_TOTAL ][ CUBE(DER_NXT)            ];
-   real (*Der_Out  )             [ CUBE(PS1)                ] = new real         [DER_NOUT_MAX][ CUBE(PS1)                ];
+   real (*Der_Out)               [ CUBE(PS1)                ] = new real         [DER_NOUT_MAX][ CUBE(PS1)                ];
+   real (*Der_Out_1PG)           [ CUBE(PS2)                ] = new real         [DER_NOUT_MAX][ CUBE(PS2)                ];
 #  ifdef MHD
    real (*Der_MagFC)[NCOMP_MAG  ][ (DER_NXT+1)*SQR(DER_NXT) ] = new real [Der_NP][NCOMP_MAG   ][ (DER_NXT+1)*SQR(DER_NXT) ];
    real (*Der_MagCC)             [ CUBE(DER_NXT)            ] = new real         [NCOMP_MAG   ][ CUBE(DER_NXT)            ];
@@ -1140,9 +1168,68 @@ void Output_DumpData_Total_HDF5( const char *FileName )
                   }
                }
 #              endif // #ifdef SRHD
+
+#              ifdef SUPPORT_GRACKLE
+//             d-11. Grackle's temperature
+               else if ( v == GrackleTempDumpIdx )
+               {
+                  for (int PID0=0; PID0<amr->NPatchComma[lv][1]; PID0+=8)
+                  {
+//                   compute the target derived field with one patch group each time
+                     Grackle_Calculate( Der_Out_1PG[0], _GRACKLE_TEMP, lv, 1, &PID0 );
+
+//                   store the target derived field patch by patch in a patch group
+                     for (int LocalID=0; LocalID<8; LocalID++)
+                     {
+                        const int PID = PID0 + LocalID;
+                        const real *Der_Out_1P = Der_Out_1PG[0] + LocalID*CUBE(PS1);
+//                      copy data of one patch from Der_Out_1P[] to FieldData[]
+                        memcpy( FieldData[PID], Der_Out_1P, FieldSizeOnePatch );
+                     } // for (int LocalID=0; LocalID<8; LocalID++)
+                  } // for (int PID0=0; PID0<amr->NPatchComma[lv][1]; PID0+=8)
+               } // if ( v == GrackleTempDumpIdx )
+
+//             d-12. Grackle's mu (mean molecular weight)
+               else if ( v == GrackleMuDumpIdx )
+               {
+                  for (int PID0=0; PID0<amr->NPatchComma[lv][1]; PID0+=8)
+                  {
+//                   compute the target derived field with one patch group each time
+                     Grackle_Calculate( Der_Out_1PG[0], _GRACKLE_MU, lv, 1, &PID0 );
+
+//                   store the target derived field patch by patch in a patch group
+                     for (int LocalID=0; LocalID<8; LocalID++)
+                     {
+                        const int PID = PID0 + LocalID;
+                        const real *Der_Out_1P = Der_Out_1PG[0] + LocalID*CUBE(PS1);
+//                      copy data of one patch from Der_Out_1P[] to FieldData[]
+                        memcpy( FieldData[PID], Der_Out_1P, FieldSizeOnePatch );
+                     } // for (int LocalID=0; LocalID<8; LocalID++)
+                  } // for (int PID0=0; PID0<amr->NPatchComma[lv][1]; PID0+=8)
+               } // if ( v == GrackleMuDumpIdx )
+
+//             d-13. Grackle's cooling time
+               else if ( v == GrackleTCoolDumpIdx )
+               {
+                  for (int PID0=0; PID0<amr->NPatchComma[lv][1]; PID0+=8)
+                  {
+//                   compute the target derived field with one patch group each time
+                     Grackle_Calculate( Der_Out_1PG[0], _GRACKLE_TCOOL, lv, 1, &PID0 );
+
+//                   store the target derived field patch by patch in a patch group
+                     for (int LocalID=0; LocalID<8; LocalID++)
+                     {
+                        const int PID = PID0 + LocalID;
+                        const real *Der_Out_1P = Der_Out_1PG[0] + LocalID*CUBE(PS1);
+//                      copy data of one patch from Der_Out_1P[] to FieldData[]
+                        memcpy( FieldData[PID], Der_Out_1P, FieldSizeOnePatch );
+                     } // for (int LocalID=0; LocalID<8; LocalID++)
+                  } // for (int PID0=0; PID0<amr->NPatchComma[lv][1]; PID0+=8)
+               } // if ( v == GrackleTCoolDumpIdx )
+#              endif // #ifdef SUPPORT_GRACKLE
 #              endif // #if ( MODEL == HYDRO )
 
-//             d-11. user-defined derived fields
+//             d-14. user-defined derived fields
 //             the following check also works for OPT__OUTPUT_USER_FIELD==false since UserDerField_Num is initialized as 0
                else if ( v >= UserDumpIdx0  &&  v < UserDumpIdx0 + UserDerField_Num )
                {
@@ -1331,6 +1418,7 @@ void Output_DumpData_Total_HDF5( const char *FileName )
 
    delete [] Der_FluIn;
    delete [] Der_Out;
+   delete [] Der_Out_1PG;
 #  ifdef MHD
    delete [] Der_MagFC;
    delete [] Der_MagCC;
@@ -1674,7 +1762,7 @@ void FillIn_KeyInfo( KeyInfo_t &KeyInfo, const int NFieldStored )
 
    const time_t CalTime = time( NULL );   // calendar time
 
-   KeyInfo.FormatVersion        = 2505;
+   KeyInfo.FormatVersion        = 2510;
    KeyInfo.Model                = MODEL;
    KeyInfo.NLevel               = NLEVEL;
    KeyInfo.NCompFluid           = NCOMP_FLUID;
@@ -1704,6 +1792,7 @@ void FillIn_KeyInfo( KeyInfo_t &KeyInfo, const int NFieldStored )
    KeyInfo.NMagStored           = NCOMP_MAG;
 #  ifdef PARTICLE
    KeyInfo.Par_NPar             = amr->Par->NPar_Active_AllRank;
+   KeyInfo.Par_NextPUID         = amr->Par->NextPUID;
    KeyInfo.Par_NAttFltStored    = PAR_NATT_FLT_STORED;
    KeyInfo.Par_NAttIntStored    = PAR_NATT_INT_STORED;
 #  ifdef FLOAT8_PAR
@@ -2245,14 +2334,30 @@ void FillIn_SymConst( SymConst_t &SymConst )
    SymConst.FB_SepFluOut         = 0;
 #  endif
 
+#  if ( MODEL == HYDRO )
+#  ifdef EXTRA_EOS_CHECK
+   SymConst.ExtraEoSCheck        = 1;
+#  else
+   SymConst.ExtraEoSCheck        = 0;
+#  endif
+#  endif // HYDRO
+
+#  ifdef CHECK_UNPHY_ROUNDING
+   SymConst.CheckUnphyRnd        = 1;
+#  else
+   SymConst.CheckUnphyRnd        = 0;
+#  endif
+
+   SymConst.CheckUnphyRndFactor  = CHECK_UNPHY_ROUNDING_FACTOR;
+
 
 #  if   ( MODEL == HYDRO )
    SymConst.Flu_BlockSize_x      = FLU_BLOCK_SIZE_X;
    SymConst.Flu_BlockSize_y      = FLU_BLOCK_SIZE_Y;
 #  ifdef CHECK_UNPHYSICAL_IN_FLUID
-   SymConst.CheckUnphyInFluid = 1;
+   SymConst.CheckUnphyInFluid    = 1;
 #  else
-   SymConst.CheckUnphyInFluid = 0;
+   SymConst.CheckUnphyInFluid    = 0;
 #  endif
 #  ifdef CHAR_RECONSTRUCTION
    SymConst.CharReconstruction   = 1;
@@ -2421,9 +2526,11 @@ void FillIn_InputPara( InputPara_t &InputPara, const int NFieldStored, char Fiel
 // particle
 #  ifdef PARTICLE
    InputPara.Par_Init                = amr->Par->Init;
+   InputPara.Par_FlagInit            = amr->Par->FlagInit;
    InputPara.Par_ICFormat            = amr->Par->ParICFormat;
    InputPara.Par_ICMass              = amr->Par->ParICMass;
    InputPara.Par_ICType              = amr->Par->ParICType;
+   InputPara.Par_ICPUID              = amr->Par->ParICPUID;
    InputPara.Par_ICFloat8            = PAR_IC_FLOAT8;
    InputPara.Par_ICInt8              = PAR_IC_INT8;
    InputPara.Par_Interp              = amr->Par->Interp;
@@ -2475,6 +2582,9 @@ void FillIn_InputPara( InputPara_t &InputPara, const int NFieldStored, char Fiel
 #  ifdef CR_DIFFUSION
    InputPara.Dt__CR_Diffusion        = DT__CR_DIFFUSION;
 #  endif
+#  ifdef SUPPORT_GRACKLE
+   InputPara.Dt__GrackleCooling      = DT__GRACKLE_COOLING;
+#  endif
 #  ifdef COMOVING
    InputPara.Dt__MaxDeltaA           = DT__MAX_DELTA_A;
 #  endif
@@ -2521,6 +2631,9 @@ void FillIn_InputPara( InputPara_t &InputPara, const int NFieldStored, char Fiel
    InputPara.Dt__SpeedOfLight        = DT__SPEED_OF_LIGHT;
    InputPara.Opt__Flag_LrtzGradient  = OPT__FLAG_LRTZ_GRADIENT;
 #  endif
+#  ifdef SUPPORT_GRACKLE
+   InputPara.Opt__Flag_CoolingLen    = OPT__FLAG_COOLING_LEN;
+#  endif
 #  ifdef COSMIC_RAY
    InputPara.Opt__Flag_CRay          = OPT__FLAG_CRAY;
 #  endif
@@ -2551,6 +2664,8 @@ void FillIn_InputPara( InputPara_t &InputPara, const int NFieldStored, char Fiel
    InputPara.Opt__Flag_NParPatch     = OPT__FLAG_NPAR_PATCH;
    InputPara.Opt__Flag_NParCell      = OPT__FLAG_NPAR_CELL;
    InputPara.Opt__Flag_ParMassCell   = OPT__FLAG_PAR_MASS_CELL;
+   InputPara.Opt__Flag_ParTarget     = OPT__FLAG_PAR_TARGET;
+   InputPara.Opt__Flag_ParTargetSib  = OPT__FLAG_PAR_TARGET_SIB;
 #  endif
    InputPara.Opt__NoFlagNearBoundary = OPT__NO_FLAG_NEAR_BOUNDARY;
    InputPara.Opt__PatchCount         = OPT__PATCH_COUNT;
@@ -2603,6 +2718,8 @@ void FillIn_InputPara( InputPara_t &InputPara, const int NFieldStored, char Fiel
    InputPara.ELBDM_Taylor3_Coeff     = ELBDM_TAYLOR3_COEFF;
    InputPara.ELBDM_Taylor3_Auto      = ELBDM_TAYLOR3_AUTO;
    InputPara.ELBDM_RemoveMotionCM    = ELBDM_REMOVE_MOTION_CM;
+   InputPara.ELBDM_RescaleMassError  = ELBDM_RESCALE_MASS_ERROR;
+   InputPara.ELBDM_RescaleMassSteps  = ELBDM_RESCALE_MASS_STEPS;
    InputPara.ELBDM_BaseSpectral      = ELBDM_BASE_SPECTRAL;
 #  if ( ELBDM_SCHEME == ELBDM_HYBRID )
    InputPara.ELBDM_FirstWaveLevel    = ELBDM_FIRST_WAVE_LEVEL;
@@ -2710,6 +2827,9 @@ void FillIn_InputPara( InputPara_t &InputPara, const int NFieldStored, char Fiel
 #  ifdef SUPPORT_GRACKLE
    InputPara.Grackle_Activate        = GRACKLE_ACTIVATE;
    InputPara.Grackle_Verbose         = GRACKLE_VERBOSE;
+#  ifndef COMOVING
+   InputPara.Grackle_Redshift        = GRACKLE_REDSHIFT;
+#  endif
    InputPara.Grackle_Cooling         = GRACKLE_COOLING;
    InputPara.Grackle_Primordial      = GRACKLE_PRIMORDIAL;
    InputPara.Grackle_Metal           = GRACKLE_METAL;
@@ -2721,6 +2841,12 @@ void FillIn_InputPara( InputPara_t &InputPara, const int NFieldStored, char Fiel
    InputPara.Grackle_ThreeBodyRate   = GRACKLE_THREE_BODY_RATE;
    InputPara.Grackle_CIE_Cooling     = GRACKLE_CIE_COOLING;
    InputPara.Grackle_H2_OpaApprox    = GRACKLE_H2_OPA_APPROX;
+   InputPara.Grackle_UseVHeatingRate = GRACKLE_USE_V_HEATING_RATE;
+   InputPara.Grackle_UseSHeatingRate = GRACKLE_USE_S_HEATING_RATE;
+   InputPara.Grackle_UseTempFloor    = GRACKLE_USE_TEMP_FLOOR;
+   InputPara.Grackle_TempFloorScalar = GRACKLE_TEMP_FLOOR_SCALAR;
+   InputPara.Grackle_HydrogenMFrac   = GRACKLE_HYDROGEN_MFRAC;
+   InputPara.Opt__UnfreezeGrackle    = OPT__UNFREEZE_GRACKLE;
    InputPara.Che_GPU_NPGroup         = CHE_GPU_NPGROUP;
 #  endif
 
@@ -2870,6 +2996,11 @@ void FillIn_InputPara( InputPara_t &InputPara, const int NFieldStored, char Fiel
    InputPara.Opt__Output_Lorentz         = OPT__OUTPUT_LORENTZ;
    InputPara.Opt__Output_Enthalpy        = OPT__OUTPUT_ENTHALPY;
 #  endif
+#  ifdef SUPPORT_GRACKLE
+   InputPara.Opt__Output_GrackleTemp     = OPT__OUTPUT_GRACKLE_TEMP;
+   InputPara.Opt__Output_GrackleMu       = OPT__OUTPUT_GRACKLE_MU;
+   InputPara.Opt__Output_GrackleTCool    = OPT__OUTPUT_GRACKLE_TCOOL;
+#  endif
 #  endif // #if ( MODEL == HYDRO )
    InputPara.Opt__Output_UserField       = OPT__OUTPUT_USER_FIELD;
    InputPara.Opt__Output_Mode            = OPT__OUTPUT_MODE;
@@ -2963,6 +3094,9 @@ void FillIn_InputPara( InputPara_t &InputPara, const int NFieldStored, char Fiel
 #     endif
 #     ifdef SRHD
       InputPara.FlagTable_LrtzGradient[lv]    = FlagTable_LrtzGradient[lv];
+#     endif
+#     ifdef SUPPORT_GRACKLE
+      InputPara.FlagTable_CoolingLen  [lv]    = FlagTable_CoolingLen  [lv];
 #     endif
 #     ifdef COSMIC_RAY
       InputPara.FlagTable_CRay        [lv]    = FlagTable_CRay        [lv];
@@ -3063,6 +3197,7 @@ void GetCompound_KeyInfo( hid_t &H5_TypeID )
    H5Tinsert( H5_TypeID, "NMagStored",           HOFFSET(KeyInfo_t,NMagStored          ), H5T_NATIVE_INT          );
 #  ifdef PARTICLE
    H5Tinsert( H5_TypeID, "Par_NPar",             HOFFSET(KeyInfo_t,Par_NPar            ), H5T_NATIVE_LONG         );
+   H5Tinsert( H5_TypeID, "Par_NextPUID",         HOFFSET(KeyInfo_t,Par_NextPUID        ), H5T_NATIVE_LONG         );
    H5Tinsert( H5_TypeID, "Par_NAttFltStored",    HOFFSET(KeyInfo_t,Par_NAttFltStored   ), H5T_NATIVE_INT          );
    H5Tinsert( H5_TypeID, "Par_NAttIntStored",    HOFFSET(KeyInfo_t,Par_NAttIntStored   ), H5T_NATIVE_INT          );
    H5Tinsert( H5_TypeID, "Float8_Par",           HOFFSET(KeyInfo_t,Float8_Par          ), H5T_NATIVE_INT          );
@@ -3295,6 +3430,11 @@ void GetCompound_SymConst( hid_t &H5_TypeID )
 #  endif
    H5Tinsert( H5_TypeID, "InterpMask",           HOFFSET(SymConst_t,InterpMask          ), H5T_NATIVE_INT    );
    H5Tinsert( H5_TypeID, "FB_SepFluOut",         HOFFSET(SymConst_t,FB_SepFluOut        ), H5T_NATIVE_INT    );
+#  if ( MODEL == HYDRO )
+   H5Tinsert( H5_TypeID, "ExtraEoSCheck",        HOFFSET(SymConst_t,ExtraEoSCheck       ), H5T_NATIVE_INT    );
+#  endif
+   H5Tinsert( H5_TypeID, "CheckUnphyRnd",        HOFFSET(SymConst_t,CheckUnphyRnd       ), H5T_NATIVE_INT    );
+   H5Tinsert( H5_TypeID, "CheckUnphyRndFactor",  HOFFSET(SymConst_t,CheckUnphyRndFactor ), H5T_NATIVE_DOUBLE );
 
 #  if   ( MODEL == HYDRO )
    H5Tinsert( H5_TypeID, "Flu_BlockSize_x",      HOFFSET(SymConst_t,Flu_BlockSize_x     ), H5T_NATIVE_INT    );
@@ -3477,9 +3617,11 @@ void GetCompound_InputPara( hid_t &H5_TypeID, const int NFieldStored )
 // particle
 #  ifdef PARTICLE
    H5Tinsert( H5_TypeID, "Par_Init",                HOFFSET(InputPara_t,Par_Init               ), H5T_NATIVE_INT     );
+   H5Tinsert( H5_TypeID, "Par_FlagInit",            HOFFSET(InputPara_t,Par_FlagInit           ), H5T_NATIVE_INT     );
    H5Tinsert( H5_TypeID, "Par_ICFormat",            HOFFSET(InputPara_t,Par_ICFormat           ), H5T_NATIVE_INT     );
    H5Tinsert( H5_TypeID, "Par_ICMass",              HOFFSET(InputPara_t,Par_ICMass             ), H5T_NATIVE_DOUBLE  );
    H5Tinsert( H5_TypeID, "Par_ICType",              HOFFSET(InputPara_t,Par_ICType             ), H5T_NATIVE_INT     );
+   H5Tinsert( H5_TypeID, "Par_ICPUID",              HOFFSET(InputPara_t,Par_ICPUID             ), H5T_NATIVE_INT     );
    H5Tinsert( H5_TypeID, "Par_ICFloat8",            HOFFSET(InputPara_t,Par_ICFloat8           ), H5T_NATIVE_INT     );
    H5Tinsert( H5_TypeID, "Par_ICInt8",              HOFFSET(InputPara_t,Par_ICInt8             ), H5T_NATIVE_INT     );
    H5Tinsert( H5_TypeID, "Par_Interp",              HOFFSET(InputPara_t,Par_Interp             ), H5T_NATIVE_INT     );
@@ -3549,6 +3691,9 @@ void GetCompound_InputPara( hid_t &H5_TypeID, const int NFieldStored )
 #  ifdef CR_DIFFUSION
    H5Tinsert( H5_TypeID, "Dt__CR_Diffusion",        HOFFSET(InputPara_t,Dt__CR_Diffusion       ), H5T_NATIVE_DOUBLE  );
 #  endif
+#  ifdef SUPPORT_GRACKLE
+   H5Tinsert( H5_TypeID, "Dt__GrackleCooling",      HOFFSET(InputPara_t,Dt__GrackleCooling     ), H5T_NATIVE_DOUBLE  );
+#  endif
 #  ifdef COMOVING
    H5Tinsert( H5_TypeID, "Dt__MaxDeltaA",           HOFFSET(InputPara_t,Dt__MaxDeltaA          ), H5T_NATIVE_DOUBLE  );
 #  endif
@@ -3586,6 +3731,9 @@ void GetCompound_InputPara( hid_t &H5_TypeID, const int NFieldStored )
 #  endif
 #  ifdef SRHD
    H5Tinsert( H5_TypeID, "Opt__Flag_LrtzGradient",  HOFFSET(InputPara_t,Opt__Flag_LrtzGradient ), H5T_NATIVE_INT     );
+#  endif
+#  ifdef SUPPORT_GRACKLE
+   H5Tinsert( H5_TypeID, "Opt__Flag_CoolingLen",    HOFFSET(InputPara_t,Opt__Flag_CoolingLen   ), H5T_NATIVE_INT     );
 #  endif
 #  ifdef COSMIC_RAY
    H5Tinsert( H5_TypeID, "Opt__Flag_CRay",          HOFFSET(InputPara_t,Opt__Flag_CRay         ), H5T_NATIVE_INT     );
@@ -3625,6 +3773,8 @@ void GetCompound_InputPara( hid_t &H5_TypeID, const int NFieldStored )
    H5Tinsert( H5_TypeID, "Opt__Flag_NParPatch",     HOFFSET(InputPara_t,Opt__Flag_NParPatch    ), H5T_NATIVE_INT     );
    H5Tinsert( H5_TypeID, "Opt__Flag_NParCell",      HOFFSET(InputPara_t,Opt__Flag_NParCell     ), H5T_NATIVE_INT     );
    H5Tinsert( H5_TypeID, "Opt__Flag_ParMassCell",   HOFFSET(InputPara_t,Opt__Flag_ParMassCell  ), H5T_NATIVE_INT     );
+   H5Tinsert( H5_TypeID, "Opt__Flag_ParTarget",     HOFFSET(InputPara_t,Opt__Flag_ParTarget    ), H5T_NATIVE_INT     );
+   H5Tinsert( H5_TypeID, "Opt__Flag_ParTargetSib",  HOFFSET(InputPara_t,Opt__Flag_ParTargetSib ), H5T_NATIVE_INT     );
 #  endif
    H5Tinsert( H5_TypeID, "Opt__NoFlagNearBoundary", HOFFSET(InputPara_t,Opt__NoFlagNearBoundary), H5T_NATIVE_INT     );
    H5Tinsert( H5_TypeID, "Opt__PatchCount",         HOFFSET(InputPara_t,Opt__PatchCount        ), H5T_NATIVE_INT     );
@@ -3677,6 +3827,8 @@ void GetCompound_InputPara( hid_t &H5_TypeID, const int NFieldStored )
    H5Tinsert( H5_TypeID, "ELBDM_Taylor3_Coeff",     HOFFSET(InputPara_t,ELBDM_Taylor3_Coeff    ), H5T_NATIVE_DOUBLE  );
    H5Tinsert( H5_TypeID, "ELBDM_Taylor3_Auto",      HOFFSET(InputPara_t,ELBDM_Taylor3_Auto     ), H5T_NATIVE_INT     );
    H5Tinsert( H5_TypeID, "ELBDM_RemoveMotionCM",    HOFFSET(InputPara_t,ELBDM_RemoveMotionCM   ), H5T_NATIVE_INT     );
+   H5Tinsert( H5_TypeID, "ELBDM_RescaleMassError",  HOFFSET(InputPara_t,ELBDM_RescaleMassError ), H5T_NATIVE_INT     );
+   H5Tinsert( H5_TypeID, "ELBDM_RescaleMassSteps",  HOFFSET(InputPara_t,ELBDM_RescaleMassSteps ), H5T_NATIVE_INT     );
    H5Tinsert( H5_TypeID, "ELBDM_BaseSpectral",      HOFFSET(InputPara_t,ELBDM_BaseSpectral     ), H5T_NATIVE_INT     );
 
 #  if ( ELBDM_SCHEME == ELBDM_HYBRID )
@@ -3792,6 +3944,9 @@ void GetCompound_InputPara( hid_t &H5_TypeID, const int NFieldStored )
 #  ifdef SUPPORT_GRACKLE
    H5Tinsert( H5_TypeID, "Grackle_Activate",        HOFFSET(InputPara_t,Grackle_Activate       ), H5T_NATIVE_INT              );
    H5Tinsert( H5_TypeID, "Grackle_Verbose",         HOFFSET(InputPara_t,Grackle_Verbose        ), H5T_NATIVE_INT              );
+#  ifndef COMOVING
+   H5Tinsert( H5_TypeID, "Grackle_Redshift",        HOFFSET(InputPara_t,Grackle_Redshift       ), H5T_NATIVE_DOUBLE           );
+#  endif
    H5Tinsert( H5_TypeID, "Grackle_Cooling",         HOFFSET(InputPara_t,Grackle_Cooling        ), H5T_NATIVE_INT              );
    H5Tinsert( H5_TypeID, "Grackle_Primordial",      HOFFSET(InputPara_t,Grackle_Primordial     ), H5T_NATIVE_INT              );
    H5Tinsert( H5_TypeID, "Grackle_Metal",           HOFFSET(InputPara_t,Grackle_Metal          ), H5T_NATIVE_INT              );
@@ -3803,6 +3958,12 @@ void GetCompound_InputPara( hid_t &H5_TypeID, const int NFieldStored )
    H5Tinsert( H5_TypeID, "Grackle_ThreeBodyRate",   HOFFSET(InputPara_t,Grackle_ThreeBodyRate  ), H5T_NATIVE_INT              );
    H5Tinsert( H5_TypeID, "Grackle_CIE_Cooling",     HOFFSET(InputPara_t,Grackle_CIE_Cooling    ), H5T_NATIVE_INT              );
    H5Tinsert( H5_TypeID, "Grackle_H2_OpaApprox",    HOFFSET(InputPara_t,Grackle_H2_OpaApprox   ), H5T_NATIVE_INT              );
+   H5Tinsert( H5_TypeID, "Grackle_UseVHeatingRate", HOFFSET(InputPara_t,Grackle_UseVHeatingRate), H5T_NATIVE_INT              );
+   H5Tinsert( H5_TypeID, "Grackle_UseSHeatingRate", HOFFSET(InputPara_t,Grackle_UseSHeatingRate), H5T_NATIVE_INT              );
+   H5Tinsert( H5_TypeID, "Grackle_UseTempFloor",    HOFFSET(InputPara_t,Grackle_UseTempFloor   ), H5T_NATIVE_INT              );
+   H5Tinsert( H5_TypeID, "Grackle_TempFloorScalar", HOFFSET(InputPara_t,Grackle_TempFloorScalar), H5T_NATIVE_DOUBLE           );
+   H5Tinsert( H5_TypeID, "Grackle_HydrogenMFrac",   HOFFSET(InputPara_t,Grackle_HydrogenMFrac  ), H5T_NATIVE_DOUBLE           );
+   H5Tinsert( H5_TypeID, "Opt__UnfreezeGrackle",    HOFFSET(InputPara_t,Opt__UnfreezeGrackle   ), H5T_NATIVE_INT              );
    H5Tinsert( H5_TypeID, "Che_GPU_NPGroup",         HOFFSET(InputPara_t,Che_GPU_NPGroup        ), H5T_NATIVE_INT              );
 #  endif
 
@@ -3935,6 +4096,11 @@ void GetCompound_InputPara( hid_t &H5_TypeID, const int NFieldStored )
    H5Tinsert( H5_TypeID, "Opt__Output_Lorentz",         HOFFSET(InputPara_t,Opt__Output_Lorentz        ), H5T_NATIVE_INT              );
    H5Tinsert( H5_TypeID, "Opt__Output_Enthalpy",        HOFFSET(InputPara_t,Opt__Output_Enthalpy       ), H5T_NATIVE_INT              );
 #  endif
+#  ifdef SUPPORT_GRACKLE
+   H5Tinsert( H5_TypeID, "Opt__Output_GrackleTemp",     HOFFSET(InputPara_t,Opt__Output_GrackleTemp    ), H5T_NATIVE_INT              );
+   H5Tinsert( H5_TypeID, "Opt__Output_GrackleMu",       HOFFSET(InputPara_t,Opt__Output_GrackleMu      ), H5T_NATIVE_INT              );
+   H5Tinsert( H5_TypeID, "Opt__Output_GrackleTCool",    HOFFSET(InputPara_t,Opt__Output_GrackleTCool   ), H5T_NATIVE_INT              );
+#  endif
 #  endif // #if ( MODEL == HYDRO )
    H5Tinsert( H5_TypeID, "Opt__Output_UserField",       HOFFSET(InputPara_t,Opt__Output_UserField      ), H5T_NATIVE_INT              );
    H5Tinsert( H5_TypeID, "Opt__Output_Mode",            HOFFSET(InputPara_t,Opt__Output_Mode           ), H5T_NATIVE_INT              );
@@ -4027,6 +4193,9 @@ void GetCompound_InputPara( hid_t &H5_TypeID, const int NFieldStored )
 #  endif
 #  ifdef SRHD
    H5Tinsert( H5_TypeID, "FlagTable_LrtzGradient", HOFFSET(InputPara_t,FlagTable_LrtzGradient  ), H5_TypeID_Arr_NLvM1Double   );
+#  endif
+#  ifdef SUPPORT_GRACKLE
+   H5Tinsert( H5_TypeID, "FlagTable_CoolingLen",   HOFFSET(InputPara_t,FlagTable_CoolingLen    ), H5_TypeID_Arr_NLvM1Double   );
 #  endif
 #  ifdef COSMIC_RAY
    H5Tinsert( H5_TypeID, "FlagTable_CRay",         HOFFSET(InputPara_t,FlagTable_CRay          ), H5_TypeID_Arr_NLvM1Double   );

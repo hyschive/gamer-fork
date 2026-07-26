@@ -458,22 +458,40 @@ bool Unphysical( const real Fluid[], const int CheckMode, const real Emag )
       if ( Eint < (real)MIN_EINT  ||  !Aux_IsFinite(Eint) )
          return true;
 #     endif // DUAL_ENERGY
-   } // f ( CheckMode == CheckMinEint )
+   } // if ( CheckMode == CheckMinEint )
 
    if ( OPT__CHECK_PRES_AFTER_FLU )
    {
-      const real Pres = Hydro_Con2Pres( Fluid[DENS], Fluid[MOMX], Fluid[MOMY], Fluid[MOMZ],
-                                        Fluid[ENGY], Fluid+NCOMP_FLUID,
-                                        CheckMinPres_No, NULL_REAL, PassiveFloorMask, Emag,
-                                        EoS_DensEint2Pres_CPUPtr,
-                                        EoS_GuessHTilde_CPUPtr, EoS_HTilde2Temp_CPUPtr,
-                                        EoS_AuxArray_Flt,
-                                        EoS_AuxArray_Int, h_EoS_Table, NULL );
+      for (int i=CHECK_UNPHY_ROUNDING_IMIN; i<=CHECK_UNPHY_ROUNDING_IMAX; i++)
+      {
+//       only perturb the total energy since the internal energy is subtracted from it
+         const real Etot_Check = Fluid[ENGY]*( (real)1.0 + (real)i*CHECK_UNPHY_ROUNDING_FACTOR*MACHINE_EPSILON );
+         const real Pres       = Hydro_Con2Pres( Fluid[DENS], Fluid[MOMX], Fluid[MOMY], Fluid[MOMZ],
+                                                 Etot_Check, Fluid+NCOMP_FLUID,
+                                                 CheckMinPres_No, NULL_REAL, PassiveFloorMask, Emag,
+                                                 EoS_DensEint2Pres_CPUPtr,
+                                                 EoS_GuessHTilde_CPUPtr, EoS_HTilde2Temp_CPUPtr,
+                                                 EoS_AuxArray_Flt,
+                                                 EoS_AuxArray_Int, h_EoS_Table, NULL );
 
-      if ( Pres < (real)MIN_PRES  ||  !Aux_IsFinite(Pres) )
+         if ( Pres < (real)MIN_PRES  ||  !Aux_IsFinite(Pres) )
+            return true;
+      }
+   } // if ( OPT__CHECK_PRES_AFTER_FLU )
+#  endif // #ifndef BAROTROPIC_EOS
+
+#  ifndef SRHD
+   if ( OPT__UNIT )
+   {
+//    check whether the speed is larger than the speed of light
+      if ( SQR(Fluid[MOMX]) + SQR(Fluid[MOMY]) + SQR(Fluid[MOMZ]) >= SQR(Fluid[DENS]*Const_c/UNIT_V) )
+         return true;
+
+//    check whether the total energy is larger than the relativistic rest-mass energy
+      if ( Fluid[ENGY] >= Fluid[DENS] * SQR(Const_c/UNIT_V) )
          return true;
    }
-#  endif // #ifndef BAROTROPIC_EOS
+#  endif // #ifndef SRHD
 
 
 // if all checks above pass, return false

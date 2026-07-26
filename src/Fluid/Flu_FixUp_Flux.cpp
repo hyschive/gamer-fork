@@ -227,7 +227,7 @@ void Flu_FixUp_Flux( const int lv, const long TVar )
 #              error : DE_EINT is NOT supported yet !!
 #              endif
 
-#              endif // #if ( MODEL == HYDRO  &&  !defined BAROTROPIC_EOS )
+#              endif // #if ( MODEL == HYDRO  &&  !defined BAROTROPIC_EOS  &&  !defined SRHD )
 
 
 //###EXPERIMENTAL: (does not work well and thus has been disabled for now)
@@ -245,7 +245,7 @@ void Flu_FixUp_Flux( const int lv, const long TVar )
                if (  Hydro_IsUnphysical( UNPHY_MODE_CONS, CorrVal, NULL_REAL,
                                          EoS_DensEint2Pres_CPUPtr, EoS_GuessHTilde_CPUPtr, EoS_HTilde2Temp_CPUPtr,
                                          EoS_AuxArray_Flt, EoS_AuxArray_Int, h_EoS_Table,
-                                         PassiveFloorMask, ERROR_INFO, UNPHY_VERBOSE )  )
+                                         PassiveFloorMask, ERROR_INFO, UNPHY_VERBOSE, CK_UNPHY_RND_NA )  )
 #              else
                if ( CorrVal[DENS] <= MIN_DENS
 #                   ifndef BAROTROPIC_EOS
@@ -260,8 +260,7 @@ void Flu_FixUp_Flux( const int lv, const long TVar )
 #                   error : DE_EINT is NOT supported yet !!
 #                   endif
                   )
-
-#              endif
+#              endif // #ifdef SRHD ... else ...
 
 #              elif ( MODEL == ELBDM  &&  defined CONSERVE_MASS )
 //             throw error if corrected density is unphysical
@@ -348,10 +347,21 @@ void Flu_FixUp_Flux( const int lv, const long TVar )
 #                 endif // if ( EOS == EOS_NUCLEAR  &&  NUC_TABLE_MODE == NUC_TABLE_MODE_TEMP )
 
 #                 endif // #ifdef BAROTROPIC_EOS ... else ...
-#                 endif // #if ( MODEL == HYDRO )
+
+
+//                check whether floating-point rounding errors introduced when recovering the internal energy from
+//                the total energy would lead to unphysical results
+#                 ifdef CHECK_UNPHY_ROUNDING
+                  ApplyFix = ! Hydro_IsUnphysical( UNPHY_MODE_CONS, CorrVal, Emag,
+                                                   EoS_DensEint2Pres_CPUPtr, EoS_GuessHTilde_CPUPtr, EoS_HTilde2Temp_CPUPtr,
+                                                   EoS_AuxArray_Flt, EoS_AuxArray_Int, h_EoS_Table,
+                                                   PassiveFloorMask, ERROR_INFO, UNPHY_SILENCE, CK_UNPHY_RND_YES );
+#                 endif
+#                 endif // #if ( MODEL == HYDRO  &&  !defined SRHD )
 
 
 //                store the corrected results
+                  if ( ApplyFix )
                   for (int v=0; v<NFLUX_TOTAL; v++)
                   {
                      if ( TVar & BIDX(v) )   *FluidPtr1D[v] = CorrVal[v];
