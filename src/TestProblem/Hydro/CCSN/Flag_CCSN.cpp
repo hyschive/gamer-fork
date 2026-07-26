@@ -47,7 +47,7 @@ bool Flag_CoreCollapse( const int i, const int j, const int k, const int lv, con
    const double Pos[3] = { amr->patch[0][lv][PID]->EdgeL[0] + (i+0.5)*dh,
                            amr->patch[0][lv][PID]->EdgeL[1] + (j+0.5)*dh,
                            amr->patch[0][lv][PID]->EdgeL[2] + (k+0.5)*dh  };
-#  ifdef GRAVITY
+#  ifdef GREP
    const double dR [3] = { Pos[0]-GREP_Center[0],    Pos[1]-GREP_Center[1],    Pos[2]-GREP_Center[2]    };
 #  else
    const double dR [3] = { Pos[0]-amr->BoxCenter[0], Pos[1]-amr->BoxCenter[1], Pos[2]-amr->BoxCenter[2] };
@@ -116,7 +116,7 @@ bool Flag_Lightbulb( const int i, const int j, const int k, const int lv, const 
    const double Pos[3] = { amr->patch[0][lv][PID]->EdgeL[0] + (i+0.5)*dh,
                            amr->patch[0][lv][PID]->EdgeL[1] + (j+0.5)*dh,
                            amr->patch[0][lv][PID]->EdgeL[2] + (k+0.5)*dh  };
-#  ifdef GRAVITY
+#  ifdef GREP
    const double dR [3] = { Pos[0]-GREP_Center[0],    Pos[1]-GREP_Center[1],    Pos[2]-GREP_Center[2]    };
 #  else
    const double dR [3] = { Pos[0]-amr->BoxCenter[0], Pos[1]-amr->BoxCenter[1], Pos[2]-amr->BoxCenter[2] };
@@ -170,7 +170,7 @@ bool Flag_Region_CCSN( const int i, const int j, const int k, const int lv, cons
    bool Within = true;
 
 
-#  ifdef GRAVITY
+#  ifdef GREP
    const double dR [3] = { Pos[0]-GREP_Center[0],    Pos[1]-GREP_Center[1],    Pos[2]-GREP_Center[2]    };
 #  else
    const double dR [3] = { Pos[0]-amr->BoxCenter[0], Pos[1]-amr->BoxCenter[1], Pos[2]-amr->BoxCenter[2] };
