@@ -480,7 +480,7 @@ bool Unphysical( const real Fluid[], const int CheckMode, const real Emag )
    } // if ( OPT__CHECK_PRES_AFTER_FLU )
 #  endif // #ifndef BAROTROPIC_EOS
 
-#  ifndef SRHD
+#  if ( !defined SRHD  &&  EOS != EOS_NUCLEAR )
    if ( OPT__UNIT )
    {
 //    check whether the speed is larger than the speed of light
@@ -491,7 +491,7 @@ bool Unphysical( const real Fluid[], const int CheckMode, const real Emag )
       if ( Fluid[ENGY] >= Fluid[DENS] * SQR(Const_c/UNIT_V) )
          return true;
    }
-#  endif // #ifndef SRHD
+#  endif
 
 
 // if all checks above pass, return false
