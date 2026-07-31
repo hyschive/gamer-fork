@@ -1,5 +1,7 @@
 #include "GAMER.h"
 
+#ifdef GREP
+
 
 #define LinearInterp( x, xa, xb, ya, yb )   (  (ya) + ((yb) - (ya)) * ((x) - (xa)) / ((xb) - (xa))  )
 
@@ -278,3 +280,7 @@ void CPU_ComputeGREP( const int lv, const double Time, const Profile_t *DensAve,
    delete [] Gamma_TOV;
 
 } // FUNCTION : CPU_ComputeGREP
+
+
+
+#endif // #ifdef GREP

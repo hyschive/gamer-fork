@@ -1,5 +1,7 @@
 #include "GAMER.h"
 
+#if ( MODEL == HYDRO )
+
 
        double CCSN_CentralDens;
        double CCSN_Rsh_Min = 0.0;
@@ -174,12 +176,12 @@ void Record_CCSN_CentralQuant()
                Time[0]*UNIT_T, Step, Data_Flt[1]*UNIT_L, Data_Flt[2]*UNIT_L, Data_Flt[3]*UNIT_L,
                u[DENS]*UNIT_D, Ye, CCSN_Rsh_Min*UNIT_L, CCSN_Rsh_Ave*UNIT_L, CCSN_Rsh_Max*UNIT_L );
 
-#     ifdef GRAVITY
+#     ifdef GREP
       fprintf( file_cent_quant, " %16.7e %16.7e %16.7e",
                GREP_Center[0]*UNIT_L, GREP_Center[1]*UNIT_L, GREP_Center[2]*UNIT_L );
 #     else
       fprintf( file_cent_quant, " %16.7e %16.7e %16.7e",
-               NULL_REAL, NULL_REAL, NULL_REAL );
+               amr->BoxCenter[0]*UNIT_L, amr->BoxCenter[1]*UNIT_L, amr->BoxCenter[2]*UNIT_L );
 #     endif
 
       fprintf( file_cent_quant, "\n" );
@@ -265,9 +267,15 @@ void Record_CCSN_GWSignal()
             for (int j=0; j<PS1; j++)  {  const double y = amr->patch[0][lv][PID]->EdgeL[1] + (j+0.5)*dh; const int jj = j + GRA_GHOST_SIZE;
             for (int i=0; i<PS1; i++)  {  const double x = amr->patch[0][lv][PID]->EdgeL[0] + (i+0.5)*dh; const int ii = i + GRA_GHOST_SIZE;
 
+#              ifdef GREP
                const double dx = x - GREP_Center[0];
                const double dy = y - GREP_Center[1];
                const double dz = z - GREP_Center[2];
+#              else
+               const double dx = x - amr->BoxCenter[0];
+               const double dy = y - amr->BoxCenter[1];
+               const double dz = z - amr->BoxCenter[2];
+#              endif
                const double r  = sqrt(  SQR( dx ) + SQR( dy ) + SQR( dz )  );
 
                const double dens  = amr->patch[ amr->FluSg[lv] ][lv][PID]->fluid[DENS][k][j][i];
@@ -391,7 +399,7 @@ void Detect_CoreBounce()
 // (2) criterion 2: any cells within 30km has entropy larger than 3
    double Center[3];
 
-#  ifdef GRAVITY
+#  ifdef GREP
    for (int i=0; i<3; i++)   Center[i] = GREP_Center[i];
 #  else
    for (int i=0; i<3; i++)   Center[i] = amr->BoxCenter[i];
@@ -534,7 +542,7 @@ void Detect_Shock()
       OMP_Shock_Found [t] = false;
    }
 
-#  ifdef GRAVITY
+#  ifdef GREP
    for (int i=0; i<3; i++)   Center[i] = GREP_Center[i];
 #  else
    for (int i=0; i<3; i++)   Center[i] = amr->BoxCenter[i];
@@ -697,3 +705,7 @@ void Detect_Shock()
    CCSN_Rsh_Ave = ( Shock_Found ) ? Shock_Ave / Shock_Weight : 0.0;
 
 } // FUNCTION : Detect_Shock()
+
+
+
+#endif // #if ( MODEL == HYDRO )

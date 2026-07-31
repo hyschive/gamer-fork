@@ -139,7 +139,7 @@ void LoadInputTestProb( const LoadParaMode_t load_mode, ReadPara_t *ReadPara, HD
 // ************************************************************************************************************************
 // LOAD_PARA( load_mode, "KEY_IN_THE_FILE",   &VARIABLE,               DEFAULT,      MIN,              MAX               );
 // ************************************************************************************************************************
-   LOAD_PARA( load_mode, "Riemann_Prob",      &Riemann_Prob,          -1,            0,                12                );
+   LOAD_PARA( load_mode, "Riemann_Prob",      &Riemann_Prob,          -1,            0,                14                );
    LOAD_PARA( load_mode, "Riemann_LR",        &Riemann_LR,             1,            NoMin_int,        NoMax_int         );
    LOAD_PARA( load_mode, "Riemann_XYZ",       &Riemann_XYZ,            0,            0,                2                 );
    LOAD_PARA( load_mode, "Riemann_RhoL",      &Riemann_RhoL,           __DBL_MAX__,  __DBL_MIN__,      __DBL_MAX__       );
@@ -163,7 +163,7 @@ void LoadInputTestProb( const LoadParaMode_t load_mode, ReadPara_t *ReadPara, HD
    LOAD_PARA( load_mode, "Riemann_MagR_T2",   &Riemann_MagR_T2,        __DBL_MAX__, -__DBL_MAX__,      __DBL_MAX__       );
 #  endif
 
-} // FUNCITON : LoadInputTestProb
+} // FUNCTION : LoadInputTestProb
 
 
 

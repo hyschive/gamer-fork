@@ -1,26 +1,3 @@
-## Enabling AMR
-
-It only takes three steps to enable AMR:
-
-* Set [MAX_LEVEL](#MAX_LEVEL)
-* Turn on at least one of the refinement criteria `OPT__FLAG_*`
-* Edit the corresponding input file(s)
-[[Input__Flag_{} | [Runtime-Parameters]-Input__Flag_{}]]
-to specify the refinement thresholds
-
-See the descriptions of various refinement criteria `OPT__FLAG_*`
-given on this page for details.
-
-
-## Compilation Options
-
-Related options:
-[[--nlevel | [Installation]-Option-List#--nlevel]], &nbsp;
-[[--max_patch | [Installation]-Option-List#--max_patch]] &nbsp;
-
-
-## Runtime Parameters
-
 Parameters described on this page:
 [REGRID_COUNT](#REGRID_COUNT), &nbsp;
 [REFINE_NLEVEL](#REFINE_NLEVEL), &nbsp;
@@ -34,6 +11,7 @@ Parameters described on this page:
 [OPT__FLAG_LRTZ_GRADIENT](#OPT__FLAG_LRTZ_GRADIENT), &nbsp;
 [OPT__FLAG_VORTICITY](#OPT__FLAG_VORTICITY), &nbsp;
 [OPT__FLAG_JEANS](#OPT__FLAG_JEANS), &nbsp;
+[OPT__FLAG_COOLING_LEN](#OPT__FLAG_COOLING_LEN), &nbsp;
 [OPT__FLAG_CURRENT](#OPT__FLAG_CURRENT), &nbsp;
 [OPT__FLAG_CRAY](#OPT__FLAG_CRAY), &nbsp;
 [OPT__FLAG_LOHNER_DENS](#OPT__FLAG_LOHNER_DENS), &nbsp;
@@ -57,6 +35,8 @@ Parameters described on this page:
 [OPT__FLAG_NPAR_PATCH](#OPT__FLAG_NPAR_PATCH), &nbsp;
 [OPT__FLAG_NPAR_CELL](#OPT__FLAG_NPAR_CELL), &nbsp;
 [OPT__FLAG_PAR_MASS_CELL](#OPT__FLAG_PAR_MASS_CELL), &nbsp;
+[OPT__FLAG_PAR_TARGET](#OPT__FLAG_PAR_TARGET), &nbsp;
+[OPT__FLAG_PAR_TARGET_SIB](#OPT__FLAG_PAR_TARGET_SIB), &nbsp;
 [OPT__NO_FLAG_NEAR_BOUNDARY](#OPT__NO_FLAG_NEAR_BOUNDARY), &nbsp;
 [OPT__PATCH_COUNT](#OPT__PATCH_COUNT), &nbsp;
 [OPT__PARTICLE_COUNT](#OPT__PARTICLE_COUNT), &nbsp;
@@ -224,6 +204,23 @@ with the [[specific format | [Runtime-Parameters]-Input__Flag_{}]].
 An example file can be found at `example/input/Input__Flag_Jeans`.
 Recommended values: &#8805;4.
     * **Restriction:**
+
+<a name="OPT__FLAG_COOLING_LEN"></a>
+* #### `OPT__FLAG_COOLING_LEN` &ensp; (0=off, 1=on) &ensp; [0]
+    * **Description:**
+Refinement criterion: gas cooling length. It ensures that the cooling length
+is resolved by at least <var>N</var> cells. Specifically, a cell
+on level <var>l</var> will be flagged for refinement if its estimated
+cooling length <var>L</var><sub>cool</sub> satisfies
+<var>L</var><sub>cool</sub>&#8287;&#8801;<var>t</var><sub>cool</sub><var>c</var><sub>s</sub>&#8287;&#8287;<&#8287;<var>N</var><sub>l</sub>&Delta;&xi;<sub>l</sub>,
+where <var>t</var><sub>cool</sub> is the cooling time (currently calculated by Grackle), <var>c</var><sub>s</sub> is sound speed of gas, &Delta;&xi;<sub>l</sub> is the cell width along &xi; on level <var>l</var>, and <var>N</var><sub>l</sub> is the refinement threshold on level <var>l</var>.
+Specify the refinement
+thresholds on different levels in the input file `Input__Flag_CoolingLen`
+with the [[specific format | [Runtime-Parameters]-Input__Flag_{}]].
+An example file can be found at `example/input/Input__Flag_CoolingLen`.
+Recommended values: &#8805;1.
+    * **Restriction:**
+Must compile with [[--grackle | [Installation]-Option-List#--grackle]].
 
 <a name="OPT__FLAG_CURRENT"></a>
 * #### `OPT__FLAG_CURRENT` &ensp; (0=off, 1=on) &ensp; [0]
@@ -475,6 +472,25 @@ Specify the refinement thresholds on different levels in the input file
 An example file can be found at `example/input/Input__Flag_ParMassCell`.
     * **Restriction:**
 
+<a name="OPT__FLAG_PAR_TARGET"></a>
+* #### `OPT__FLAG_PAR_TARGET` &ensp; (0=off, 1=must refine, 2=can refine, 3=must+can refine) &ensp; [0]
+    * **Description:**
+Refinement criterion: target particles. \
+`OPT__FLAG_PAR_TARGET = 0`: Disable this criterion. \
+`OPT__FLAG_PAR_TARGET = 1`: Patches containing particles with the integer attribute `PAR_FLAG > 0` _must_ be refined to level `PAR_FLAG`. This behaves similarly to other refinement criteria such as [OPT__FLAG_RHO](#OPT__FLAG_RHO). \
+`OPT__FLAG_PAR_TARGET = 2`: Patches containing particles with the integer attribute `PAR_FLAG < 0` _can_ be refined to level `|PAR_FLAG|`. In other words, such patches will be refined if they satisfy at least one refinement criterion. This behaves similarly to other refinement pre-checks such as [OPT__FLAG_REGION](#OPT__FLAG_REGION). \
+`OPT__FLAG_PAR_TARGET = 3`: Enable both `OPT__FLAG_PAR_TARGET = 1` and `OPT__FLAG_PAR_TARGET = 2`.
+
+      For a demonstration, see the `ParticleFlag` test problem.
+    * **Restriction:**
+
+<a name="OPT__FLAG_PAR_TARGET_SIB"></a>
+* #### `OPT__FLAG_PAR_TARGET_SIB` &ensp; (0=off, 1=on) &ensp; [1]
+    * **Description:**
+Also refine all sibling patches of patches containing must-refine particles.
+    * **Restriction:**
+Only applicable when [OPT__FLAG_PAR_TARGET](#OPT__FLAG_PAR_TARGET) is set to `1` or `3`.
+
 <a name="OPT__NO_FLAG_NEAR_BOUNDARY"></a>
 * #### `OPT__NO_FLAG_NEAR_BOUNDARY` &ensp; (0=off, 1=on) &ensp; [0]
     * **Description:**
@@ -521,14 +537,9 @@ Only applicable when adopting [OPT__REUSE_MEMORY](#OPT__REUSE_MEMORY)=1/2.
 
 ## Remarks
 
-### Potential outside the isolated boundaries
-When adopting the isolated boundary conditions for gravity (i.e.,
-[[OPT__BC_POT | [Runtime-Parameters]-Gravity#OPT__BC_POT]]=2), the ghost zones of
-gravitational potential outside the simulation domain are currently
-filled out by extrapolation.
-
 
 <br>
 
 ## Links
 * [[Main page of Runtime Parameters | Runtime Parameters]]
+* [[Main page of Refinement | Refinement]]

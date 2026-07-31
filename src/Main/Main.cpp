@@ -159,6 +159,8 @@ double               DT__HYBRID_CFL, DT__HYBRID_CFL_INIT, DT__HYBRID_VELOCITY, D
 double               ELBDM_LAMBDA;
 #endif
 ELBDMRemoveMotionCM_t ELBDM_REMOVE_MOTION_CM;
+bool                 ELBDM_RESCALE_MASS_ERROR;
+int                  ELBDM_RESCALE_MASS_STEPS;
 bool                 ELBDM_BASE_SPECTRAL;
 
 #else
@@ -203,6 +205,7 @@ ExtPot_t GPUExtPot_Ptr = NULL;
 #endif
 
 // GREP
+#ifdef GREP
 GREP_Center_t        GREP_CENTER_METHOD;
 int                  GREP_MAXITER;
 bool                 GREP_LOGBIN;
@@ -212,6 +215,7 @@ double               GREP_MINBINSIZE;
 bool                 GREP_OPT_FIXUP;
 GREP_PresScheme_t    GREP_OPT_PRES;
 double               GREP_Center[3];
+#endif
 #endif // #ifdef GRAVITY
 
 // (2-3) cosmological simulations
@@ -240,9 +244,11 @@ bool                 FFTW3_Double_OMP_Enabled, FFTW3_Single_OMP_Enabled;
 #ifdef PARTICLE
 double               DT__PARVEL, DT__PARVEL_MAX, DT__PARACC;
 bool                 OPT__CK_PARTICLE, OPT__FLAG_NPAR_CELL, OPT__FLAG_PAR_MASS_CELL, OPT__FREEZE_PAR, OPT__OUTPUT_PAR_MESH, OPT__PAR_INIT_CHECK;
+bool                 OPT__FLAG_PAR_TARGET_SIB;
 int                  OPT__OUTPUT_PAR_MODE, OPT__PARTICLE_COUNT, OPT__FLAG_NPAR_PATCH, PAR_IC_FLOAT8, PAR_IC_INT8, FlagTable_NParPatch[NLEVEL-1], FlagTable_NParCell[NLEVEL-1];
 double               FlagTable_ParMassCell[NLEVEL-1];
 ParOutputDens_t      OPT__OUTPUT_PAR_DENS;
+FlagParTarget_t      OPT__FLAG_PAR_TARGET;
 #endif
 
 // (2-6) yt inline analysis
@@ -260,6 +266,9 @@ bool                 YT_JUPYTER_USE_CONNECTION_FILE;
 #ifdef SUPPORT_GRACKLE
 bool                 GRACKLE_ACTIVATE;
 bool                 GRACKLE_VERBOSE;
+#ifndef COMOVING
+double               GRACKLE_REDSHIFT;
+#endif
 bool                 GRACKLE_COOLING;
 GracklePriChe_t      GRACKLE_PRIMORDIAL;
 bool                 GRACKLE_METAL;
@@ -271,8 +280,20 @@ char                 GRACKLE_CLOUDY_TABLE[MAX_STRING];
 int                  GRACKLE_THREE_BODY_RATE;
 bool                 GRACKLE_CIE_COOLING;
 int                  GRACKLE_H2_OPA_APPROX;
+bool                 GRACKLE_USE_V_HEATING_RATE;
+bool                 GRACKLE_USE_S_HEATING_RATE;
+int                  GRACKLE_USE_TEMP_FLOOR;
+double               GRACKLE_TEMP_FLOOR_SCALAR;
+double               GRACKLE_HYDROGEN_MFRAC;
+bool                 OPT__UNFREEZE_GRACKLE;
+bool                 OPT__OUTPUT_GRACKLE_TEMP;
+bool                 OPT__OUTPUT_GRACKLE_MU;
+bool                 OPT__OUTPUT_GRACKLE_TCOOL;
+bool                 OPT__FLAG_COOLING_LEN;
+double               FlagTable_CoolingLen[NLEVEL-1];
+double               DT__GRACKLE_COOLING;
 int                  CHE_GPU_NPGROUP;
-#endif
+#endif // #ifdef SUPPORT_GRACKLE
 
 // (2-8) star formation
 #ifdef STAR_FORMATION
@@ -709,10 +730,9 @@ int main( int argc, char *argv[] )
       if ( OPT__CORR_AFTER_ALL_SYNC == CORR_AFTER_SYNC_EVERY_STEP )
       TIMING_FUNC(   Flu_CorrAfterAllSync(),          Timer_Main[6],   TIMER_ON   );
 
-//    it may be unnecessary to call `MHD_SameInterfaceB()` here, since we already call it every sub-step
-//    in EvolveLevel() after the fluid solver (unless something other than the fluid solver can also introduce
-//    inconsistencies in the B field, such as fix-up operations?).
-#     if ( MODEL == HYDRO  &&  defined MHD )
+//    it may be unnecessary to call MHD_SameInterfaceB() here, since we already call it every sub-step
+//    in EvolveLevel() after the fluid solver and fix-up operations
+#     ifdef MHD
       if ( OPT__SAME_INTERFACE_B == SAME_INTERFACE_B_YES )
       {
          if ( OPT__VERBOSE  &&  MPI_Rank == 0 )
@@ -762,6 +782,9 @@ int main( int argc, char *argv[] )
 
       if ( ELBDM_REMOVE_MOTION_CM == ELBDM_REMOVE_MOTION_CM_EVERY_STEP )
       TIMING_FUNC(   ELBDM_RemoveMotionCM(),          Timer_Main[4],   TIMER_ON   );
+
+      if ( ELBDM_RESCALE_MASS_ERROR  &&  Step % ELBDM_RESCALE_MASS_STEPS == 0 )
+      TIMING_FUNC(   ELBDM_RescaleMassError(),        Timer_Main[4],   TIMER_ON   );
 #     endif // #if ( MODEL == ELBDM )
 //    ---------------------------------------------------------------------------------------------------
 

@@ -4,7 +4,9 @@
 
 
 // prototypes of built-in ExtPot
+#ifdef GREP
 void End_ExtPot_GREP();
+#endif
 
 // these function pointers can be set by a test problem initializer
 void (*End_ExtAcc_Ptr)() = NULL;
@@ -40,7 +42,9 @@ void End_ExtAccPot()
    if ( OPT__EXT_POT )
    {
 //    set the default function pointer of the built-in external potential
+#     ifdef GREP
       if ( OPT__EXT_POT == EXT_POT_GREP )    End_ExtPot_Ptr = End_ExtPot_GREP;
+#     endif
 
       if ( End_ExtPot_Ptr != NULL )    End_ExtPot_Ptr();
    }
