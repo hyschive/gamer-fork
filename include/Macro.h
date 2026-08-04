@@ -226,21 +226,15 @@
 // and temperature initial guess (TEMP_IG)
 # if ( EOS == EOS_NUCLEAR )
 # if ( NEUTRINO_SCHEME == LEAKAGE )
-# if ( NUC_TABLE_MODE == NUC_TABLE_MODE_TEMP )
-#  define NCOMP_PASSIVE_BUILTIN2    4
+#  define NCOMP_PASSIVE_BUILTIN2    (  3 + ( NUC_TABLE_MODE == NUC_TABLE_MODE_TEMP )  )
+# elif ( NEUTRINO_SCHEME == LIGHTBULB )
+#  define NCOMP_PASSIVE_BUILTIN2    (  2 + ( NUC_TABLE_MODE == NUC_TABLE_MODE_TEMP )  )
 # else
-#  define NCOMP_PASSIVE_BUILTIN2    3
-# endif
-# else
-# if ( NUC_TABLE_MODE == NUC_TABLE_MODE_TEMP )
-#  define NCOMP_PASSIVE_BUILTIN2    3
-# else
-#  define NCOMP_PASSIVE_BUILTIN2    2
-# endif
-# endif // # if ( NEUTRINO_SCHEME == LEAKAGE ) ... else ...
+#  define NCOMP_PASSIVE_BUILTIN2    (  1 + ( NUC_TABLE_MODE == NUC_TABLE_MODE_TEMP )  )
+# endif // NEUTRINO_SCHEME
 # else
 #  define NCOMP_PASSIVE_BUILTIN2    0
-# endif
+# endif // #if ( EOS == EOS_NUCLEAR ) ... else ...
 
 // total number of built-in scalars
 #  define NCOMP_PASSIVE_BUILTIN     ( NCOMP_PASSIVE_BUILTIN0 + NCOMP_PASSIVE_BUILTIN1 + NCOMP_PASSIVE_BUILTIN2 )
@@ -354,22 +348,26 @@
 # endif
 
 # if ( EOS == EOS_NUCLEAR )
-#  define YE                  ( PASSIVE_NEXT_IDX2 )
-# if ( NEUTRINO_SCHEME == LEAKAGE )
-#  define DYEDT_NU            ( YE - 1            )
-#  define DEDT_NU             ( YE - 2            )
-# else
-#  define DEDT_NU             ( YE - 1            )
-# endif
+#  define YE                  ( PASSIVE_NEXT_IDX2   )
 # if ( NUC_TABLE_MODE == NUC_TABLE_MODE_TEMP )
-#  define TEMP_IG             ( DEDT_NU - 1       )
-#  define PASSIVE_NEXT_IDX3   ( DEDT_NU - 2       )
+#  define TEMP_IG             ( YE - 1              )
+#  define PASSIVE_NEXT_NU     ( TEMP_IG             )
 # else
-#  define PASSIVE_NEXT_IDX3   ( DEDT_NU - 1       )
+#  define PASSIVE_NEXT_NU     ( YE                  )
 # endif
+# if ( NEUTRINO_SCHEME == LEAKAGE )
+#  define DYEDT_NU            ( PASSIVE_NEXT_NU - 1 )
+#  define DEDT_NU             ( PASSIVE_NEXT_NU - 2 )
+#  define PASSIVE_NEXT_IDX3   ( PASSIVE_NEXT_NU - 3 )
+# elif ( NEUTRINO_SCHEME == LIGHTBULB )
+#  define DEDT_NU             ( PASSIVE_NEXT_NU - 1 )
+#  define PASSIVE_NEXT_IDX3   ( PASSIVE_NEXT_NU - 2 )
 # else
-#  define PASSIVE_NEXT_IDX3   ( PASSIVE_NEXT_IDX2 )
-# endif
+#  define PASSIVE_NEXT_IDX3   ( PASSIVE_NEXT_NU - 1 )
+# endif // NEUTRINO_SCHEME
+# else
+#  define PASSIVE_NEXT_IDX3   ( PASSIVE_NEXT_IDX2   )
+# endif // #if ( EOS == EOS_NUCLEAR ) ... else ...
 
 #endif // #if ( NCOMP_PASSIVE > 0 )
 
@@ -409,21 +407,25 @@
 
 # if ( EOS == EOS_NUCLEAR )
 #  define FLUX_YE          ( FLUX_NEXT_IDX2   )
-# if ( NEUTRINO_SCHEME == LEAKAGE )
-#  define FLUX_DYEDT_NU    ( FLUX_YE - 1      )
-#  define FLUX_DEDT_NU     ( FLUX_YE - 2      )
-# else
-#  define FLUX_DEDT_NU     ( FLUX_YE - 1      )
-# endif
 # if ( NUC_TABLE_MODE == NUC_TABLE_MODE_TEMP )
-#  define FLUX_TEMP_IG     ( FLUX_DEDT_NU - 2 )
-#  define FLUX_NEXT_IDX3   ( FLUX_DEDT_NU - 3 )
+#  define FLUX_TEMP_IG     ( FLUX_YE - 1      )
+#  define FLUX_NEXT_NU     ( FLUX_TEMP_IG     )
 # else
-#  define FLUX_NEXT_IDX3   ( FLUX_DEDT_NU - 2 )
+#  define FLUX_NEXT_NU     ( FLUX_YE          )
 # endif
+# if ( NEUTRINO_SCHEME == LEAKAGE )
+#  define FLUX_DYEDT_NU    ( FLUX_NEXT_NU - 1 )
+#  define FLUX_DEDT_NU     ( FLUX_NEXT_NU - 2 )
+#  define FLUX_NEXT_IDX3   ( FLUX_NEXT_NU - 3 )
+# elif ( NEUTRINO_SCHEME == LIGHTBULB )
+#  define FLUX_DEDT_NU     ( FLUX_NEXT_NU - 1 )
+#  define FLUX_NEXT_IDX3   ( FLUX_NEXT_NU - 2 )
+# else
+#  define FLUX_NEXT_IDX3   ( FLUX_NEXT_NU - 1 )
+# endif // NEUTRINO_SCHEME
 # else
 #  define FLUX_NEXT_IDX3   ( FLUX_NEXT_IDX2   )
-# endif
+# endif // #if ( EOS == EOS_NUCLEAR ) ... else ...
 
 #endif // #if ( NCOMP_PASSIVE > 0 )
 
@@ -449,14 +451,16 @@
 
 # if ( EOS == EOS_NUCLEAR )
 #  define _YE                 ( 1L << YE       )
+# if ( NUC_TABLE_MODE == NUC_TABLE_MODE_TEMP )
+#  define _TEMP_IG            ( 1L << TEMP_IG  )
+# endif
+# ifdef NEUTRINO_SCHEME
 # if ( NEUTRINO_SCHEME == LEAKAGE )
 #  define _DYEDT_NU           ( 1L << DYEDT_NU )
 # endif
 #  define _DEDT_NU            ( 1L << DEDT_NU  )
-# if ( NUC_TABLE_MODE == NUC_TABLE_MODE_TEMP )
-#  define _TEMP_IG            ( 1L << TEMP_IG  )
-# endif
-# endif
+# endif // #ifdef NEUTRINO_SCHEME
+# endif // #if ( EOS == EOS_NUCLEAR )
 
 #endif // #if ( NCOMP_PASSIVE > 0 )
 
@@ -489,14 +493,16 @@
 
 # if ( EOS == EOS_NUCLEAR )
 #  define _FLUX_YE            ( 1L << FLUX_YE       )
+# if ( NUC_TABLE_MODE == NUC_TABLE_MODE_TEMP )
+#  define _FLUX_TEMP_IG       ( 1L << FLUX_TEMP_IG  )
+# endif
+# ifdef NEUTRINO_SCHEME
 # if ( NEUTRINO_SCHEME == LEAKAGE )
 #  define _FLUX_DYEDT_NU      ( 1L << FLUX_DYEDT_NU )
 # endif
 #  define _FLUX_DEDT_NU       ( 1L << FLUX_DEDT_NU  )
-# if ( NUC_TABLE_MODE == NUC_TABLE_MODE_TEMP )
-#  define _FLUX_TEMP_IG       ( 1L << FLUX_TEMP_IG  )
-# endif
-# endif
+# endif // #ifdef NEUTRINO_SCHEME
+# endif // #if ( EOS == EOS_NUCLEAR )
 
 #endif // #if ( NFLUX_PASSIVE > 0 )
 
