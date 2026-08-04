@@ -30,7 +30,8 @@ static double   ParEqmIC_SmallGas;                                // negligibly 
 void Par_Init_ByFunction_ParEqmIC( const long NPar_ThisRank, const long NPar_AllRank,
                                    real_par *ParMass, real_par *ParPosX, real_par *ParPosY, real_par *ParPosZ,
                                    real_par *ParVelX, real_par *ParVelY, real_par *ParVelZ, real_par *ParTime,
-                                   long_par *ParType, real_par *AllAttributeFlt[PAR_NATT_FLT_TOTAL],
+                                   long_par *ParType,
+                                   real_par *AllAttributeFlt[PAR_NATT_FLT_TOTAL],
                                    long_par *AllAttributeInt[PAR_NATT_INT_TOTAL] );
 #endif
 
@@ -146,7 +147,7 @@ void LoadInputTestProb( const LoadParaMode_t load_mode, ReadPara_t *ReadPara, HD
    LOAD_PARA( load_mode, ParEqmIC_Cloud_ParaFilename_i,   ParEqmIC_Cloud_ParaFilenames[i],   NoDef_str,     Useless_str,   Useless_str       );
    }
 
-} // FUNCITON : LoadInputTestProb
+} // FUNCTION : LoadInputTestProb
 
 
 

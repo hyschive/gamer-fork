@@ -167,6 +167,8 @@ extern int              OPT__FLAG_SPECTRAL_N;
 extern double           FlagTable_Spectral[NLEVEL-1][2];
 
 extern ELBDMRemoveMotionCM_t ELBDM_REMOVE_MOTION_CM;
+extern bool             ELBDM_RESCALE_MASS_ERROR;
+extern int              ELBDM_RESCALE_MASS_STEPS;
 extern bool             ELBDM_BASE_SPECTRAL;
 
 #else
@@ -209,6 +211,7 @@ extern ExtAcc_t GPUExtAcc_Ptr;
 extern ExtPot_t GPUExtPot_Ptr;
 #endif
 
+#ifdef GREP
 extern GREP_Center_t     GREP_CENTER_METHOD;
 extern int               GREP_MAXITER;
 extern bool              GREP_LOGBIN;
@@ -218,6 +221,7 @@ extern double            GREP_MINBINSIZE;
 extern bool              GREP_OPT_FIXUP;
 extern GREP_PresScheme_t GREP_OPT_PRES;
 extern double            GREP_Center[3];
+#endif
 #endif // #ifdef GRAVITY
 
 
@@ -251,9 +255,11 @@ extern bool       FFTW3_Double_OMP_Enabled, FFTW3_Single_OMP_Enabled;
 #ifdef PARTICLE
 extern double          DT__PARVEL, DT__PARVEL_MAX, DT__PARACC;
 extern bool            OPT__CK_PARTICLE, OPT__FLAG_NPAR_CELL, OPT__FLAG_PAR_MASS_CELL, OPT__FREEZE_PAR, OPT__OUTPUT_PAR_MESH, OPT__PAR_INIT_CHECK;
+extern bool            OPT__FLAG_PAR_TARGET_SIB;
 extern int             OPT__OUTPUT_PAR_MODE, OPT__PARTICLE_COUNT, OPT__FLAG_NPAR_PATCH, FlagTable_NParPatch[NLEVEL-1], FlagTable_NParCell[NLEVEL-1];
 extern double          FlagTable_ParMassCell[NLEVEL-1];
 extern ParOutputDens_t OPT__OUTPUT_PAR_DENS;
+extern FlagParTarget_t OPT__FLAG_PAR_TARGET;
 extern int             PAR_IC_FLOAT8;
 extern int             PAR_IC_INT8;
 #endif
@@ -277,6 +283,9 @@ extern bool            YT_JUPYTER_USE_CONNECTION_FILE;
 #ifdef SUPPORT_GRACKLE
 extern bool            GRACKLE_ACTIVATE;
 extern bool            GRACKLE_VERBOSE;
+#ifndef COMOVING
+extern double          GRACKLE_REDSHIFT;
+#endif
 extern bool            GRACKLE_COOLING;
 extern GracklePriChe_t GRACKLE_PRIMORDIAL;
 extern bool            GRACKLE_METAL;
@@ -288,6 +297,18 @@ extern char            GRACKLE_CLOUDY_TABLE[MAX_STRING];
 extern int             GRACKLE_THREE_BODY_RATE;
 extern bool            GRACKLE_CIE_COOLING;
 extern int             GRACKLE_H2_OPA_APPROX;
+extern bool            GRACKLE_USE_V_HEATING_RATE;
+extern bool            GRACKLE_USE_S_HEATING_RATE;
+extern int             GRACKLE_USE_TEMP_FLOOR;
+extern double          GRACKLE_TEMP_FLOOR_SCALAR;
+extern double          GRACKLE_HYDROGEN_MFRAC;
+extern bool            OPT__UNFREEZE_GRACKLE;
+extern bool            OPT__OUTPUT_GRACKLE_TEMP;
+extern bool            OPT__OUTPUT_GRACKLE_MU;
+extern bool            OPT__OUTPUT_GRACKLE_TCOOL;
+extern bool            OPT__FLAG_COOLING_LEN;
+extern double          FlagTable_CoolingLen[NLEVEL-1];
+extern double          DT__GRACKLE_COOLING;
 extern int             CHE_GPU_NPGROUP;
 #endif
 

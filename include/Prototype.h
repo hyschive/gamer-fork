@@ -41,7 +41,7 @@ int  Aux_CountRow( const char *FileName );
 void Aux_ComputeProfile( Profile_t *Prof[], const double Center[], const double r_max_input, const double dr_min,
                          const bool LogBin, const double LogBinRatio, const bool RemoveEmpty, const long TVarBitIdx[],
                          const int NProf, const int MinLv, const int MaxLv, const PatchType_t PatchType,
-                         const double PrepTimeIn );
+                         const double PrepTimeIn, const bool GetSigma );
 void Aux_FindExtrema( Extrema_t *Extrema, const ExtremaMode_t Mode, const int MinLv, const int MaxLv,
                       const PatchType_t PatchType );
 void Aux_FindWeightedAverageCenter( double WeightedAverageCenter[], const double Center_ref[], const double MaxR, const double MinWD,
@@ -145,7 +145,8 @@ bool Hydro_IsUnphysical( const IsUnphyMode_t Mode, const real Fields[],
                          const EoS_GUESS_t EoS_GuessHTilde, const EoS_H2TEM_t EoS_HTilde2Temp,
                          const double EoS_AuxArray_Flt[], const int EoS_AuxArray_Int[],
                          const real *const EoS_Table[EOS_NTABLE_MAX], const long PassiveFloor,
-                         const char File[], const int Line, const char Function[], const IsUnphVerb_t Verbose );
+                         const char File[], const int Line, const char Function[], const IsUnphVerb_t Verbose,
+                         const CkUnphyRnd_t CkUnphyRnd );
 bool Hydro_IsUnphysical_Single( const real Field, const char SingleFieldName[], const real Min, const real Max,
                                 const char File[], const int Line, const char Function[], const IsUnphVerb_t Verbose );
 #ifdef DUAL_ENERGY
@@ -389,10 +390,12 @@ void FindFather( const int lv, const int Mode );
 void Flag_Real( const int lv, const UseLBFunc_t UseLBFunc );
 bool Flag_Check( const int lv, const int PID, const int i, const int j, const int k, const real dv,
                  const real Fluid[][PS1][PS1][PS1], const real Pot[][PS1][PS1], const real MagCC[][PS1][PS1][PS1],
-                 const real Vel[][PS1][PS1][PS1], const real Pres[][PS1][PS1],  const real Lrtz[][PS1][PS1],
+                 const real Vel[][PS1][PS1][PS1], const real Pres[][PS1][PS1], const real Lrtz[][PS1][PS1],
+                 const real LCool[][PS1][PS1],
                  const real *Lohner_Var, const real *Lohner_Ave, const real *Lohner_Slope, const int Lohner_NVar,
                  const real ParCount[][PS1][PS1], const real ParDens[][PS1][PS1], const real JeansCoeff,
-                 const real *Interf_Var, const real Spectral_Cond );
+                 const real Spectral_Cond );
+bool Flag_Precheck( const int lv, const int PID, const int NoRefineBnd );
 bool Flag_Lohner( const int i, const int j, const int k, const OptLohnerForm_t Form, const real *Var1D, const real *Ave1D,
                   const real *Slope1D, const int NVar, const double Threshold, const double Filter, const double Soften );
 void Refine( const int lv, const UseLBFunc_t UseLBFunc );
@@ -562,6 +565,9 @@ void Hydro_Pri2Con( const real In[], real Out[], const bool FracPassive, const i
                     const EoS_DP2E_t EoS_DensPres2Eint, const EoS_TEM2H_t EoS_Temp2HTilde, const EoS_H2TEM_t EoS_HTilde2Temp,
                     const double EoS_AuxArray_Flt[], const int EoS_AuxArray_Int[],
                     const real *const EoS_Table[EOS_NTABLE_MAX], const real* const EintIn );
+void Hydro_RestoreEint_Backup( const int lv, const int FluSg, const int MagSg );
+void Hydro_RestoreEint_Check( const int lv, const int FluSg, const int MagSg );
+void Hydro_RestoreEint_MemFree();
 #ifdef MHD
 void MHD_GetCellCenteredBField( real B_CC[], const real Bx_FC[], const real By_FC[], const real Bz_FC[],
                                 const int Nx, const int Ny, const int Nz, const int i, const int j, const int k );
@@ -631,6 +637,7 @@ bool   ELBDM_Flag_Interference( const int i, const int j, const int k, const rea
 real   ELBDM_UnwrapPhase( const real Phase_Ref, const real Phase_Wrapped );
 real   ELBDM_SetTaylor3Coeff( const real dt, const real dh, const real Eta );
 void   ELBDM_RemoveMotionCM();
+void   ELBDM_RescaleMassError();
 #ifdef SUPPORT_FFTW
 void   CPU_ELBDMSolver_FFT( const real dt, const double PrepTime, const int SaveSg );
 #endif
@@ -771,8 +778,11 @@ void Par_MapMesh2Particles( const double EdgeL[3], const double EdgeR[3],
                             const int NPar, real_par *InterpParPos[3],
                             const long_par ParType[], const long ParList[],
                             const bool UseTracers, real_par ParAttr[], const bool CorrectVelocity );
+void Par_SetParUID();
 void Par_Init_Attribute_Mesh();
 void Par_Output_TracerParticle_Mesh();
+void Par_SetFlag( const int Flag );
+bool Par_Flag_TargetParticle( const int lv, const int PID, const FlagParTarget_t FlagMode );
 FieldIdx_t AddParticleAttributeFlt( const char *InputLabel );
 FieldIdx_t AddParticleAttributeInt( const char *InputLabel );
 FieldIdx_t GetParticleAttributeFltIndex( const char *InputLabel, const Check_t Check );
@@ -837,16 +847,18 @@ void CPU_SrcSolver( const real h_Flu_Array_In [][FLU_NIN_S ][ CUBE(SRC_NXT)     
 
 // Grackle
 #ifdef SUPPORT_GRACKLE
-void Grackle_Init();
-void Grackle_Init_FieldData();
-void Grackle_End();
-void Init_MemAllocate_Grackle( const int Che_NPG );
-void End_MemFree_Grackle();
-void Grackle_Prepare( const int lv, real_che h_Che_Array[], const int NPG, const int *PID0_List );
-void Grackle_Close( const int lv, const int SaveSg, const real_che h_Che_Array[], const int NPG, const int *PID0_List );
-void Grackle_AdvanceDt( const int lv, const double TimeNew, const double TimeOld, const double dt, const int SaveSg,
-                        const bool OverlapMPI, const bool Overlap_Sync );
-void CPU_GrackleSolver( grackle_field_data *Che_FieldData, code_units Che_Units, const int NPatchGroup, const real dt );
+void   Grackle_Init();
+void   Grackle_Init_FieldData();
+void   Grackle_End();
+void   Init_MemAllocate_Grackle( const int Che_NPG );
+void   End_MemFree_Grackle();
+void   Grackle_Prepare( const int lv, real_che h_Che_Array[], const int NPG, const int *PID0_List );
+void   Grackle_Close( const int lv, const int SaveSg, const real_che h_Che_Array[], const int NPG, const int *PID0_List );
+void   Grackle_AdvanceDt( const int lv, const double TimeNew, const double TimeOld, const double dt, const int SaveSg,
+                          const bool OverlapMPI, const bool Overlap_Sync );
+void   CPU_GrackleSolver( grackle_field_data *Che_FieldData, code_units Che_Units, const int NPatchGroup, const real dt );
+void   Grackle_Calculate( real Out[], const GrackleFieldBIdx_t TFields, const int lv, const int NPG, const int *PID0_List );
+double Grackle_GetTimeStep_CoolingTime( const int lv );
 #endif // #ifdef SUPPORT_GRACKLE
 
 

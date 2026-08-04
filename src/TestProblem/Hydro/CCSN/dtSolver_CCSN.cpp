@@ -1,12 +1,15 @@
 #include "GAMER.h"
 #include "NuclearEoS.h"
 
+#if ( MODEL == HYDRO )
+
 
 extern double CCSN_NuHeat_TimeFac;
 extern double CCSN_CC_CentralDensFac;
 extern double CCSN_CC_Red_DT;
 extern double CCSN_CentralDens;
 extern int    CCSN_DT_YE;
+
 
 
 
@@ -188,3 +191,7 @@ double Mis_GetTimeStep_CoreCollapse( const int lv, const double dTime_dt )
    return dt;
 
 } // FUNCTION : Mis_GetTimeStep_CoreCollapse
+
+
+
+#endif // #if ( MODEL == HYDRO )
