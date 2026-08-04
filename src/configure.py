@@ -558,7 +558,7 @@ def load_arguments( sys_setting : SystemSetting ):
                        )
 
     parser.add_argument( "--neutrino", type=str, metavar="TYPE", gamer_name="NEUTRINO_SCHEME",
-                         default="LIGHTBULB", choices=[NONE_STR, "LIGHTBULB", "LEAKAGE", "IDSA", "M1"],
+                         default=NONE_STR, choices=[NONE_STR, "LIGHTBULB", "LEAKAGE", "IDSA", "M1"],
                          depend={"model":"HYDRO", "eos":"NUCLEAR"},
                          help="Neutrino updating scheme. Only supports LIGHTBULB/LEAKAGE for now. Must enable <--eos=NUCLEAR>.\n"
                        )
