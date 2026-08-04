@@ -609,22 +609,34 @@ static void Src_Leakage( real fluid[], const real B[],
    }
 
 // (5-3) verify whether the updated internal energy density and Ye are valid for the nuclear EoS table
-   const real Eint_Update = Eint_Code + dEdt_Code  * dt;
-   const real Ye_Update   = Ye        + dYedt_Code * dt;
+   const real Eint_Update     = Eint_Code + dEdt_Code  * dt;
+   const real Ye_Update       = Ye        + dYedt_Code * dt;
+         bool Temp_Chk_Passed = true;
 
-   In_Flt[1] = Eint_Update;
    In_Flt[2] = Ye_Update;
 
-#  ifdef __CUDACC__
-   EoS->General_FuncPtr( NUC_MODE_ENGY, Out, In_Flt, In_Int, EoS->AuxArrayDevPtr_Flt, EoS->AuxArrayDevPtr_Int, EoS->Table );
-#  else
-   EoS_General_CPUPtr  ( NUC_MODE_ENGY, Out, In_Flt, In_Int, EoS_AuxArray_Flt,        EoS_AuxArray_Int,        h_EoS_Table );
-#  endif
+   for (int i=CHECK_UNPHY_ROUNDING_IMIN; i<=CHECK_UNPHY_ROUNDING_IMAX; i++)
+   {
+//    add machine-precision-level perturbations to the internal energy relative to the total energy
+      In_Flt[1] = Eint_Update + fluid[ENGY]*(real)i*CHECK_UNPHY_ROUNDING_FACTOR*MACHINE_EPSILON;
 
-   const real Temp_Chk = Out[0];
+#     ifdef __CUDACC__
+      EoS->General_FuncPtr( NUC_MODE_ENGY, Out, In_Flt, In_Int, EoS->AuxArrayDevPtr_Flt, EoS->AuxArrayDevPtr_Int, EoS->Table );
+#     else
+      EoS_General_CPUPtr  ( NUC_MODE_ENGY, Out, In_Flt, In_Int, EoS_AuxArray_Flt,        EoS_AuxArray_Int,        h_EoS_Table );
+#     endif
+
+      const real Temp_Chk = Out[0];
+
+      if ( Temp_Chk != Temp_Chk )
+      {
+         Temp_Chk_Passed = false;
+         break;
+      }
+   }
 
 // (5-4) update the internal energy density and Ye if the EoS solver succeeds (Temp_Chk != NAN)
-   if ( Temp_Chk == Temp_Chk )
+   if ( Temp_Chk_Passed )
    {
       fluid[ENGY] = Hydro_ConEint2Etot( fluid[DENS], fluid[MOMX], fluid[MOMY], fluid[MOMZ], Eint_Update, Emag );
 #     ifdef YE
