@@ -81,12 +81,12 @@ void Record_CCSN_CentralQuant()
             FILE *File = fopen( FileName, "w" );
 
 //          column index
-            Aux_Message( File, "#%14s  %8s", "[ 1]", "[ 2]" );
+            Aux_Message( File, "# %13s  %8s", "[ 1]", "[ 2]" );
             for (int c=2; c<NColumn; c++)   Aux_Message( File, "  %13s[%2d]", "", c+1 );
             Aux_Message( File, "\n" );
 
 //          field name
-            Aux_Message( File, "#%14s  %8s",               "Time", "Step"                                    );
+            Aux_Message( File, "# %13s  %8s",              "Time", "Step"                                    );
             Aux_Message( File, "  %17s  %17s  %17s",       "PosX", "PosY", "PosZ"                            );
             Aux_Message( File, "  %17s  %17s",             "Dens", "Ye"                                      );
             Aux_Message( File, "  %17s  %17s  %17s  %17s", "Rsh_Min", "Rsh_Ave_V", "Rsh_Ave_Vinv", "Rsh_Max" );
@@ -103,7 +103,7 @@ void Record_CCSN_CentralQuant()
             Aux_Message( File, "\n" );
 
 //          field unit
-            Aux_Message( File, "#%14s  %8s",               "[sec]", "[1]"                 );
+            Aux_Message( File, "# %13s  %8s",              "[sec]", "[1]"                 );
             Aux_Message( File, "  %17s  %17s  %17s",       "[cm]", "[cm]", "[cm]"         );
             Aux_Message( File, "  %17s  %17s",             "[g/cm^3]", "[1]"              );
             Aux_Message( File, "  %17s  %17s  %17s  %17s", "[cm]", "[cm]", "[cm]", "[cm]" );
@@ -141,7 +141,7 @@ void Record_CCSN_CentralQuant()
 
       FILE *File = fopen( FileName, "a" );
 
-      Aux_Message( File, " %14.7e  %8ld",                    Time[0]*UNIT_T, Step                                                                      );
+      Aux_Message( File, "  %13.7e  %8ld",                   Time[0]*UNIT_T, Step                                                                      );
       Aux_Message( File, "  %17.7e  %17.7e  %17.7e",         Extrema.Coord[0]*UNIT_L, Extrema.Coord[1]*UNIT_L, Extrema.Coord[2]*UNIT_L                 );
       Aux_Message( File, "  %17.7e  %17.7e",                 PeakDens*UNIT_D, PeakDens_YeDens / PeakDens                                               );
       Aux_Message( File, "  %17.7e  %17.7e  %17.7e  %17.7e", CCSN_Rsh_Min*UNIT_L, CCSN_Rsh_Ave_V*UNIT_L, CCSN_Rsh_Ave_Vinv*UNIT_L, CCSN_Rsh_Max*UNIT_L );
