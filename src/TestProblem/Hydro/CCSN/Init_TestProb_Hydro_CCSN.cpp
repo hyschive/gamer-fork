@@ -14,8 +14,7 @@ static herr_t LoadField( const char *FieldName, void *FieldPtr,
 typedef int CCSN_t;
 const CCSN_t
    Migration_Test = 0
-  ,Post_Bounce    = 1
-  ,Core_Collapse  = 2
+  ,CCSN           = 1
   ;
 
 typedef int CCSN_Mag_t;
@@ -173,7 +172,7 @@ void LoadInputTestProb( const LoadParaMode_t load_mode, ReadPara_t *ReadPara, HD
 // ******************************************************************************************************************************
 // LOAD_PARA( load_mode, "KEY_IN_THE_FILE",          &VARIABLE,                  DEFAULT,      MIN,              MAX               );
 // ******************************************************************************************************************************
-   LOAD_PARA( load_mode, "CCSN_Prob",                &CCSN_Prob,                -1,            0,                2                 );
+   LOAD_PARA( load_mode, "CCSN_Prob",                &CCSN_Prob,                -1,            Migration_Test,   CCSN              );
    LOAD_PARA( load_mode, "CCSN_Prof_File",            CCSN_Prof_File,            Useless_str,  Useless_str,      Useless_str       );
 #  ifdef MHD
    LOAD_PARA( load_mode, "CCSN_Mag",                 &CCSN_Mag,                  1,            0,                1                 );
@@ -328,28 +327,19 @@ void SetParameter()
                             CCSN_TargetCols[4] = -1;  CCSN_TargetCols[5] = -1;  CCSN_TargetCols[6] = -1;
                             CCSN_ColIdx_R      =  0;  CCSN_ColIdx_Dens   =  2;  CCSN_ColIdx_Pres   =  3;  CCSN_ColIdx_Velr   =  1;
                             CCSN_ColIdx_Ye     = -1;  CCSN_ColIdx_Temp   = -1;  CCSN_ColIdx_Omega  = -1;
-                            sprintf( CCSN_Name, "GREP migration test" );
+                            sprintf( CCSN_Name, "Migration Test (GREP)" );
                             break;
 
-      case Post_Bounce    : CCSN_NCol = 6;
-                            CCSN_TargetCols[0] =  0;  CCSN_TargetCols[1] =  1;  CCSN_TargetCols[2] =  2;  CCSN_TargetCols[3] =  3;
-                            CCSN_TargetCols[4] =  4;  CCSN_TargetCols[5] =  5;  CCSN_TargetCols[6] = -1;
-                            CCSN_ColIdx_R      =  0;  CCSN_ColIdx_Dens   =  1;  CCSN_ColIdx_Pres   =  5;  CCSN_ColIdx_Velr   =  3;
-                            CCSN_ColIdx_Ye     =  4;  CCSN_ColIdx_Temp   =  2;  CCSN_ColIdx_Omega  = -1;
-                            sprintf( CCSN_Name, "Post bounce test" );
-                            break;
-
-      case Core_Collapse  : CCSN_NCol = 7;
+      case CCSN           : CCSN_NCol = 7;
                             CCSN_TargetCols[0] =  0;  CCSN_TargetCols[1] =  1;  CCSN_TargetCols[2] =  2;  CCSN_TargetCols[3] =  3;
                             CCSN_TargetCols[4] =  4;  CCSN_TargetCols[5] =  5;  CCSN_TargetCols[6] =  6;
                             CCSN_ColIdx_R      =  0;  CCSN_ColIdx_Dens   =  1;  CCSN_ColIdx_Pres   =  5;  CCSN_ColIdx_Velr   =  3;
                             CCSN_ColIdx_Ye     =  4;  CCSN_ColIdx_Temp   =  2;  CCSN_ColIdx_Omega  =  6;
-                            sprintf( CCSN_Name, "Core collapse test" );
+                            sprintf( CCSN_Name, "CCSN" );
                             break;
 
       default             : Aux_Error( ERROR_INFO, "unsupported CCSN problem (%d) !!\n", CCSN_Prob );
    } // switch ( CCSN_Prob )
-
 
 // (1-3) check the runtime parameters
 // (1-3-1) determine CCSN_Is_PostBounce
@@ -389,7 +379,7 @@ void SetParameter()
       Aux_Error( ERROR_INFO, "%s is not supported for %s = %s !!\n", "OPT__FLAG_REGION", "CCSN_Prob", Migration_Test );
 
 // check and set default runtime parameters for core collapse test
-   if ( CCSN_Prob == Core_Collapse )
+   if ( CCSN_Prob == CCSN  &&  !CCSN_Is_PostBounce )
    {
 //    CCSN_CC_Red_DT should be smaller than DT__MAX * UNIT_T
       if ( CCSN_CC_Red_DT > DT__MAX * UNIT_T )
@@ -423,7 +413,7 @@ void SetParameter()
 //    do not mix formulated-rotation and CCSN_CC_Rot_Fac
       if ( CCSN_CC_Rot == 1  &&  CCSN_CC_Rot_Fac > 0.0 )
          Aux_Error( ERROR_INFO, "%s = %d and %s shouldn't be mixed\n", "CCSN_CC_Rot", CCSN_CC_Rot, "CCSN_CC_Rot_Fac" );
-   }
+   } // if ( CCSN_Prob == CCSN  &&  !CCSN_Is_PostBounce )
 
 // check OPT__FLAG_REGION is enabled for CCSN_AngRes_Max and convert degree to radian
    const double Deg2Rad = M_PI/180.0;
@@ -483,13 +473,10 @@ void SetParameter()
       Aux_Message( stdout, "  output GW signals                                                  = %d\n",     CCSN_GW_OUTPUT           );
       Aux_Message( stdout, "  sampling interval of GW signals                                    = %13.7e\n", CCSN_GW_DT               );
       Aux_Message( stdout, "  mode for obtaining internal energy                                 = %d\n",     CCSN_Eint_Mode           );
-      if ( CCSN_Prob != Migration_Test ) {
-      Aux_Message( stdout, "  scaling factor for lightbulb/leakage dt                            = %13.7e\n", CCSN_NuHeat_TimeFac      );
-      Aux_Message( stdout, "  whether core bounce has occurred                                   = %d\n",     CCSN_Is_PostBounce       );
-      Aux_Message( stdout, "  pressure threshold factor for detecting shock                      = %13.7e\n", CCSN_Shock_ThresFac_Pres );
-      Aux_Message( stdout, "  velocity threshold factor for detecting shock                      = %13.7e\n", CCSN_Shock_ThresFac_Vel  );
-      Aux_Message( stdout, "  weighting of each cell    for detecting shock                      = %d\n",     CCSN_Shock_Weight        ); }
-      if ( CCSN_Prob == Core_Collapse ) {
+
+      if ( CCSN_Prob == CCSN )
+      {
+      if ( !CCSN_Is_PostBounce ) {
       if ( CCSN_CC_MaxRefine_Flag1 ) {
       Aux_Message( stdout, "  reduced maxmimum refinement lv 1                                   = %d\n",     CCSN_CC_MaxRefine_LV1    );
       Aux_Message( stdout, "  central density threshold for CCSN_CC_MaxRefine_LV1                = %13.7e\n", CCSN_CC_MaxRefine_Dens1  ); }
@@ -498,12 +485,21 @@ void SetParameter()
       Aux_Message( stdout, "  central density threshold for CCSN_CC_MaxRefine_LV2                = %13.7e\n", CCSN_CC_MaxRefine_Dens2  ); }
       Aux_Message( stdout, "  central density factor for reducing dt                             = %13.7e\n", CCSN_CC_CentralDensFac   );
       Aux_Message( stdout, "  reduced dt near bounce                                             = %13.7e\n", CCSN_CC_Red_DT           ); }
+
+      Aux_Message( stdout, "  scaling factor for lightbulb/leakage dt                            = %13.7e\n", CCSN_NuHeat_TimeFac      );
+      Aux_Message( stdout, "  whether core bounce has occurred                                   = %d\n",     CCSN_Is_PostBounce       );
+      Aux_Message( stdout, "  pressure threshold factor for detecting shock                      = %13.7e\n", CCSN_Shock_ThresFac_Pres );
+      Aux_Message( stdout, "  velocity threshold factor for detecting shock                      = %13.7e\n", CCSN_Shock_ThresFac_Vel  );
+      Aux_Message( stdout, "  weighting of each cell    for detecting shock                      = %d\n",     CCSN_Shock_Weight        );
+      }
+
       Aux_Message( stdout, "  mode for rotational profile                                        = %d\n",     CCSN_CC_Rot              );
       if ( CCSN_CC_Rot == 1 ) {
       Aux_Message( stdout, "  characteristic rotational radius R_0 (in cm)                       = %13.7e\n", CCSN_CC_Rot_R0           );
       Aux_Message( stdout, "  central angular frequency Omega_0 (in rad/s)                       = %13.7e\n", CCSN_CC_Rot_Omega0       ); }
       if ( CCSN_CC_Rot == 2 )
       Aux_Message( stdout, "  multiplication factor for rotational profile                       = %13.7e\n", CCSN_CC_Rot_Fac          );
+
       Aux_Message( stdout, "  radius within which to refine to the maximum allowed level (in cm) = %13.7e\n", CCSN_MaxRefine_Rad       );
       Aux_Message( stdout, "  minimum angular resolution (in degrees)                            = %13.7e\n", CCSN_AngRes_Min/Deg2Rad  );
       Aux_Message( stdout, "  maximum angular resolution (in degrees)                            = %13.7e\n", CCSN_AngRes_Max/Deg2Rad  );
@@ -566,20 +562,13 @@ void SetGridIC( real fluid[], const double x, const double y, const double z, co
    if ( Pres == NULL_REAL )
       Aux_Error( ERROR_INFO, "interpolation failed for pressure at radius %13.7e !!\n", r );
 
-   if ( CCSN_Prob == Post_Bounce )
+   if ( CCSN_Prob == CCSN )
    {
-      Ye   = Mis_InterpolateFromTable( CCSN_Prof_NBin, Table_R, CCSN_Prof+CCSN_ColIdx_Ye  *CCSN_Prof_NBin, r );
-      Temp = Mis_InterpolateFromTable( CCSN_Prof_NBin, Table_R, CCSN_Prof+CCSN_ColIdx_Temp*CCSN_Prof_NBin, r );  // in Kelvin
+      const double *Table_Ye   = CCSN_Prof + CCSN_ColIdx_Ye  *CCSN_Prof_NBin;
+      const double *Table_Temp = CCSN_Prof + CCSN_ColIdx_Temp*CCSN_Prof_NBin;
 
-      if ( Ye   == NULL_REAL )
-         Aux_Error( ERROR_INFO, "interpolation failed for Ye at radius %13.7e !!\n", r );
-      if ( Temp == NULL_REAL )
-         Aux_Error( ERROR_INFO, "interpolation failed for temperature at radius %13.7e !!\n", r );
-   }
-   else if ( CCSN_Prob == Core_Collapse )
-   {
-      Ye   = Mis_InterpolateFromTable( CCSN_Prof_NBin, Table_R, CCSN_Prof+CCSN_ColIdx_Ye  *CCSN_Prof_NBin, r );
-      Temp = Mis_InterpolateFromTable( CCSN_Prof_NBin, Table_R, CCSN_Prof+CCSN_ColIdx_Temp*CCSN_Prof_NBin, r );  // in Kelvin
+      Ye   = Mis_InterpolateFromTable( CCSN_Prof_NBin, Table_R, Table_Ye,   r );
+      Temp = Mis_InterpolateFromTable( CCSN_Prof_NBin, Table_R, Table_Temp, r );  // in Kelvin
 
       if ( Ye   == NULL_REAL )
          Aux_Error( ERROR_INFO, "interpolation failed for Ye at radius %13.7e !!\n", r );
@@ -593,7 +582,8 @@ void SetGridIC( real fluid[], const double x, const double y, const double z, co
    Momz = Dens*Velr*z0/r;
 
 // add angular momentum in a core collapse test, if any
-   if ( CCSN_CC_Rot  &&  CCSN_Prob == Core_Collapse ) {
+   if ( CCSN_CC_Rot  &&  CCSN_Prob == CCSN )
+   {
       const double r_xy    = sqrt( SQR(x0) + SQR(y0) );
       const double Cos_phi = x0/r_xy;
       const double Sin_phi = y0/r_xy;
@@ -1098,54 +1088,56 @@ void Load_IC_Prof_CCSN()
 void Record_CCSN()
 {
 
-// (1) check whether the core bounce occurs
-   if ( !CCSN_Is_PostBounce )
+   if ( CCSN_Prob == CCSN )
    {
-      Detect_CoreBounce();
-
-      if ( CCSN_Is_PostBounce )
+//    (1) check whether the core bounce occurs
+      if ( !CCSN_Is_PostBounce )
       {
-//       dump the bounce time in standard output
-         if ( MPI_Rank == 0 )   Aux_Message( stdout, "Bounce time = %13.7e seconds !!\n", Time[0] * UNIT_T );
+         Detect_CoreBounce();
 
-//       disable the deleptonization scheme, and enable the lightbulb/leakage scheme
-         SrcTerms.Deleptonization = false;
-
-#        ifdef NEUTRINO_SCHEME
-#           if   ( NEUTRINO_SCHEME == LIGHTBULB )
-               SrcTerms.Lightbulb = true;
-               if ( MPI_Rank == 0 )   Aux_Message( stdout, "Enable the lightbulb scheme !!\n" );
-#           elif ( NEUTRINO_SCHEME == LEAKAGE )
-               SrcTerms.Leakage   = true;
-               if ( MPI_Rank == 0 )   Aux_Message( stdout, "Enable the leakage scheme !!\n" );
-#           else
-               if ( MPI_Rank == 0 )   Aux_Message( stdout, "No NEUTRINO_SCHEME specified !!\n" );
-#           endif
-#        endif
-
-         Src_Init();
-
-//       initialize the dEdt_Nu field
-         for (int lv=0; lv<NLEVEL; lv++)
+         if ( CCSN_Is_PostBounce )
          {
-            Src_AdvanceDt( lv, Time[lv], Time[lv], 0.0, amr->FluSg[lv], amr->MagSg[lv], false, false );
+//          dump the bounce time in standard output
+            if ( MPI_Rank == 0 )   Aux_Message( stdout, "Bounce time = %13.7e seconds !!\n", Time[0] * UNIT_T );
 
-            Buf_GetBufferData( lv, amr->FluSg[lv], amr->MagSg[lv], NULL_INT, DATA_GENERAL, _TOTAL, _MAG, Flu_ParaBuf, USELB_YES );
+//          disable the deleptonization scheme, and enable the lightbulb/leakage scheme
+            SrcTerms.Deleptonization = false;
+
+#           ifdef NEUTRINO_SCHEME
+#              if   ( NEUTRINO_SCHEME == LIGHTBULB )
+                  SrcTerms.Lightbulb = true;
+                  if ( MPI_Rank == 0 )   Aux_Message( stdout, "Enable the lightbulb scheme !!\n" );
+#              elif ( NEUTRINO_SCHEME == LEAKAGE )
+                  SrcTerms.Leakage   = true;
+                  if ( MPI_Rank == 0 )   Aux_Message( stdout, "Enable the leakage scheme !!\n" );
+#              else
+                  if ( MPI_Rank == 0 )   Aux_Message( stdout, "No NEUTRINO_SCHEME specified !!\n" );
+#              endif
+#           endif
+
+            Src_Init();
+
+//          initialize the dEdt_Nu field
+            for (int lv=0; lv<NLEVEL; lv++)
+            {
+               Src_AdvanceDt( lv, Time[lv], Time[lv], 0.0, amr->FluSg[lv], amr->MagSg[lv], false, false );
+
+               Buf_GetBufferData( lv, amr->FluSg[lv], amr->MagSg[lv], NULL_INT, DATA_GENERAL, _TOTAL, _MAG, Flu_ParaBuf, USELB_YES );
+            }
+
+//          record bounce time
+            CCSN_BounceTime = Time[0];
+
+//          forced output data at core bounce
+            Output_DumpData( 2 );
+
          }
-
-//       record bounce time
-         CCSN_BounceTime = Time[0];
-
-//       forced output data at core bounce
-         Output_DumpData( 2 );
-
-      }
-   } // if ( !CCSN_Is_PostBounce )
+      } // if ( !CCSN_Is_PostBounce )
 
 
-// (2) shock detection
-   if ( CCSN_Prob != Migration_Test  &&  CCSN_Is_PostBounce )
-      Detect_Shock();
+//    (2) shock detection
+      if ( CCSN_Is_PostBounce )   Detect_Shock();
+   }
 
 
 // (3) record quantities at the center
@@ -1244,17 +1236,20 @@ bool Flag_CCSN( const int i, const int j, const int k, const int lv, const int P
 
    bool Flag = false;
 
-   if (  ( CCSN_Prob == Core_Collapse )  &&  !CCSN_Is_PostBounce  )
+   if ( !CCSN_Is_PostBounce  )
    {
       Flag |= Flag_CoreCollapse( i, j, k, lv, PID, Threshold );
       if ( Flag )    return Flag;
    }
 
-   if (  CCSN_Is_PostBounce                            &&
-         ( SrcTerms.Lightbulb  ||  SrcTerms.Leakage )     )
+   else
    {
-      Flag |= Flag_PostBounce( i, j, k, lv, PID, Threshold );
-      if ( Flag )    return Flag;
+      if ( SrcTerms.Lightbulb  ||  SrcTerms.Leakage )
+      {
+         Flag |= Flag_PostBounce( i, j, k, lv, PID, Threshold );
+         if ( Flag )    return Flag;
+      }
+
    }
 
 
@@ -1324,7 +1319,7 @@ void Init_TestProb_Hydro_CCSN()
    Output_HDF5_UserPara_Ptr  = Output_HDF5_UserPara_CCSN;
 #  endif
 
-   if ( CCSN_Prob != Migration_Test )
+   if ( CCSN_Prob == CCSN )
    {
       Flag_User_Ptr            = Flag_CCSN;
       Mis_GetTimeStep_User_Ptr = Mis_GetTimeStep_CCSN;
