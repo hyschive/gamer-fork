@@ -83,6 +83,7 @@ static int        CCSN_Eint_Mode;                  // Mode of obtaining internal
        int        CCSN_DT_YE;                      // dt criterion on Ye (1=Ye-Ye_min/Ye_max, 2=Ye, 3=none) [1]
 
        double     CCSN_BounceTime = -1.0;          // bounce time in code units
+       double     CCSN_PB_Output_Dt = -1.0;        // output data every CCSN_PB_Output_Dt time interval during the postbounce phase [-1.0]
 // =======================================================================================
 
 
@@ -205,6 +206,7 @@ void LoadInputTestProb( const LoadParaMode_t load_mode, ReadPara_t *ReadPara, HD
    LOAD_PARA( load_mode, "CCSN_Shock_ThresFac_Vel",  &CCSN_Shock_ThresFac_Vel,   0.1,          Eps_double,       NoMax_double      );
    LOAD_PARA( load_mode, "CCSN_Shock_Weight",        &CCSN_Shock_Weight,         2,            1,                2                 );
    LOAD_PARA( load_mode, "CCSN_DT_YE",               &CCSN_DT_YE,                1,            1,                3                 );
+   LOAD_PARA( load_mode, "CCSN_PB_Output_Dt",        &CCSN_PB_Output_Dt,        -1.0,          NoMin_double,     NoMax_double      );
 
 } // FUNCITON : LoadInputTestProb
 
@@ -370,6 +372,12 @@ void SetParameter()
 #     endif
    }
 
+// update OUTPUT_DT according to CCSN_PB_Output_Dt
+   if ( CCSN_Is_PostBounce  &&  CCSN_Prob == CCSN  &&  CCSN_PB_Output_Dt > 0.0 )
+   {
+      OUTPUT_DT = CCSN_PB_Output_Dt;
+      PRINT_RESET_PARA( OUTPUT_DT, FORMAT_REAL, "" );
+   }
 
    if ( CCSN_Eint_Mode == 1 )
    {
@@ -513,6 +521,7 @@ void SetParameter()
       Aux_Message( stdout, "  maximum angular resolution (in degrees)                            = %13.7e\n", CCSN_AngRes_Max/Deg2Rad  );
       Aux_Message( stdout, "  reference distance for the maximum refinement level                = %13.7e\n", CCSN_REF_RBase           );
       Aux_Message( stdout, "  dt criterion on Ye                                                 = %d\n",     CCSN_DT_YE               );
+      Aux_Message( stdout, "  output interval during the postbounce phase                        = %13.7e\n", CCSN_PB_Output_Dt        );
       Aux_Message( stdout, "=======================================================================================\n"  );
    }
 
@@ -1136,9 +1145,15 @@ void Record_CCSN()
 //          record bounce time
             CCSN_BounceTime = Time[0];
 
+//          update OUTPUT_DT according to CCSN_PB_Output_Dt
+            if ( CCSN_PB_Output_Dt > 0.0 )
+            {
+               OUTPUT_DT = CCSN_PB_Output_Dt;
+               PRINT_RESET_PARA( OUTPUT_DT, FORMAT_REAL, "" );
+            }
+
 //          forced output data at core bounce
             Output_DumpData( 2 );
-
          }
       } // if ( !CCSN_Is_PostBounce )
 
