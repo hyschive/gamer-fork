@@ -1,8 +1,7 @@
 # problem-specific runtime parameters
 CCSN_Prob        0                                 # target CCSN problem
-                                                   #    0 : GREP migration test
-                                                   #    1 : Post bounce test
-                                                   #    2 : Core collapse test
+                                                   #    0 : Migration Test (GREP)
+                                                   #    1 : CCSN
 
 CCSN_Prof_File   IC/tovstar_short                  # filename of input profile
 
