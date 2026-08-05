@@ -39,6 +39,7 @@ CCSN_CC_Rot_Fac          -1.0                      # multiplication factor for t
 CCSN_REF_RBase           -1.0;                     # reference distance for determining a maximum refinement level based on distance from the box center (in cm) [1.25e7]
 
 CCSN_Is_PostBounce        0                        # boolean that indicates whether core bounce has occurred  [0]
+                                                   # (determined from CCSN_BounceTime and automatically updated in restart runs)
 
 CCSN_DT_YE                1                        # dt criterion on Ye (1=Ye-Ye_min/Ye_max, 2=Ye, 3=none) [1]
 

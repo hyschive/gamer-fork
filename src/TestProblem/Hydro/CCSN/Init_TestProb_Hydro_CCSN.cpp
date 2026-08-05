@@ -72,7 +72,8 @@ static int        CCSN_Eint_Mode;                  // Mode of obtaining internal
 
        double     CCSN_REF_RBase;                  // reference distance for determining a maximum refinement level based on distance from the box center (in cm)
 
-       bool       CCSN_Is_PostBounce = false;      // boolean that indicates whether core bounce has occurred
+       bool       CCSN_Is_PostBounce = false;      // boolean that indicates whether core bounce has occurred [0]
+                                                   // (determined from CCSN_BounceTime and automatically updated in restart runs)
 
        double     CCSN_AngRes_Min;                 // minimum angular resolution in degree
        double     CCSN_AngRes_Max;                 // maximum angular resolution in degree
@@ -349,7 +350,29 @@ void SetParameter()
       default             : Aux_Error( ERROR_INFO, "unsupported CCSN problem (%d) !!\n", CCSN_Prob );
    } // switch ( CCSN_Prob )
 
+
 // (1-3) check the runtime parameters
+// (1-3-1) determine CCSN_Is_PostBounce
+//         --> Migration Test: always False
+//         --> CCSN :
+//            --> fresh   : set by the runtime parameter
+//            --> restart : determined from CCSN_BounceTime in the HDF5 snapshot
+   if ( CCSN_Prob == Migration_Test )
+   {
+      CCSN_Is_PostBounce = 0;
+   }
+
+   else
+   {
+      if ( OPT__INIT == INIT_BY_RESTART )
+      {
+         CCSN_Is_PostBounce = ( CCSN_BounceTime > 0.0 ) ? 1 : 0;
+
+         PRINT_RESET_PARA( CCSN_Is_PostBounce, FORMAT_INT, "" );
+      }
+   }
+
+
    if ( CCSN_Eint_Mode == 1 )
    {
 #     if ( EOS != EOS_NUCLEAR )
@@ -360,16 +383,10 @@ void SetParameter()
          Aux_Error( ERROR_INFO, "Temperature mode for initializing grids is not supported in Migration Test yet!!\n" );
    }
 
-// do not need to check core bounce in the migration test
-   if ( CCSN_Prob == Migration_Test )
-      CCSN_Is_PostBounce = 1;
 
 // check OPT__FLAG_REGION is disabled for the migration test
    if ( CCSN_Prob == Migration_Test  &&  OPT__FLAG_REGION )
       Aux_Error( ERROR_INFO, "%s is not supported for %s = %s !!\n", "OPT__FLAG_REGION", "CCSN_Prob", Migration_Test );
-
-   if (  ( CCSN_Is_PostBounce == 0 )  &&  ( CCSN_Prob == Post_Bounce )  )
-      Aux_Error( ERROR_INFO, "Incorrect parameter %s = %d !!\n", "CCSN_Is_PostBounce", CCSN_Is_PostBounce );
 
 // check and set default runtime parameters for core collapse test
    if ( CCSN_Prob == Core_Collapse )
@@ -406,10 +423,6 @@ void SetParameter()
 //    do not mix formulated-rotation and CCSN_CC_Rot_Fac
       if ( CCSN_CC_Rot == 1  &&  CCSN_CC_Rot_Fac > 0.0 )
          Aux_Error( ERROR_INFO, "%s = %d and %s shouldn't be mixed\n", "CCSN_CC_Rot", CCSN_CC_Rot, "CCSN_CC_Rot_Fac" );
-
-//    core bounce must be disabled for core collapse
-      if ( CCSN_Is_PostBounce == 1 )
-         Aux_Error( ERROR_INFO, "Incorrect parameter %s = %d !!\n", "CCSN_Is_PostBounce", CCSN_Is_PostBounce );
    }
 
 // check OPT__FLAG_REGION is enabled for CCSN_AngRes_Max and convert degree to radian
@@ -472,7 +485,7 @@ void SetParameter()
       Aux_Message( stdout, "  mode for obtaining internal energy                                 = %d\n",     CCSN_Eint_Mode           );
       if ( CCSN_Prob != Migration_Test ) {
       Aux_Message( stdout, "  scaling factor for lightbulb/leakage dt                            = %13.7e\n", CCSN_NuHeat_TimeFac      );
-      Aux_Message( stdout, "  has core bounce occurred                                           = %d\n",     CCSN_Is_PostBounce       );
+      Aux_Message( stdout, "  whether core bounce has occurred                                   = %d\n",     CCSN_Is_PostBounce       );
       Aux_Message( stdout, "  pressure threshold factor for detecting shock                      = %13.7e\n", CCSN_Shock_ThresFac_Pres );
       Aux_Message( stdout, "  velocity threshold factor for detecting shock                      = %13.7e\n", CCSN_Shock_ThresFac_Vel  );
       Aux_Message( stdout, "  weighting of each cell    for detecting shock                      = %d\n",     CCSN_Shock_Weight        ); }
