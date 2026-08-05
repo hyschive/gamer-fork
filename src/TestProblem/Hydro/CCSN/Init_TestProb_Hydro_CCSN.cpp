@@ -2,6 +2,12 @@
 #include "TestProb.h"
 
 
+#ifdef SUPPORT_HDF5
+static herr_t LoadField( const char *FieldName, void *FieldPtr,
+                         const hid_t H5_SetID_Target, const hid_t H5_TypeID_Target );
+#endif
+
+
 
 // problem-specific global variables
 // =======================================================================================
@@ -75,6 +81,8 @@ static int        CCSN_Eint_Mode;                  // Mode of obtaining internal
        int        CCSN_Shock_Weight;               // weighting of each cell    for detecting postbounce shock (1:volume, 2:1/volume)
 
        int        CCSN_DT_YE;                      // dt criterion on Ye (1=Ye-Ye_min/Ye_max, 2=Ye, 3=none) [1]
+
+       double     CCSN_BounceTime = -1.0;          // bounce time in code units
 // =======================================================================================
 
 
@@ -202,6 +210,75 @@ void LoadInputTestProb( const LoadParaMode_t load_mode, ReadPara_t *ReadPara, HD
 
 
 
+#ifdef SUPPORT_HDF5
+//-------------------------------------------------------------------------------------------------------
+// Function    :  Output_HDF5_UserPara_CCSN
+// Description :  Store user-specified parameters in an HDF5 snapshot at User/UserPara
+//
+// Note        :  1. This function is only called by the root MPI rank
+//                2. Support int, uint, long, ulong, bool, float, double, and string datatypes
+//                3. HDF5_UserPara MUST store at least one parameter
+//                4. The data pointer (i.e., the second argument passed to HDF5_UserPara->Add()) MUST persist outside this function (e.g., global variables)
+//                5. Linked to the function pointer Output_HDF5_UserPara_Ptr
+//
+// Parameter   :  HDF5_UserPara : Structure storing all parameters to be written
+//
+// Return      :  None
+//-------------------------------------------------------------------------------------------------------
+void Output_HDF5_UserPara_CCSN( HDF5_Output_t *HDF5_UserPara )
+{
+
+   HDF5_UserPara->Add( "CCSN_BounceTime", &CCSN_BounceTime );
+
+} // FUNCTION : Output_HDF5_UserPara_CCSN
+
+
+
+//-------------------------------------------------------------------------------------------------------
+// Function    :  Input_HDF5_UserPara_CCSN
+// Description :  Load user-specified parameters stored in an HDF5 snapshot at User/UserPara
+//
+// Note        :  1. Support int, uint, long, ulong, bool, float, double, and string datatypes
+//
+// Parameter   :  None
+//
+// Return      :  None
+//-------------------------------------------------------------------------------------------------------
+void Input_HDF5_UserPara_CCSN()
+{
+
+   const char   FileName[] = "RESTART";
+         hid_t  H5_FileID, H5_SetID_UserPara, H5_TypeID_UserPara;
+         herr_t H5_Status;
+
+// (1) open the HDF5 file
+   H5_FileID = H5Fopen( FileName, H5F_ACC_RDONLY, H5P_DEFAULT );
+   if ( H5_FileID < 0 )
+      Aux_Error( ERROR_INFO, "failed to open the restart HDF5 file \"%s\" !!\n", FileName );
+
+   H5_SetID_UserPara  = H5Dopen( H5_FileID, "User/UserPara", H5P_DEFAULT );
+   if ( H5_SetID_UserPara < 0 )
+      Aux_Error( ERROR_INFO, "failed to open the dataset \"%s\" !!\n", "User/UserPara" );
+
+   H5_TypeID_UserPara = H5Dget_type( H5_SetID_UserPara );
+   if ( H5_TypeID_UserPara < 0 )
+      Aux_Error( ERROR_INFO, "failed to open the datatype of \"%s\" !!\n", "User/UserPara" );
+
+
+// (2) load all target fields in User/UserPara one-by-one (by all ranks)
+   LoadField( "CCSN_BounceTime", &CCSN_BounceTime, H5_SetID_UserPara, H5_TypeID_UserPara );
+
+
+// (3) close all objects
+   H5_Status = H5Tclose( H5_TypeID_UserPara );
+   H5_Status = H5Dclose( H5_SetID_UserPara );
+   H5_Status = H5Fclose( H5_FileID );
+
+} // FUNCTION : Input_HDF5_UserPara_CCSN
+#endif
+
+
+
 //-------------------------------------------------------------------------------------------------------
 // Function    :  SetParameter
 // Description :  Load and set the problem-specific runtime parameters
@@ -224,7 +301,7 @@ void SetParameter()
 
 
 // (1) load the problem-specific runtime parameters
-// (1-1) read parameters from Input__TestProb
+// (1-1-1) read parameters from Input__TestProb
    const char FileName[] = "Input__TestProb";
    ReadPara_t *ReadPara  = new ReadPara_t;
 
@@ -233,6 +310,14 @@ void SetParameter()
    ReadPara->Read( FileName );
 
    delete ReadPara;
+
+//###REVISE: Use Input_HDF5_UserPara_Ptr() instead once PR 535 is merged.
+//           Since Init_ByRestart_HDF5() is invoked after SetParameter(),
+//           Init_User_Ptr() is required to update dependent variables.
+// (1-1-2) load parameters at User/UserPara from HDF5 snapshots to determine dependent variables
+#  ifdef SUPPORT_HDF5
+   if ( OPT__INIT == INIT_BY_RESTART )   Input_HDF5_UserPara_CCSN();
+#  endif
 
 // (1-2) set the default values
    switch ( CCSN_Prob )
@@ -1035,6 +1120,9 @@ void Record_CCSN()
             Buf_GetBufferData( lv, amr->FluSg[lv], amr->MagSg[lv], NULL_INT, DATA_GENERAL, _TOTAL, _MAG, Flu_ParaBuf, USELB_YES );
          }
 
+//       record bounce time
+         CCSN_BounceTime = Time[0];
+
 //       forced output data at core bounce
          Output_DumpData( 2 );
 
@@ -1220,6 +1308,7 @@ void Init_TestProb_Hydro_CCSN()
 
 #  ifdef SUPPORT_HDF5
    Output_HDF5_InputTest_Ptr = LoadInputTestProb;
+   Output_HDF5_UserPara_Ptr  = Output_HDF5_UserPara_CCSN;
 #  endif
 
    if ( CCSN_Prob != Migration_Test )
@@ -1255,3 +1344,61 @@ void Init_TestProb_Hydro_CCSN()
    if ( MPI_Rank == 0 )    Aux_Message( stdout, "%s ... done\n", __FUNCTION__ );
 
 } // FUNCTION : Init_TestProb_Hydro_CCSN
+
+
+
+#ifdef SUPPORT_HDF5
+//-------------------------------------------------------------------------------------------------------
+// Function    :  LoadField
+// Description :  Load a single field from the input compound dataset
+//
+// Note        :  1. This function works for arbitary datatype (int, float, char, 1D array ...)
+//                2. Memory must be allocated for FieldPtr in advance with sufficent size (except for "char *")
+//                3. For loading a string, which has (type(FieldPtr) = (char *)), the memory must be freed
+//                   manually by calling free()
+//
+// Parameter   :  FieldName        : Name of the target field
+//                FieldPtr         : Pointer to store the retrieved data
+//                H5_SetID_Target  : HDF5 dataset  ID of the target compound variable
+//                H5_TypeID_Target : HDF5 datatype ID of the target compound variable
+//
+// Return      :  Success/fail <-> 0/<0
+//-------------------------------------------------------------------------------------------------------
+herr_t LoadField( const char *FieldName, void *FieldPtr,
+                  const hid_t H5_SetID_Target, const hid_t H5_TypeID_Target )
+{
+
+   int    H5_FieldIdx;
+   size_t H5_FieldSize;
+   hid_t  H5_TypeID_Field;    // datatype ID of the target field in the compound variable
+   hid_t  H5_TypeID_Load;     // datatype ID for loading the target field
+   herr_t H5_Status;
+
+
+// load
+   H5_FieldIdx = H5Tget_member_index( H5_TypeID_Target, FieldName );
+
+   if ( H5_FieldIdx >= 0 )
+   {
+      H5_TypeID_Field  = H5Tget_member_type( H5_TypeID_Target, H5_FieldIdx );
+      H5_FieldSize     = H5Tget_size( H5_TypeID_Field );
+
+      H5_TypeID_Load   = H5Tcreate( H5T_COMPOUND, H5_FieldSize );
+      H5_Status        = H5Tinsert( H5_TypeID_Load, FieldName, 0, H5_TypeID_Field );
+
+      H5_Status        = H5Dread( H5_SetID_Target, H5_TypeID_Load, H5S_ALL, H5S_ALL, H5P_DEFAULT, FieldPtr );
+      if ( H5_Status < 0 )    Aux_Error( ERROR_INFO, "failed to load the field \"%s\" !!\n", FieldName );
+
+      H5_Status        = H5Tclose( H5_TypeID_Field );
+      H5_Status        = H5Tclose( H5_TypeID_Load  );
+   } // if ( H5_FieldIdx >= 0 )
+   else
+   {
+      Aux_Error( ERROR_INFO, "target field \"%s\" does not exist in the restart file !!\n", FieldName );
+      return -1;
+   } // if ( H5_FieldIdx >= 0 ) ... else ...
+
+   return 0;
+
+} // FUNCTION : LoadField
+#endif
