@@ -147,15 +147,25 @@ static void Src_Lightbulb( real fluid[], const real B[],
 #  endif
 
    const real Dens_Code = fluid[DENS];
+
+#  ifdef __CUDACC__
    const real Eint_Code = Hydro_Con2Eint( fluid[DENS], fluid[MOMX], fluid[MOMY], fluid[MOMZ], fluid[ENGY],
-                                          true, MinEint, PassiveFloor, Emag, EoS->GuessHTilde_FuncPtr,
-                                          EoS->HTilde2Temp_FuncPtr, EoS->AuxArrayDevPtr_Flt,
-                                          EoS->AuxArrayDevPtr_Int, EoS->Table );
-#  ifdef YE
-   const real Ye           = fluid[YE] / fluid[DENS];
+                                          true, MinEint, PassiveFloor, Emag,
+                                          EoS->GuessHTilde_FuncPtr, EoS->HTilde2Temp_FuncPtr,
+                                          EoS->AuxArrayDevPtr_Flt, EoS->AuxArrayDevPtr_Int, EoS->Table );
 #  else
-   const real Ye           = NULL_REAL;
+   const real Eint_Code = Hydro_Con2Eint( fluid[DENS], fluid[MOMX], fluid[MOMY], fluid[MOMZ], fluid[ENGY],
+                                          true, MinEint, PassiveFloor, Emag,
+                                          EoS_GuessHTilde_CPUPtr, EoS_HTilde2Temp_CPUPtr,
+                                          EoS_AuxArray_Flt, EoS_AuxArray_Int, h_EoS_Table );
 #  endif
+
+#  ifdef YE
+   const real Ye = fluid[YE] / fluid[DENS];
+#  else
+   const real Ye = NULL_REAL;
+#  endif
+
 #  ifdef TEMP_IG
    const real Temp_IG_Kelv = fluid[TEMP_IG];
 #  else
