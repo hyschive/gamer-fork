@@ -127,7 +127,7 @@ double Mis_GetTimeStep_PostBounce( const int lv, const double dTime_dt )
             double dtInv_NuHeat_ThisCell = FABS( dEint_Code / Eint_Code );
 
 #           if ( NEUTRINO_SCHEME == LEAKAGE )
-            dtInv_NuHeat_ThisCell = FMAX( dYedt / dYe, dtInv_NuHeat_ThisCell );
+            dtInv_NuHeat_ThisCell = FMAX(  dtInv_NuHeat_ThisCell, FABS( dYedt / dYe )  );
 #           endif
 
 //          compare the inverse of ratio to avoid zero division, and store the maximum value
