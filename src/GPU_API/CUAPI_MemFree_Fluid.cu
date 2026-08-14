@@ -37,6 +37,14 @@ extern real (*d_FC_Mag_Half)[NCOMP_MAG][ FLU_NXT_P1*SQR(FLU_NXT) ];
 extern real (*d_EC_Ele     )[NCOMP_MAG][ CUBE(N_EC_ELE)          ];
 #endif
 #endif // FLU_SCHEME
+#if ( MODEL == HYDRO )
+extern real  *d_SrcLeakage_Radius;
+extern real  *d_SrcLeakage_tau;
+extern real  *d_SrcLeakage_chi;
+extern real  *d_SrcLeakage_HeatFlux;
+extern real  *d_SrcLeakage_HeatERms;
+extern real  *d_SrcLeakage_HeatEAve;
+#endif
 
 #if ( MODEL == ELBDM )
 extern bool (*d_IsCompletelyRefined);
@@ -102,6 +110,22 @@ void CUAPI_MemFree_Fluid( const int GPU_NStream )
 #  endif
 #  endif // FLU_SCHEME
 
+#  if ( MODEL == HYDRO  &&  NEUTRINO_SCHEME == LEAKAGE )
+   if ( d_SrcLeakage_Radius   != NULL ) {  CUDA_CHECK_ERROR(  cudaFree( d_SrcLeakage_Radius   )  );  d_SrcLeakage_Radius   = NULL; }
+   if ( d_SrcLeakage_tau      != NULL ) {  CUDA_CHECK_ERROR(  cudaFree( d_SrcLeakage_tau      )  );  d_SrcLeakage_tau      = NULL; }
+   if ( d_SrcLeakage_chi      != NULL ) {  CUDA_CHECK_ERROR(  cudaFree( d_SrcLeakage_chi      )  );  d_SrcLeakage_chi      = NULL; }
+   if ( d_SrcLeakage_HeatFlux != NULL ) {  CUDA_CHECK_ERROR(  cudaFree( d_SrcLeakage_HeatFlux )  );  d_SrcLeakage_HeatFlux = NULL; }
+   if ( d_SrcLeakage_HeatERms != NULL ) {  CUDA_CHECK_ERROR(  cudaFree( d_SrcLeakage_HeatERms )  );  d_SrcLeakage_HeatERms = NULL; }
+   if ( d_SrcLeakage_HeatEAve != NULL ) {  CUDA_CHECK_ERROR(  cudaFree( d_SrcLeakage_HeatEAve )  );  d_SrcLeakage_HeatEAve = NULL; }
+
+   SrcTerms.Leakage_Radius_DevPtr   = NULL;
+   SrcTerms.Leakage_tau_DevPtr      = NULL;
+   SrcTerms.Leakage_chi_DevPtr      = NULL;
+   SrcTerms.Leakage_HeatFlux_DevPtr = NULL;
+   SrcTerms.Leakage_HeatERms_DevPtr = NULL;
+   SrcTerms.Leakage_HeatEAve_DevPtr = NULL;
+#  endif
+
 #  if ( MODEL == ELBDM )
    if ( d_IsCompletelyRefined != NULL ) {  CUDA_CHECK_ERROR (  cudaFree( d_IsCompletelyRefined)  );  d_IsCompletelyRefined = NULL; }
 #  endif
@@ -153,6 +177,15 @@ void CUAPI_MemFree_Fluid( const int GPU_NStream )
       if ( h_HasWaveCounterpart [t] != NULL ) {  CUDA_CHECK_ERROR(  cudaFreeHost( h_HasWaveCounterpart [t] )  ); h_HasWaveCounterpart  [t] = NULL; }
 #     endif
    } // for (int t=0; t<2; t++)
+
+#  if ( MODEL == HYDRO  &&  NEUTRINO_SCHEME == LEAKAGE )
+   if ( h_SrcLeakage_Radius   != NULL ) {  CUDA_CHECK_ERROR(  cudaFreeHost( h_SrcLeakage_Radius   )  );  h_SrcLeakage_Radius   = NULL; }
+   if ( h_SrcLeakage_tau      != NULL ) {  CUDA_CHECK_ERROR(  cudaFreeHost( h_SrcLeakage_tau      )  );  h_SrcLeakage_tau      = NULL; }
+   if ( h_SrcLeakage_chi      != NULL ) {  CUDA_CHECK_ERROR(  cudaFreeHost( h_SrcLeakage_chi      )  );  h_SrcLeakage_chi      = NULL; }
+   if ( h_SrcLeakage_HeatFlux != NULL ) {  CUDA_CHECK_ERROR(  cudaFreeHost( h_SrcLeakage_HeatFlux )  );  h_SrcLeakage_HeatFlux = NULL; }
+   if ( h_SrcLeakage_HeatERms != NULL ) {  CUDA_CHECK_ERROR(  cudaFreeHost( h_SrcLeakage_HeatERms )  );  h_SrcLeakage_HeatERms = NULL; }
+   if ( h_SrcLeakage_HeatEAve != NULL ) {  CUDA_CHECK_ERROR(  cudaFreeHost( h_SrcLeakage_HeatEAve )  );  h_SrcLeakage_HeatEAve = NULL; }
+#  endif
 
 #  if ( GRAMFE_SCHEME == GRAMFE_MATMUL )
    if ( h_GramFE_TimeEvo != NULL ) {  CUDA_CHECK_ERROR(  cudaFreeHost ( h_GramFE_TimeEvo )  );  h_GramFE_TimeEvo = NULL; }

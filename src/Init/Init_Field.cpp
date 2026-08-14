@@ -140,17 +140,24 @@ void Init_Field()
 //    corresponding symbolic constants (e.g., DUAL/CRAY) defined in Macro.h
 //    --> as we still rely on these constants (e.g., DENS, DUAL) in the fluid solvers
 #  if ( EOS == EOS_NUCLEAR )
+#  ifdef NEUTRINO_SCHEME
+   Idx_dEdt_Nu  = AddField( "dEdt_Nu",  FIXUP_FLUX_NO,  FIXUP_REST_NO,  FLOOR_NO,  NORMALIZE_NO, INTERP_FRAC_NO  );
+   if ( Idx_dEdt_Nu  != DEDT_NU  )  Aux_Error( ERROR_INFO, "inconsistent Idx_dEdt_Nu  (%d != %d) !!\n", Idx_dEdt_Nu,  DEDT_NU  );
+
+#  if ( NEUTRINO_SCHEME == LEAKAGE )
+   Idx_dYedt_Nu = AddField( "dYedt_Nu", FIXUP_FLUX_NO,  FIXUP_REST_NO,  FLOOR_NO,  NORMALIZE_NO, INTERP_FRAC_NO  );
+   if ( Idx_dYedt_Nu != DYEDT_NU )  Aux_Error( ERROR_INFO, "inconsistent Idx_dYedt_Nu (%d != %d) !!\n", Idx_dYedt_Nu, DYEDT_NU );
+#  endif
+#  endif // #ifdef NEUTRINO_SCHEME
+
 #  if ( NUC_TABLE_MODE == NUC_TABLE_MODE_TEMP )
-   Idx_Temp_IG = AddField( "Temp_IG", FIXUP_FLUX_YES, FIXUP_REST_YES, FLOOR_YES, NORMALIZE_NO, INTERP_FRAC_NO  );
-   if ( Idx_Temp_IG != TEMP_IG )    Aux_Error( ERROR_INFO, "inconsistent Idx_Temp_IG (%d != %d) !!\n", Idx_Temp_IG, TEMP_IG );
+   Idx_Temp_IG  = AddField( "Temp_IG",  FIXUP_FLUX_YES, FIXUP_REST_YES, FLOOR_YES, NORMALIZE_NO, INTERP_FRAC_NO  );
+   if ( Idx_Temp_IG  != TEMP_IG  )  Aux_Error( ERROR_INFO, "inconsistent Idx_Temp_IG  (%d != %d) !!\n", Idx_Temp_IG,  TEMP_IG  );
 #  endif
 
-   Idx_dEdt_Nu = AddField( "dEdt_Nu", FIXUP_FLUX_NO,  FIXUP_REST_NO,  FLOOR_NO,  NORMALIZE_NO, INTERP_FRAC_NO  );
-   if ( Idx_dEdt_Nu != DEDT_NU )    Aux_Error( ERROR_INFO, "inconsistent Idx_dEdt_Nu (%d != %d) !!\n", Idx_dEdt_Nu, DEDT_NU );
-
-   Idx_Ye      = AddField( "Ye"     , FIXUP_FLUX_YES, FIXUP_REST_YES, FLOOR_YES, NORMALIZE_NO, INTERP_FRAC_YES );
-   if ( Idx_Ye      != YE      )    Aux_Error( ERROR_INFO, "inconsistent Idx_Ye      (%d != %d) !!\n", Idx_Ye,      YE );
-#  endif
+   Idx_Ye       = AddField( "Ye",       FIXUP_FLUX_YES, FIXUP_REST_YES, FLOOR_YES, NORMALIZE_NO, INTERP_FRAC_YES );
+   if ( Idx_Ye       != YE       )  Aux_Error( ERROR_INFO, "inconsistent Idx_Ye       (%d != %d) !!\n", Idx_Ye,       YE       );
+#  endif // #if ( EOS == EOS_NUCLEAR )
 
 #  ifdef COSMIC_RAY
    Idx_CRay = AddField( "CRay",       FIXUP_FLUX_YES, FIXUP_REST_YES, FLOOR_YES, NORMALIZE_NO, INTERP_FRAC_NO );

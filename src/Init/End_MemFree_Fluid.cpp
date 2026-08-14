@@ -75,6 +75,22 @@ void End_MemFree_Fluid()
    delete [] h_GramFE_TimeEvo;  h_GramFE_TimeEvo = NULL;
 #  endif
 
+#  if ( MODEL == HYDRO  &&  NEUTRINO_SCHEME == LEAKAGE )
+   delete [] h_SrcLeakage_Radius;    h_SrcLeakage_Radius   = NULL;
+   delete [] h_SrcLeakage_tau;       h_SrcLeakage_tau      = NULL;
+   delete [] h_SrcLeakage_chi;       h_SrcLeakage_chi      = NULL;
+   delete [] h_SrcLeakage_HeatFlux;  h_SrcLeakage_HeatFlux = NULL;
+   delete [] h_SrcLeakage_HeatERms;  h_SrcLeakage_HeatERms = NULL;
+   delete [] h_SrcLeakage_HeatEAve;  h_SrcLeakage_HeatEAve = NULL;
+
+   SrcTerms.Leakage_Radius_DevPtr   = NULL;
+   SrcTerms.Leakage_tau_DevPtr      = NULL;
+   SrcTerms.Leakage_chi_DevPtr      = NULL;
+   SrcTerms.Leakage_HeatFlux_DevPtr = NULL;
+   SrcTerms.Leakage_HeatERms_DevPtr = NULL;
+   SrcTerms.Leakage_HeatEAve_DevPtr = NULL;
+#  endif
+
 } // FUNCTION : End_MemFree_Fluid
 
 
