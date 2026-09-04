@@ -388,13 +388,8 @@ void Flag_Real( const int lv, const UseLBFunc_t UseLBFunc )
                {
 //                if applicable, compute pressure from the dual-energy variable to reduce the round-off errors
 #                 ifdef DUAL_ENERGY
-
-#                 if   ( DUAL_ENERGY == DE_ENPY )
                   Pres[k][j][i] = Hydro_DensDual2Pres( Fluid[DENS][k][j][i], Fluid[DUAL][k][j][i],
                                                        EoS_AuxArray_Flt[1], CheckMinPres_Yes, MIN_PRES );
-#                 elif ( DUAL_ENERGY == DE_EINT )
-#                 error : DE_EINT is NOT supported yet !!
-#                 endif
 
 #                 else // #ifdef DUAL_ENERGY
 

@@ -203,7 +203,7 @@ void Flu_FixUp_Flux( const int lv, const long TVar )
 //             --> because they have not been corrected by Hydro_DualEnergyFix()
 //             --> also note that currently we adopt Hydro_DensDual2Pres() for DE_UPDATED_BY_MIN_PRES
 //             --> consistency among all dual-energy related variables will be ensured after determining Eint
-#              if ( DUAL_ENERGY == DE_ENPY )
+#              ifdef DUAL_ENERGY
                if ( *DE_StatusPtr1D == DE_UPDATED_BY_ETOT  ||  *DE_StatusPtr1D == DE_UPDATED_BY_ETOT_GRA )
 #              endif
                {
@@ -214,17 +214,16 @@ void Flu_FixUp_Flux( const int lv, const long TVar )
                                          &Eint );
                }
 
-#              if ( DUAL_ENERGY == DE_ENPY )
+#              ifdef DUAL_ENERGY
                else
                {
                   Pres = Hydro_DensDual2Pres( ForEint[DENS], ForEint[DUAL], EoS_AuxArray_Flt[1], CheckMinPres_No, NULL_REAL );
-//                DE_ENPY only supports EOS_GAMMA, which does not involve passive scalars
+#                 if   ( DUAL_ENERGY == DE_ENPY )
                   Eint = EoS_DensPres2Eint_CPUPtr( ForEint[DENS], Pres, NULL, EoS_AuxArray_Flt, EoS_AuxArray_Int, h_EoS_Table );
+#                 elif ( DUAL_ENERGY == DE_EINT )
+                  Eint = ForEint[DUAL];
+#                 endif
                }
-#              endif
-
-#              if ( DUAL_ENERGY == DE_EINT )
-#              error : DE_EINT is NOT supported yet !!
 #              endif
 
 #              endif // #if ( MODEL == HYDRO  &&  !defined BAROTROPIC_EOS  &&  !defined SRHD )
@@ -252,12 +251,9 @@ void Flu_FixUp_Flux( const int lv, const long TVar )
                     ||  Eint <= MIN_EINT  ||  !Aux_IsFinite(Eint)
                     ||  Pres <= MIN_PRES  ||  !Aux_IsFinite(Pres)
 #                   endif
-#                   if   ( DUAL_ENERGY == DE_ENPY )
+#                   ifdef DUAL_ENERGY
                     ||  ( (*DE_StatusPtr1D == DE_UPDATED_BY_DUAL || *DE_StatusPtr1D == DE_UPDATED_BY_MIN_PRES)
                            && CorrVal[DUAL] <= (real)2.0*TINY_NUMBER )
-
-#                   elif ( DUAL_ENERGY == DE_EINT )
-#                   error : DE_EINT is NOT supported yet !!
 #                   endif
                   )
 #              endif // #ifdef SRHD ... else ...
@@ -308,13 +304,12 @@ void Flu_FixUp_Flux( const int lv, const long TVar )
 #                 else
                   CorrVal[ENGY] = Hydro_ConEint2Etot( CorrVal[DENS], CorrVal[MOMX], CorrVal[MOMY], CorrVal[MOMZ], Eint, Emag );
 #                 if   ( DUAL_ENERGY == DE_ENPY )
-//                DE_ENPY only supports EOS_GAMMA, which does not involve passive scalars
                   CorrVal[DUAL] = Hydro_DensPres2Dual( CorrVal[DENS],
                                                        EoS_DensEint2Pres_CPUPtr(CorrVal[DENS],Eint,NULL,
                                                        EoS_AuxArray_Flt,EoS_AuxArray_Int,h_EoS_Table),
                                                        EoS_AuxArray_Flt[1] );
 #                 elif ( DUAL_ENERGY == DE_EINT )
-#                 error : DE_EINT is NOT supported yet !!
+                  CorrVal[DUAL] = Eint;
 #                 endif // DUAL_ENERGY
 
 #                 endif // #ifdef BAROTROPIC_EOS ... else ...

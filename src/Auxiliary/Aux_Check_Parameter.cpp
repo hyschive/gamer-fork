@@ -759,12 +759,8 @@ void Aux_Check_Parameter()
 #     error : RTVD does NOT support DUAL_ENERGY !!
 #   endif
 
-#   if ( DUAL_ENERGY != DE_ENPY )
-#     error : ERROR : unsupported dual-energy formalism (DE_ENPY only, DE_EINT is not supported yet) !!
-#   endif
-
-#   if ( DUAL_ENERGY == DE_ENPY  &&  EOS != EOS_GAMMA )
-#     error : ERROR : DUAL_ENERGY=DE_ENPY only supports EOS_GAMMA !!
+#   if ( defined DUAL_ENERGY  &&  EOS != EOS_GAMMA )
+#     error : ERROR : DUAL_ENERGY only supports EOS_GAMMA !!
 #   endif
 #  endif // #ifdef DUAL_ENERGY
 

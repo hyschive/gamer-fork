@@ -592,7 +592,7 @@ void CorrectUnphysical( const int lv, const int NPG, const int *PID0_List,
                                        { Corr1D_NBuf,    Corr1D_NBuf, Corr1D_NCell-1 },
                                        { Corr1D_NBuf,    Corr1D_NBuf,    Corr1D_NBuf } };
    const int  Corr1D_didx1[3]      = { NCOMP_TOTAL_PLUS_MAG, Corr1D_NCell*NCOMP_TOTAL_PLUS_MAG, SQR(Corr1D_NCell)*NCOMP_TOTAL_PLUS_MAG };
-#  if ( DUAL_ENERGY == DE_ENPY )
+#  ifdef DUAL_ENERGY
    const bool CorrPres_Yes         = true;
    const bool CorrPres_No          = false;
 #  endif
@@ -1046,7 +1046,7 @@ void CorrectUnphysical( const int lv, const int NPG, const int *PID0_List,
                   fprintf( File, "%14s, ", FieldLabel[v] );
 
                   fprintf( File, "%14s, %14s", "Eint", "Pres" );
-#                 if ( DUAL_ENERGY == DE_ENPY )
+#                 ifdef DUAL_ENERGY
                   fprintf( File, ", %14s", FieldLabel[DUAL] );
 #                 endif
 #                 ifdef MHD
@@ -1067,7 +1067,7 @@ void CorrectUnphysical( const int lv, const int NPG, const int *PID0_List,
                                            CheckMinPres_No, NULL_REAL, PassiveFloorMask, Emag_In,
                                            EoS_DensEint2Pres_CPUPtr, EoS_GuessHTilde_CPUPtr, EoS_HTilde2Temp_CPUPtr,
                                            EoS_AuxArray_Flt, EoS_AuxArray_Int, h_EoS_Table, NULL ) );
-#                 if ( DUAL_ENERGY == DE_ENPY )
+#                 ifdef DUAL_ENERGY
                   fprintf( File, ", %14.7e", In[DUAL] );
 #                 endif
 #                 ifdef MHD
@@ -1094,7 +1094,7 @@ void CorrectUnphysical( const int lv, const int NPG, const int *PID0_List,
                                            CheckMinPres_No, NULL_REAL, PassiveFloorMask, Emag_Out,
                                            EoS_DensEint2Pres_CPUPtr, EoS_GuessHTilde_CPUPtr, EoS_HTilde2Temp_CPUPtr,
                                            EoS_AuxArray_Flt, EoS_AuxArray_Int, h_EoS_Table, NULL ) );
-#                 if ( DUAL_ENERGY == DE_ENPY )
+#                 ifdef DUAL_ENERGY
                   fprintf( File, ", %14.7e", Out[DUAL] );
 #                 endif
 #                 ifdef MHD
@@ -1121,7 +1121,7 @@ void CorrectUnphysical( const int lv, const int NPG, const int *PID0_List,
                                            CheckMinPres_No, NULL_REAL, PassiveFloorMask, Emag_Update,
                                            EoS_DensEint2Pres_CPUPtr, EoS_GuessHTilde_CPUPtr, EoS_HTilde2Temp_CPUPtr,
                                            EoS_AuxArray_Flt, EoS_AuxArray_Int, h_EoS_Table, NULL ) );
-#                 if ( DUAL_ENERGY == DE_ENPY )
+#                 ifdef DUAL_ENERGY
                   fprintf( File, ", %14.7e", Update[DUAL] );
 #                 endif
 #                 ifdef MHD

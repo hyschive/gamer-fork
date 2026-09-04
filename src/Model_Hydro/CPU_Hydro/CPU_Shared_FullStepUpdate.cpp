@@ -20,7 +20,18 @@
 # include "CUFLU_Shared_DualEnergy.cu"
 #endif
 
-#endif // #ifdef __CUDACC__
+#else // #ifdef __CUDACC__
+
+#if ( DUAL_ENERGY == DE_EINT )
+void Hydro_DualEnergy_AdiabaticWork_FullStep( real &Edual,
+                                              const real g_PriVar_Half[][ CUBE(FLU_NXT) ],
+                                              const real g_Flux[][NCOMP_TOTAL_PLUS_MAG][ CUBE(N_FC_FLUX) ],
+                                              const real g_FC_Var[][NCOMP_TOTAL_PLUS_MAG][ CUBE(N_FC_VAR) ],
+                                              const bool FracPassive, const int NFrac, const int FracIdx[],
+                                              const real dt, const real dh, const EoS_t *EoS, const int idx_out );
+#endif
+
+#endif // #ifdef __CUDACC__ ... else ...
 
 
 
@@ -33,6 +44,7 @@
 //                2. Invoke dual-energy check if DualEnergySwitch is on
 //                3. If any unphysical fluid cell is found in a patch group, Hydro_FullStepUpdate() will
 //                   return instantly unless Iteration==MinMod_MaxIter
+//                4. Update dual energy (only for DUAL_ENERGY==DE_EINT)
 //
 // Parameter   :  g_Input           : Array storing the input fluid data
 //                g_Output          : Array to store the updated fluid data
@@ -42,6 +54,11 @@
 //                g_Flux            : Array storing the input face-centered fluxes
 //                                    --> Accessed with the array stride N_FL_FLUX even thought its actually
 //                                        allocated size is N_FC_FLUX^3
+//                g_PriVar_Half     : Array storing the input cell-centered primitive variables (for COSMIC_RAY/DUAL_ENERGY=DE_EINT only)
+//                                    --> Accessed with the stride N_HF_VAR
+//                                    --> Although its actually allocated size is FLU_NXT^3 since it points to g_PriVar_1PG[]
+//                g_FC_Var          : Array storing the input face-centered conserved variables (for COSMIC_RAY/DUAL_ENERGY=DE_EINT only)
+//                                    --> Accessed with the array stride N_FC_VAR^3
 //                dt                : Time interval to advance solution
 //                dh                : Cell size
 //                MinDens/Eint      : Density and internal energy floors
@@ -53,6 +70,9 @@
 //                                    --> Should be set to the global variable "PassiveNorm_NVar"
 //                NormIdx           : Target variable indices to be normalized
 //                                    --> Should be set to the global variable "PassiveNorm_VarIdx"
+//                FracPassive       : true --> input passive scalars are mass fraction instead of density
+//                NFrac             : Number of passive scalars for the option "FracPassive"
+//                FracIdx           : Target variable indices for the option "FracPassive"
 //                EoS               : EoS object
 //                                    --> Only for obtaining Gamma used by the dual-energy formalism
 //                s_FullStepFailure : (1/0) --> (Fail to update fluid patch group/otherwise)
@@ -63,8 +83,11 @@
 GPU_DEVICE
 void Hydro_FullStepUpdate( const real g_Input[][ CUBE(FLU_NXT) ], real g_Output[][ CUBE(PS2) ], char g_DE_Status[],
                            const real g_FC_B[][ PS2P1*SQR(PS2) ], const real g_Flux[][NCOMP_TOTAL_PLUS_MAG][ CUBE(N_FC_FLUX) ],
+                           const real g_PriVar_Half[][ CUBE(FLU_NXT) ],
+                           const real g_FC_Var[][NCOMP_TOTAL_PLUS_MAG][ CUBE(N_FC_VAR) ],
                            const real dt, const real dh, const real MinDens, const real MinEint, const real DualEnergySwitch,
                            const long PassiveFloor, const bool NormPassive, const int NNorm, const int NormIdx[],
+                           const bool FracPassive, const int NFrac, const int FracIdx[],
                            const EoS_t *EoS, int *s_FullStepFailure, const int Iteration, const int MinMod_MaxIter )
 {
 
@@ -141,7 +164,16 @@ void Hydro_FullStepUpdate( const real g_Input[][ CUBE(FLU_NXT) ], real g_Output[
 #     endif // #ifdef BAROTROPIC_EOS
 
 
-//    2. floor and normalize passive scalars
+//    2. add the source term of adiabatic work for the dual-energy formalism (internal energy only)
+//       --> perform it before Hydro_DualEnergyFix() to ensure consistency between
+//           gas internal energy and the dual-energy variable
+#     if ( DUAL_ENERGY == DE_EINT )
+      Hydro_DualEnergy_AdiabaticWork_FullStep( Output_1Cell[DUAL], g_PriVar_Half, g_Flux, g_FC_Var,
+                                               FracPassive, NFrac, FracIdx, dt, dh, EoS, idx_out );
+#     endif
+
+
+//    3. floor and normalize passive scalars
 #     if ( NCOMP_PASSIVE > 0 )
       for (int v=NCOMP_FLUID; v<NCOMP_TOTAL; v++)
          if ( PassiveFloor & BIDX(v) )  Output_1Cell[v] = FMAX( Output_1Cell[v], TINY_NUMBER );
@@ -151,7 +183,7 @@ void Hydro_FullStepUpdate( const real g_Input[][ CUBE(FLU_NXT) ], real g_Output[
 #     endif
 
 
-//    3. apply the dual-energy formalism to correct the internal energy
+//    4. apply the dual-energy formalism to correct the internal energy
 //    --> currently, even when UNSPLIT_GRAVITY is on (which would update the internal energy), we still invoke
 //        Hydro_DualEnergyFix() here and will fix the internal energy in the gravity solver for cells updated
 //        by the dual-energy formalism (i.e., for cells with their dual-energy status marked as DE_UPDATED_BY_DUAL)
@@ -194,26 +226,27 @@ void Hydro_FullStepUpdate( const real g_Input[][ CUBE(FLU_NXT) ], real g_Output[
 //    in these cases, we should leave the negative Eint to be handled by Flu_Close()
       const real Ekin          = (real)0.5*( SQR(Output_1Cell[MOMX]) + SQR(Output_1Cell[MOMY]) + SQR(Output_1Cell[MOMZ]) )/Output_1Cell[DENS];
       const real maxKinOverTot = (real)2.0;
+
       if ( Output_1Cell[DENS] > (real)0.0  &&  Output_1Cell[ENGY]*maxKinOverTot > Ekin )
-      Hydro_DualEnergyFix( Output_1Cell[DENS], Output_1Cell[MOMX], Output_1Cell[MOMY], Output_1Cell[MOMZ],
-                           Output_1Cell[ENGY], Output_1Cell[DUAL], g_DE_Status[idx_out],
-                           EoS->AuxArrayDevPtr_Flt[1], EoS->AuxArrayDevPtr_Flt[2], CheckMinPres_No, NULL_REAL,
-                           PassiveFloor, DualEnergySwitch, Emag );
+         Hydro_DualEnergyFix( Output_1Cell[DENS], Output_1Cell[MOMX], Output_1Cell[MOMY], Output_1Cell[MOMZ],
+                              Output_1Cell[ENGY], Output_1Cell[DUAL], g_DE_Status[idx_out],
+                              EoS->AuxArrayDevPtr_Flt[1], EoS->AuxArrayDevPtr_Flt[2], CheckMinPres_No, NULL_REAL,
+                              PassiveFloor, DualEnergySwitch, Emag );
 #     endif // #ifdef DUAL_ENERGY
 
 
-//    4. store results to the output array
+//    5. store results to the output array
       for (int v=0; v<NCOMP_TOTAL; v++)   g_Output[v][idx_out] = Output_1Cell[v];
 
 
-//    5. check unphysical cells within a patch group
+//    6. check unphysical cells within a patch group
       if ( s_FullStepFailure != NULL )
       {
 #        ifdef CHECK_UNPHYSICAL_IN_FLUID
          bool FullStepFailure = false; // per-thread status
 #        endif
 
-//       5-1. check
+//       6-1. check
 //       --> allow pressure to be zero to tolerate round-off errors
 //       --> check for unphysical results caused by floating-point rounding errors to facilitate the MINMOD_MAX_ITER fix
          if (  Hydro_IsUnphysical( UNPHY_MODE_CONS, Output_1Cell, Emag,
@@ -239,7 +272,7 @@ void Hydro_FullStepUpdate( const real g_Input[][ CUBE(FLU_NXT) ], real g_Output[
 #           endif
          }
 
-//       5-2. print out unphysical results after iterations for debugging
+//       6-2. print out unphysical results after iterations for debugging
 #        ifdef CHECK_UNPHYSICAL_IN_FLUID
          if ( FullStepFailure  &&  Iteration == MinMod_MaxIter )
          {
@@ -264,7 +297,7 @@ void Hydro_FullStepUpdate( const real g_Input[][ CUBE(FLU_NXT) ], real g_Output[
    } // CGPU_LOOP( idx_out, CUBE(PS2) )
 
 
-// 6. synchronize s_FullStepFailure for all threads within a GPU thread block
+// 7. synchronize s_FullStepFailure for all threads within a GPU thread block
 #  ifdef __CUDACC__
    __syncthreads();
 #  endif

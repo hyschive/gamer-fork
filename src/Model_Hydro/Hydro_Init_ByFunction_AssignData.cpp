@@ -370,9 +370,10 @@ void Hydro_Init_ByFunction_AssignData( const int lv )
 
 //       calculate the dual-energy variable (entropy or internal energy)
 #        ifdef DUAL_ENERGY
+//       EOS_GAMMA does not involve passive scalars
          fluid[DUAL] = Hydro_Con2Dual( fluid[DENS], fluid[MOMX], fluid[MOMY], fluid[MOMZ], fluid[ENGY], Emag,
-                                       EoS_DensEint2Pres_CPUPtr, EoS_AuxArray_Flt, EoS_AuxArray_Int, h_EoS_Table,
-                                       PassiveFloorMask );
+                                       NULL, EoS_DensEint2Entr_CPUPtr, EoS_AuxArray_Flt,
+                                       EoS_AuxArray_Int, h_EoS_Table, PassiveFloorMask );
 #        endif
 
 //       floor and normalize passive scalars

@@ -35,10 +35,6 @@ void Hydro_Aux_Check_Negative( const int lv, const int Mode, const char *comment
    if ( lv < 0  ||  lv >= NLEVEL )  Aux_Error( ERROR_INFO, "incorrect parameter %s = %d !!\n", "lv", lv );
    if ( Mode < 1  ||  Mode > 3 )    Aux_Error( ERROR_INFO, "incorrect parameter %s = %d !!\n", "Mode", Mode );
 
-#  if ( DUAL_ENERGY == DE_EINT )
-#  error : DE_EINT is NOT supported yet !!
-#  endif
-
 
    const bool CheckMinPres_No = false;
 

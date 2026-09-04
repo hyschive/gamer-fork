@@ -167,8 +167,8 @@ void Flu_ResetByUser_API_Bondi( const int lv, const int FluSg, const int MagSg, 
 
 //          calculate the dual-energy variable
 #           ifdef DUAL_ENERGY
-            fluid[DUAL] = Hydro_Con2Dual( fluid[DENS], fluid[MOMX], fluid[MOMY], fluid[MOMZ], fluid[ENGY], Emag,
-                                          EoS_DensEint2Pres_CPUPtr, EoS_AuxArray_Flt, EoS_AuxArray_Int, h_EoS_Table,
+            fluid[DUAL] = Hydro_Con2Dual( fluid[DENS], fluid[MOMX], fluid[MOMY], fluid[MOMZ], fluid[ENGY], Emag, fluid+NCOMP_FLUID,
+                                          EoS_DensEint2Entr_CPUPtr, EoS_AuxArray_Flt, EoS_AuxArray_Int, h_EoS_Table,
                                           PassiveFloorMask );
 #           endif
 
