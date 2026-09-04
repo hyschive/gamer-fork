@@ -323,17 +323,12 @@ void Aux_Record_GrackleComoving()
 //    use the dual-energy variable to calculate the internal energy if applicable
 #     ifdef DUAL_ENERGY
       double Dual  = amr->patch[FluSg][0][0]->fluid[DUAL][0][0][0];
-
-#     if   ( DUAL_ENERGY == DE_ENPY )
       const bool CheckMinPres_No = false;
       double Pres  = Hydro_DensDual2Pres( Dens, Dual, EoS_AuxArray_Flt[1], CheckMinPres_No, NULL_REAL );
+
 //    EOS_GAMMA does not involve passive scalars
       Eint  = EoS_DensPres2Eint_CPUPtr( Dens, Pres, NULL, EoS_AuxArray_Flt, EoS_AuxArray_Int, h_EoS_Table );
-#     elif ( DUAL_ENERGY == DE_EINT )
-#     error : DE_EINT is NOT supported yet !!
-#     endif
-
-#     endif // #ifdef DUAL_ENERGY
+      #     endif // #ifdef DUAL_ENERGY
 
       const double MassRatio_pe = Const_mp / Const_me;
 
@@ -582,16 +577,11 @@ double Mis_GetTimeStep_GrackleComoving( const int lv, const double dTime_dt )
 //    use the dual-energy variable to calculate the internal energy if applicable
 #     ifdef DUAL_ENERGY
       double Dual = amr->patch[FluSg][lv][0]->fluid[DUAL][0][0][0];
-
-#     if   ( DUAL_ENERGY == DE_ENPY )
       const bool CheckMinPres_No  = false;
       double     Pres             = Hydro_DensDual2Pres( Dens, Dual, EoS_AuxArray_Flt[1], CheckMinPres_No, NULL_REAL );
+
 //    EOS_GAMMA does not involve passive scalars
       Eint  = EoS_DensPres2Eint_CPUPtr( Dens, Pres, NULL, EoS_AuxArray_Flt, EoS_AuxArray_Int, h_EoS_Table );
-#     elif ( DUAL_ENERGY == DE_EINT )
-#     error : DE_EINT is NOT supported yet !!
-#     endif
-
 #     endif // #ifdef DUAL_ENERGY
 
       const double MassRatio_pe = Const_mp / Const_me;
