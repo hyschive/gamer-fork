@@ -5,13 +5,11 @@ import numpy as np
 
 #################################################################################
 ### Example Usage
-'''
-import yt
-import add_ELBDM_derived_fields
-ds = yt.load( './Data_000000' )
-add_ELBDM_derived_fields.Add_ELBDM_derived_fields( ds )
-sz = yt.SlicePlot( ds, 'z', ... )
-'''
+# import yt
+# import add_ELBDM_derived_fields
+# ds = yt.load( './Data_000000' )
+# add_ELBDM_derived_fields.Add_ELBDM_derived_fields( ds )
+# sz = yt.SlicePlot( ds, 'z', ... )
 #################################################################################
 
 

@@ -51,6 +51,6 @@ for ds in ts.piter():
          sz.save()
 
       except Exception as e:
-          print( e )
-          pass
+         print( e )
+         pass
 
