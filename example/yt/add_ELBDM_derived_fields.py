@@ -342,6 +342,10 @@ def _total_wavelength_per_cell(field, data):
 ## Second Derivative
 #################################
 
+# Laplacian(rho) = div(grad(rho))
+def _Dens_laplacian(field, data):
+   return data["Dens_gradient_x_gradient_x"] + data["Dens_gradient_y_gradient_y"] + data["Dens_gradient_z_gradient_z"]
+
 # Laplacian(f) = div(grad(f))
 def _f_laplacian(field, data):
    return data["f_gradient_x_gradient_x"] + data["f_gradient_y_gradient_y"] + data["f_gradient_z_gradient_z"]
@@ -351,8 +355,32 @@ def _S_laplacian(field, data):
    return data["bulk_wavevector_x_gradient_x"] + data["bulk_wavevector_y_gradient_y"] + data["bulk_wavevector_z_gradient_z"]
 
 # Q = -1/2*(Laplacian(f)/f)*hbar^2/m^2
-def _quantum_pressure_potential(field, data):
+def _quantum_potential(field, data):
    return -0.5*(data["f_laplacian"]/data["f"])/ELBDM_ETA(data)**2
+
+# Sigma_xx = 1/4*( (grad(rho)_x * grad(rho)_x)/rho - Laplacian(rho) )*hbar^2/m^2
+def _quantum_stress_tensor_xx(field, data):
+   return 0.25*( data["Dens_gradient_x"]*data["Dens_gradient_x"]/data["Dens"] - data["Dens_laplacian"] )/ELBDM_ETA(data)**2
+
+# Sigma_yy = 1/4*( (grad(rho)_y * grad(rho)_y)/rho - Laplacian(rho) )*hbar^2/m^2
+def _quantum_stress_tensor_yy(field, data):
+   return 0.25*( data["Dens_gradient_y"]*data["Dens_gradient_y"]/data["Dens"] - data["Dens_laplacian"] )/ELBDM_ETA(data)**2
+
+# Sigma_zz = 1/4*( (grad(rho)_z * grad(rho)_z)/rho - Laplacian(rho) )*hbar^2/m^2
+def _quantum_stress_tensor_zz(field, data):
+   return 0.25*( data["Dens_gradient_z"]*data["Dens_gradient_z"]/data["Dens"] - data["Dens_laplacian"] )/ELBDM_ETA(data)**2
+
+# Sigma_xy = 1/4*( (grad(rho)_x * grad(rho)_y)/rho )*hbar^2/m^2
+def _quantum_stress_tensor_xy(field, data):
+   return 0.25*( data["Dens_gradient_x"]*data["Dens_gradient_y"]/data["Dens"] )/ELBDM_ETA(data)**2
+
+# Sigma_yz = 1/4*( (grad(rho)_y * grad(rho)_z)/rho )*hbar^2/m^2
+def _quantum_stress_tensor_yz(field, data):
+   return 0.25*( data["Dens_gradient_y"]*data["Dens_gradient_z"]/data["Dens"] )/ELBDM_ETA(data)**2
+
+# Sigma_zx = 1/4*( (grad(rho)_z * grad(rho)_x)/rho )*hbar^2/m^2
+def _quantum_stress_tensor_zx(field, data):
+   return 0.25*( data["Dens_gradient_z"]*data["Dens_gradient_x"]/data["Dens"] )/ELBDM_ETA(data)**2
 
 
 #################################################################################
@@ -394,10 +422,11 @@ def Add_ELBDM_derived_fields(ds):
                  sampling_type = "cell" )
 
    ## Gradient Field
-   Grad_R = ds.add_gradient_fields( ("gamer","Real") )
-   Grad_I = ds.add_gradient_fields( ("gamer","Imag") )
-   Grad_f = ds.add_gradient_fields( ("gamer","f")    )
-   Grad_S = ds.add_gradient_fields( ("gamer","S")    )
+   Grad_Dens = ds.add_gradient_fields( ("gamer","Dens") )
+   Grad_R    = ds.add_gradient_fields( ("gamer","Real") )
+   Grad_I    = ds.add_gradient_fields( ("gamer","Imag") )
+   Grad_f    = ds.add_gradient_fields( ("gamer","f")    )
+   Grad_S    = ds.add_gradient_fields( ("gamer","S")    )
 
    ## Momentum
    ds.add_field(       ("gamer", "bulk_momentum_density_x"),
@@ -780,12 +809,21 @@ def Add_ELBDM_derived_fields(ds):
                  sampling_type = "cell" )
 
    ## Second Derivative
-   Grad_f_gradient_x = ds.add_gradient_fields( ("gamer","f_gradient_x")      )
-   Grad_f_gradient_y = ds.add_gradient_fields( ("gamer","f_gradient_y")      )
-   Grad_f_gradient_z = ds.add_gradient_fields( ("gamer","f_gradient_z")      )
-   Grad_S_gradient_x = ds.add_gradient_fields( ("gamer","bulk_wavevector_x") )
-   Grad_S_gradient_y = ds.add_gradient_fields( ("gamer","bulk_wavevector_y") )
-   Grad_S_gradient_z = ds.add_gradient_fields( ("gamer","bulk_wavevector_z") )
+   Grad_Dens_gradient_x = ds.add_gradient_fields( ("gamer","Dens_gradient_x")   )
+   Grad_Dens_gradient_y = ds.add_gradient_fields( ("gamer","Dens_gradient_y")   )
+   Grad_Dens_gradient_z = ds.add_gradient_fields( ("gamer","Dens_gradient_z")   )
+   Grad_f_gradient_x    = ds.add_gradient_fields( ("gamer","f_gradient_x")      )
+   Grad_f_gradient_y    = ds.add_gradient_fields( ("gamer","f_gradient_y")      )
+   Grad_f_gradient_z    = ds.add_gradient_fields( ("gamer","f_gradient_z")      )
+   Grad_S_gradient_x    = ds.add_gradient_fields( ("gamer","bulk_wavevector_x") )
+   Grad_S_gradient_y    = ds.add_gradient_fields( ("gamer","bulk_wavevector_y") )
+   Grad_S_gradient_z    = ds.add_gradient_fields( ("gamer","bulk_wavevector_z") )
+
+   ds.add_field(       ("gamer", "Dens_laplacian"),
+                 function      = _Dens_laplacian,
+                 display_name  =r"$\nabla^2 \rho$",
+                 units         = "code_mass/code_length**5",
+                 sampling_type = "cell" )
 
    ds.add_field(       ("gamer", "f_laplacian"),
                  function      = _f_laplacian,
@@ -799,8 +837,44 @@ def Add_ELBDM_derived_fields(ds):
                  units         = "1/code_length**2",
                  sampling_type = "cell" )
 
-   ds.add_field(       ("gamer", "quantum_pressure_potential"),
-                 function      = _quantum_pressure_potential,
-                 display_name  =r"Quantum Pressure Potential $Q$",
+   ds.add_field(       ("gamer", "quantum_potential"),
+                 function      = _quantum_potential,
+                 display_name  =r"Quantum Potential $Q$",
                  units         = "code_length**2/code_time**2",
+                 sampling_type = "cell" )
+
+   ds.add_field(       ("gamer", "quantum_stress_tensor_xx"),
+                 function      = _quantum_stress_tensor_xx,
+                 display_name  =r"Quantum Stress Tensor $\Sigma_{xx}$",
+                 units         = "code_mass/(code_length*code_time**2)",
+                 sampling_type = "cell" )
+
+   ds.add_field(       ("gamer", "quantum_stress_tensor_yy"),
+                 function      = _quantum_stress_tensor_yy,
+                 display_name  =r"Quantum Stress Tensor $\Sigma_{yy}$",
+                 units         = "code_mass/(code_length*code_time**2)",
+                 sampling_type = "cell" )
+
+   ds.add_field(       ("gamer", "quantum_stress_tensor_zz"),
+                 function      = _quantum_stress_tensor_zz,
+                 display_name  =r"Quantum Stress Tensor $\Sigma_{zz}$",
+                 units         = "code_mass/(code_length*code_time**2)",
+                 sampling_type = "cell" )
+
+   ds.add_field(       ("gamer", "quantum_stress_tensor_xy"),
+                 function      = _quantum_stress_tensor_xy,
+                 display_name  =r"Quantum Stress Tensor $\Sigma_{xy}$",
+                 units         = "code_mass/(code_length*code_time**2)",
+                 sampling_type = "cell" )
+
+   ds.add_field(       ("gamer", "quantum_stress_tensor_yz"),
+                 function      = _quantum_stress_tensor_yz,
+                 display_name  =r"Quantum Stress Tensor $\Sigma_{yz}$",
+                 units         = "code_mass/(code_length*code_time**2)",
+                 sampling_type = "cell" )
+
+   ds.add_field(       ("gamer", "quantum_stress_tensor_zx"),
+                 function      = _quantum_stress_tensor_zx,
+                 display_name  =r"Quantum Stress Tensor $\Sigma_{zx}$",
+                 units         = "code_mass/(code_length*code_time**2)",
                  sampling_type = "cell" )
