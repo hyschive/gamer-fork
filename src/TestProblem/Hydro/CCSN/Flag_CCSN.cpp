@@ -9,7 +9,7 @@ extern int    CCSN_CC_MaxRefine_LV1;
 extern int    CCSN_CC_MaxRefine_LV2;
 extern double CCSN_CC_MaxRefine_Dens1;
 extern double CCSN_CC_MaxRefine_Dens2;
-extern double CCSN_CentralDens;
+extern double CCSN_PeakDens;
 
 extern bool   CCSN_Is_PostBounce;
 extern double CCSN_REF_RBase;
@@ -59,7 +59,7 @@ bool Flag_CoreCollapse( const int i, const int j, const int k, const int lv, con
 #  endif
    const double R      = sqrt( SQR(dR[0]) + SQR(dR[1]) + SQR(dR[2]) );
 
-   const double CentralDens = CCSN_CentralDens / UNIT_D;
+   const double CentralDens = CCSN_PeakDens / UNIT_D;
 
 
 // (1) check if the allowed maximum level is reached

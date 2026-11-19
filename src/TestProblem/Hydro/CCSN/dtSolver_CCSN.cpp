@@ -7,7 +7,7 @@
 extern double CCSN_NuHeat_TimeFac;
 extern double CCSN_CC_CentralDensFac;
 extern double CCSN_CC_Red_DT;
-extern double CCSN_CentralDens;
+extern double CCSN_PeakDens;
 extern int    CCSN_DT_YE;
 
 
@@ -184,7 +184,7 @@ double Mis_GetTimeStep_CoreCollapse( const int lv, const double dTime_dt )
 
    double dt = HUGE_NUMBER;
 
-   const double CentralDens = CCSN_CentralDens / UNIT_D;
+   const double CentralDens = CCSN_PeakDens / UNIT_D;
 
    if ( CentralDens > CCSN_CC_CentralDensFac / UNIT_D ) dt = CCSN_CC_Red_DT / UNIT_T;
 

@@ -2,8 +2,10 @@
 
 #if ( MODEL == HYDRO )
 
+#define CCSN_DENS_BOUNCE_THRESHOLD 2.0e14
 
-       double CCSN_CentralDens;
+
+       double CCSN_PeakDens;
 
        double CCSN_Rsh_Min      = 0.0;
        double CCSN_Rsh_Max      = 0.0;
@@ -167,7 +169,7 @@ void Record_CCSN_CentralQuant()
 
 
 // store the central density in cgs unit for detecting core bounces
-   CCSN_CentralDens = Extrema.Value * UNIT_D;
+   CCSN_PeakDens = Extrema.Value * UNIT_D;
 
 } // FUNCTION : Record_CCSN_CentralQuant()
 
@@ -549,14 +551,14 @@ void Record_CCSN_GWSignal()
 //
 // Note        :  1. Invoked by Record_CCSN()
 //             :  2. Based on two criteria:
-//                   --> (a) The central density is larger than 2e14
+//                   --> (a) The central density is larger than CCSN_DENS_BOUNCE_THRESHOLD (2e14)
 //                       (b) Any cells within 30km has entropy larger than 3
 //-------------------------------------------------------------------------------------------------------
 void Detect_CoreBounce()
 {
 
-// (1) criterion 1: central density is larger than 2e14
-   if ( CCSN_CentralDens < 2e14 )   return;
+// (1) criterion 1: central density is larger than CCSN_DENS_BOUNCE_THRESHOLD (2e14)
+   if ( CCSN_PeakDens < CCSN_DENS_BOUNCE_THRESHOLD )   return;
 
 
 // (2) criterion 2: any cells within 30km has entropy larger than 3
