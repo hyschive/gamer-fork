@@ -1182,6 +1182,10 @@ void Record_CCSN()
             {
                OUTPUT_DT = CCSN_PB_Output_Dt;
                PRINT_RESET_PARA( OUTPUT_DT, FORMAT_REAL, "" );
+
+//             update the next dump time in case the current step has already been dumped
+               if ( OPT__OUTPUT_MODE == OUTPUT_CONST_DT )
+                  DumpTime = round( Time[0]/OUTPUT_DT + 1.0 )*OUTPUT_DT;
             }
 
 //          forced output data at core bounce
