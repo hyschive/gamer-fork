@@ -119,6 +119,8 @@ void YT_SetParameter( const int NPatchAllLv, const int NField, const int NPatchL
    const int opt_unit = OPT__UNIT;
    if ( yt_set_UserParameterInt   ( "opt_unit", 1, &opt_unit ) != YT_SUCCESS )   Aux_Error( ERROR_INFO, "yt_set_UserParameterInt() set %s failed !!\n", "OPT__UNIT" );
 
+   if ( yt_set_UserParameterLong  ( "step",     1, &Step     ) != YT_SUCCESS )   Aux_Error( ERROR_INFO, "yt_set_UserParameterInt() set %s failed !!\n", "Step" );
+
 
    if ( OPT__VERBOSE  &&  MPI_Rank == 0 )    Aux_Message( stdout, "%s ... done\n", __FUNCTION__ );
 

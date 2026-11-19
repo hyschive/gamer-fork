@@ -2,6 +2,13 @@
 
 #if ( MODEL == HYDRO  &&  EOS == EOS_NUCLEAR )
 
+// enable threshold-based termination of Newton-Raphson and bisection iterations
+// --> using the threshold can cause unphysical oscillations in peak density
+//     and an artifact cross-shaped structure at the CCSN center during core bounce
+//#define NUC_EOS_USE_THRESHOLD
+
+//#define NUC_EOS_BISECTION_ENFORCE
+
 
 
 GPU_DEVICE static
@@ -114,7 +121,7 @@ void findtemp_NR_bisection( const real lr, const real lt0, const real ye, const 
    nuc_eos_C_linterp_for_temp( lr, lt, ye, &var, alltables, nrho, ntemp, nye,
                                logrho, logtemp, yes, &dvardlt, keymode );
 
-#  if 0
+#  ifdef NUC_EOS_USE_THRESHOLD
    if ( FABS( var-var0 ) < prec*FABS( var0 ) )
    {
       *ltout = lt0;
@@ -209,7 +216,7 @@ void findtemp_NR_bisection( const real lr, const real lt0, const real ye, const 
       nuc_eos_C_linterp_for_temp( lr, lt, ye, &var, alltables, nrho, ntemp, nye,
                                   logrho, logtemp, yes, &dvardlt, keymode );
 
-#     if 0
+#     ifdef NUC_EOS_USE_THRESHOLD
       if (  FABS( var - var0 ) < prec*FABS( var0 )  )
       {
          *ltout = lt;
@@ -474,7 +481,7 @@ void bisection( const real lr, const real lt0, const real ye, const real var0,
    f2 = f2a[iv] - var0;
 
 // iterate until we bracket the right eps, but enforce dE/dt > 0, so eps(lt1) > eps(lt2)
-#  if 0
+#  ifdef NUC_EOS_BISECTION_ENFORCE
    int ifixdeg = 0;
    int ifixdeg_max = 20;
 #  endif
@@ -488,7 +495,7 @@ void bisection( const real lr, const real lt0, const real ye, const real var0,
       nuc_eos_C_linterp_some( lr, lt2, ye, TargetIdx, f2a, alltables,
                               nrho, ntemp, nye, nvars, logrho, logtemp, yes );
 
-#     if 0
+#     ifdef NUC_EOS_BISECTION_ENFORCE
       // special enforcement of eps(lt1)>eps(lt2)
       while ( f1a < f2a  &&  ifixdeg < ifixdeg_max )
       {
@@ -552,7 +559,7 @@ void bisection( const real lr, const real lt0, const real ye, const real var0,
          f2  = f2a[iv];
       }
 
-#     if 0
+#     ifdef NUC_EOS_USE_THRESHOLD
       if ( FABS( (real)1.0 - f2a[iv]/var0 ) <= (real)prec )
       {
          *ltout = ltmid;

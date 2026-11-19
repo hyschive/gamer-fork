@@ -6,6 +6,7 @@
 #if ( MODEL == HYDRO )
 void Src_End_Deleptonization();
 void Src_End_Lightbulb();
+void Src_End_Leakage();
 #endif
 
 // this function pointer can be set by a test problem initializer for a non-built-in source term
@@ -38,7 +39,10 @@ void Src_End()
 
    if ( SrcTerms.Lightbulb )
       Src_End_Lightbulb();
-#  endif
+
+   if ( SrcTerms.Leakage )
+      Src_End_Leakage();
+#  endif // if ( MODEL == HYDRO )
 
 // users may not define Src_End_User_Ptr
    if ( SrcTerms.User  &&  Src_End_User_Ptr )

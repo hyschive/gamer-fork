@@ -46,6 +46,10 @@ void Aux_FindExtrema( Extrema_t *Extrema, const ExtremaMode_t Mode, const int Mi
                       const PatchType_t PatchType );
 void Aux_FindWeightedAverageCenter( double WeightedAverageCenter[], const double Center_ref[], const double MaxR, const double MinWD,
                                     const long WeightingDensityField, const double TolErrR, const int MaxIter, double *FinaldR, int *FinalNIter );
+void Aux_ComputeRay( Profile_t *Ray[], const double Center[], const double Edge[],
+                     const int NRadius_Linear, const int NRadius, const int NTheta, const int NPhi,
+                     const double BinSize_Linear, const double MaxRad_Linear, const double MaxRad,
+                     const long TVarBitIdx[], const int NProf, const double PrepTimeIn );
 #ifndef SERIAL
 void Aux_Record_BoundaryPatch( const int lv, int *NList, int **IDList, int **PosList );
 #endif

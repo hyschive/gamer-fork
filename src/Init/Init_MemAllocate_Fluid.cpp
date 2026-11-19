@@ -103,6 +103,22 @@ void Init_MemAllocate_Fluid( const int Flu_NPatchGroup, const int Pot_NPatchGrou
    h_GramFE_TimeEvo = new gramfe_matmul_float [PS2][ 2*FLU_NXT ];
 #  endif
 
+#  if ( MODEL == HYDRO  &&  NEUTRINO_SCHEME == LEAKAGE )
+   h_SrcLeakage_Radius   = new real [SrcTerms.Leakage_NRadius];
+   h_SrcLeakage_tau      = new real [SrcTerms.Leakage_NRadius*SrcTerms.Leakage_NTheta*SrcTerms.Leakage_NPhi*3];
+   h_SrcLeakage_chi      = new real [SrcTerms.Leakage_NRadius*SrcTerms.Leakage_NTheta*SrcTerms.Leakage_NPhi*3];
+   h_SrcLeakage_HeatFlux = new real [SrcTerms.Leakage_NRadius*SrcTerms.Leakage_NTheta*SrcTerms.Leakage_NPhi*3];
+   h_SrcLeakage_HeatERms = new real [                         SrcTerms.Leakage_NTheta*SrcTerms.Leakage_NPhi*3];
+   h_SrcLeakage_HeatEAve = new real [                         SrcTerms.Leakage_NTheta*SrcTerms.Leakage_NPhi*3];
+
+   SrcTerms.Leakage_Radius_DevPtr   = h_SrcLeakage_Radius;
+   SrcTerms.Leakage_tau_DevPtr      = h_SrcLeakage_tau;
+   SrcTerms.Leakage_chi_DevPtr      = h_SrcLeakage_chi;
+   SrcTerms.Leakage_HeatFlux_DevPtr = h_SrcLeakage_HeatFlux;
+   SrcTerms.Leakage_HeatERms_DevPtr = h_SrcLeakage_HeatERms;
+   SrcTerms.Leakage_HeatEAve_DevPtr = h_SrcLeakage_HeatEAve;
+#  endif
+
 } // FUNCTION : Init_MemAllocate_Fluid
 
 
