@@ -3,49 +3,27 @@ Compilation flags:
 Enable : MODEL=HYDRO, GRAVITY, GREP, [MHD]
 Disable: UNSPLIT_GRAVITY
 
-EOS    : EOS_GAMMA    (GREP migration test)
-         EOS_NUCLEAR  (Post bounce test, Core collapse test and Lightbulb test)
+EOS    : EOS_GAMMA   (Migration test)
+         EOS_NUCLEAR (CCSN)
 
 Default setup:
 ========================================
-1. Enable external potential
-   --> OPT__EXT_POT = 3
-   --> the following function pointers specified in test problem
-       will be overridden and automatically rebinded to
-
-      Init_ExtPot_Ptr               = Init_ExtPot_GREP
-      Poi_UserWorkBeforePoisson_Ptr = Poi_UserWorkBeforePoisson_GREP
-      End_ExtPot_Ptr                = End_ExtPot_GREP
-
-2. For GREP migration:
+1. Migration Test:
    --> MAX_LEVEL = 3
    --> GAMMA = 2.0, K = 1.455e5 (in cgs)
 
-3. For Post bounce:
-   --> MAX_LEVEL = 8
-   --> OPT__DT_USER = 1
-   --> OPT__FLAG_USER = 1
-   --> OPT__RESET_FLUID = 1
-
-4. For Lightbulb:
-   --> OPT__DT_USER = 1
-   --> OPT__RESET_FLUID = 1
-   --> NEUTRINO_SCHEME = LIGHTBULB
-
-5. For Core collapse:
-   --> MAX_LEVEL = 9
-   --> OPT__RESET_FLUID = 1
-
-6. For Leakage:
-   --> OPT__DT_USER = 1
-   --> OPT__RESET_FLUID = 1
-   --> NEUTRINO_SCHEME = LEAKAGE
+3. CCSN:
+   --> Collapse phase:
+      --> SRC_DELEPTONIZATION = 1
+   --> Postbounce phase:
+      --> NEUTRINO_SCHEME = LIGHTBULB or LEAKAGE
+      --> SRC_LIGHTBULB = 1 or SRC_LEAKAGE = 1, respectively
 
 Note:
 ========================================
 1. A suite of test problems for core-collapse supernova simulations
 
-2. Profiles for initial conditions are put at "IC"
+2. Initial condition profiles are provided in the "IC" directory
    (1) GREP migration
       tovstar_short               : TOV star
 
@@ -62,38 +40,41 @@ Note:
       s20GREP_LS220_15ms_idsa     : LS220 EoS, with IDSA
 
    (3) Core collapse
-   --> s20_W2007                  : 20 solar mass progenitor model of Woosely & Heger (2007)
+   --> s20_W2007                  : 20-solarmass progenitor model from Woosely & Heger (2007)
 
-3. Reference solutions are put at "ReferenceSolution"
+3. Reference solutions are provided in the "ReferenceSolution" directory.
 
-4. Python scripts are put at "python_script":
-   --> gen_vec_pot.py             : read the runtime parameters in Input_Parameter and Input_TestProb
-                                    and generate the vector potential of B field "B_IC"
+4. Python scripts are provided in the "python_script" directory:
+   --> gen_vec_pot.py             : read the runtime parameters from Input_Parameter and Input_TestProb
+                                    and generate the magnetic vector potential (B_IC)
    --> plot_profile.py            : compute and plot the spherically averaged profile
    --> plot_rhoc_migrationtest.py : plot the evolution of central density with FLASH data (for GREP migration)
    --> plot_rhoc_postbounce.py    : plot the evolution of central density with FLASH data (for Post bounce)
    --> plot_rhoc_corecollapse.py  : plot the evolution of central density with FLASH data (for Core collapse)
-   --> plot_slice.py              : slice plot for the specified quantity
+   --> plot_slice.py              : Generates slice plots for a specified quantity
 
-5. For MHD simulations, there are two magnetic field profiles supported:
+5. For MHD simulations, three magnetic field configurations are supported:
    (1) CCSN_Mag = 0
-      A_r = A_theta = 0
-      A_p = B0 * varpi^2 * (1 - rho / rho_max)^np * (P / P_max)
+      A_r     = 0
+      A_phi   = B0* varpi^2 * (1 - rho / rho_max)^np * (P / P_max)
+      A_theta = 0
 
    (2) CCSN_Mag = 1
-      A_r = A_theta = 0
-      A_p = 0.5 * B0 * ( R0^3 / (r^3 + R0^3) ) * r * sin(theta)
+      A_r     = 0
+      A_phi   = 0.5 * B0 * ( R0^3 / (r^3 + R0^3) ) * r * sin(theta)
+      A_theta = 0
 
-   It is recommended to initialize the magnetic field from B_IC to guarantee a divergence-free magnetic field.
-   The file B_IC can be generated using gen_vec_pot.py, which will adopt the runtime parameters
-   in Input__Parameters and Input__TestProb. The users can adjust the parameters in the script
+   (3) CCSN_Mag = 2
+      A_r     = 0.5 * B0 * ( R0^3 / (r^3 + R0^3) ) * r * cos(theta)
+      A_phi   = 0.5 * B0 * ( R0^3 / (r^3 + R0^3) ) * r * sin(theta)
+      A_theta = 0
 
-   --> NLEVEL    : control the number of grid in each dimension, which will be set to NX0_TOT * 2^NLEVEL
-   --> num_chunk : number of chunk for computing the vector potential sequentially
-                   runs with higher values have better performance, but consume more memory
+   It is recommended to initialize the magnetic field from the vector potential
+   to ensure a divergence-free magnetic field (OPT__INIT_BFIELD_BYVECPOT = 2)
 
-6. The threshold values in Input__Flag_Rho and Input__Flag_User must be in the code units
+6. The refinement threshold values specified in Input__Flag_Rho and Input__Flag_User must be given in code units
 
 7. Additional Record files:
-   --> Record__CentralQuant : quantites at the center (cell with highest density)
-   --> Record__QuadMom_2nd  : second-order time derivative of mass quadrupole moments
+   --> Record__CentralQuant : Record central quantities, including peak density and its associated Ye and location,
+                              the CCSN center location, and additional neutrino leakage information
+   --> Record__QuadMom_2nd  : Record the second-order time derivatives of the mass quadrupole moments

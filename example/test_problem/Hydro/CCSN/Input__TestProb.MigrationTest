@@ -6,8 +6,15 @@ CCSN_Prob        0                                 # target CCSN problem
 CCSN_Prof_File   IC/tovstar_short                  # filename of input profile
 
 CCSN_Mag         1                                 # target magnetic field profile                     [1]
-                                                   # ( 0: Ap = B0* varpi^2 * (1 - rho / rho_max)^np * (P / P_max)
-                                                   #   1: Ap = 0.5 * B0 * ( R0^3 / (r^3 + R0^3) ) * r * sin(theta) )
+                                                   # ( 0: A_r     = 0
+                                                   #      A_phi   = B0* varpi^2 * (1 - rho / rho_max)^np * (P / P_max)
+                                                   #      A_theta = 0
+                                                   #   1: A_r     = 0
+                                                   #      A_phi   = 0.5 * B0 * ( R0^3 / (r^3 + R0^3) ) * r * sin(theta)
+                                                   #      A_theta = 0
+                                                   #   2: A_r     = 0.5 * B0 * ( R0^3 / (r^3 + R0^3) ) * r * cos(theta)
+                                                   #      A_phi   = 0.5 * B0 * ( R0^3 / (r^3 + R0^3) ) * r * sin(theta)
+                                                   #      A_theta = 0                                                   )
 CCSN_Mag_B0      1.0e14                            # magnetic field strength (in gauss)                [1.e14]
 CCSN_Mag_np      0.0                               # dependence of magnetic field on density           [0.0]
 CCSN_Mag_R0      1.0e8                             # characteristic radius of magnetic field (in cm)   [1.0e8]
