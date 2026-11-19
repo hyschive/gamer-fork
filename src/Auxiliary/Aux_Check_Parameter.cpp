@@ -1912,7 +1912,9 @@ void Aux_Check_Parameter()
 #     error : ERROR : SRC_GHOST_SIZE must be zero for now !!
 #  endif
 
-#  if ( MODEL == HYDRO  &&  EOS != EOS_NUCLEAR )
+#  if ( MODEL == HYDRO )
+#  if ( EOS != EOS_NUCLEAR )
+
    if ( SrcTerms.Deleptonization )
       Aux_Error( ERROR_INFO, "SRC_DELEPTONIZATION must work with EOS_NUCLEAR !!\n" );
 
@@ -1921,6 +1923,8 @@ void Aux_Check_Parameter()
 
    if ( SrcTerms.Leakage )
       Aux_Error( ERROR_INFO, "SRC_LEAKAGE must work with EOS_NUCLEAR !!\n" );
+
+#  else
 
    if ( SrcTerms.Lightbulb  &&  SrcTerms.Leakage )
       Aux_Error( ERROR_INFO, "SRC_LIGHTBULB and SRC_LEAKAGE cannot be enabled simultaneously !!\n" );
@@ -1949,8 +1953,10 @@ void Aux_Check_Parameter()
    if ( int( SrcTerms.Leakage_RadiusMin_Log / SrcTerms.Leakage_BinSize_Radius ) > SrcTerms.Leakage_NRadius )
       Aux_Error( ERROR_INFO, "%s (%14.7e) / %s (%14.7e) > %s (%d) !!\n",
                  "SRC_LEAKAGE_RADIUSMIN_LOG", SrcTerms.Leakage_RadiusMin_Log, "SRC_LEAKAGE_BINSIZE_RADIUS", SrcTerms.Leakage_BinSize_Radius, "SRC_LEAKAGE_NRADIUS", SrcTerms.Leakage_NRadius );
-#  endif
-#  endif // #if ( MODEL == HYDRO  &&  EOS != EOS_NUCLEAR )
+#  endif // #if ( NEUTRINO_SCHEME != LEAKAGE ) ... else ...
+
+#  endif // #if ( EOS != EOS_NUCLEAR ) ... else ...
+#  endif // #if ( MODEL == HYDRO )
 
 // warning
 // ------------------------------
