@@ -343,7 +343,7 @@ void SetParameter()
       default             : Aux_Error( ERROR_INFO, "unsupported CCSN problem (%d) !!\n", CCSN_Prob );
    } // switch ( CCSN_Prob )
 
-// (1-3) check the runtime parameters
+// (1-3) check and update the runtime parameters
 // (1-3-1) determine CCSN_Is_PostBounce
 //         --> Migration Test: always False
 //         --> CCSN :
@@ -364,74 +364,106 @@ void SetParameter()
       }
    }
 
+#  if ( EOS != EOS_NUCLEAR )
+   if ( CCSN_Eint_Mode == 1 )
+      Aux_Error( ERROR_INFO, "Temperature mode for initializing grids only works with EOS_NUCLEAR !!\n" );
+#  endif
+
+// (1-3-2) checks for the migration test
+   if ( CCSN_Prob == Migration_Test )
+   {
+      if ( OPT__FLAG_REGION )
+         Aux_Error( ERROR_INFO, "%s is not supported for %s = %s !!\n", "OPT__FLAG_REGION", "CCSN_Prob", Migration_Test );
+
+      if ( CCSN_Eint_Mode == 1 )
+         Aux_Error( ERROR_INFO, "Temperature mode for initializing grids is not supported in Migration Test yet !!\n" );
+   }
+
+// (1-3-3) checks and setting for the CCSN problems
    if ( CCSN_Prob == CCSN )
    {
-#     if ( NEUTRINO_SCHEME == LEAKAGE )
-      if ( ! SrcTerms.Leakage  &&  CCSN_Is_PostBounce )
-         Aux_Error( ERROR_INFO, "SRC_LEAKAGE must be set to 1 in the postbounce phase !!\n" );
-#     endif
-   }
+//    collapse phase
+      if ( ! CCSN_Is_PostBounce )
+      {
+//       CCSN_CC_Red_DT should be smaller than DT__MAX * UNIT_T
+         if ( CCSN_CC_Red_DT > DT__MAX * UNIT_T )
+            Aux_Error( ERROR_INFO, "%s = %13.7e should be smaller than %s = %13.7e !!\n", "CCSN_CC_Red_DT",
+                       CCSN_CC_Red_DT, "DT__MAX * UNIT_T", DT__MAX * UNIT_T );
 
-// update OUTPUT_DT according to CCSN_PB_Output_Dt
-   if ( CCSN_Is_PostBounce  &&  CCSN_Prob == CCSN  &&  CCSN_PB_Output_Dt > 0.0 )
-   {
-      OUTPUT_DT = CCSN_PB_Output_Dt;
-      PRINT_RESET_PARA( OUTPUT_DT, FORMAT_REAL, "" );
-   }
-
-   if ( CCSN_Eint_Mode == 1 )
-   {
-#     if ( EOS != EOS_NUCLEAR )
-      Aux_Error( ERROR_INFO, "Temperature mode for initializing grids only works with EOS_NUCLEAR !!\n" );
-#     endif
-
-      if ( CCSN_Prob == Migration_Test )
-         Aux_Error( ERROR_INFO, "Temperature mode for initializing grids is not supported in Migration Test yet!!\n" );
-   }
-
-
-// check OPT__FLAG_REGION is disabled for the migration test
-   if ( CCSN_Prob == Migration_Test  &&  OPT__FLAG_REGION )
-      Aux_Error( ERROR_INFO, "%s is not supported for %s = %s !!\n", "OPT__FLAG_REGION", "CCSN_Prob", Migration_Test );
-
-// check and set default runtime parameters for core collapse test
-   if ( CCSN_Prob == CCSN  &&  !CCSN_Is_PostBounce )
-   {
-//    CCSN_CC_Red_DT should be smaller than DT__MAX * UNIT_T
-      if ( CCSN_CC_Red_DT > DT__MAX * UNIT_T )
-         Aux_Error( ERROR_INFO, "%s = %13.7e should be smaller than %s = %13.7e !!\n", "CCSN_CC_Red_DT",
-                    CCSN_CC_Red_DT, "DT__MAX * UNIT_T", DT__MAX * UNIT_T );
-
-      if ( CCSN_CC_MaxRefine_Flag1 ) {
-//       set CCSN_CC_MaxRefine_LV1 to default value
-         if ( CCSN_CC_MaxRefine_LV1 < 0 ) {
-            CCSN_CC_MaxRefine_LV1 = MAX_LEVEL-2;
-            PRINT_RESET_PARA( CCSN_CC_MaxRefine_LV1, FORMAT_INT, "" );
+         if ( CCSN_CC_MaxRefine_Flag1 )
+         {
+//          set CCSN_CC_MaxRefine_LV1 to default value
+            if ( CCSN_CC_MaxRefine_LV1 < 0 )
+            {
+               CCSN_CC_MaxRefine_LV1 = MAX_LEVEL-2;
+               PRINT_RESET_PARA( CCSN_CC_MaxRefine_LV1, FORMAT_INT, "" );
+            }
          }
+
+         if ( CCSN_CC_MaxRefine_Flag2 )
+         {
+//          set CCSN_CC_MaxRefine_LV2 to default value
+            if ( CCSN_CC_MaxRefine_LV2 < 0 )
+            {
+               CCSN_CC_MaxRefine_LV2 = MAX_LEVEL-1;
+               PRINT_RESET_PARA( CCSN_CC_MaxRefine_LV2, FORMAT_INT, "" );
+            }
+
+//          CCSN_CC_MaxRefine_LV1 should be smaller than CCSN_CC_MaxRefine_LV2
+            if (  CCSN_CC_MaxRefine_Flag1  &&  ( CCSN_CC_MaxRefine_LV2 <= CCSN_CC_MaxRefine_LV1 )  )
+               Aux_Error( ERROR_INFO, "%s = %d should be smaller than %s = %d !!\n", "CCSN_CC_MaxRefine_LV1",
+                          CCSN_CC_MaxRefine_LV1, "CCSN_CC_MaxRefine_LV2", CCSN_CC_MaxRefine_LV2   );
+
+//          CCSN_CC_MaxRefine_Dens2 should be larger than CCSN_CC_MaxRefine_Dens1
+            if (  CCSN_CC_MaxRefine_Flag1  &&  ( CCSN_CC_MaxRefine_Dens2 <= CCSN_CC_MaxRefine_Dens1 )  )
+               Aux_Error( ERROR_INFO, "%s = %13.7e should be larger than $s = %13.7e !!\n", "CCSN_CC_MaxRefine_Dens2",
+                          CCSN_CC_MaxRefine_Dens2, "CCSN_CC_MaxRefine_Dens1", CCSN_CC_MaxRefine_Dens1 );
+         }
+
+//       do not mix formulated-rotation and CCSN_CC_Rot_Fac
+         if ( CCSN_CC_Rot == 1  &&  CCSN_CC_Rot_Fac > 0.0 )
+            Aux_Error( ERROR_INFO, "%s = %d and %s shouldn't be mixed\n", "CCSN_CC_Rot", CCSN_CC_Rot, "CCSN_CC_Rot_Fac" );
+
+         if ( ! SrcTerms.Deleptonization )
+            Aux_Error( ERROR_INFO, "SRC_DELEPTONIZATION must be enabled in the collapse phase !!\n" );
+
+#        if ( NEUTRINO_SCHEME == LIGHTBULB )
+         if ( SrcTerms.Lightbulb )
+            Aux_Error( ERROR_INFO, "SRC_LIGHTBULB must be disabled in the collapse phase !!\n" );
+#        endif
+
+#        if ( NEUTRINO_SCHEME == LEAKAGE )
+         if ( SrcTerms.Leakage )
+            Aux_Error( ERROR_INFO, "SRC_LEAKAGE must be disabled in the collapse phase !!\n" );
+#        endif
       }
 
-      if ( CCSN_CC_MaxRefine_Flag2 ) {
-//       set CCSN_CC_MaxRefine_LV2 to default value
-         if ( CCSN_CC_MaxRefine_LV2 < 0 ) {
-            CCSN_CC_MaxRefine_LV2 = MAX_LEVEL-1;
-            PRINT_RESET_PARA( CCSN_CC_MaxRefine_LV2, FORMAT_INT, "" );
+//    postbounce phase
+      else
+      {
+//       update OUTPUT_DT according to CCSN_PB_Output_Dt
+         if ( CCSN_PB_Output_Dt > 0.0 )
+         {
+            OUTPUT_DT = CCSN_PB_Output_Dt;
+            PRINT_RESET_PARA( OUTPUT_DT, FORMAT_REAL, "" );
          }
-//       CCSN_CC_MaxRefine_LV1 should be smaller than CCSN_CC_MaxRefine_LV2
-         if (  CCSN_CC_MaxRefine_Flag1  &&  ( CCSN_CC_MaxRefine_LV2 <= CCSN_CC_MaxRefine_LV1 )  )
-            Aux_Error( ERROR_INFO, "%s = %d should be smaller than %s = %d !!\n", "CCSN_CC_MaxRefine_LV1",
-                       CCSN_CC_MaxRefine_LV1, "CCSN_CC_MaxRefine_LV2", CCSN_CC_MaxRefine_LV2   );
-//       CCSN_CC_MaxRefine_Dens2 should be larger than CCSN_CC_MaxRefine_Dens1
-         if (  CCSN_CC_MaxRefine_Flag1  &&  ( CCSN_CC_MaxRefine_Dens2 <= CCSN_CC_MaxRefine_Dens1 )  )
-            Aux_Error( ERROR_INFO, "%s = %13.7e should be larger than $s = %13.7e !!\n", "CCSN_CC_MaxRefine_Dens2",
-                       CCSN_CC_MaxRefine_Dens2, "CCSN_CC_MaxRefine_Dens1", CCSN_CC_MaxRefine_Dens1 );
-      }
 
-//    do not mix formulated-rotation and CCSN_CC_Rot_Fac
-      if ( CCSN_CC_Rot == 1  &&  CCSN_CC_Rot_Fac > 0.0 )
-         Aux_Error( ERROR_INFO, "%s = %d and %s shouldn't be mixed\n", "CCSN_CC_Rot", CCSN_CC_Rot, "CCSN_CC_Rot_Fac" );
-   } // if ( CCSN_Prob == CCSN  &&  !CCSN_Is_PostBounce )
+         if ( SrcTerms.Deleptonization )
+            Aux_Error( ERROR_INFO, "SRC_DELEPTONIZATION must be disabled in the postbounce phase !!\n" );
 
-// check OPT__FLAG_REGION is enabled for CCSN_AngRes_Max and convert degree to radian
+#        if ( NEUTRINO_SCHEME == LIGHTBULB )
+         if ( ! SrcTerms.Lightbulb )
+            Aux_Error( ERROR_INFO, "SRC_LIGHTBULB must be enabled in the postbounce phase !!\n" );
+#        endif
+
+#        if ( NEUTRINO_SCHEME == LEAKAGE )
+         if ( ! SrcTerms.Leakage )
+            Aux_Error( ERROR_INFO, "SRC_LEAKAGE must be enabled in the postbounce phase !!\n" );
+#        endif
+      } // if ( ! CCSN_Is_PostBounce ) ... else ...
+   } // if ( CCSN_Prob == CCSN )
+
+// (1-3-4) check OPT__FLAG_REGION is enabled for CCSN_AngRes_Max and convert degree to radian
    const double Deg2Rad = M_PI/180.0;
 
    if ( CCSN_AngRes_Max > 0.0 ) {
