@@ -151,6 +151,8 @@ void Init_Field()
 #  endif // #ifdef NEUTRINO_SCHEME
 
 #  if ( NUC_TABLE_MODE == NUC_TABLE_MODE_TEMP )
+// although TEMP_IG is not a passive scalar, it should be assigned FIXUP_YES and FIXUP_REST_YES because it is a derived field
+// that must be consistently updated and synchronized whenever its underlying thermodynamic fields undergo fix-up
    Idx_Temp_IG  = AddField( "Temp_IG",  FIXUP_FLUX_YES, FIXUP_REST_YES, FLOOR_YES, NORMALIZE_NO, INTERP_FRAC_NO  );
    if ( Idx_Temp_IG  != TEMP_IG  )  Aux_Error( ERROR_INFO, "inconsistent Idx_Temp_IG  (%d != %d) !!\n", Idx_Temp_IG,  TEMP_IG  );
 #  endif
